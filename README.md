@@ -15,9 +15,12 @@ godot --headless --path . --quit-after 60   # vérification sans affichage
 ## Export Web (HTML)
 
 ```sh
-godot --headless --path . --export-release "Web" build/web/index.html
-cd build/web && python3 -m http.server 8000   # puis ouvrir http://localhost:8000
+./export_web.sh            # exporte dans build/web/
+./export_web.sh --serve    # exporte puis sert le jeu sur http://localhost:8000
+./export_web.sh --debug    # export en mode débogage
 ```
+
+Le script cherche Godot dans la variable `GODOT`, puis dans le PATH, puis à son emplacement par défaut.
 
 Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'ouvrir directement depuis le disque (`file://`) ne fonctionne pas. Les modèles d'export Web de Godot 4.7.2 doivent être installés.
 

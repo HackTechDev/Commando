@@ -69,3 +69,4 @@
 ## Export Web
 
 - Préréglage d'export « Web » (`export_presets.cfg`), sans threads pour être hébergeable partout ; sortie dans `build/web/`.
+- Script `export_web.sh` : export Web automatisé, avec options `--serve` et `--debug`.
