@@ -1,0 +1,44 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/commando.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/units/soldier_model.gd" id="2"]
+[ext_resource type="Resource" path="res://data/units/operator.tres" id="3"]
+
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.32
+height = 1.8
+
+[sub_resource type="TorusMesh" id="ring"]
+inner_radius = 0.5
+outer_radius = 0.58
+rings = 40
+ring_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="ring_mat"]
+shading_mode = 0
+albedo_color = Color(0.25, 0.65, 1, 1)
+
+[node name="Commando" type="CharacterBody3D" groups=["commandos"]]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1")
+stats = ExtResource("3")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("shape")
+
+[node name="SoldierModel" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="SelectionRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("ring")
+surface_material_override/0 = SubResource("ring_mat")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.4
+path_height_offset = 0.5
+target_desired_distance = 0.25
