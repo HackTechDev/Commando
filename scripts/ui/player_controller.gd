@@ -7,11 +7,13 @@ const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
 const MASK_GROUND := 0b011
 const MASK_COMMANDOS := 0b100
+const MASK_ENEMIES := 0b1000
 
 @export var box_fill := Color(0.2, 0.6, 1.0, 0.15)
 @export var box_border := Color(0.3, 0.7, 1.0, 0.9)
 @export var marker_color := Color(0.3, 0.9, 0.4)
 @export var marker_run_color := Color(1.0, 0.75, 0.2)
+@export var marker_attack_color := Color(1.0, 0.25, 0.2)
 
 var _dragging: bool = false
 var _drag_start: Vector2
@@ -38,7 +40,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			queue_redraw()
 			_finish_selection()
 		elif event.is_action_pressed(&"order"):
-			_order_move(button.position, button.double_click)
+			_order(button.position, button.double_click)
 	elif event is InputEventMouseMotion and _dragging:
 		_drag_end = (event as InputEventMouseMotion).position
 		queue_redraw()
@@ -96,8 +98,15 @@ func _select_by_index(index: int) -> void:
 			return
 
 
-func _order_move(screen_position: Vector2, run: bool) -> void:
+## Clic droit : attaque si un ennemi est visé, sinon déplacement.
+func _order(screen_position: Vector2, run: bool) -> void:
 	if SelectionManager.selected.is_empty():
+		return
+	var enemy_hit := _raycast(screen_position, MASK_ENEMIES)
+	if enemy_hit.has("collider") and enemy_hit["collider"] is Enemy:
+		var enemy := enemy_hit["collider"] as Enemy
+		SelectionManager.order_attack(enemy, run)
+		_spawn_marker(enemy.global_position, marker_attack_color)
 		return
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
@@ -105,7 +114,7 @@ func _order_move(screen_position: Vector2, run: bool) -> void:
 	var target: Vector3 = hit["position"]
 	target.y = 0.0
 	SelectionManager.order_move(target, run)
-	_spawn_marker(target, run)
+	_spawn_marker(target, marker_run_color if run else marker_color)
 
 
 func _focus_camera() -> void:
@@ -125,14 +134,14 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 
 
 ## Anneau éphémère indiquant la destination.
-func _spawn_marker(at: Vector3, run: bool) -> void:
+func _spawn_marker(at: Vector3, color: Color) -> void:
 	var mesh := TorusMesh.new()
 	mesh.inner_radius = 0.28
 	mesh.outer_radius = 0.36
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.albedo_color = marker_run_color if run else marker_color
+	material.albedo_color = color
 	var marker := MeshInstance3D.new()
 	marker.mesh = mesh
 	marker.material_override = material
@@ -151,5 +160,5 @@ func _on_selection_changed(units: Array[Commando]) -> void:
 		names.append("%d. %s (%d PV)" % [unit.unit_index, unit.display_name, roundi(unit.health.health)])
 	var selection := "Aucune unité sélectionnée" if names.is_empty() else "Sélection : " + ", ".join(names)
 	_info.text = selection + "\n" \
-		+ "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir\n" \
+		+ "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer\n" \
 		+ "C : accroupi  •  X : rampé  •  ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E : rotation  •  Origine : centrer"

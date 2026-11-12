@@ -47,6 +47,12 @@ func order_move(target: Vector3, run: bool) -> void:
 		selected[i].move_to(target + offset, run)
 
 
+## Ordonne aux unités sélectionnées d'attaquer `enemy`.
+func order_attack(enemy: Enemy, run: bool) -> void:
+	for unit in selected:
+		unit.attack(enemy, run)
+
+
 ## Applique une posture à toutes les unités sélectionnées (bascule).
 func toggle_posture(posture: SoldierModel.Posture) -> void:
 	for unit in selected:

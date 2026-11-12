@@ -2,8 +2,8 @@ class_name Tracer
 extends MeshInstance3D
 ## Trait lumineux éphémère matérialisant un tir.
 
-const THICKNESS := 0.035
-const DURATION := 0.12
+const THICKNESS := 0.06
+const DURATION := 0.18
 
 
 ## Crée un traceur entre deux points du monde, enfant de `parent`.

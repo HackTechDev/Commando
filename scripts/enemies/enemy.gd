@@ -19,6 +19,7 @@ signal state_changed(state: State)
 @export var patrol_path: Path3D
 
 var state: State = State.PATROL
+var is_dead: bool = false
 ## Jauge de détection, de 0 (rien vu) à 1 (repéré).
 var detection: float = 0.0
 
@@ -38,9 +39,12 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @onready var _gauge: Node3D = $Gauge
 @onready var _gauge_fill: MeshInstance3D = $Gauge/Fill
 @onready var _mark: Label3D = $Gauge/Mark
+@onready var health: HealthComponent = $HealthComponent
 
 
 func _ready() -> void:
+	health.reset(stats.max_health)
+	health.died.connect(_on_died)
 	if patrol_path and patrol_path.curve:
 		for i in patrol_path.curve.point_count:
 			_waypoints.append(patrol_path.to_global(patrol_path.curve.get_point_position(i)))
@@ -50,6 +54,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if is_dead:
+		return
 	_update_detection(delta)
 	_update_state()
 
@@ -69,6 +75,36 @@ func _physics_process(delta: float) -> void:
 	var speed := Vector2(velocity.x, velocity.z).length()
 	_model.move_ratio = 2.0 * speed / stats.chase_speed if state == State.ALERT else 0.6 * speed / stats.patrol_speed
 	_update_feedback()
+
+
+## Encaisse un tir venant de `from` : dégâts, puis alerte vers le tireur.
+func take_hit(amount: float, from: Vector3) -> void:
+	if is_dead:
+		return
+	health.take_damage(amount)
+	if is_dead:
+		return
+	detection = 1.0
+	if _target == null:
+		_last_seen = from
+		_memory_left = stats.alert_memory
+		_chase_arrived = false
+
+
+func _on_died() -> void:
+	is_dead = true
+	state = State.PATROL
+	detection = 0.0
+	velocity = Vector3.ZERO
+	remove_from_group(&"enemies")
+	collision_layer = 0
+	_model.is_dead = true
+	_model.move_ratio = 0.0
+	_vision.visible = false
+	_vision.set_physics_process(false)
+	_gauge.visible = false
+	EventBus.enemy_killed.emit(self)
+	GameState.refresh_alert()
 
 
 func _update_detection(delta: float) -> void:

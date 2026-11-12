@@ -2,6 +2,7 @@ class_name EnemyStats
 extends Resource
 ## Statistiques d'équilibrage d'un type d'ennemi.
 
+@export var max_health: float = 100.0
 @export var patrol_speed: float = 1.6
 @export var turn_speed: float = 6.0
 ## Pause à chaque point de patrouille, en secondes.

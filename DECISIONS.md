@@ -15,3 +15,5 @@
 - **Vision en alerte** : un ennemi en alerte voit aussi les cibles accroupies ou rampées en zone lointaine ; seuls les obstacles cachent encore.
 - **Tir ennemi** : tirage aléatoire de réussite (85 % à bout portant, 35 % à 14 m, ×0,8 accroupi, ×0,6 rampé), 25 PV par balle sur 100. Pas de projectile physique ; les tirs ratés n'ont aucun effet.
 - **Mort d'un commando** : message d'échec dans le HUD, mais la partie continue tant qu'il n'y a pas de système de mission (M7). Les commandos ne peuvent pas encore riposter (M5).
+- **Tir des opérateurs** : arme à silencieux commune aux trois opérateurs (34 PV par balle, 95 % à bout portant, 60 % à 16 m, munitions illimitées pour l'instant). Un ennemi touché sans avoir vu le tireur passe en alerte et court vers la position du tir.
+- **Corps ennemis** : ils restent au sol mais ne sont pas encore détectables ni transportables (M4/M5).
