@@ -1,0 +1,114 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/player_controller.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/ui/alert_indicator.gd" id="3"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="4"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="PlayerController" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("4")
+script = ExtResource("2")
+
+[node name="Help" type="Label" parent="PlayerController"]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 900.0
+offset_bottom = 80.0
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_font_sizes/font_size = 14
+text = "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer
+ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"
+
+[node name="AlertPanel" type="PanelContainer" parent="PlayerController"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -16.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = 12.0
+grow_horizontal = 0
+mouse_filter = 2
+
+[node name="AlertLabel" type="Label" parent="PlayerController/AlertPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "CALME"
+horizontal_alignment = 1
+script = ExtResource("3")
+
+[node name="Portraits" type="HBoxContainer" parent="PlayerController"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = -16.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="ActionBar" type="PanelContainer" parent="PlayerController"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -16.0
+offset_top = -16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="Buttons" type="HBoxContainer" parent="PlayerController/ActionBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Crouch" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "S'accroupir ou se relever : plus lent, invisible en zone lointaine des cônes."
+toggle_mode = true
+text = "Accroupi  [C]"
+
+[node name="Prone" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Ramper ou se relever : très lent, se cache derrière les obstacles bas."
+toggle_mode = true
+text = "Rampé  [X]"
+
+[node name="Reload" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Recharger l'arme avec les cartouches de réserve."
+text = "Recharger  [R]"
+
+[node name="Stop" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Annuler le déplacement ou l'attaque en cours."
+text = "Stop  [F]"

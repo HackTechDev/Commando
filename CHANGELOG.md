@@ -39,3 +39,9 @@
 ## Rotation fluide de la caméra
 
 - La caméra tourne en continu tant que A / E est maintenue, avec accélération et arrêt progressifs.
+
+## HUD
+
+- Portraits des opérateurs en bas à gauche : numéro, nom, barre de vie, posture, munitions, surbrillance de sélection ; clic pour sélectionner, double clic pour centrer la caméra.
+- Barre d'actions en bas à droite : accroupi, rampé, recharger, stop (nouvelle touche F), avec infobulles.
+- Indicateur d'alerte en haut à droite ; thème unique `res://assets/ui/theme.tres`.

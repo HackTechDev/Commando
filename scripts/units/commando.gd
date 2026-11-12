@@ -3,6 +3,7 @@ extends CharacterBody3D
 ## Unité contrôlable par le joueur : déplacement par navigation et postures.
 
 signal selected_changed(is_selected: bool)
+signal posture_changed(posture: SoldierModel.Posture)
 
 const MASK_OCCLUDERS := 0b10
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
@@ -20,7 +21,11 @@ const STUCK_GOAL_DISTANCE := 2.0
 
 var is_selected: bool = false
 var is_dead: bool = false
-var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING
+var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING:
+	set(value):
+		if value != posture:
+			posture = value
+			posture_changed.emit(posture)
 ## Cartouches dans le chargeur engagé.
 var ammo_in_magazine: int = 0
 ## Cartouches en réserve.

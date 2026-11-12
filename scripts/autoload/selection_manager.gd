@@ -17,7 +17,7 @@ func select(units: Array[Commando], additive: bool = false) -> void:
 				unit.set_selected(false)
 		selected.clear()
 	for unit in units:
-		if not selected.has(unit):
+		if not selected.has(unit) and not unit.is_dead:
 			selected.append(unit)
 			unit.set_selected(true)
 	selection_changed.emit(selected)
@@ -51,6 +51,12 @@ func order_move(target: Vector3, run: bool) -> void:
 func order_attack(enemy: Enemy, run: bool) -> void:
 	for unit in selected:
 		unit.attack(enemy, run)
+
+
+## Annule le déplacement ou l'attaque des unités sélectionnées.
+func stop() -> void:
+	for unit in selected:
+		unit.stop()
 
 
 ## Fait recharger les unités sélectionnées.

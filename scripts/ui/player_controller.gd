@@ -1,7 +1,7 @@
 class_name PlayerController
 extends Control
 ## Entrées du joueur : sélection (clic, rectangle, touches), ordres de
-## déplacement et postures. Dessine aussi le rectangle de sélection.
+## déplacement, d'attaque et postures. Dessine aussi le rectangle de sélection.
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -18,16 +18,6 @@ const MASK_ENEMIES := 0b1000
 var _dragging: bool = false
 var _drag_start: Vector2
 var _drag_end: Vector2
-
-@onready var _info: Label = $Info
-
-
-func _ready() -> void:
-	SelectionManager.selection_changed.connect(_on_selection_changed)
-	_on_selection_changed(SelectionManager.selected)
-	EventBus.unit_ammo_changed.connect(func(_unit: Node3D) -> void: _on_selection_changed(SelectionManager.selected))
-	EventBus.unit_damaged.connect(func(_unit: Node3D, _amount: float) -> void: _on_selection_changed(SelectionManager.selected))
-
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -51,6 +41,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		SelectionManager.toggle_posture(SoldierModel.Posture.PRONE)
 	elif event.is_action_pressed(&"reload"):
 		SelectionManager.reload()
+	elif event.is_action_pressed(&"stop"):
+		SelectionManager.stop()
 	elif event.is_action_pressed(&"camera_focus"):
 		_focus_camera()
 	else:
@@ -155,18 +147,3 @@ func _spawn_marker(at: Vector3, color: Color) -> void:
 	tween.tween_property(marker, "scale", Vector3.ONE * 0.3, 0.6)
 	tween.tween_property(material, "albedo_color:a", 0.0, 0.6)
 	tween.chain().tween_callback(marker.queue_free)
-
-
-func _on_selection_changed(units: Array[Commando]) -> void:
-	var names := PackedStringArray()
-	for unit in units:
-		var ammo := "%d/%d" % [unit.ammo_in_magazine, unit.ammo_reserve]
-		if unit.is_reloading():
-			ammo += ", rechargement…"
-		elif not unit.has_ammo():
-			ammo = "à sec"
-		names.append("%d. %s (%d PV, munitions %s)" % [unit.unit_index, unit.display_name, roundi(unit.health.health), ammo])
-	var selection := "Aucune unité sélectionnée" if names.is_empty() else "Sélection : " + ", ".join(names)
-	_info.text = selection + "\n" \
-		+ "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer\n" \
-		+ "R : recharger  •  C : accroupi  •  X : rampé  •  ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"
