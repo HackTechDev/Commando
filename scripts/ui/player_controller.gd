@@ -25,6 +25,7 @@ var _drag_end: Vector2
 func _ready() -> void:
 	SelectionManager.selection_changed.connect(_on_selection_changed)
 	_on_selection_changed(SelectionManager.selected)
+	EventBus.unit_ammo_changed.connect(func(_unit: Node3D) -> void: _on_selection_changed(SelectionManager.selected))
 	EventBus.unit_damaged.connect(func(_unit: Node3D, _amount: float) -> void: _on_selection_changed(SelectionManager.selected))
 
 
@@ -48,6 +49,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		SelectionManager.toggle_posture(SoldierModel.Posture.CROUCHED)
 	elif event.is_action_pressed(&"posture_prone"):
 		SelectionManager.toggle_posture(SoldierModel.Posture.PRONE)
+	elif event.is_action_pressed(&"reload"):
+		SelectionManager.reload()
 	elif event.is_action_pressed(&"camera_focus"):
 		_focus_camera()
 	else:
@@ -157,8 +160,13 @@ func _spawn_marker(at: Vector3, color: Color) -> void:
 func _on_selection_changed(units: Array[Commando]) -> void:
 	var names := PackedStringArray()
 	for unit in units:
-		names.append("%d. %s (%d PV)" % [unit.unit_index, unit.display_name, roundi(unit.health.health)])
+		var ammo := "%d/%d" % [unit.ammo_in_magazine, unit.ammo_reserve]
+		if unit.is_reloading():
+			ammo += ", rechargement…"
+		elif not unit.has_ammo():
+			ammo = "à sec"
+		names.append("%d. %s (%d PV, munitions %s)" % [unit.unit_index, unit.display_name, roundi(unit.health.health), ammo])
 	var selection := "Aucune unité sélectionnée" if names.is_empty() else "Sélection : " + ", ".join(names)
 	_info.text = selection + "\n" \
 		+ "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer\n" \
-		+ "C : accroupi  •  X : rampé  •  ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E : rotation  •  Origine : centrer"
+		+ "R : recharger  •  C : accroupi  •  X : rampé  •  ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E : rotation  •  Origine : centrer"

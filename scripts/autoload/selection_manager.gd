@@ -53,6 +53,12 @@ func order_attack(enemy: Enemy, run: bool) -> void:
 		unit.attack(enemy, run)
 
 
+## Fait recharger les unités sélectionnées.
+func reload() -> void:
+	for unit in selected:
+		unit.reload()
+
+
 ## Applique une posture à toutes les unités sélectionnées (bascule).
 func toggle_posture(posture: SoldierModel.Posture) -> void:
 	for unit in selected:

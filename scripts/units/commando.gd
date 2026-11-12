@@ -14,11 +14,16 @@ const MASK_OCCLUDERS := 0b10
 var is_selected: bool = false
 var is_dead: bool = false
 var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING
+## Cartouches dans le chargeur engagé.
+var ammo_in_magazine: int = 0
+## Cartouches en réserve.
+var ammo_reserve: int = 0
 
 var _running: bool = false
 var _has_order: bool = false
 var _attack_target: Enemy
 var _fire_cooldown: float = 0.0
+var _reload_left: float = 0.0
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
@@ -29,11 +34,14 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	health.reset(stats.max_health)
+	ammo_in_magazine = stats.magazine_size
+	ammo_reserve = stats.reserve_ammo
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
 
 
 func _physics_process(delta: float) -> void:
+	_update_reload(delta)
 	var horizontal := Vector3.ZERO
 	if is_dead:
 		pass
@@ -67,12 +75,30 @@ func move_to(target: Vector3, run: bool) -> void:
 ## Ordonne d'attaquer `enemy` : l'unité s'approche jusqu'à avoir une ligne de
 ## tir, puis tire jusqu'à ce que la cible soit neutralisée.
 func attack(enemy: Enemy, run: bool) -> void:
-	if is_dead or enemy == null or enemy.is_dead:
+	if is_dead or enemy == null or enemy.is_dead or not has_ammo():
 		return
 	_has_order = false
 	_running = run
 	_attack_target = enemy
 	_fire_cooldown = stats.aim_time
+
+
+## Vrai s'il reste au moins une cartouche (chargeur ou réserve).
+func has_ammo() -> bool:
+	return ammo_in_magazine > 0 or ammo_reserve > 0
+
+
+## Vrai pendant un rechargement.
+func is_reloading() -> bool:
+	return _reload_left > 0.0
+
+
+## Lance un rechargement si le chargeur n'est pas plein et qu'il reste de la réserve.
+func reload() -> void:
+	if is_dead or is_reloading() or ammo_reserve <= 0 or ammo_in_magazine >= stats.magazine_size:
+		return
+	_reload_left = stats.reload_time
+	EventBus.unit_ammo_changed.emit(self)
 
 
 ## Arrête le déplacement et l'attaque en cours.
@@ -97,6 +123,18 @@ func set_selected(value: bool) -> void:
 	selected_changed.emit(value)
 
 
+func _update_reload(delta: float) -> void:
+	if not is_reloading() or is_dead:
+		return
+	_reload_left -= delta
+	if _reload_left <= 0.0:
+		_reload_left = 0.0
+		var loaded := mini(stats.magazine_size - ammo_in_magazine, ammo_reserve)
+		ammo_in_magazine += loaded
+		ammo_reserve -= loaded
+		EventBus.unit_ammo_changed.emit(self)
+
+
 func _follow_path(delta: float) -> Vector3:
 	var to_next := _agent.get_next_path_position() - global_position
 	to_next.y = 0.0
@@ -115,6 +153,9 @@ func _attack(delta: float) -> Vector3:
 	if not is_instance_valid(_attack_target) or _attack_target.is_dead:
 		_attack_target = null
 		return Vector3.ZERO
+	if not has_ammo():
+		_attack_target = null
+		return Vector3.ZERO
 	var to_target := _attack_target.global_position - global_position
 	to_target.y = 0.0
 	var distance := to_target.length()
@@ -122,7 +163,9 @@ func _attack(delta: float) -> Vector3:
 		if distance > 0.01:
 			_face(to_target, delta)
 		_fire_cooldown -= delta
-		if _fire_cooldown <= 0.0 and (-global_basis.z).angle_to(to_target) < 0.25:
+		if ammo_in_magazine <= 0:
+			reload()
+		elif not is_reloading() and _fire_cooldown <= 0.0 and (-global_basis.z).angle_to(to_target) < 0.25:
 			_fire(_attack_target, distance)
 		return Vector3.ZERO
 	# Pas de ligne de tir : s'approcher, puis viser de nouveau.
@@ -152,6 +195,8 @@ func _has_line_of_fire(enemy: Enemy) -> bool:
 
 func _fire(enemy: Enemy, distance: float) -> void:
 	_fire_cooldown = stats.fire_interval
+	ammo_in_magazine -= 1
+	EventBus.unit_ammo_changed.emit(self)
 	var forward := -global_basis.z
 	var muzzle := global_position + Vector3.UP * _weapon_height() + forward * 0.7
 	var aim := enemy.global_position + Vector3.UP * 1.2

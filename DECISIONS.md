@@ -17,3 +17,4 @@
 - **Mort d'un commando** : message d'échec dans le HUD, mais la partie continue tant qu'il n'y a pas de système de mission (M7). Les commandos ne peuvent pas encore riposter (M5).
 - **Tir des opérateurs** : arme à silencieux commune aux trois opérateurs (34 PV par balle, 95 % à bout portant, 60 % à 16 m, munitions illimitées pour l'instant). Un ennemi touché sans avoir vu le tireur passe en alerte et court vers la position du tir.
 - **Corps ennemis** : ils restent au sol mais ne sont pas encore détectables ni transportables (M4/M5).
+- **Munitions** : 10 cartouches par chargeur, 20 en réserve, comptées à l'unité (un rechargement partiel ne perd rien). Pas encore de ramassage de munitions (§5.5). Les ennemis gardent des munitions illimitées.

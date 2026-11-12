@@ -4,6 +4,7 @@ extends Node
 @warning_ignore_start("unused_signal")
 signal unit_spotted(unit: Node3D, by: Node3D)
 signal unit_damaged(unit: Node3D, amount: float)
+signal unit_ammo_changed(unit: Node3D)
 signal unit_died(unit: Node3D)
 signal enemy_killed(enemy: Node3D)
 signal alarm_raised(position: Vector3)

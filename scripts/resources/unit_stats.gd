@@ -20,5 +20,11 @@ extends Resource
 ## Probabilité de toucher à bout portant et à portée maximale.
 @export_range(0.0, 1.0) var hit_chance_near: float = 0.95
 @export_range(0.0, 1.0) var hit_chance_far: float = 0.6
+## Cartouches par chargeur.
+@export var magazine_size: int = 10
+## Cartouches en réserve au début de la mission (hors chargeur engagé).
+@export var reserve_ammo: int = 20
+## Durée d'un rechargement, en secondes.
+@export var reload_time: float = 2.0
 ## Rayon du bruit d'un tir (arme équipée d'un silencieux).
 @export var gunshot_noise_radius: float = 8.0

@@ -19,6 +19,7 @@ godot --headless --path . --quit-after 60   # vérification sans affichage
 | Sélectionner | Clic gauche, rectangle, touches 1 à 3 (Maj : ajouter) |
 | Marcher / courir | Clic droit / double clic droit |
 | Tirer sur un ennemi | Clic droit sur l'ennemi |
+| Recharger | R |
 | Accroupi / rampé | C / X (bascule) |
 | Déplacer la caméra | ZQSD, flèches, bord d'écran, clic molette maintenu |
 | Zoom | Molette |
