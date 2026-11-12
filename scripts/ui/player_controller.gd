@@ -169,4 +169,4 @@ func _on_selection_changed(units: Array[Commando]) -> void:
 	var selection := "Aucune unité sélectionnée" if names.is_empty() else "Sélection : " + ", ".join(names)
 	_info.text = selection + "\n" \
 		+ "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer\n" \
-		+ "R : recharger  •  C : accroupi  •  X : rampé  •  ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E : rotation  •  Origine : centrer"
+		+ "R : recharger  •  C : accroupi  •  X : rampé  •  ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"

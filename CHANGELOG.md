@@ -35,3 +35,7 @@
 
 - Opérateurs et ennemis se bloquent physiquement et se contournent (évitement de `NavigationAgent3D`).
 - Une unité à l'arrêt ne se fait pas pousser ; une destination occupée par une autre unité met fin à l'ordre à proximité.
+
+## Rotation fluide de la caméra
+
+- La caméra tourne en continu tant que A / E est maintenue, avec accélération et arrêt progressifs.

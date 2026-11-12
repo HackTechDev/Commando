@@ -23,7 +23,7 @@ godot --headless --path . --quit-after 60   # vérification sans affichage
 | Accroupi / rampé | C / X (bascule) |
 | Déplacer la caméra | ZQSD, flèches, bord d'écran, clic molette maintenu |
 | Zoom | Molette |
-| Rotation de 90° | A / E |
+| Rotation de la caméra | A / E (maintenir) |
 | Centrer sur l'unité | Origine |
 
 Les touches sont définies par position physique dans l'InputMap : sur un clavier QWERTY, ZQSD devient WASD et A/E devient Q/E.

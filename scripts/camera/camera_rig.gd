@@ -3,7 +3,8 @@ extends Node3D
 ## Rig de caméra isométrique : pivot au sol + Camera3D orthographique.
 ##
 ## Déplacement (touches, bord d'écran, glisser molette), zoom sur `size`,
-## rotation par pas de 90° interpolée, limites de déplacement.
+## rotation libre et continue tant que la touche est maintenue, limites de
+## déplacement.
 
 @export var pitch_degrees: float = -35.264
 @export var distance: float = 60.0
@@ -14,6 +15,10 @@ extends Node3D
 @export var start_size: float = 18.0
 @export var zoom_step: float = 1.15
 @export var smoothing: float = 10.0
+## Vitesse de rotation quand la touche est maintenue, en degrés par seconde.
+@export var rotation_speed: float = 110.0
+## Lissage de la rotation (plus petit = plus doux, avec plus d'inertie).
+@export var rotation_smoothing: float = 8.0
 @export var edge_scroll_enabled: bool = true
 @export var edge_margin: float = 10.0
 ## Limites de déplacement du pivot (seuls X et Z sont utilisés).
@@ -42,10 +47,12 @@ func _process(delta: float) -> void:
 		var move := basis.x * input.x + basis.z * input.y
 		_target_position += move * pan_speed * _camera.size * delta
 	_clamp_target()
+	var turn := Input.get_axis(&"camera_rotate_left", &"camera_rotate_right")
+	_target_yaw += turn * deg_to_rad(rotation_speed) * delta
 
 	var blend := 1.0 - exp(-smoothing * delta)
 	position = position.lerp(_target_position, blend)
-	rotation.y = lerp_angle(rotation.y, _target_yaw, blend)
+	rotation.y = lerpf(rotation.y, _target_yaw, 1.0 - exp(-rotation_smoothing * delta))
 	_camera.size = lerpf(_camera.size, _target_size, blend)
 
 
@@ -54,10 +61,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		set_zoom(_target_size / zoom_step)
 	elif event.is_action_pressed(&"camera_zoom_out"):
 		set_zoom(_target_size * zoom_step)
-	elif event.is_action_pressed(&"camera_rotate_left"):
-		_target_yaw -= PI / 2.0
-	elif event.is_action_pressed(&"camera_rotate_right"):
-		_target_yaw += PI / 2.0
 	elif event is InputEventMouseMotion and Input.is_action_pressed(&"camera_drag"):
 		var motion := event as InputEventMouseMotion
 		var units_per_pixel := _camera.size / float(get_viewport().get_visible_rect().size.y)

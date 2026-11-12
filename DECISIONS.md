@@ -18,3 +18,4 @@
 - **Tir des opérateurs** : arme à silencieux commune aux trois opérateurs (34 PV par balle, 95 % à bout portant, 60 % à 16 m, munitions illimitées pour l'instant). Un ennemi touché sans avoir vu le tireur passe en alerte et court vers la position du tir.
 - **Corps ennemis** : ils restent au sol mais ne sont pas encore détectables ni transportables (M4/M5).
 - **Munitions** : 10 cartouches par chargeur, 20 en réserve, comptées à l'unité (un rechargement partiel ne perd rien). Pas encore de ramassage de munitions (§5.5). Les ennemis gardent des munitions illimitées.
+- **Rotation de la caméra** : libre et continue (110°/s, lissée) à la demande du porteur du projet, au lieu des pas de 90° du §4.
