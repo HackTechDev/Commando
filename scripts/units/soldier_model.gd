@@ -9,6 +9,25 @@ extends Node3D
 ## L'animation (marche, course, postures) est procédurale.
 
 enum Posture { STANDING, CROUCHED, PRONE }
+enum ArmPose { RIFLE, REACH, PUSH }
+
+# Images clés de l'escalade, par paires (instant 0..1, valeur). Montée : élan,
+# mains sur le rebord, traction, passage d'une jambe, redressement.
+const CLIMB_UP_HIPS: Array[float] = [0.0, 0.92, 0.15, 0.78, 0.28, 0.92, 0.5, 0.92, 0.66, 0.5, 0.82, 0.54, 1.0, 0.92]
+const CLIMB_UP_THIGH_L: Array[float] = [0.0, 0.0, 0.15, 0.5, 0.28, 0.1, 0.5, 0.25, 0.66, -0.2, 0.82, 1.0, 1.0, 0.0]
+const CLIMB_UP_KNEE_L: Array[float] = [0.0, 0.0, 0.15, -1.0, 0.28, -0.1, 0.5, -0.5, 0.66, -0.9, 0.82, -1.9, 1.0, 0.0]
+const CLIMB_UP_THIGH_R: Array[float] = [0.0, 0.0, 0.15, 0.5, 0.28, 0.1, 0.5, 0.6, 0.66, 1.75, 0.82, 1.0, 1.0, 0.0]
+const CLIMB_UP_KNEE_R: Array[float] = [0.0, 0.0, 0.15, -1.0, 0.28, -0.1, 0.5, -0.9, 0.66, -1.7, 0.82, -1.9, 1.0, 0.0]
+const CLIMB_UP_LEAN: Array[float] = [0.0, 0.0, 0.15, -0.25, 0.5, -0.55, 0.82, -0.5, 1.0, 0.0]
+const CLIMB_UP_SLING: Array[float] = [0.0, 0.0, 0.14, 1.0, 0.82, 1.0, 1.0, 0.0]
+const CLIMB_UP_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.18, ArmPose.REACH, 0.5, ArmPose.PUSH, 0.72, ArmPose.PUSH, 0.96, ArmPose.RIFLE]
+# Descente : accroupi au bord, appui des mains, chute, réception, redressement.
+const CLIMB_DOWN_HIPS: Array[float] = [0.0, 0.92, 0.25, 0.54, 0.45, 0.88, 0.6, 0.9, 0.74, 0.62, 1.0, 0.92]
+const CLIMB_DOWN_THIGH: Array[float] = [0.0, 0.0, 0.25, 1.0, 0.45, 0.3, 0.6, 0.15, 0.74, 0.85, 1.0, 0.0]
+const CLIMB_DOWN_KNEE: Array[float] = [0.0, 0.0, 0.25, -1.9, 0.45, -0.5, 0.6, -0.3, 0.74, -1.6, 1.0, 0.0]
+const CLIMB_DOWN_LEAN: Array[float] = [0.0, 0.0, 0.25, -0.5, 0.5, -0.15, 0.74, -0.4, 1.0, 0.0]
+const CLIMB_DOWN_SLING: Array[float] = [0.0, 0.0, 0.15, 1.0, 0.75, 1.0, 1.0, 0.0]
+const CLIMB_DOWN_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.22, ArmPose.PUSH, 0.5, ArmPose.REACH, 0.82, ArmPose.RIFLE]
 
 const HIP_HEIGHT := 0.92
 const THIGH_LENGTH := 0.44
@@ -29,6 +48,11 @@ var posture: Posture = Posture.STANDING
 var move_ratio: float = 0.0
 ## Unité morte : étendue sur le dos, immobile.
 var is_dead: bool = false
+## Avancement de l'animation d'escalade (0 à 1), piloté par l'unité ;
+## négatif quand aucune escalade n'est en cours.
+var climb_progress: float = -1.0
+## Vrai pour l'animation de descente, faux pour la montée.
+var climb_descending: bool = false
 
 var _body: Node3D
 var _hips: Node3D
@@ -39,6 +63,13 @@ var _leg_r: Node3D
 var _knee_l: Node3D
 var _knee_r: Node3D
 var _phase: float = 0.0
+var _rifle: Node3D
+var _rifle_hold: Transform3D
+var _rifle_slung: Transform3D
+## Pivots des bras : [épaule gauche, coude gauche, épaule droite, coude droit].
+var _arm_joints: Array[Node3D] = []
+## Poses des bras (une rotation par pivot), indexées par `ArmPose`.
+var _arm_poses: Array = []
 var _time: float = 0.0
 
 var _m_uniform: StandardMaterial3D
@@ -72,6 +103,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if climb_progress >= 0.0 and not is_dead:
+		_animate_climb(delta)
+		return
 	var walk := clampf(move_ratio, 0.0, 2.0)
 	_phase += delta * (5.0 + 3.5 * walk) * minf(walk, 1.0)
 	var blend := 1.0 - exp(-10.0 * delta)
@@ -125,7 +159,62 @@ func _process(delta: float) -> void:
 	elif posture == Posture.CROUCHED:
 		head_pitch = 0.3
 	_head.rotation.x = lerp_angle(_head.rotation.x, head_pitch, blend)
+	# Retour à la tenue de l'arme (après une escalade, par exemple).
+	_rifle.transform = _rifle.transform.interpolate_with(_rifle_hold, blend)
+	for i in _arm_joints.size():
+		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(_arm_poses[ArmPose.RIFLE][i], blend)
 	_head.rotation.y = lerp_angle(_head.rotation.y, sin(_time * 0.6) * 0.25 * (1.0 - minf(walk, 1.0)), blend)
+
+
+## Valeur interpolée (avec adoucissement) d'une piste d'images clés donnée
+## par paires (instant, valeur).
+static func sample_keys(keys: Array[float], t: float) -> float:
+	var count := keys.size() / 2
+	if t <= keys[0]:
+		return keys[1]
+	for i in range(1, count):
+		if t <= keys[i * 2]:
+			var from_t := keys[(i - 1) * 2]
+			var weight := smoothstep(0.0, 1.0, (t - from_t) / (keys[i * 2] - from_t))
+			return lerpf(keys[(i - 1) * 2 + 1], keys[i * 2 + 1], weight)
+	return keys[count * 2 - 1]
+
+
+## Pose d'escalade à l'instant `climb_progress` (le déplacement du corps dans
+## le monde est géré par l'unité).
+func _animate_climb(delta: float) -> void:
+	var t := clampf(climb_progress, 0.0, 1.0)
+	var down := climb_descending
+	var blend := 1.0 - exp(-25.0 * delta)
+	_body.rotation.x = lerp_angle(_body.rotation.x, 0.0, blend)
+	_body.position = _body.position.lerp(Vector3.ZERO, blend)
+	_hips.position.y = sample_keys(CLIMB_DOWN_HIPS if down else CLIMB_UP_HIPS, t)
+	_leg_l.rotation.x = sample_keys(CLIMB_DOWN_THIGH if down else CLIMB_UP_THIGH_L, t)
+	_knee_l.rotation.x = sample_keys(CLIMB_DOWN_KNEE if down else CLIMB_UP_KNEE_L, t)
+	_leg_r.rotation.x = sample_keys(CLIMB_DOWN_THIGH if down else CLIMB_UP_THIGH_R, t)
+	_knee_r.rotation.x = sample_keys(CLIMB_DOWN_KNEE if down else CLIMB_UP_KNEE_R, t)
+	_torso.rotation.x = sample_keys(CLIMB_DOWN_LEAN if down else CLIMB_UP_LEAN, t)
+	_torso.rotation.y = 0.0
+	_head.rotation = Vector3(-0.5 * _torso.rotation.x, 0.0, 0.0)
+	var sling := sample_keys(CLIMB_DOWN_SLING if down else CLIMB_UP_SLING, t)
+	_rifle.transform = _rifle_hold.interpolate_with(_rifle_slung, sling)
+	_apply_arm_keys(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t)
+
+
+## Interpole les bras entre les poses d'une piste (instant, `ArmPose`).
+func _apply_arm_keys(keys: Array[float], t: float) -> void:
+	var count := keys.size() / 2
+	var from_index := 0
+	while from_index < count - 2 and t > keys[(from_index + 1) * 2]:
+		from_index += 1
+	var from_t := keys[from_index * 2]
+	var to_t := keys[(from_index + 1) * 2]
+	var weight := smoothstep(0.0, 1.0, clampf((t - from_t) / (to_t - from_t), 0.0, 1.0))
+	var from_pose: Array = _arm_poses[int(keys[from_index * 2 + 1])]
+	var to_pose: Array = _arm_poses[int(keys[(from_index + 1) * 2 + 1])]
+	for i in _arm_joints.size():
+		var from_rotation: Quaternion = from_pose[i]
+		_arm_joints[i].quaternion = from_rotation.slerp(to_pose[i], weight)
 
 
 # --- Construction -----------------------------------------------------------
@@ -216,6 +305,10 @@ func _build_head() -> void:
 func _build_rifle_and_arms() -> void:
 	var rifle := _pivot(_torso, Vector3(0.07, 0.31, -0.24), "Rifle")
 	rifle.rotation = Vector3(deg_to_rad(-22.0), deg_to_rad(16.0), 0.0)
+	_rifle = rifle
+	_rifle_hold = rifle.transform
+	# En bandoulière : en travers de la poitrine, canon vers le bas.
+	_rifle_slung = Transform3D(Basis.from_euler(Vector3(deg_to_rad(-70.0), deg_to_rad(35.0), deg_to_rad(20.0))), Vector3(0.02, 0.27, -0.2))
 	_box(rifle, Vector3(0.045, 0.08, 0.30), Vector3(0.0, 0.04, -0.05), _m_weapon)      # boîtier
 	_box(rifle, Vector3(0.04, 0.065, 0.20), Vector3(0.0, 0.035, 0.19), _m_weapon)     # crosse
 	_box(rifle, Vector3(0.045, 0.10, 0.03), Vector3(0.0, 0.02, 0.30), _m_gear)        # plaque de couche
@@ -234,30 +327,68 @@ func _build_rifle_and_arms() -> void:
 	_box(rifle, Vector3(0.03, 0.03, 0.005), Vector3(0.0, 0.118, -0.092), _m_lens)
 	_box(rifle, Vector3(0.03, 0.03, 0.09), Vector3(0.042, 0.05, -0.40), _m_weapon)
 
-	# Les bras viennent chercher la poignée et le garde-main (IK deux os).
-	_build_arm(1.0, rifle.transform * Vector3(0.0, -0.05, 0.05))
-	_build_arm(-1.0, rifle.transform * Vector3(0.0, -0.02, -0.33))
+	_build_arm(-1.0)
+	_build_arm(1.0)
+	# Poses des bras, résolues par IK deux os à partir de la position des mains
+	# (repère du torse) : [main gauche, main droite].
+	_arm_poses.resize(ArmPose.size())
+	_arm_poses[ArmPose.RIFLE] = _solve_arms(rifle.transform * Vector3(0.0, -0.02, -0.33), rifle.transform * Vector3(0.0, -0.05, 0.05))
+	_arm_poses[ArmPose.REACH] = _solve_arms(Vector3(-0.2, 0.5, -0.42), Vector3(0.2, 0.5, -0.42))
+	_arm_poses[ArmPose.PUSH] = _solve_arms(Vector3(-0.22, 0.05, -0.25), Vector3(0.22, 0.05, -0.25))
+	for i in _arm_joints.size():
+		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
 
-func _build_arm(side: float, hand_target: Vector3) -> void:
-	var shoulder := Vector3(0.245 * side, 0.50, 0.0)
-	var to_hand := hand_target - shoulder
-	var reach := minf(to_hand.length(), UPPER_ARM_LENGTH + FOREARM_LENGTH - 0.01)
-	var dir := to_hand.normalized()
-	var hand := shoulder + dir * reach
-	var along := (UPPER_ARM_LENGTH * UPPER_ARM_LENGTH - FOREARM_LENGTH * FOREARM_LENGTH + reach * reach) / (2.0 * reach)
-	var height := sqrt(maxf(UPPER_ARM_LENGTH * UPPER_ARM_LENGTH - along * along, 0.0))
-	var pole := Vector3(0.7 * side, -1.0, 0.2)
-	pole = (pole - dir * pole.dot(dir)).normalized()
-	var elbow := shoulder + dir * along + pole * height
+func _shoulder_position(side: float) -> Vector3:
+	return Vector3(0.245 * side, 0.50, 0.0)
 
-	_sphere(_torso, 0.078, shoulder, _m_uniform)
-	_limb(_torso, shoulder, elbow, Vector2(0.115, 0.125), _m_uniform)
-	_limb(_torso, elbow, hand, Vector2(0.095, 0.105), _m_uniform)
-	_sphere(_torso, 0.062, elbow, _m_gear)
-	_sphere(_torso, 0.058, hand, _m_gear)
+
+## Bras articulé : pivot d'épaule → bras → pivot de coude → avant-bras et main.
+## Au repos (rotations nulles), le bras pend vers le bas.
+func _build_arm(side: float) -> void:
+	var shoulder := _pivot(_torso, _shoulder_position(side), "ShoulderL" if side < 0.0 else "ShoulderR")
+	_sphere(shoulder, 0.078, Vector3.ZERO, _m_uniform)
+	_box(shoulder, Vector3(0.115, UPPER_ARM_LENGTH, 0.125), Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_uniform)
 	# Écusson d'équipe sur l'épaule.
-	_box(_torso, Vector3(0.012, 0.075, 0.075), shoulder + Vector3(0.078 * side, -0.02, 0.0), _m_team)
+	_box(shoulder, Vector3(0.012, 0.075, 0.075), Vector3(0.064 * side, -0.09, 0.0), _m_team)
+	var elbow := _pivot(shoulder, Vector3(0.0, -UPPER_ARM_LENGTH, 0.0), "Elbow")
+	_sphere(elbow, 0.062, Vector3.ZERO, _m_gear)
+	_box(elbow, Vector3(0.095, FOREARM_LENGTH, 0.105), Vector3(0.0, -FOREARM_LENGTH * 0.5, 0.0), _m_uniform)
+	_sphere(elbow, 0.058, Vector3(0.0, -FOREARM_LENGTH, 0.0), _m_gear)
+	_arm_joints.append(shoulder)
+	_arm_joints.append(elbow)
+
+
+## Rotations [épaule gauche, coude gauche, épaule droite, coude droit] qui
+## amènent les mains aux positions données (repère du torse).
+func _solve_arms(left_hand: Vector3, right_hand: Vector3) -> Array:
+	var pose: Array = []
+	for side: float in [-1.0, 1.0]:
+		var shoulder := _shoulder_position(side)
+		var to_hand := (left_hand if side < 0.0 else right_hand) - shoulder
+		var reach := minf(to_hand.length(), UPPER_ARM_LENGTH + FOREARM_LENGTH - 0.01)
+		var dir := to_hand.normalized()
+		var hand := shoulder + dir * reach
+		var along := (UPPER_ARM_LENGTH * UPPER_ARM_LENGTH - FOREARM_LENGTH * FOREARM_LENGTH + reach * reach) / (2.0 * reach)
+		var height := sqrt(maxf(UPPER_ARM_LENGTH * UPPER_ARM_LENGTH - along * along, 0.0))
+		var pole := Vector3(0.7 * side, -1.0, 0.2)
+		pole = (pole - dir * pole.dot(dir)).normalized()
+		var elbow := shoulder + dir * along + pole * height
+		var upper := _basis_pointing_down(elbow - shoulder)
+		var lower := _basis_pointing_down(hand - elbow)
+		pose.append(upper.get_rotation_quaternion())
+		pose.append((upper.inverse() * lower).get_rotation_quaternion())
+	return pose
+
+
+## Base orthonormée dont l'axe -Y suit `direction`.
+func _basis_pointing_down(direction: Vector3) -> Basis:
+	var y := -direction.normalized()
+	var x := y.cross(Vector3.BACK)
+	if x.length_squared() < 0.0001:
+		x = Vector3.RIGHT
+	x = x.normalized()
+	return Basis(x, y, x.cross(y))
 
 
 # --- Primitives -------------------------------------------------------------
@@ -309,18 +440,3 @@ func _cylinder(parent: Node3D, radius: float, height: float, at: Vector3, materi
 	mesh.height = height
 	mesh.radial_segments = 12
 	return _mesh(parent, mesh, at, material)
-
-
-## Segment de membre : boîte étirée entre deux points.
-func _limb(parent: Node3D, from: Vector3, to: Vector3, thickness: Vector2, material: Material) -> MeshInstance3D:
-	var axis := to - from
-	var length := axis.length()
-	var y := axis / length
-	var x := y.cross(Vector3.BACK)
-	if x.length_squared() < 0.0001:
-		x = Vector3.RIGHT
-	x = x.normalized()
-	var z := x.cross(y)
-	var instance := _box(parent, Vector3(thickness.x, length, thickness.y), (from + to) * 0.5, material)
-	instance.basis = Basis(x, y, z)
-	return instance

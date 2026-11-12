@@ -12,7 +12,12 @@ const BLOCKED_RATIO := 0.4
 const SIDESTEP_RATIO := 0.7
 const CLIMB_START_DISTANCE := 0.4
 const CLIMB_REACH := 1.2
-const HOP_ARC := 0.3
+# Avancée et élévation du corps pendant l'escalade, par paires (instant,
+# fraction du trajet), calées sur les images clés de `SoldierModel`.
+const CLIMB_UP_FORWARD: Array[float] = [0.0, 0.0, 0.18, 0.28, 0.5, 0.33, 0.66, 0.55, 0.82, 0.8, 1.0, 1.0]
+const CLIMB_UP_HEIGHT: Array[float] = [0.0, 0.0, 0.18, 0.0, 0.5, 0.28, 0.66, 0.75, 0.82, 1.0, 1.0, 1.0]
+const CLIMB_DOWN_FORWARD: Array[float] = [0.0, 0.0, 0.25, 0.42, 0.6, 0.85, 0.8, 1.0, 1.0, 1.0]
+const CLIMB_DOWN_HEIGHT: Array[float] = [0.0, 0.0, 0.25, 0.0, 0.6, 1.0, 1.0, 1.0]
 const STUCK_PROGRESS := 0.05
 const STUCK_DELAY := 0.6
 const STUCK_GOAL_DISTANCE := 2.0
@@ -263,34 +268,34 @@ func _descend(toward: Vector3, then: Callable) -> bool:
 	return true
 
 
-## Saut scripté (montée ou descente) : pendant sa durée, l'unité ne reçoit
-## aucun ordre et n'est pas déplacée par la physique.
+## Escalade scriptée (montée ou descente) : pendant sa durée, l'unité ne
+## reçoit aucun ordre et n'est pas déplacée par la physique. Le corps suit des
+## courbes calées sur l'animation du modèle (`SoldierModel.climb_progress`).
 func _hop(to: Vector3, done: Callable) -> void:
 	_hopping = true
 	_has_order = false
 	velocity = Vector3.ZERO
+	posture = SoldierModel.Posture.STANDING
 	var from := global_position
 	var flat := to - from
 	flat.y = 0.0
 	if flat.length_squared() > 0.0001:
 		rotation.y = atan2(-flat.x, -flat.z)
 	var going_up := to.y > from.y
+	var forward_keys := CLIMB_UP_FORWARD if going_up else CLIMB_DOWN_FORWARD
+	var height_keys := CLIMB_UP_HEIGHT if going_up else CLIMB_DOWN_HEIGHT
+	_model.climb_descending = not going_up
+	_model.climb_progress = 0.0
 	var tween := create_tween()
 	tween.tween_method(func(t: float) -> void:
-		# En montant, on s'élève avant d'avancer ; en descendant, l'inverse.
-		var early := 1.0 - (1.0 - t) * (1.0 - t)
-		var late := t * t
-		var horizontal := late if going_up else early
-		var vertical := early if going_up else late
-		global_position = Vector3(
-			lerpf(from.x, to.x, horizontal),
-			lerpf(from.y, to.y, vertical) + sin(PI * t) * HOP_ARC,
-			lerpf(from.z, to.z, horizontal))
-		_model.move_ratio = 1.0
-	, 0.0, 1.0, stats.climb_time)
+		var forward := SoldierModel.sample_keys(forward_keys, t)
+		var height := SoldierModel.sample_keys(height_keys, t)
+		global_position = Vector3(lerpf(from.x, to.x, forward), lerpf(from.y, to.y, height), lerpf(from.z, to.z, forward))
+		_model.climb_progress = t
+	, 0.0, 1.0, stats.climb_time if going_up else stats.descend_time)
 	tween.tween_callback(func() -> void:
 		_hopping = false
-		_model.move_ratio = 0.0
+		_model.climb_progress = -1.0
 		if not is_dead:
 			done.call())
 

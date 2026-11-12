@@ -50,3 +50,9 @@
 
 - Clic droit sur une caisse : un opérateur sélectionné la rejoint et grimpe dessus ; un ordre au sol le fait redescendre du côté le plus proche de sa destination.
 - Une seule unité par caisse ; depuis la caisse, l'opérateur tire par-dessus les obstacles bas et ne redescend que s'il n'a pas de ligne de tir.
+
+## Animation d'escalade
+
+- Montée en plusieurs temps : arme en bandoulière, élan, mains sur le rebord, traction, passage d'une jambe, redressement (1,4 s).
+- Descente : accroupi au bord, appui des mains, chute, réception fléchie, redressement (1 s).
+- Les bras du modèle sont désormais articulés (épaule et coude) et posés par IK.
