@@ -10,6 +10,7 @@ signal selected_changed(is_selected: bool)
 @export var display_name: String = "Opérateur"
 
 var is_selected: bool = false
+var is_dead: bool = false
 var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING
 
 var _running: bool = false
@@ -19,11 +20,18 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
 @onready var _ring: MeshInstance3D = $SelectionRing
+@onready var health: HealthComponent = $HealthComponent
+
+
+func _ready() -> void:
+	health.reset(stats.max_health)
+	health.health_changed.connect(_on_health_changed)
+	health.died.connect(_on_died)
 
 
 func _physics_process(delta: float) -> void:
 	var horizontal := Vector3.ZERO
-	if _has_order:
+	if _has_order and not is_dead:
 		if _agent.is_navigation_finished():
 			_has_order = false
 		else:
@@ -46,6 +54,8 @@ func _physics_process(delta: float) -> void:
 
 ## Ordonne un déplacement vers `target`. `run` n'a d'effet que debout.
 func move_to(target: Vector3, run: bool) -> void:
+	if is_dead:
+		return
 	_running = run
 	_has_order = true
 	_agent.target_position = target
@@ -58,12 +68,14 @@ func stop() -> void:
 
 ## Bascule entre `new_posture` et debout.
 func toggle_posture(new_posture: SoldierModel.Posture) -> void:
+	if is_dead:
+		return
 	posture = SoldierModel.Posture.STANDING if posture == new_posture else new_posture
 
 
 ## Met à jour l'état de sélection et l'anneau au sol.
 func set_selected(value: bool) -> void:
-	if is_selected == value:
+	if is_selected == value or (value and is_dead):
 		return
 	is_selected = value
 	_ring.visible = value
@@ -77,3 +89,17 @@ func _current_speed() -> float:
 		SoldierModel.Posture.PRONE:
 			return stats.crawl_speed
 	return stats.run_speed if _running else stats.walk_speed
+
+
+func _on_health_changed(_current: float, _maximum: float) -> void:
+	EventBus.unit_damaged.emit(self, health.max_health - health.health)
+
+
+func _on_died() -> void:
+	is_dead = true
+	_has_order = false
+	remove_from_group(&"commandos")
+	collision_layer = 0
+	_model.is_dead = true
+	SelectionManager.remove(self)
+	EventBus.unit_died.emit(self)

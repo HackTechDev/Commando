@@ -23,6 +23,7 @@ var _drag_end: Vector2
 func _ready() -> void:
 	SelectionManager.selection_changed.connect(_on_selection_changed)
 	_on_selection_changed(SelectionManager.selected)
+	EventBus.unit_damaged.connect(func(_unit: Node3D, _amount: float) -> void: _on_selection_changed(SelectionManager.selected))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -147,7 +148,7 @@ func _spawn_marker(at: Vector3, run: bool) -> void:
 func _on_selection_changed(units: Array[Commando]) -> void:
 	var names := PackedStringArray()
 	for unit in units:
-		names.append("%d. %s" % [unit.unit_index, unit.display_name])
+		names.append("%d. %s (%d PV)" % [unit.unit_index, unit.display_name, roundi(unit.health.health)])
 	var selection := "Aucune unité sélectionnée" if names.is_empty() else "Sélection : " + ", ".join(names)
 	_info.text = selection + "\n" \
 		+ "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir\n" \

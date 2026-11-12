@@ -23,6 +23,14 @@ func select(units: Array[Commando], additive: bool = false) -> void:
 	selection_changed.emit(selected)
 
 
+## Retire une unité de la sélection (unité morte, par exemple).
+func remove(unit: Commando) -> void:
+	if selected.has(unit):
+		selected.erase(unit)
+		unit.set_selected(false)
+		selection_changed.emit(selected)
+
+
 ## Vide la sélection.
 func clear() -> void:
 	select([] as Array[Commando])

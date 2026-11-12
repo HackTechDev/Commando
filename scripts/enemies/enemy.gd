@@ -6,7 +6,9 @@ extends CharacterBody3D
 ## - PATROL : suit les points du `patrol_path` avec une pause à chacun
 ##   (ou garde son poste s'il n'a pas de chemin) ;
 ## - SUSPICIOUS : la jauge de détection monte, il s'arrête et regarde la cible ;
-## - ALERT : cible repérée, il lui fait face tant qu'il s'en souvient.
+## - ALERT : cible repérée. Il la poursuit jusqu'à portée de tir et tire tant
+##   qu'il la voit ; s'il la perd, il court à sa dernière position connue,
+##   y attend `alert_memory` secondes, puis reprend sa patrouille.
 
 enum State { PATROL, SUSPICIOUS, ALERT }
 
@@ -26,6 +28,8 @@ var _pause_left: float = 0.0
 var _target: Commando
 var _last_seen: Vector3
 var _memory_left: float = 0.0
+var _chase_arrived: bool = false
+var _fire_cooldown: float = 0.0
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
@@ -53,14 +57,17 @@ func _physics_process(delta: float) -> void:
 	match state:
 		State.PATROL:
 			horizontal = _patrol(delta)
-		State.SUSPICIOUS, State.ALERT:
+		State.SUSPICIOUS:
 			_face(_last_seen - global_position, delta)
+		State.ALERT:
+			horizontal = _alert(delta)
 
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
 	velocity.y = 0.0 if is_on_floor() else velocity.y - _gravity * delta
 	move_and_slide()
-	_model.move_ratio = Vector2(velocity.x, velocity.z).length() / stats.patrol_speed * 0.6
+	var speed := Vector2(velocity.x, velocity.z).length()
+	_model.move_ratio = 2.0 * speed / stats.chase_speed if state == State.ALERT else 0.6 * speed / stats.patrol_speed
 	_update_feedback()
 
 
@@ -72,7 +79,7 @@ func _update_detection(delta: float) -> void:
 		var commando := node as Commando
 		if commando == null:
 			continue
-		var zone := _vision.check(commando)
+		var zone := _vision.check(commando, state == State.ALERT)
 		if zone == VisionComponent.Zone.NONE:
 			continue
 		var distance := global_position.distance_to(commando.global_position)
@@ -91,9 +98,11 @@ func _update_detection(delta: float) -> void:
 			var closeness := 1.0 - inverse_lerp(config.near_range, config.far_range, best_distance)
 			detection += delta / stats.detection_time * lerpf(0.6, 1.6, closeness)
 	elif state == State.ALERT:
-		_memory_left -= delta
-		if _memory_left <= 0.0:
-			detection = 0.0
+		# Le compte à rebours ne démarre qu'une fois le dernier point connu atteint.
+		if _chase_arrived:
+			_memory_left -= delta
+			if _memory_left <= 0.0:
+				detection = 0.0
 	else:
 		detection -= delta / stats.forget_time
 	detection = clampf(detection, 0.0, 1.0)
@@ -110,8 +119,11 @@ func _update_state() -> void:
 	if new_state == state:
 		return
 	state = new_state
-	if state == State.ALERT and _target:
-		EventBus.unit_spotted.emit(_target, self)
+	if state == State.ALERT:
+		_fire_cooldown = stats.aim_time
+		_chase_arrived = false
+		if _target:
+			EventBus.unit_spotted.emit(_target, self)
 	elif state == State.PATROL and not _waypoints.is_empty():
 		_agent.target_position = _waypoints[_waypoint_index]
 	state_changed.emit(state)
@@ -136,6 +148,59 @@ func _patrol(delta: float) -> Vector3:
 		return Vector3.ZERO
 	_face(to_next, delta)
 	return to_next.normalized() * stats.patrol_speed
+
+
+## Comportement en alerte : tirer si la cible est visible, sinon la traquer.
+func _alert(delta: float) -> Vector3:
+	var to_target := _last_seen - global_position
+	to_target.y = 0.0
+	if _target:
+		_chase_arrived = false
+		_face(to_target, delta)
+		_try_fire(delta, to_target)
+		if to_target.length() <= stats.hold_range:
+			return Vector3.ZERO
+	if _agent.target_position.distance_to(_last_seen) > 0.5:
+		_agent.target_position = _last_seen
+	if _agent.is_navigation_finished():
+		_chase_arrived = _target == null
+		return Vector3.ZERO
+	var to_next := _agent.get_next_path_position() - global_position
+	to_next.y = 0.0
+	if to_next.length_squared() < 0.0001:
+		return Vector3.ZERO
+	if _target == null:
+		_face(to_next, delta)
+	return to_next.normalized() * stats.chase_speed
+
+
+func _try_fire(delta: float, to_target: Vector3) -> void:
+	_fire_cooldown -= delta
+	var distance := to_target.length()
+	if _fire_cooldown > 0.0 or distance > stats.fire_range:
+		return
+	# Ne tire que s'il est à peu près dans l'axe.
+	var forward := -global_basis.z
+	if distance > 0.01 and forward.angle_to(to_target) > 0.3:
+		return
+	_fire_cooldown = stats.fire_interval
+
+	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / stats.fire_range, 0.0, 1.0))
+	match _target.posture:
+		SoldierModel.Posture.CROUCHED:
+			chance *= 0.8
+		SoldierModel.Posture.PRONE:
+			chance *= 0.6
+	var muzzle := global_position + Vector3.UP * 1.3 + forward * 0.7
+	var aim := _target.global_position + Vector3.UP * (0.3 if _target.posture == SoldierModel.Posture.PRONE else 1.0)
+	var hit := randf() < chance
+	if not hit:
+		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
+		aim += side + (aim - muzzle).normalized() * 4.0
+	Tracer.spawn(get_tree().current_scene, muzzle, aim)
+	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
+	if hit:
+		_target.health.take_damage(stats.fire_damage)
 
 
 func _face(direction: Vector3, delta: float) -> void:

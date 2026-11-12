@@ -27,6 +27,8 @@ const FOREARM_LENGTH := 0.29
 var posture: Posture = Posture.STANDING
 ## 0 = immobile, 1 = marche, 2 = course.
 var move_ratio: float = 0.0
+## Unité morte : étendue sur le dos, immobile.
+var is_dead: bool = false
 
 var _body: Node3D
 var _hips: Node3D
@@ -94,6 +96,15 @@ func _process(delta: float) -> void:
 			body_pos = Vector3(0.0, 0.16, 0.9)
 			swing *= 0.35
 
+	if is_dead:
+		hips_y = HIP_HEIGHT
+		thigh_base = 0.0
+		knee_base = 0.0
+		lean = 0.0
+		swing = 0.0
+		body_pitch = PI / 2.0
+		body_pos = Vector3(0.0, 0.2, -0.9)
+
 	var s := sin(_phase)
 	_body.rotation.x = lerp_angle(_body.rotation.x, body_pitch, blend)
 	_body.position = _body.position.lerp(body_pos, blend)
@@ -103,11 +114,13 @@ func _process(delta: float) -> void:
 	_knee_l.rotation.x = lerp_angle(_knee_l.rotation.x, knee_base - maxf(-cos(_phase), 0.0) * swing * 1.6, blend)
 	_knee_r.rotation.x = lerp_angle(_knee_r.rotation.x, knee_base - maxf(cos(_phase), 0.0) * swing * 1.6, blend)
 	# Respiration au repos, léger balancement en mouvement.
-	var breath := sin(_time * 1.8) * 0.012
+	var breath := 0.0 if is_dead else sin(_time * 1.8) * 0.012
 	_torso.rotation.x = lerp_angle(_torso.rotation.x, lean + breath, blend)
 	_torso.rotation.y = lerp_angle(_torso.rotation.y, s * 0.10 * minf(walk, 1.0), blend)
 	var head_pitch := 0.0
-	if posture == Posture.PRONE:
+	if is_dead:
+		_time = 0.0
+	elif posture == Posture.PRONE:
 		head_pitch = 0.9
 	elif posture == Posture.CROUCHED:
 		head_pitch = 0.3

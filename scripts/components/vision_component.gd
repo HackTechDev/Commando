@@ -40,10 +40,13 @@ func _physics_process(_delta: float) -> void:
 
 
 ## Zone du cône dans laquelle `target` est visible, ou `Zone.NONE`.
-func check(target: Commando) -> Zone:
+## Avec `ignore_posture` (ennemi en alerte), la zone lointaine voit aussi
+## les cibles accroupies ou rampées.
+func check(target: Commando, ignore_posture: bool = false) -> Zone:
 	var offset := to_local(target.global_position)
 	offset.y = 0.0
-	var zone := zone_for(offset, target.posture, config)
+	var posture := SoldierModel.Posture.STANDING if ignore_posture else target.posture
+	var zone := zone_for(offset, posture, config)
 	if zone == Zone.NONE:
 		return Zone.NONE
 	var eye := global_position + Vector3.UP * config.eye_height

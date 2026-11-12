@@ -12,3 +12,6 @@
 - **État Alert** : l'ennemi s'arrête et fait face à la cible, sans tirer ni poursuivre (M4). Il reprend sa patrouille 4 s après avoir perdu la cible de vue.
 - **Occlusion de la vue** : couche 2 seulement (murs, caisses). Les caisses (1,2 m) cachent une unité rampée ou accroupie juste derrière, pas une unité debout.
 - **Machine à états ennemie** : simple `enum` + `match` dans `enemy.gd` pour trois états ; à restructurer en M4 quand tous les états du §5.3 arrivent.
+- **Vision en alerte** : un ennemi en alerte voit aussi les cibles accroupies ou rampées en zone lointaine ; seuls les obstacles cachent encore.
+- **Tir ennemi** : tirage aléatoire de réussite (85 % à bout portant, 35 % à 14 m, ×0,8 accroupi, ×0,6 rampé), 25 PV par balle sur 100. Pas de projectile physique ; les tirs ratés n'ont aucun effet.
+- **Mort d'un commando** : message d'échec dans le HUD, mais la partie continue tant qu'il n'y a pas de système de mission (M7). Les commandos ne peuvent pas encore riposter (M5).
