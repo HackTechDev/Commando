@@ -19,6 +19,7 @@ godot --headless --path . --quit-after 60   # vérification sans affichage
 | Sélectionner | Clic gauche, rectangle, touches 1 à 3 (Maj : ajouter) |
 | Marcher / courir | Clic droit / double clic droit |
 | Tirer sur un ennemi | Clic droit sur l'ennemi |
+| Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
 | Recharger | R |
 | Annuler l'ordre en cours | F |
 | Accroupi / rampé | C / X (bascule) |

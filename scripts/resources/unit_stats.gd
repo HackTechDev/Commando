@@ -8,6 +8,8 @@ extends Resource
 @export var crouch_speed: float = 1.8
 @export var crawl_speed: float = 0.9
 @export var turn_speed: float = 12.0
+## Durée pour grimper sur un obstacle bas ou en redescendre, en secondes.
+@export var climb_time: float = 0.7
 
 @export_group("Arme")
 ## Portée de tir maximale.

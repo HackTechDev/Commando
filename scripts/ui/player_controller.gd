@@ -11,6 +11,7 @@ const MASK_ENEMIES := 0b1000
 
 @export var box_fill := Color(0.2, 0.6, 1.0, 0.15)
 @export var box_border := Color(0.3, 0.7, 1.0, 0.9)
+## Un clic droit sur un obstacle grimpable (caisse) y fait monter une unité.
 @export var marker_color := Color(0.3, 0.9, 0.4)
 @export var marker_run_color := Color(1.0, 0.75, 0.2)
 @export var marker_attack_color := Color(1.0, 0.25, 0.2)
@@ -105,6 +106,11 @@ func _order(screen_position: Vector2, run: bool) -> void:
 		return
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
+		return
+	if hit["collider"] is Climbable:
+		var climbable := hit["collider"] as Climbable
+		SelectionManager.order_climb(climbable, run)
+		_spawn_marker(climbable.get_top_position(), marker_run_color if run else marker_color)
 		return
 	var target: Vector3 = hit["position"]
 	target.y = 0.0

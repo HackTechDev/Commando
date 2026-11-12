@@ -10,6 +10,9 @@ const MASK_OCCLUDERS := 0b10
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
 const SIDESTEP_RATIO := 0.7
+const CLIMB_START_DISTANCE := 0.4
+const CLIMB_REACH := 1.2
+const HOP_ARC := 0.3
 const STUCK_PROGRESS := 0.05
 const STUCK_DELAY := 0.6
 const STUCK_GOAL_DISTANCE := 2.0
@@ -30,12 +33,17 @@ var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING:
 var ammo_in_magazine: int = 0
 ## Cartouches en réserve.
 var ammo_reserve: int = 0
+## Obstacle sur lequel l'unité se tient, le cas échéant.
+var perched_on: Climbable
 
 var _running: bool = false
 var _has_order: bool = false
 var _attack_target: Enemy
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
+var _climb_target: Climbable
+var _climb_point: Vector3
+var _hopping: bool = false
 var _vertical_velocity: float = 0.0
 var _wants_to_move: bool = false
 var _desired_velocity: Vector3
@@ -60,9 +68,15 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_update_reload(delta)
+	if _hopping:
+		return
 	var horizontal := Vector3.ZERO
 	if is_dead:
 		pass
+	elif _climb_target:
+		horizontal = _approach_climb()
+		if horizontal != Vector3.ZERO:
+			_face(horizontal, delta)
 	elif _attack_target:
 		horizontal = _attack(delta)
 	elif _has_order:
@@ -119,7 +133,11 @@ func _update_stuck(delta: float, desired: Vector3) -> void:
 
 ## Ordonne un déplacement vers `target`. `run` n'a d'effet que debout.
 func move_to(target: Vector3, run: bool) -> void:
-	if is_dead:
+	if is_dead or _hopping:
+		return
+	_climb_target = null
+	if perched_on:
+		_descend(target, move_to.bind(target, run))
 		return
 	_attack_target = null
 	_running = run
@@ -131,12 +149,38 @@ func move_to(target: Vector3, run: bool) -> void:
 ## Ordonne d'attaquer `enemy` : l'unité s'approche jusqu'à avoir une ligne de
 ## tir, puis tire jusqu'à ce que la cible soit neutralisée.
 func attack(enemy: Enemy, run: bool) -> void:
-	if is_dead or enemy == null or enemy.is_dead or not has_ammo():
+	if is_dead or _hopping or enemy == null or enemy.is_dead or not has_ammo():
 		return
+	_climb_target = null
 	_has_order = false
 	_running = run
 	_attack_target = enemy
 	_fire_cooldown = stats.aim_time
+
+
+## Ordonne de grimper sur `target`. Renvoie faux si c'est impossible
+## (déjà occupé, inaccessible, unité morte).
+func climb(target: Climbable, run: bool) -> bool:
+	if is_dead or _hopping or target == null:
+		return false
+	if perched_on == target:
+		return true
+	if target.occupant != null and target.occupant != self:
+		return false
+	if perched_on:
+		if not _descend(target.global_position, climb.bind(target, run)):
+			return false
+		return true
+	var access := target.get_nearest_access(global_position)
+	if not access["found"]:
+		return false
+	_has_order = false
+	_attack_target = null
+	_running = run
+	_climb_target = target
+	_climb_point = access["point"]
+	_agent.target_position = _climb_point
+	return true
 
 
 ## Vrai s'il reste au moins une cartouche (chargeur ou réserve).
@@ -161,6 +205,7 @@ func reload() -> void:
 func stop() -> void:
 	_has_order = false
 	_attack_target = null
+	_climb_target = null
 
 
 ## Bascule entre `new_posture` et debout.
@@ -177,6 +222,77 @@ func set_selected(value: bool) -> void:
 	is_selected = value
 	_ring.visible = value
 	selected_changed.emit(value)
+
+
+## Rejoint le point d'accès de l'obstacle visé, puis grimpe.
+func _approach_climb() -> Vector3:
+	if _climb_target.occupant != null and _climb_target.occupant != self:
+		_climb_target = null
+		return Vector3.ZERO
+	var offset := _climb_point - global_position
+	offset.y = 0.0
+	var distance := offset.length()
+	var arrived := _agent.is_navigation_finished()
+	if distance < CLIMB_START_DISTANCE or (arrived and distance < CLIMB_REACH):
+		var target := _climb_target
+		_climb_target = null
+		target.occupant = self
+		_hop(target.get_top_position(), func() -> void: perched_on = target)
+		return Vector3.ZERO
+	if arrived:
+		_climb_target = null
+		return Vector3.ZERO
+	var to_next := _agent.get_next_path_position() - global_position
+	to_next.y = 0.0
+	if to_next.length_squared() < 0.0001:
+		return Vector3.ZERO
+	return to_next.normalized() * _current_speed()
+
+
+## Redescend de l'obstacle du côté le plus proche de `toward`, puis appelle
+## `then`. Renvoie faux s'il n'y a aucun côté praticable.
+func _descend(toward: Vector3, then: Callable) -> bool:
+	var access := perched_on.get_nearest_access(toward)
+	if not access["found"]:
+		return false
+	var obstacle := perched_on
+	perched_on = null
+	_hop(access["point"], func() -> void:
+		obstacle.occupant = null
+		then.call())
+	return true
+
+
+## Saut scripté (montée ou descente) : pendant sa durée, l'unité ne reçoit
+## aucun ordre et n'est pas déplacée par la physique.
+func _hop(to: Vector3, done: Callable) -> void:
+	_hopping = true
+	_has_order = false
+	velocity = Vector3.ZERO
+	var from := global_position
+	var flat := to - from
+	flat.y = 0.0
+	if flat.length_squared() > 0.0001:
+		rotation.y = atan2(-flat.x, -flat.z)
+	var going_up := to.y > from.y
+	var tween := create_tween()
+	tween.tween_method(func(t: float) -> void:
+		# En montant, on s'élève avant d'avancer ; en descendant, l'inverse.
+		var early := 1.0 - (1.0 - t) * (1.0 - t)
+		var late := t * t
+		var horizontal := late if going_up else early
+		var vertical := early if going_up else late
+		global_position = Vector3(
+			lerpf(from.x, to.x, horizontal),
+			lerpf(from.y, to.y, vertical) + sin(PI * t) * HOP_ARC,
+			lerpf(from.z, to.z, horizontal))
+		_model.move_ratio = 1.0
+	, 0.0, 1.0, stats.climb_time)
+	tween.tween_callback(func() -> void:
+		_hopping = false
+		_model.move_ratio = 0.0
+		if not is_dead:
+			done.call())
 
 
 func _update_reload(delta: float) -> void:
@@ -226,6 +342,9 @@ func _attack(delta: float) -> Vector3:
 		return Vector3.ZERO
 	# Pas de ligne de tir : s'approcher, puis viser de nouveau.
 	_fire_cooldown = stats.aim_time
+	if perched_on:
+		_descend(_attack_target.global_position, func() -> void: pass)
+		return Vector3.ZERO
 	if _agent.target_position.distance_to(_attack_target.global_position) > 0.5:
 		_agent.target_position = _attack_target.global_position
 	if _agent.is_navigation_finished():
@@ -284,6 +403,7 @@ func _on_died() -> void:
 	is_dead = true
 	_has_order = false
 	_attack_target = null
+	_climb_target = null
 	remove_from_group(&"commandos")
 	collision_layer = 0
 	_agent.avoidance_enabled = false
