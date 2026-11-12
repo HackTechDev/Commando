@@ -58,6 +58,7 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 
 - **Maillage de navigation** : il est généré 0,5 m au-dessus du sol et compensé par un réglage sur chaque agent ; trouver la cause (taille des cellules) plutôt que compenser.
 - **Îlots de navigation sur les caisses** : le dessus des caisses collées reçoit un bout de maillage inutile ; l'exclure à la génération.
+- **Caisse voisine occupée** : un opérateur perché à qui l'on désigne une caisse occupée redescend pour se placer à côté ; il vaudrait mieux qu'il reste où il est.
 - **Escalade généralisée** : murets, échelles, toits (`NavigationLink3D`), et ennemis capables de grimper ou au moins de tirer sur un opérateur perché sans rester bloqués.
 - **Coût du cône de vision** : 49 lancers de rayon par ennemi et par image ; ne le recalculer que si l'ennemi a bougé, ou réduire le nombre de segments à distance de la caméra.
 - **Occlusion** (M8) : murs transparents entre la caméra et l'unité sélectionnée ; un opérateur derrière un mur est aujourd'hui invisible.

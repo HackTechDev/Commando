@@ -173,6 +173,10 @@ func climb(target: Climbable, run: bool) -> bool:
 	if target.occupant != null and target.occupant != self:
 		return false
 	if perched_on:
+		var route := _route_across(perched_on, target)
+		if not route.is_empty():
+			_walk_across(route)
+			return true
 		if not _descend(target.global_position, climb.bind(target, run)):
 			return false
 		return true
@@ -266,6 +270,68 @@ func _descend(toward: Vector3, then: Callable) -> bool:
 		obstacle.occupant = null
 		then.call())
 	return true
+
+
+## Suite d'obstacles voisins et libres menant de `from` à `to` sans toucher
+## le sol (`from` exclu, `to` inclus) ; vide s'il n'y en a pas.
+func _route_across(from: Climbable, to: Climbable) -> Array[Climbable]:
+	var previous: Dictionary = {from: null}
+	var queue: Array[Climbable] = [from]
+	while not queue.is_empty():
+		var current: Climbable = queue.pop_front()
+		if current == to:
+			var route: Array[Climbable] = []
+			while current != from:
+				route.push_front(current)
+				current = previous[current]
+			return route
+		for node in get_tree().get_nodes_in_group(&"climbables"):
+			var next := node as Climbable
+			if next == null or previous.has(next) or not current.is_adjacent_to(next):
+				continue
+			if next.occupant != null and next.occupant != self:
+				continue
+			previous[next] = current
+			queue.append(next)
+	return []
+
+
+## Passe à pied de l'obstacle occupé aux obstacles voisins de `route`, l'un
+## après l'autre, sans redescendre.
+func _walk_across(route: Array[Climbable]) -> void:
+	var target: Climbable = route[0]
+	_hopping = true
+	_has_order = false
+	_attack_target = null
+	_climb_target = null
+	velocity = Vector3.ZERO
+	var origin := perched_on
+	var from := global_position
+	var to := target.get_top_position()
+	var flat := to - from
+	flat.y = 0.0
+	if flat.length_squared() > 0.0001:
+		rotation.y = atan2(-flat.x, -flat.z)
+	perched_on = null
+	target.occupant = self
+	_running = false
+	var speed := _current_speed()
+	var tween := create_tween()
+	tween.tween_method(func(t: float) -> void:
+		global_position = from.lerp(to, t)
+		_model.move_ratio = speed / stats.walk_speed
+	, 0.0, 1.0, from.distance_to(to) / speed)
+	tween.tween_callback(func() -> void:
+		_hopping = false
+		_model.move_ratio = 0.0
+		origin.occupant = null
+		if is_dead:
+			return
+		perched_on = target
+		# Étape suivante, si elle est toujours libre.
+		var rest := route.slice(1)
+		if not rest.is_empty() and (rest[0].occupant == null or rest[0].occupant == self):
+			_walk_across(rest))
 
 
 ## Escalade scriptée (montée ou descente) : pendant sa durée, l'unité ne

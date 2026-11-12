@@ -3,6 +3,10 @@ extends StaticBody3D
 ## Obstacle bas sur lequel un opérateur peut grimper (caisse…).
 ## Une seule unité à la fois peut s'y tenir.
 
+## Écart et dénivelé maximaux pour passer directement d'un objet à son voisin.
+const MAX_GAP := 0.35
+const MAX_STEP_HEIGHT := 0.3
+
 ## Hauteur du dessus par rapport à l'origine de l'objet.
 @export var top_height: float = 1.2
 ## Demi-largeur de l'objet (carré au sol).
@@ -17,6 +21,19 @@ var occupant: Commando
 ## Position des pieds d'une unité debout sur l'objet.
 func get_top_position() -> Vector3:
 	return global_position + Vector3.UP * top_height
+
+
+## Vrai si `other` touche cet objet par un côté et que leurs dessus sont à
+## peu près à la même hauteur : on peut alors passer de l'un à l'autre à pied.
+func is_adjacent_to(other: Climbable) -> bool:
+	if other == null or other == self:
+		return false
+	var top := get_top_position()
+	var other_top := other.get_top_position()
+	if absf(top.y - other_top.y) > MAX_STEP_HEIGHT:
+		return false
+	var distance := Vector2(top.x - other_top.x, top.z - other_top.z).length()
+	return distance <= half_extent + other.half_extent + MAX_GAP
 
 
 ## Points au sol, un par côté, d'où l'on peut grimper ou redescendre.

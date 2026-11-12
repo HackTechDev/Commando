@@ -60,3 +60,7 @@
 ## Bouton « Quitter »
 
 - Bouton « Quitter » en haut à droite du HUD, à côté de l'indicateur d'alerte ; il ferme le jeu immédiatement.
+
+## Passage direct entre caisses voisines
+
+- Un opérateur perché qui reçoit l'ordre d'aller sur une caisse collée à la sienne y passe à pied, sans redescendre ; pour une caisse en diagonale, il passe par la caisse intermédiaire.
