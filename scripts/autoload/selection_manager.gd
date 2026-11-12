@@ -53,15 +53,16 @@ func order_attack(enemy: Enemy, run: bool) -> void:
 		unit.attack(enemy, run)
 
 
-## Fait grimper une unité sélectionnée sur `target` ; les autres se
-## regroupent autour.
+## Fait grimper une unité sélectionnée sur `target` ; les autres unités au
+## sol se regroupent autour.
 func order_climb(target: Climbable, run: bool) -> void:
 	var climber_found := false
 	var others := 0
 	for unit in selected:
 		if not climber_found and unit.climb(target, run):
 			climber_found = true
-		elif unit.perched_on != target:
+		elif unit.perched_on == null:
+			# Une unité déjà perchée qui ne peut pas y aller reste où elle est.
 			var angle := TAU * float(others) / float(maxi(selected.size() - 1, 1))
 			unit.move_to(target.global_position + Vector3(cos(angle), 0.0, sin(angle)) * (target.half_extent + FORMATION_SPACING), run)
 			others += 1
