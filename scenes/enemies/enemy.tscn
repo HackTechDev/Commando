@@ -32,7 +32,7 @@ render_priority = 1
 
 [node name="Enemy" type="CharacterBody3D" groups=["enemies"]]
 collision_layer = 8
-collision_mask = 3
+collision_mask = 15
 script = ExtResource("1")
 stats = ExtResource("4")
 
@@ -75,6 +75,12 @@ text = "?"
 path_desired_distance = 0.4
 path_height_offset = 0.5
 target_desired_distance = 0.25
+avoidance_enabled = true
+radius = 0.45
+neighbor_distance = 6.0
+max_neighbors = 8
+time_horizon_agents = 0.8
+max_speed = 7.0
 
 [node name="HealthComponent" type="Node" parent="."]
 script = ExtResource("6")

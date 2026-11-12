@@ -5,6 +5,13 @@ extends CharacterBody3D
 signal selected_changed(is_selected: bool)
 
 const MASK_OCCLUDERS := 0b10
+## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
+## considérée comme bloquée et fait un pas de côté.
+const BLOCKED_RATIO := 0.4
+const SIDESTEP_RATIO := 0.7
+const STUCK_PROGRESS := 0.05
+const STUCK_DELAY := 0.6
+const STUCK_GOAL_DISTANCE := 2.0
 
 @export var stats: UnitStats
 ## Numéro de l'unité dans l'escouade (touches 1 à 6).
@@ -24,6 +31,11 @@ var _has_order: bool = false
 var _attack_target: Enemy
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
+var _vertical_velocity: float = 0.0
+var _wants_to_move: bool = false
+var _desired_velocity: Vector3
+var _stuck_time: float = 0.0
+var _best_goal_distance: float = INF
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
@@ -38,6 +50,7 @@ func _ready() -> void:
 	ammo_reserve = stats.reserve_ammo
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
+	_agent.velocity_computed.connect(_apply_velocity)
 
 
 func _physics_process(delta: float) -> void:
@@ -53,13 +66,50 @@ func _physics_process(delta: float) -> void:
 		else:
 			horizontal = _follow_path(delta)
 
-	velocity.x = horizontal.x
-	velocity.z = horizontal.z
-	velocity.y = 0.0 if is_on_floor() else velocity.y - _gravity * delta
-	move_and_slide()
+	_vertical_velocity = 0.0 if is_on_floor() else velocity.y - _gravity * delta
+	_update_stuck(delta, horizontal)
+	_wants_to_move = horizontal != Vector3.ZERO
+	_desired_velocity = horizontal
+	# Une unité à l'arrêt est prioritaire : ce sont les autres qui la contournent.
+	_agent.avoidance_priority = 0.5 if _wants_to_move else 1.0
+	if _agent.avoidance_enabled:
+		# L'évitement renvoie une vitesse corrigée via `velocity_computed`.
+		_agent.velocity = horizontal
+	else:
+		_apply_velocity(horizontal)
 
+
+## Applique la vitesse horizontale (éventuellement corrigée par l'évitement).
+func _apply_velocity(horizontal: Vector3) -> void:
+	# Une unité à l'arrêt ne se laisse pas pousser par l'évitement.
+	if not _wants_to_move:
+		horizontal = Vector3.ZERO
+	elif horizontal.length() < BLOCKED_RATIO * _desired_velocity.length():
+		# Freiné presque à l'arrêt par une unité pile en face : pas de côté.
+		horizontal += _desired_velocity.cross(Vector3.UP) * SIDESTEP_RATIO
+	velocity = Vector3(horizontal.x, _vertical_velocity, horizontal.z)
+	move_and_slide()
 	_model.posture = posture
 	_model.move_ratio = Vector2(velocity.x, velocity.z).length() / stats.walk_speed
+
+
+## Abandonne un ordre de déplacement dont la destination est occupée par une
+## autre unité : près du but et sans s'en rapprocher, on considère qu'on est arrivé.
+func _update_stuck(delta: float, desired: Vector3) -> void:
+	if not _has_order or desired == Vector3.ZERO:
+		_stuck_time = 0.0
+		_best_goal_distance = INF
+		return
+	var goal_distance := global_position.distance_to(_agent.target_position)
+	if goal_distance < _best_goal_distance - STUCK_PROGRESS:
+		_best_goal_distance = goal_distance
+		_stuck_time = 0.0
+	elif goal_distance < STUCK_GOAL_DISTANCE:
+		_stuck_time += delta
+		if _stuck_time > STUCK_DELAY:
+			_has_order = false
+			_stuck_time = 0.0
+			_best_goal_distance = INF
 
 
 ## Ordonne un déplacement vers `target`. `run` n'a d'effet que debout.
@@ -69,6 +119,7 @@ func move_to(target: Vector3, run: bool) -> void:
 	_attack_target = null
 	_running = run
 	_has_order = true
+	_best_goal_distance = INF
 	_agent.target_position = target
 
 
@@ -230,6 +281,7 @@ func _on_died() -> void:
 	_attack_target = null
 	remove_from_group(&"commandos")
 	collision_layer = 0
+	_agent.avoidance_enabled = false
 	_model.is_dead = true
 	SelectionManager.remove(self)
 	EventBus.unit_died.emit(self)

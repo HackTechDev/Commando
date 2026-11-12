@@ -18,6 +18,11 @@ signal state_changed(state: State)
 ## Chemin de patrouille (points de la courbe), parcouru en boucle.
 @export var patrol_path: Path3D
 
+## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
+## considérée comme bloquée et fait un pas de côté.
+const BLOCKED_RATIO := 0.4
+const SIDESTEP_RATIO := 0.7
+
 var state: State = State.PATROL
 var is_dead: bool = false
 ## Jauge de détection, de 0 (rien vu) à 1 (repéré).
@@ -31,6 +36,9 @@ var _last_seen: Vector3
 var _memory_left: float = 0.0
 var _chase_arrived: bool = false
 var _fire_cooldown: float = 0.0
+var _vertical_velocity: float = 0.0
+var _wants_to_move: bool = false
+var _desired_velocity: Vector3
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
@@ -45,6 +53,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 func _ready() -> void:
 	health.reset(stats.max_health)
 	health.died.connect(_on_died)
+	_agent.velocity_computed.connect(_apply_velocity)
 	if patrol_path and patrol_path.curve:
 		for i in patrol_path.curve.point_count:
 			_waypoints.append(patrol_path.to_global(patrol_path.curve.get_point_position(i)))
@@ -68,9 +77,29 @@ func _physics_process(delta: float) -> void:
 		State.ALERT:
 			horizontal = _alert(delta)
 
-	velocity.x = horizontal.x
-	velocity.z = horizontal.z
-	velocity.y = 0.0 if is_on_floor() else velocity.y - _gravity * delta
+	_vertical_velocity = 0.0 if is_on_floor() else velocity.y - _gravity * delta
+	_wants_to_move = horizontal != Vector3.ZERO
+	_desired_velocity = horizontal
+	# Une unité à l'arrêt est prioritaire : ce sont les autres qui la contournent.
+	_agent.avoidance_priority = 0.5 if _wants_to_move else 1.0
+	if _agent.avoidance_enabled:
+		# L'évitement renvoie une vitesse corrigée via `velocity_computed`.
+		_agent.velocity = horizontal
+	else:
+		_apply_velocity(horizontal)
+
+
+## Applique la vitesse horizontale (éventuellement corrigée par l'évitement).
+func _apply_velocity(horizontal: Vector3) -> void:
+	if is_dead:
+		return
+	# Une unité à l'arrêt ne se laisse pas pousser par l'évitement.
+	if not _wants_to_move:
+		horizontal = Vector3.ZERO
+	elif horizontal.length() < BLOCKED_RATIO * _desired_velocity.length():
+		# Freiné presque à l'arrêt par une unité pile en face : pas de côté.
+		horizontal += _desired_velocity.cross(Vector3.UP) * SIDESTEP_RATIO
+	velocity = Vector3(horizontal.x, _vertical_velocity, horizontal.z)
 	move_and_slide()
 	var speed := Vector2(velocity.x, velocity.z).length()
 	_model.move_ratio = 2.0 * speed / stats.chase_speed if state == State.ALERT else 0.6 * speed / stats.patrol_speed
@@ -98,6 +127,7 @@ func _on_died() -> void:
 	velocity = Vector3.ZERO
 	remove_from_group(&"enemies")
 	collision_layer = 0
+	_agent.avoidance_enabled = false
 	_model.is_dead = true
 	_model.move_ratio = 0.0
 	_vision.visible = false

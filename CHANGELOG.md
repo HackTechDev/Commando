@@ -30,3 +30,8 @@
 
 - Chargeur de 10 cartouches et 20 en réserve par opérateur ; rechargement automatique à chargeur vide ou manuel (R), 2 s.
 - À sec, l'opérateur cesse d'attaquer et refuse les ordres d'attaque ; le HUD affiche chargeur / réserve.
+
+## Collisions entre unités
+
+- Opérateurs et ennemis se bloquent physiquement et se contournent (évitement de `NavigationAgent3D`).
+- Une unité à l'arrêt ne se fait pas pousser ; une destination occupée par une autre unité met fin à l'ordre à proximité.
