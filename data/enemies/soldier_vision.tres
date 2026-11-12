@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="VisionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/vision_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fov_degrees = 70.0
+near_range = 5.0
+far_range = 12.0

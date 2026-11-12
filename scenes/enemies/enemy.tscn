@@ -1,0 +1,76 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/enemy.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/units/soldier_model.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/components/vision_component.gd" id="3"]
+[ext_resource type="Resource" path="res://data/enemies/soldier.tres" id="4"]
+[ext_resource type="Resource" path="res://data/enemies/soldier_vision.tres" id="5"]
+
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.32
+height = 1.8
+
+[sub_resource type="QuadMesh" id="bar"]
+size = Vector2(0.9, 0.1)
+
+[sub_resource type="StandardMaterial3D" id="bar_back"]
+shading_mode = 0
+albedo_color = Color(0, 0, 0, 0.6)
+transparency = 1
+billboard_mode = 1
+billboard_keep_scale = true
+no_depth_test = true
+
+[sub_resource type="StandardMaterial3D" id="bar_fill"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.15, 1)
+billboard_mode = 1
+billboard_keep_scale = true
+no_depth_test = true
+render_priority = 1
+
+[node name="Enemy" type="CharacterBody3D" groups=["enemies"]]
+collision_layer = 8
+collision_mask = 3
+script = ExtResource("1")
+stats = ExtResource("4")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("shape")
+
+[node name="SoldierModel" type="Node3D" parent="."]
+script = ExtResource("2")
+uniform_color = Color(0.45, 0.4, 0.33, 1)
+gear_color = Color(0.22, 0.17, 0.14, 1)
+team_color = Color(0.95, 0.15, 0.1, 1)
+
+[node name="VisionComponent" type="Node3D" parent="."]
+script = ExtResource("3")
+config = ExtResource("5")
+
+[node name="Gauge" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+
+[node name="Back" type="MeshInstance3D" parent="Gauge"]
+cast_shadow = 0
+mesh = SubResource("bar")
+material_override = SubResource("bar_back")
+
+[node name="Fill" type="MeshInstance3D" parent="Gauge"]
+cast_shadow = 0
+mesh = SubResource("bar")
+material_override = SubResource("bar_fill")
+
+[node name="Mark" type="Label3D" parent="Gauge"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+billboard = 1
+no_depth_test = true
+font_size = 96
+outline_size = 16
+text = "?"
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.4
+path_height_offset = 0.5
+target_desired_distance = 0.25

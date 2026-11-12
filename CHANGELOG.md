@@ -7,3 +7,10 @@
 - Unité `Commando` : sélection (clic, rectangle, touches), déplacement par `NavigationAgent3D`, marche/course, postures debout/accroupi/rampé.
 - Modèle 3D procédural d'opérateur des forces spéciales modernes (`SoldierModel`), animé par code.
 - Niveau `sandbox` : sol, murs, caisses, navigation générée au chargement, trois opérateurs.
+
+## Ennemi et cône de vision (M3)
+
+- `Enemy` : patrouille en boucle sur les points d'un `Path3D`, avec pause à chaque point.
+- `VisionComponent` : cône affiché au sol, occulté par les murs et les caisses, zone proche (détection immédiate) et zone lointaine (cibles debout uniquement).
+- Jauge de détection progressive au-dessus de l'ennemi, états `PATROL` / `SUSPICIOUS` / `ALERT`, cône vert / jaune / rouge.
+- Indicateur d'alerte global dans le HUD.
