@@ -56,3 +56,7 @@
 - Montée en plusieurs temps : arme en bandoulière, élan, mains sur le rebord, traction, passage d'une jambe, redressement (1,4 s).
 - Descente : accroupi au bord, appui des mains, chute, réception fléchie, redressement (1 s).
 - Les bras du modèle sont désormais articulés (épaule et coude) et posés par IK.
+
+## Bouton « Quitter »
+
+- Bouton « Quitter » en haut à droite du HUD, à côté de l'indicateur d'alerte ; il ferme le jeu immédiatement.

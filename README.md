@@ -27,6 +27,7 @@ godot --headless --path . --quit-after 60   # vérification sans affichage
 | Zoom | Molette |
 | Rotation de la caméra | A / E (maintenir) |
 | Centrer sur l'unité | Origine |
+| Quitter | Bouton « Quitter » en haut à droite |
 
 Les touches sont définies par position physique dans l'InputMap : sur un clavier QWERTY, ZQSD devient WASD et A/E devient Q/E.
 

@@ -10,6 +10,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _prone: Button = %Prone
 @onready var _reload: Button = %Reload
 @onready var _stop: Button = %Stop
+@onready var _quit: Button = %Quit
 
 
 func _ready() -> void:
@@ -28,6 +29,7 @@ func _ready() -> void:
 	_prone.pressed.connect(func() -> void: SelectionManager.toggle_posture(SoldierModel.Posture.PRONE))
 	_reload.pressed.connect(SelectionManager.reload)
 	_stop.pressed.connect(SelectionManager.stop)
+	_quit.pressed.connect(func() -> void: get_tree().quit())
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	_refresh_actions()
 
