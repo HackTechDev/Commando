@@ -12,6 +12,15 @@ godot --headless --path . --quit-after 60   # vérification sans affichage
 
 (`godot` = exécutable Godot 4.7.x.)
 
+## Export Web (HTML)
+
+```sh
+godot --headless --path . --export-release "Web" build/web/index.html
+cd build/web && python3 -m http.server 8000   # puis ouvrir http://localhost:8000
+```
+
+Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'ouvrir directement depuis le disque (`file://`) ne fonctionne pas. Les modèles d'export Web de Godot 4.7.2 doivent être installés.
+
 ## Contrôles
 
 | Action | Touche (AZERTY) |

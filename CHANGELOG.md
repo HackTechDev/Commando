@@ -65,3 +65,7 @@
 
 - Un opérateur perché qui reçoit l'ordre d'aller sur une caisse collée à la sienne y passe à pied, sans redescendre ; pour une caisse en diagonale, il passe par la caisse intermédiaire.
 - Si la caisse visée est occupée, un opérateur déjà perché reste où il est au lieu de redescendre.
+
+## Export Web
+
+- Préréglage d'export « Web » (`export_presets.cfg`), sans threads pour être hébergeable partout ; sortie dans `build/web/`.
