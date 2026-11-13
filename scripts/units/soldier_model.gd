@@ -237,6 +237,10 @@ const ANKLE_MAX := 1.0
 @export var skin_color := Color(0.80, 0.62, 0.50)
 ## Couleur d'identification de l'équipe (écussons d'épaule, marqueur de casque).
 @export var team_color := Color(0.15, 0.45, 0.95)
+## Casque d'opérateur (balistique, rails, protection auditive) ; sinon,
+## casque simple des soldats ennemis.
+@export var operator_helmet := true
+@export var helmet_color := Color(0.25, 0.27, 0.2)
 
 ## Posture affichée. Se coucher et se relever sont animés (voir
 ## `is_changing_posture`) ; entre debout et accroupi, la pose est interpolée.
@@ -371,6 +375,7 @@ var _m_skin: StandardMaterial3D
 var _m_team: StandardMaterial3D
 var _m_lens: StandardMaterial3D
 var _m_steel: StandardMaterial3D
+var _m_helmet: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -385,6 +390,7 @@ func _ready() -> void:
 	_m_team.emission_energy_multiplier = 0.4
 	_m_lens = _mat(Color(0.1, 0.5, 0.3), 0.15, 0.8)
 	_m_steel = _mat(Color(0.72, 0.74, 0.78), 0.25, 0.9)
+	_m_helmet = _mat(helmet_color, 0.75)
 
 	_body = _pivot(self, Vector3.ZERO, "Body")
 	_hips = _pivot(_body, Vector3(0.0, HIP_HEIGHT, 0.0), "Hips")
@@ -1227,6 +1233,9 @@ func _build_head() -> void:
 	var head := _sphere(_head, 0.112, Vector3(0.0, 0.17, 0.0), _m_gear)
 	head.scale = Vector3(1.0, 1.12, 1.05)
 	_box(_head, Vector3(0.15, 0.04, 0.03), Vector3(0.0, 0.185, -0.105), _m_skin)
+	if operator_helmet:
+		_build_operator_helmet()
+		return
 	# Casque balistique « high cut ».
 	var dome := SphereMesh.new()
 	dome.radius = 0.138
@@ -1247,6 +1256,57 @@ func _build_head() -> void:
 	# Support JVN, micro, marqueur d'identification.
 	_box(_head, Vector3(0.05, 0.05, 0.035), Vector3(0.0, 0.285, -0.14), _m_weapon)
 	_box(_head, Vector3(0.012, 0.012, 0.10), Vector3(-0.115, 0.115, -0.06), _m_weapon)
+	_box(_head, Vector3(0.05, 0.012, 0.05), Vector3(0.0, 0.337, 0.06), _m_team)
+
+
+## Casque balistique « high cut » d'opérateur : coque découpée au-dessus des
+## oreilles, rails RIS latéraux (avec lampe et adaptateurs), protection
+## auditive électronique à micro, support et JVN relevées, contrepoids.
+func _build_operator_helmet() -> void:
+	var dome := SphereMesh.new()
+	dome.radius = 0.142
+	dome.height = 0.145
+	dome.is_hemisphere = true
+	var shell := _mesh(_head, dome, Vector3(0.0, 0.19, 0.005), _m_helmet)
+	shell.scale = Vector3(1.0, 1.0, 1.1)
+	# Bord de la coque (garniture caoutchouc).
+	var rim := _cylinder(_head, 0.144, 0.014, Vector3(0.0, 0.192, 0.005), _m_gear)
+	rim.scale = Vector3(1.0, 1.0, 1.1)
+	# Visière avant courte.
+	_box(_head, Vector3(0.17, 0.02, 0.03), Vector3(0.0, 0.2, -0.148), _m_helmet)
+	for side: float in [-1.0, 1.0]:
+		# Rail RIS épousant le flanc de la coque, avec ses crans.
+		var rail := _pivot(_head, Vector3(0.142 * side, 0.232, 0.0), "Rail")
+		rail.rotation.z = -0.32 * side
+		_box(rail, Vector3(0.016, 0.034, 0.16), Vector3.ZERO, _m_weapon)
+		for i in 6:
+			_box(rail, Vector3(0.022, 0.026, 0.01), Vector3(0.0, 0.0, -0.065 + 0.026 * i), _m_weapon)
+		# Adaptateur qui relie la coquille auditive au rail.
+		_box(_head, Vector3(0.014, 0.06, 0.022), Vector3(0.143 * side, 0.2, 0.0), _m_weapon)
+		# Protection auditive : coquille, couvercle, coussinet.
+		var cup := _cylinder(_head, 0.052, 0.04, Vector3(0.133 * side, 0.15, 0.005), _m_gear)
+		cup.rotation.z = PI / 2.0
+		var cap := _cylinder(_head, 0.036, 0.014, Vector3(0.158 * side, 0.15, 0.005), _m_weapon)
+		cap.rotation.z = PI / 2.0
+		var cushion := _cylinder(_head, 0.048, 0.012, Vector3(0.108 * side, 0.15, 0.005), _m_weapon)
+		cushion.rotation.z = PI / 2.0
+		# Tubes des jumelles de vision nocturne, relevées.
+		var tube := _cylinder(_head, 0.022, 0.10, Vector3(0.032 * side, 0.335, -0.14), _m_weapon)
+		tube.rotation.x = deg_to_rad(-65.0)
+		var lens := _cylinder(_head, 0.018, 0.012, Vector3(0.032 * side, 0.358, -0.188), _m_lens)
+		lens.rotation.x = deg_to_rad(-65.0)
+	# Lampe tactique sur le rail droit.
+	var lamp := _cylinder(_head, 0.016, 0.07, Vector3(0.168, 0.25, -0.03), _m_weapon)
+	lamp.rotation.x = PI / 2.0
+	_box(_head, Vector3(0.02, 0.02, 0.02), Vector3(0.158, 0.245, -0.03), _m_weapon)
+	# Micro sur perche, devant la bouche.
+	var boom := _box(_head, Vector3(0.01, 0.01, 0.11), Vector3(-0.12, 0.13, -0.07), _m_weapon)
+	boom.rotation.y = -0.45
+	_sphere(_head, 0.014, Vector3(-0.085, 0.125, -0.12), _m_gear)
+	# Support de JVN (plaque frontale), contrepoids à l'arrière, marqueur IR.
+	_box(_head, Vector3(0.06, 0.06, 0.03), Vector3(0.0, 0.27, -0.14), _m_weapon)
+	_box(_head, Vector3(0.05, 0.05, 0.035), Vector3(0.0, 0.29, -0.155), _m_weapon)
+	_box(_head, Vector3(0.11, 0.06, 0.035), Vector3(0.0, 0.235, 0.16), _m_gear)
 	_box(_head, Vector3(0.05, 0.012, 0.05), Vector3(0.0, 0.337, 0.06), _m_team)
 
 

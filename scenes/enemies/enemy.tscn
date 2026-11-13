@@ -45,6 +45,7 @@ script = ExtResource("2")
 uniform_color = Color(0.45, 0.4, 0.33, 1)
 gear_color = Color(0.22, 0.17, 0.14, 1)
 team_color = Color(0.95, 0.15, 0.1, 1)
+operator_helmet = false
 
 [node name="VisionComponent" type="Node3D" parent="."]
 script = ExtResource("3")

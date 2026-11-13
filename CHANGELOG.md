@@ -159,3 +159,8 @@
 - Au contact de sa cible (1,6 m), un ennemi en alerte frappe au lieu de tirer : coup de crosse s'il est armé, uppercut sinon (25 PV, un coup toutes les 2 s environ). Un ennemi sans arme vient désormais au contact.
 - L'opérateur pare (45 % : arme levée en travers du visage, ou avant-bras croisés à mains nues), esquive (35 % : pas de côté, buste baissé) ou encaisse. Occupé (en train de frapper, couché, en escalade), il encaisse toujours.
 - Un coup paré ou esquivé déséquilibre l'ennemi 1,5 s : il recule, vacille, ne frappe ni ne tire, et ne repousse plus l'opérateur. C'est la fenêtre du contre : un ordre « Assommer » ou « Couteau » réussit à coup sûr, et part aussitôt s'il était déjà donné pendant l'attaque.
+
+## Casque des opérateurs
+
+- Nouveau casque balistique « high cut » pour les opérateurs : coque découpée au-dessus des oreilles avec garniture, rails RIS crantés sur les flancs (lampe tactique sur le rail droit), protection auditive électronique fixée aux rails par des adaptateurs, micro sur perche, support et jumelles de vision nocturne relevées, contrepoids à l'arrière, marqueur d'équipe.
+- Les soldats ennemis gardent leur casque simple, ce qui aide à distinguer les camps.
