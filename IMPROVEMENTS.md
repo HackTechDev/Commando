@@ -32,7 +32,6 @@ Idées classées par ordre de mise en œuvre conseillé ; les quatre premières 
 
 ### Attaque
 
-- **Coup de crosse** : assommer arme en main frappe avec la crosse ; mains nues (arme à la bretelle, G) donne l'uppercut ou un coup de pied. Donne un sens tactique à la touche G.
 - **Étranglement arrière** : par derrière, bras autour du cou pendant 2 à 3 s ; l'ennemi s'effondre sans bruit, inconscient. Plus lent que le couteau.
 - **Égorgement par derrière** : variante du couteau dans le dos de l'ennemi, main sur la bouche ; de face, le coup reste possible mais plus bruyant.
 - **Coup de coude** et **coup de genou** (saisie par la nuque) : variantes à très courte portée.

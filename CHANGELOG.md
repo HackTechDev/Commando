@@ -136,3 +136,8 @@
 
 - Trois coups de pied s'ajoutent à l'uppercut pour assommer : coup de pied de face (genou monté puis jambe tendue), circulaire (pivot sur le pied d'appui, jambe qui fouette jusqu'à la poitrine) et chassé latéral (de profil, genou ramené puis poussée du talon). Poings en garde, regard sur la cible.
 - L'opérateur choisit un coup au hasard, jamais deux fois de suite le même ; accroupi, il donne un uppercut.
+
+## Coup de crosse
+
+- « Assommer » dépend désormais de l'arme : arme en main, l'opérateur frappe d'un coup de crosse (arme ramenée sur la hanche, crosse projetée vers le visage avec rotation du buste et fente) ; arme à la bretelle (G), il frappe à mains nues (uppercut ou coup de pied).
+- Pour assommer, l'opérateur ne passe plus automatiquement son arme à la bretelle ; il le fait toujours pour le couteau et l'escalade.

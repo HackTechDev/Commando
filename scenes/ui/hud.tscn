@@ -124,7 +124,7 @@ text = "Couteau  [V]"
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
-tooltip_text = "Assommer : puis clic gauche sur un ennemi. Il reste inconscient 25 s, puis se réveille et donne l'alerte."
+tooltip_text = "Assommer : puis clic gauche sur un ennemi. Coup de crosse arme en main, à mains nues arme à la bretelle (G). Il reste inconscient 25 s, puis se réveille et donne l'alerte."
 toggle_mode = true
 text = "Assommer  [B]"
 

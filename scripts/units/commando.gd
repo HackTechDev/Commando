@@ -107,8 +107,10 @@ func _exit_tree() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	# Mains libres pour grimper ou frapper : arme à la bretelle.
-	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or _melee_target != null or _strike_left > 0.0)
+	# Mains libres pour grimper ou jouer du couteau : arme à la bretelle.
+	# Pour assommer, l'arme reste comme le joueur l'a choisie (crosse ou mains nues).
+	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and _strike_kind == MeleeKind.KNIFE)
+	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife)
 	_update_reload(delta)
 	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
 	if _hopping:
@@ -498,12 +500,16 @@ func _start_strike(enemy: Enemy, kind: MeleeKind) -> void:
 	_model.strike_progress = 0.0
 
 
-## Coup pour assommer : tiré au hasard, jamais deux fois de suite le même.
-## Hors de la position debout, seul l'uppercut est possible.
+## Coup pour assommer : coup de crosse arme en main ; à mains nues (arme à
+## la bretelle), tiré au hasard, jamais deux fois de suite le même, et
+## uppercut seulement hors de la position debout.
 func _pick_strike_move() -> SoldierModel.StrikeMove:
+	if not weapon_slung:
+		return SoldierModel.StrikeMove.BUTT_STRIKE
 	if posture != SoldierModel.Posture.STANDING:
 		return SoldierModel.StrikeMove.UPPERCUT
-	var moves: Array = SoldierModel.StrikeMove.values()
+	var moves: Array = [SoldierModel.StrikeMove.UPPERCUT, SoldierModel.StrikeMove.FRONT_KICK,
+			SoldierModel.StrikeMove.ROUNDHOUSE, SoldierModel.StrikeMove.SIDE_KICK]
 	moves.erase(_model.strike_move)
 	return moves.pick_random()
 

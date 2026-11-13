@@ -10,7 +10,7 @@ extends Node3D
 
 enum Posture { STANDING, CROUCHED, PRONE }
 ## Coup porté au corps à corps sans couteau.
-enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK }
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -161,6 +161,15 @@ const KICKS := {
 		"ankle": [0.0, 0.0, 0.3, 0.5, 0.45, 1.0, 0.6, 0.5, 1.0, 0.0],
 	},
 }
+# Coup de crosse (arme en main) : l'arme recule sur la hanche droite, crosse
+# en avant, puis la crosse est projetée vers le visage avec rotation du buste
+# et fente. Instants 0..1 de la frappe.
+const BUTT_TIMES: Array[float] = [0.0, 0.3, 0.45, 0.6, 1.0]
+const BUTT_DIP: Array[float] = [0.0, 0.0, 0.3, 0.06, 0.45, 0.02, 0.6, 0.02, 1.0, 0.0]
+const BUTT_TWIST: Array[float] = [0.0, 0.0, 0.3, -0.45, 0.45, 0.3, 0.6, 0.3, 1.0, 0.0]
+const BUTT_LEAN: Array[float] = [0.0, 0.0, 0.3, 0.05, 0.45, -0.15, 0.6, -0.1, 1.0, 0.0]
+const BUTT_LUNGE: Array[float] = [0.0, 0.0, 0.3, 0.0, 0.45, -0.5, 0.6, -0.45, 1.0, 0.0]
+
 ## Garde des poings pendant un coup de pied (repère du torse).
 const GUARD_LEFT := Vector3(-0.12, 0.62, -0.28)
 const GUARD_RIGHT := Vector3(0.14, 0.58, -0.22)
@@ -244,6 +253,8 @@ var _rifle_hold: Transform3D
 var _rifle_slung: Transform3D
 ## Étape intermédiaire du geste : canon vers le bas devant la hanche droite.
 var _rifle_sling_mid: Transform3D
+## Positions de l'arme pendant le coup de crosse (armé, impact, accompagnement).
+var _butt_keys: Array[Transform3D] = []
 ## 0 = arme en main, 1 = arme à la bretelle.
 var _sling: float = 0.0
 var _rifle_aim: Transform3D
@@ -509,12 +520,13 @@ func _animate_alive(delta: float) -> void:
 	var strike := 0.0
 	if strike_progress >= 0.0:
 		strike = sin(PI * clampf(strike_progress, 0.0, 1.0))
-	# Sans couteau : uppercut ou coup de pied.
+	# Sans couteau : coup de crosse (arme en main), uppercut ou coup de pied.
 	var unarmed_strike := strike_progress >= 0.0 and not strike_with_knife
+	var butt := unarmed_strike and strike_move == StrikeMove.BUTT_STRIKE and is_armed
 	var kick: Dictionary = {}
 	if unarmed_strike and posture == Posture.STANDING:
 		kick = KICKS.get(strike_move, {})
-	var uppercut := unarmed_strike and kick.is_empty()
+	var uppercut := unarmed_strike and kick.is_empty() and not butt
 	var punch_t := clampf(strike_progress, 0.0, 1.0)
 	var hip_yaw := 0.0
 	var side_lean := 0.0
@@ -573,7 +585,16 @@ func _animate_alive(delta: float) -> void:
 			hips_y = HIP_HEIGHT
 	# Épauler redresse le buste.
 	lean = lerpf(lean, -0.05, aim)
-	if uppercut:
+	if butt:
+		lean += sample_keys(BUTT_LEAN, punch_t)
+		if posture == Posture.STANDING:
+			var dip := sample_keys(BUTT_DIP, punch_t)
+			var bend := acos(clampf((THIGH_LENGTH + SHIN_LENGTH - dip) / (THIGH_LENGTH + SHIN_LENGTH), -1.0, 1.0))
+			hips_y -= dip
+			thigh += Vector2(bend, bend)
+			knee -= Vector2(2.0 * bend, 2.0 * bend)
+		body_pos.z += sample_keys(BUTT_LUNGE, punch_t)
+	elif uppercut:
 		lean += sample_keys(UPPERCUT_LEAN, punch_t)
 		if posture == Posture.STANDING:
 			# Flexion des genoux : le bassin descend, les pieds restent au sol.
@@ -634,7 +655,11 @@ func _animate_alive(delta: float) -> void:
 	var fast := 1.0 - exp(-18.0 * delta)
 	_lean = lerpf(_lean, lean + breath, fast)
 	# Debout, `_torso_yaw` tourne le buste ; couché, il le fait rouler.
-	var punch_twist := sample_keys(UPPERCUT_TWIST, punch_t) if uppercut else kick_torso_yaw
+	var punch_twist := kick_torso_yaw
+	if uppercut:
+		punch_twist = sample_keys(UPPERCUT_TWIST, punch_t)
+	elif butt:
+		punch_twist = sample_keys(BUTT_TWIST, punch_t)
 	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim + punch_twist, limbs)
 	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side + chest_turn + side_lean)
 	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
@@ -657,10 +682,13 @@ func _animate_alive(delta: float) -> void:
 	if reloading:
 		var tilt := sample_keys(RELOAD_TILT, reload_progress)
 		rifle_target = rifle_target * Transform3D(Basis.from_euler(Vector3(0.25 * tilt, 0.0, -0.6 * tilt)), Vector3(-0.04 * tilt, 0.04 * tilt, 0.0))
-	var slung := maxf(_sling, minf(strike * 1.5, 1.0))
+	# Une frappe sans l'arme la met à la bretelle ; le coup de crosse la garde.
+	var slung := _sling if butt else maxf(_sling, minf(strike * 1.5, 1.0))
 	if slung > 0.0:
 		rifle_target = _sling_transform(rifle_target, slung)
-	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-14.0 * delta))
+	if butt:
+		rifle_target = _butt_transform(rifle_target, punch_t)
+	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-(40.0 if butt else 14.0) * delta))
 	var recoil := exp(-_shot_time / RECOIL_DECAY)
 	_rifle.transform = _rifle_base * Transform3D(Basis(Vector3.RIGHT, 0.12 * recoil), Vector3(0.0, 0.0, 0.06 * recoil))
 
@@ -701,6 +729,19 @@ func _animate_alive(delta: float) -> void:
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
 	_knife.visible = strike > 0.0 and strike_with_knife
 	_update_magazines()
+
+
+## Position de l'arme pendant le coup de crosse ; `base` au début et à la fin.
+func _butt_transform(base: Transform3D, t: float) -> Transform3D:
+	var last := BUTT_TIMES.size() - 1
+	for i in range(1, BUTT_TIMES.size()):
+		if t <= BUTT_TIMES[i]:
+			var from_t := BUTT_TIMES[i - 1]
+			var weight := smoothstep(0.0, 1.0, (t - from_t) / (BUTT_TIMES[i] - from_t))
+			var from := base if i - 1 == 0 else _butt_keys[i - 2]
+			var to := base if i == last else _butt_keys[i - 1]
+			return from.interpolate_with(to, weight)
+	return base
 
 
 ## Position interpolée le long d'une trajectoire de main aux instants
@@ -1019,6 +1060,11 @@ func _build_rifle_and_arms() -> void:
 	# À la bretelle : pendue sur le flanc droit, canon vers le bas et un peu
 	# vers l'avant, crosse sous l'aisselle.
 	_rifle_slung = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.25, 0.0, 0.1)), Vector3(0.28, 0.2, 0.08))
+	_butt_keys = [
+		Transform3D(Basis.from_euler(Vector3(0.6, PI - 0.5, 0.0)), Vector3(0.22, 0.32, 0.05)),
+		Transform3D(Basis.from_euler(Vector3(-0.25, PI, 0.0)), Vector3(0.08, 0.6, -0.25)),
+		Transform3D(Basis.from_euler(Vector3(-0.5, PI, 0.0)), Vector3(0.06, 0.66, -0.2)),
+	]
 	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
 	_box(rifle, Vector3(0.045, 0.08, 0.30), Vector3(0.0, 0.04, -0.05), _m_weapon)      # boîtier
 	_box(rifle, Vector3(0.04, 0.065, 0.20), Vector3(0.0, 0.035, 0.19), _m_weapon)     # crosse
