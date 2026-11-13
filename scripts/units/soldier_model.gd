@@ -211,6 +211,16 @@ const THROW_LUNGE: Array[float] = [0.0, 0.0, 0.35, 0.05, 0.55, -0.15, 0.75, -0.1
 const CRATE_PUSH_HAND := Vector3(0.2, 1.02, -0.42)
 const CRATE_PULL_HAND := Vector3(0.22, 1.16, -0.42)
 const CRATE_GRIP_GAP := 0.4
+## Démarche en poussant ou tirant : avance de phase par unité de
+## `move_ratio` (un cycle de deux pas d'environ 0,45 m pour une vitesse de
+## marche de 3 m/s), amplitude des cuisses (pas de 0,45 m), position moyenne
+## des cuisses (pieds en arrière pour pousser, en avant pour tirer) et
+## levée du genou de la jambe qui avance.
+const CRATE_PHASE_RATE := 21.0
+const CRATE_STRIDE := 0.27
+const CRATE_PUSH_THIGH := -0.12
+const CRATE_PULL_THIGH := 0.22
+const CRATE_KNEE_LIFT := 0.9
 ## Parade à mains nues : avant-bras croisés devant le visage.
 const PARRY_LEFT := Vector3(-0.06, 0.74, -0.3)
 const PARRY_RIGHT := Vector3(0.1, 0.7, -0.27)
@@ -606,6 +616,9 @@ func _animate_alive(delta: float) -> void:
 	var prone := posture == Posture.PRONE
 	if prone:
 		_phase += delta * walk * CRAWL_PHASE_RATE
+	elif crate_grip:
+		# Cadence liée à la distance parcourue ; à reculons pour tirer.
+		_phase += delta * walk * CRATE_PHASE_RATE * (-1.0 if crate_pull else 1.0)
 	else:
 		_phase += delta * (5.0 + 3.5 * walk) * moving
 	_crawl = move_toward(_crawl, 1.0 if prone and walk > 0.02 else 0.0, delta * 4.0)
@@ -783,6 +796,16 @@ func _animate_alive(delta: float) -> void:
 	_grip = move_toward(_grip, 1.0 if crate_grip else 0.0, delta * 4.0)
 	var grip := smoothstep(0.0, 1.0, _grip)
 	if grip > 0.0:
+		# Pas courts et appuyés : la jambe qui avance dans le sens du
+		# déplacement (en avant pour pousser, en arrière pour tirer) lève le
+		# genou, l'autre pousse au sol.
+		var stride := minf(walk * 6.0, 1.0)
+		var base := CRATE_PULL_THIGH if crate_pull else CRATE_PUSH_THIGH
+		var crate_thigh := Vector2(base + s * CRATE_STRIDE * stride, base - s * CRATE_STRIDE * stride)
+		var crate_knee := Vector2(-maxf(c, 0.0), -maxf(-c, 0.0)) * CRATE_KNEE_LIFT * stride
+		thigh = thigh.lerp(crate_thigh, grip)
+		knee = knee.lerp(crate_knee, grip)
+		hips_y += absf(s) * 0.02 * stride * grip
 		var crouch := (0.1 if crate_pull else 0.06) * grip
 		lean += (0.12 if crate_pull else -0.38) * grip
 		head_pitch += (0.1 if crate_pull else -0.15) * grip

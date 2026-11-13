@@ -178,3 +178,4 @@
 - Clic droit au sol : il pousse (buste en avant, mains à plat, 1 m/s) ou tire (buste en arrière, mains au rebord, 0,8 m/s) la caisse dans l'axe du côté tenu, jusqu'au point visé ou au premier obstacle (mur, autre caisse, unité, ennemi assommé).
 - La caisse frotte au sol (bruit de 3 m). La navigation est recalculée dès qu'elle s'arrête : chemins, points d'escalade et passages entre caisses suivent sa nouvelle position.
 - Tout autre ordre (attaque, corps à corps, escalade, rechargement, reprise de l'arme avec G, posture), F ou P fait lâcher la caisse. On ne peut ni saisir une caisse occupée, ni monter sur une caisse tenue.
+- Les jambes marchent en poussant ou en tirant (elles restaient figées et le corps glissait) : pas courts et appuyés, cadence réglée sur la vitesse de la caisse ; pieds en arrière et jambe arrière qui pousse pour pousser, pieds en avant et marche à reculons pour tirer.

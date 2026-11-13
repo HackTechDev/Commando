@@ -217,9 +217,10 @@ func _physics_process(delta: float) -> void:
 
 ## Applique la vitesse horizontale (éventuellement corrigée par l'évitement).
 func _apply_velocity(horizontal: Vector3) -> void:
-	# Pendant une escalade ou une traversée de caisses, le déplacement et
-	# l'animation sont scriptés : la physique ne doit pas s'en mêler.
-	if _hopping:
+	# Pendant une escalade, une traversée de caisses ou le déplacement d'une
+	# caisse, le déplacement et l'animation sont scriptés : la physique (et
+	# l'évitement, qui rappelle cette fonction) ne doit pas s'en mêler.
+	if _hopping or _crate:
 		return
 	# Une unité à l'arrêt ne se laisse pas pousser par l'évitement.
 	if not _wants_to_move:
