@@ -43,7 +43,6 @@ Idées classées par ordre de mise en œuvre conseillé ; les quatre premières 
 
 ### Défense
 
-- **Lutte de l'ennemi en alerte** : un ennemi qui voit l'opérateur arriver le repousse ; le coup échoue.
 - **Parade, esquive et contre** de l'opérateur face à un ennemi qui frappe ; le contre exploite la fenêtre où l'ennemi est déséquilibré.
 - **Roulade** : plonger au sol pour sortir d'un cône de vision ou d'une ligne de tir, et finir couché.
 - **Garde de l'ennemi** : un ennemi en alerte lève les bras, ce qui impose un contre ou une prise par derrière.

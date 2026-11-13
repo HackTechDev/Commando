@@ -10,6 +10,9 @@ extends Node3D
 
 enum Posture { STANDING, CROUCHED, PRONE }
 ## Coup porté au corps à corps sans couteau.
+## Défense au corps à corps : parade (avant-bras ou arme levés) ou esquive
+## (pas de côté, buste baissé).
+enum DefendMove { PARRY, DODGE }
 enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
@@ -186,6 +189,19 @@ const CUT_LEAN: Array[float] = [0.0, 0.0, 0.2, 0.1, 0.45, 0.15, 0.62, 0.1, 1.0, 
 const CUT_DIP: Array[float] = [0.0, 0.0, 0.2, 0.03, 0.62, 0.05, 1.0, 0.0]
 ## Distance entre l'opérateur et la victime d'une prise par derrière (m).
 const GRAB_DISTANCE := 0.45
+## Poussée d'un ennemi qui repousse l'opérateur (instants de 0 à 1) :
+## arme ou mains ramenées contre la poitrine, puis projetées en avant.
+const SHOVE_TIMES: Array[float] = [0.0, 0.3, 0.5, 1.0]
+const SHOVE_LEFT: Array[Vector3] = [Vector3.ZERO, Vector3(-0.18, 0.48, -0.22), Vector3(-0.18, 0.52, -0.58), Vector3.ZERO]
+const SHOVE_RIGHT: Array[Vector3] = [Vector3.ZERO, Vector3(0.18, 0.48, -0.22), Vector3(0.18, 0.52, -0.58), Vector3.ZERO]
+const SHOVE_LEAN: Array[float] = [0.0, 0.0, 0.3, 0.08, 0.5, -0.3, 1.0, 0.0]
+const SHOVE_LUNGE: Array[float] = [0.0, 0.0, 0.3, 0.05, 0.5, -0.35, 1.0, 0.0]
+## Parade à mains nues : avant-bras croisés devant le visage.
+const PARRY_LEFT := Vector3(-0.06, 0.74, -0.3)
+const PARRY_RIGHT := Vector3(0.1, 0.7, -0.27)
+## Ennemi déséquilibré : bras écartés pour se rattraper.
+const STAGGER_LEFT := Vector3(-0.36, 0.3, -0.12)
+const STAGGER_RIGHT := Vector3(0.36, 0.3, -0.12)
 
 # Chute vers l'avant (attaqué par derrière) : à genoux, puis face contre terre.
 const DEATH_FWD_HIPS: Array[float] = [0.0, 0.92, 0.35, 0.55, 0.8, 0.7, 1.1, 0.92]
@@ -272,6 +288,15 @@ var strike_with_knife: bool = false
 ## Coup porté quand la frappe se fait sans couteau. Les coups de pied ne se
 ## donnent que debout ; dans une autre posture, c'est un uppercut.
 var strike_move: StrikeMove = StrikeMove.UPPERCUT
+## Avancement (0 à 1) d'une poussée pour repousser un assaillant ; -1 hors poussée.
+var shove_progress: float = -1.0
+## Avancement (0 à 1) d'une défense (parade ou esquive) ; -1 hors défense.
+var defend_progress: float = -1.0
+var defend_move: DefendMove = DefendMove.PARRY
+## Côté de l'esquive : 1 vers la droite, -1 vers la gauche.
+var defend_side: float = 1.0
+## Déséquilibré après une attaque parée ou esquivée.
+var staggered: bool = false
 
 var _body: Node3D
 var _hips: Node3D
@@ -319,6 +344,13 @@ var _hit_time: float = 10.0
 ## +1 si l'impact vient de face (le buste part en arrière), -1 de dos.
 var _hit_push: float = 1.0
 var _hit_side: float = 0.0
+var _hit_strength: float = 1.0
+var _stagger: float = 0.0
+## Positions de l'arme pendant la poussée (contre la poitrine, puis en
+## avant) et pendant la parade (horizontale devant le visage).
+var _rifle_shove_chamber: Transform3D
+var _rifle_shove_push: Transform3D
+var _rifle_block: Transform3D
 var _death_time: float = 0.0
 var _death_prone: bool = false
 var _death_twist: float = 0.0
@@ -529,8 +561,10 @@ func play_shot() -> void:
 
 ## Impact : le buste et la tête encaissent le choc. `from` (position dans le
 ## monde du tireur) oriente la réaction ; sans elle, le choc vient de face.
-func play_hit(from: Vector3 = Vector3.INF) -> void:
+## `strength` amplifie la réaction (coup, poussée).
+func play_hit(from: Vector3 = Vector3.INF, strength: float = 1.0) -> void:
 	_hit_time = 0.0
+	_hit_strength = strength
 	_hit_push = 1.0
 	_hit_side = randf_range(-1.0, 1.0)
 	if from != Vector3.INF and is_inside_tree():
@@ -678,8 +712,42 @@ func _animate_alive(delta: float) -> void:
 		thigh += Vector2.ONE * _knee_bend(dip)
 		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
 		shake = sin(_grab_time * 23.0) * 0.07 * (1.0 - 0.6 * weak)
-	lean += 0.4 * hit * _hit_push
-	head_pitch += 0.12 * aim - 0.4 * hit * _hit_push
+	# Poussée, parade, esquive, déséquilibre.
+	var shove := shove_progress >= 0.0 and strike_progress < 0.0
+	var shove_t := clampf(shove_progress, 0.0, 1.0)
+	var defend := defend_progress >= 0.0 and strike_progress < 0.0
+	var defend_w := 0.0
+	if defend:
+		defend_w = smoothstep(0.0, 1.0, minf(defend_progress / 0.2, 1.0)) * smoothstep(0.0, 1.0, minf((1.0 - defend_progress) / 0.35, 1.0))
+	var parry := defend and defend_move == DefendMove.PARRY
+	var dodge := defend and defend_move == DefendMove.DODGE
+	var block := parry and is_armed and _sling < 0.5
+	if shove:
+		lean += sample_keys(SHOVE_LEAN, shove_t)
+		body_pos.z += sample_keys(SHOVE_LUNGE, shove_t)
+	if parry:
+		lean += 0.12 * defend_w
+		head_pitch += 0.15 * defend_w
+	elif dodge:
+		var duck := 0.14 * defend_w
+		hips_y -= duck
+		thigh += Vector2.ONE * _knee_bend(duck)
+		knee -= Vector2.ONE * 2.0 * _knee_bend(duck)
+		lean -= 0.25 * defend_w
+		side_lean += 0.3 * defend_side * defend_w
+	_stagger = move_toward(_stagger, 1.0 if staggered else 0.0, delta * 5.0)
+	var stagger := smoothstep(0.0, 1.0, _stagger)
+	if stagger > 0.0:
+		# Il recule d'un demi-pas, buste en arrière, et vacille.
+		lean += 0.3 * stagger
+		head_pitch -= 0.25 * stagger
+		hips_y -= 0.06 * stagger
+		thigh += Vector2.ONE * _knee_bend(0.06 * stagger)
+		knee -= Vector2.ONE * 2.0 * _knee_bend(0.06 * stagger)
+		body_pos.z += 0.12 * stagger
+		shake += sin(_time * 7.0) * 0.1 * stagger
+	lean += 0.4 * hit * _hit_push * _hit_strength
+	head_pitch += 0.12 * aim - 0.4 * hit * _hit_push * _hit_strength
 	if not prone:
 		hips_y -= 0.05 * hit
 
@@ -688,7 +756,7 @@ func _animate_alive(delta: float) -> void:
 	# le bassin.
 	_body.rotation.z = lerp_angle(_body.rotation.z, body_yaw, blend)
 	# Les frappes sont rapides : le corps suit les clés presque sans retard.
-	var limbs := 1.0 - exp(-30.0 * delta) if unarmed_strike or grapple or grabbed else blend
+	var limbs := 1.0 - exp(-30.0 * delta) if unarmed_strike or grapple or grabbed or shove or defend else blend
 	_body.position = _body.position.lerp(body_pos, limbs)
 	_hips.position.y = lerpf(_hips.position.y, hips_y, limbs)
 	# Pivot sur le pied d'appui pendant un coup de pied.
@@ -749,7 +817,11 @@ func _animate_alive(delta: float) -> void:
 		rifle_target = _sling_transform(rifle_target, slung)
 	if butt:
 		rifle_target = _butt_transform(rifle_target, punch_t)
-	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-(40.0 if butt else 14.0) * delta))
+	if shove and _sling < 0.5:
+		rifle_target = _shove_transform(rifle_target, shove_t)
+	if block:
+		rifle_target = rifle_target.interpolate_with(_rifle_block, defend_w)
+	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-(40.0 if butt or shove or block else 14.0) * delta))
 	var recoil := exp(-_shot_time / RECOIL_DECAY)
 	_rifle.transform = _rifle_base * Transform3D(Basis(Vector3.RIGHT, 0.12 * recoil), Vector3(0.0, 0.0, 0.06 * recoil))
 
@@ -786,12 +858,25 @@ func _animate_alive(delta: float) -> void:
 	elif grabbed:
 		# Mains à la gorge, sur le bras qui l'étrangle.
 		target = _solve_arms(Vector3(-0.08, 0.56, -0.15), Vector3(0.08, 0.56, -0.15))
+	elif shove and (not is_armed or _sling >= 0.5):
+		# Poussée des deux mains.
+		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
+		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
+		target = _solve_arms(_path(SHOVE_TIMES, SHOVE_LEFT, free_left, shove_t), _path(SHOVE_TIMES, SHOVE_RIGHT, free_right, shove_t))
+	elif parry and not block:
+		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
+		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
+		target = _solve_arms(free_left.lerp(PARRY_LEFT, defend_w), free_right.lerp(PARRY_RIGHT, defend_w))
+	elif stagger > 0.0 and not is_armed:
+		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
+		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
+		target = _solve_arms(free_left.lerp(STAGGER_LEFT, stagger), free_right.lerp(STAGGER_RIGHT, stagger))
 	elif not kick.is_empty():
 		# Poings en garde devant le visage pendant le coup de pied.
 		var guard := minf(punch_t / 0.2, 1.0) * minf((1.0 - punch_t) / 0.3, 1.0)
 		target = _solve_arms(_free_hand(-1.0, false, s, c, moving, 0.0).lerp(GUARD_LEFT, guard), _free_hand(1.0, false, s, c, moving, 0.0).lerp(GUARD_RIGHT, guard))
 	# Un coup de poing est rapide : les bras suivent sans retard.
-	var arm_blend := 1.0 - exp(-(60.0 if unarmed_strike or grapple else 25.0) * delta)
+	var arm_blend := 1.0 - exp(-(60.0 if unarmed_strike or grapple or shove or defend else 25.0) * delta)
 	for i in _arm_joints.size():
 		var goal: Quaternion = target[i]
 		if strike > 0.0 and not unarmed_strike:
@@ -831,6 +916,16 @@ func _butt_transform(base: Transform3D, t: float) -> Transform3D:
 			var to := base if i == last else _butt_keys[i - 1]
 			return from.interpolate_with(to, weight)
 	return base
+
+
+## Arme pendant la poussée : ramenée en travers de la poitrine, puis
+## projetée en avant à deux mains, et retour.
+func _shove_transform(base: Transform3D, t: float) -> Transform3D:
+	if t <= SHOVE_TIMES[1]:
+		return base.interpolate_with(_rifle_shove_chamber, smoothstep(0.0, 1.0, t / SHOVE_TIMES[1]))
+	if t <= SHOVE_TIMES[2]:
+		return _rifle_shove_chamber.interpolate_with(_rifle_shove_push, smoothstep(0.0, 1.0, (t - SHOVE_TIMES[1]) / (SHOVE_TIMES[2] - SHOVE_TIMES[1])))
+	return _rifle_shove_push.interpolate_with(base, smoothstep(0.0, 1.0, (t - SHOVE_TIMES[2]) / (1.0 - SHOVE_TIMES[2])))
 
 
 ## Position interpolée le long d'une trajectoire de main aux instants
@@ -1168,6 +1263,10 @@ func _build_rifle_and_arms() -> void:
 		Transform3D(Basis.from_euler(Vector3(-0.25, PI, 0.0)), Vector3(0.08, 0.6, -0.25)),
 		Transform3D(Basis.from_euler(Vector3(-0.5, PI, 0.0)), Vector3(0.06, 0.66, -0.2)),
 	]
+	# Canon vers la gauche, légèrement relevé : l'arme barre la poitrine.
+	_rifle_shove_chamber = Transform3D(Basis.from_euler(Vector3(0.3, PI / 2.0, 0.0)), Vector3(0.14, 0.4, -0.2))
+	_rifle_shove_push = Transform3D(Basis.from_euler(Vector3(0.3, PI / 2.0, 0.0)), Vector3(0.14, 0.48, -0.5))
+	_rifle_block = Transform3D(Basis.from_euler(Vector3(0.15, PI / 2.0, 0.0)), Vector3(0.16, 0.66, -0.34))
 	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
 	_box(rifle, Vector3(0.045, 0.08, 0.30), Vector3(0.0, 0.04, -0.05), _m_weapon)      # boîtier
 	_box(rifle, Vector3(0.04, 0.065, 0.20), Vector3(0.0, 0.035, 0.19), _m_weapon)     # crosse

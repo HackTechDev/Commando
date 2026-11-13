@@ -20,6 +20,11 @@ const CHOKE_HIT_TIME := 0.85
 const THROAT_CUT_HIT_TIME := 0.6
 ## Durée (s) du glissement de l'opérateur contre la victime d'une prise.
 const GRAB_SLIDE_TIME := 0.15
+## Repoussé par un ennemi en alerte : recul (m) et durée du recul (s).
+const REPEL_DISTANCE := 1.0
+const REPEL_TIME := 0.35
+## Réaction d'un opérateur repoussé ou frappé.
+const SHOVED_HIT_STRENGTH := 1.8
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
@@ -80,6 +85,13 @@ var _grapple: bool = false
 var _grab_from: Vector3
 var _grab_to: Vector3
 var _climb_point: Vector3
+## Déplacement subi (repoussé, esquive) : délai avant, durée, vitesse
+## initiale, et position de l'assaillant pour la réaction (INF : aucune).
+var _push_delay: float = 0.0
+var _push_left: float = 0.0
+var _push_time: float = 1.0
+var _push_velocity: Vector3
+var _push_hit_from: Vector3 = Vector3.INF
 ## Choix du joueur : arme à la bretelle (mains libres) plutôt qu'en main.
 ## Un ordre d'attaque ou de rechargement la fait reprendre en main.
 var weapon_slung: bool = false:
@@ -131,6 +143,8 @@ func _physics_process(delta: float) -> void:
 	var horizontal := Vector3.ZERO
 	if is_dead:
 		pass
+	elif _push_delay > 0.0 or _push_left > 0.0:
+		horizontal = _update_push(delta)
 	elif _strike_left > 0.0:
 		_update_strike(delta)
 	elif _climb_target:
@@ -490,6 +504,11 @@ func _approach_melee(delta: float) -> Vector3:
 	to_enemy.y = 0.0
 	if to_enemy.length() <= MELEE_RANGE:
 		_melee_target = null
+		if enemy.resists(global_position):
+			# Il l'a vu venir : il le repousse, le coup échoue.
+			enemy.shove(self)
+			_push(-to_enemy.normalized() * REPEL_DISTANCE, REPEL_TIME, enemy.stats.shove_time * 0.5, enemy.global_position)
+			return Vector3.ZERO
 		_start_strike(enemy, _melee_kind)
 		return Vector3.ZERO
 	if _agent.target_position.distance_to(enemy.global_position) > 0.3:
@@ -497,6 +516,27 @@ func _approach_melee(delta: float) -> Vector3:
 	if _agent.is_navigation_finished():
 		return Vector3.ZERO
 	return _follow_path(delta)
+
+
+## Fait subir un déplacement de `offset` en `duration` secondes, après
+## `delay` secondes, avec réaction à un choc venu de `hit_from` (INF : aucun).
+func _push(offset: Vector3, duration: float, delay: float, hit_from: Vector3 = Vector3.INF) -> void:
+	_push_delay = delay
+	_push_time = duration
+	_push_left = duration
+	_push_velocity = offset / duration
+	_push_hit_from = hit_from
+
+
+func _update_push(delta: float) -> Vector3:
+	if _push_delay > 0.0:
+		_push_delay -= delta
+		if _push_delay <= 0.0 and _push_hit_from != Vector3.INF:
+			_model.play_hit(_push_hit_from, SHOVED_HIT_STRENGTH)
+		return Vector3.ZERO
+	_push_left = maxf(_push_left - delta, 0.0)
+	# Vitesse décroissante : départ brusque, arrêt en douceur.
+	return _push_velocity * 2.0 * (_push_left / _push_time)
 
 
 func _start_strike(enemy: Enemy, kind: MeleeKind) -> void:
@@ -731,6 +771,8 @@ func _on_died() -> void:
 	_strike_left = 0.0
 	_model.strike_progress = -1.0
 	_end_grapple()
+	_push_delay = 0.0
+	_push_left = 0.0
 	_reload_left = 0.0
 	_model.reload_progress = -1.0
 	remove_from_group(&"commandos")

@@ -54,6 +54,8 @@ var _memory_left: float = 0.0
 var _chase_arrived: bool = false
 var _fire_cooldown: float = 0.0
 var _stun_left: float = 0.0
+var _shove_left: float = 0.0
+var _shove_target: Commando
 var _vertical_velocity: float = 0.0
 var _wants_to_move: bool = false
 var _desired_velocity: Vector3
@@ -98,13 +100,16 @@ func _physics_process(delta: float) -> void:
 	_model.aiming = armed and state == State.ALERT and _target != null
 
 	var horizontal := Vector3.ZERO
-	match state:
-		State.PATROL:
-			horizontal = _patrol(delta)
-		State.SUSPICIOUS:
-			_face(_last_seen - global_position, delta)
-		State.ALERT:
-			horizontal = _alert(delta)
+	if _shove_left > 0.0:
+		_update_shove(delta)
+	else:
+		match state:
+			State.PATROL:
+				horizontal = _patrol(delta)
+			State.SUSPICIOUS:
+				_face(_last_seen - global_position, delta)
+			State.ALERT:
+				horizontal = _alert(delta)
 	if stationary:
 		horizontal = Vector3.ZERO
 
@@ -168,10 +173,52 @@ func is_behind(world_position: Vector3) -> bool:
 	return rad_to_deg((-global_basis.z).angle_to(to)) > BEHIND_ANGLE
 
 
+## Vrai s'il repousse un assaillant venant de `from` : en alerte, il le voit
+## arriver de face et le coup échoue.
+func resists(from: Vector3) -> bool:
+	if is_dead or state != State.ALERT:
+		return false
+	var to := from - global_position
+	to.y = 0.0
+	if to.length_squared() < 0.0001:
+		return true
+	return rad_to_deg((-global_basis.z).angle_to(to)) < stats.resist_angle
+
+
+## Repousse `attacker` (animation de poussée), puis reprend le combat.
+func shove(attacker: Commando) -> void:
+	if is_dead or state == State.STUNNED or state == State.GRABBED:
+		return
+	_shove_left = stats.shove_time
+	_shove_target = attacker
+	detection = 1.0
+	_last_seen = attacker.global_position
+	_memory_left = stats.alert_memory
+	_fire_cooldown = maxf(_fire_cooldown, stats.shove_time + 0.2)
+
+
+func _update_shove(delta: float) -> void:
+	_shove_left = maxf(_shove_left - delta, 0.0)
+	_model.shove_progress = 1.0 - _shove_left / stats.shove_time
+	if is_instance_valid(_shove_target):
+		_face(_shove_target.global_position - global_position, delta)
+	if _shove_left <= 0.0:
+		_model.shove_progress = -1.0
+		_shove_target = null
+
+
+## Interrompt une action de corps à corps en cours (poussée).
+func _cancel_melee() -> void:
+	_shove_left = 0.0
+	_shove_target = null
+	_model.shove_progress = -1.0
+
+
 ## Saisi par derrière : immobile, aveugle, il se débat (animation).
 func grab() -> void:
 	if is_dead or state == State.STUNNED or state == State.GRABBED:
 		return
+	_cancel_melee()
 	state = State.GRABBED
 	_target = null
 	velocity = Vector3.ZERO
@@ -221,6 +268,7 @@ func knock_out(fall_forward: bool = false) -> void:
 		return
 	_model.grabbed = false
 	_model.death_forward = fall_forward
+	_cancel_melee()
 	state = State.STUNNED
 	detection = 0.0
 	_target = null
@@ -253,6 +301,7 @@ func _wake_up() -> void:
 
 func _on_died() -> void:
 	is_dead = true
+	_cancel_melee()
 	state = State.PATROL
 	detection = 0.0
 	velocity = Vector3.ZERO

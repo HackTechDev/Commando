@@ -148,3 +148,8 @@
 - Le couteau devient un égorgement : main gauche sur la bouche, lame passée sous la gorge (1 s), chute vers l'avant, silencieux.
 - La victime est immobilisée dès la saisie (son cône s'éteint) ; si l'opérateur est tué avant la fin, elle se dégage et passe en alerte.
 - De face, les coups restent les mêmes, mais le couteau fait crier la victime (bruit de 6 m).
+
+## Lutte de l'ennemi en alerte
+
+- Un ennemi en alerte qui voit l'opérateur arriver de face le repousse : poussée à deux mains (ou du plat de l'arme, tenue en travers de la poitrine), l'opérateur encaisse et recule d'un mètre, le coup (couteau ou assommer) n'a pas lieu.
+- L'ennemi reste en alerte et reprend le combat ; il faut le prendre de flanc ou de dos.

@@ -30,5 +30,10 @@ extends Resource
 @export_range(0.0, 1.0) var hit_chance_far: float = 0.35
 ## Durée pendant laquelle un soldat assommé reste inconscient, en secondes.
 @export var stun_duration: float = 25.0
+## En alerte, il repousse un assaillant qui arrive au corps à corps dans ce
+## demi-angle (degrés) autour de son regard.
+@export var resist_angle: float = 75.0
+## Durée de la poussée qui repousse l'assaillant, en secondes.
+@export var shove_time: float = 0.5
 ## Rayon du bruit d'un coup de feu.
 @export var gunshot_noise_radius: float = 30.0
