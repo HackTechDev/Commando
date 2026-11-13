@@ -48,7 +48,6 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 
 ## 5. Modèle et animation
 
-- **Transitions de posture** : passer de debout à couché se fait par simple interpolation ; une vraie animation (genou à terre, puis mains au sol) serait plus crédible.
 - **Différencier les trois opérateurs** (§5.4) : silhouettes, équipement et compétences propres (choc, tireur d'élite, sapeur) ; ils sont identiques.
 - **Passer à des modèles et animations CC0** avec un `AnimationTree` (M10) quand le prototype sera stabilisé.
 

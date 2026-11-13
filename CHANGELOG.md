@@ -107,3 +107,10 @@
 - Rythme lié à la distance parcourue (environ 0,8 m par cycle), au lieu d'un cycle trop lent qui faisait glisser le corps.
 - La main gauche lâche l'arme pour prendre appui au sol et se soulève en avançant ; la main droite porte l'arme, qui avance avec le coude droit ; coudes au sol.
 - Épaules et bassin ondulent, le corps avance par poussées et se fait plus bas ; la tête reste tournée vers l'avant.
+
+## Transitions de posture
+
+- Se coucher : l'opérateur se met à genoux, pose la main gauche au sol, puis s'allonge (1,1 s depuis debout, 0,9 s depuis accroupi).
+- Se relever : appui sur la main, genou à terre, puis debout (1,1 s) ou accroupi (0,8 s).
+- L'animation part de la pose du moment (en marche, en pleine transition), sans à-coup ; l'arme reste tenue de la main droite, pointée vers l'avant.
+- Pendant la transition, l'opérateur ne se déplace pas et ne tire pas ; l'ordre en cours reprend ensuite.

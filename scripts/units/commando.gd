@@ -43,6 +43,8 @@ var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING:
 	set(value):
 		if value != posture:
 			posture = value
+			if _model:
+				_model.posture = value
 			posture_changed.emit(posture)
 ## Cartouches dans le chargeur engagé.
 var ammo_in_magazine: int = 0
@@ -118,6 +120,9 @@ func _physics_process(delta: float) -> void:
 		else:
 			horizontal = _follow_path(delta)
 
+	# Se coucher ou se relever immobilise l'unité un instant.
+	if _model.is_changing_posture():
+		horizontal = Vector3.ZERO
 	_vertical_velocity = 0.0 if is_on_floor() else velocity.y - _gravity * delta
 	_update_stuck(delta, horizontal)
 	_wants_to_move = horizontal != Vector3.ZERO
@@ -533,7 +538,7 @@ func _attack(delta: float) -> Vector3:
 		_fire_cooldown -= delta
 		if ammo_in_magazine <= 0:
 			reload()
-		elif not is_reloading() and _fire_cooldown <= 0.0 and (-global_basis.z).angle_to(to_target) < 0.25:
+		elif not is_reloading() and not _model.is_changing_posture() and _fire_cooldown <= 0.0 and (-global_basis.z).angle_to(to_target) < 0.25:
 			_fire(_attack_target, distance)
 		return Vector3.ZERO
 	# Pas de ligne de tir : s'approcher, puis viser de nouveau.

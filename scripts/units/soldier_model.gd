@@ -85,6 +85,21 @@ const HIT_DURATION := 0.4
 ## Durée pendant laquelle l'arme reste épaulée après un tir.
 const AIM_HOLD := 1.5
 
+# Changements de posture vers ou depuis la position couchée. Poses clés :
+# [inclinaison du corps, hauteur du bassin, avance du bassin (-Z = avant),
+#  cuisse G, cuisse D, genou G, genou D, buste, tête, écart des jambes,
+#  main gauche au sol (0 à 1), arme en position couchée (0 à 1)].
+const POSE_STAND: Array[float] = [0.0, 0.92, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+const POSE_KNEEL: Array[float] = [0.0, 0.52, 0.0, 1.45, -0.1, -1.45, -1.47, -0.12, 0.12, 0.0, 0.0, 0.0]
+const POSE_KNEES: Array[float] = [0.0, 0.52, 0.0, -0.05, -0.05, -1.5, -1.5, -0.45, 0.35, 0.05, 0.3, 0.3]
+const POSE_ALL_FOURS: Array[float] = [-1.2, 0.5, 0.0, 1.2, 1.2, -1.5, -1.5, -0.15, 1.1, 0.08, 1.0, 1.0]
+const POSE_PRONE: Array[float] = [-PI / 2.0, 0.18, -0.02, 0.0, 0.0, 0.0, 0.0, 0.2, 1.2, 0.12, 0.0, 1.0]
+## Durées (s) : se coucher depuis debout / accroupi, se relever debout / accroupi.
+const GO_PRONE_TIME := 1.1
+const GO_PRONE_FROM_CROUCH_TIME := 0.9
+const GET_UP_TIME := 1.1
+const GET_UP_TO_CROUCH_TIME := 0.8
+
 const HIP_HEIGHT := 0.92
 const THIGH_LENGTH := 0.44
 const UPPER_ARM_LENGTH := 0.29
@@ -102,8 +117,15 @@ const ANKLE_MAX := 1.0
 ## Couleur d'identification de l'équipe (écussons d'épaule, marqueur de casque).
 @export var team_color := Color(0.15, 0.45, 0.95)
 
-## Posture affichée ; la transition est interpolée.
-var posture: Posture = Posture.STANDING
+## Posture affichée. Se coucher et se relever sont animés (voir
+## `is_changing_posture`) ; entre debout et accroupi, la pose est interpolée.
+var posture: Posture = Posture.STANDING:
+	set(value):
+		if value == posture:
+			return
+		if (value == Posture.PRONE or posture == Posture.PRONE) and _body != null and not is_dead and climb_progress < 0.0:
+			_start_transition(posture, value)
+		posture = value
 ## 0 = immobile, 1 = marche, 2 = course.
 var move_ratio: float = 0.0
 ## Unité morte (ou inconsciente) : elle s'effondre puis reste étendue.
@@ -160,6 +182,11 @@ var _aim_weight: float = 0.0
 var _aim_hold: float = 0.0
 var _kneel: float = 0.0
 var _crawl: float = 0.0
+## Changement de posture en cours : instants (0..1) et poses clés.
+var _transition_times: Array[float] = []
+var _transition_poses: Array = []
+var _transition_time: float = 0.0
+var _transition_duration: float = 0.0
 var _shot_time: float = 10.0
 var _hit_time: float = 10.0
 ## +1 si l'impact vient de face (le buste part en arrière), -1 de dos.
@@ -216,9 +243,122 @@ func _process(delta: float) -> void:
 		_animate_climb(delta)
 		return
 	if is_dead:
+		_transition_duration = 0.0
 		_animate_death(delta)
 		return
+	if is_changing_posture():
+		# Une frappe interrompt la transition (l'opérateur se met à genoux).
+		if strike_progress < 0.0:
+			_animate_transition(delta)
+			return
+		_transition_duration = 0.0
 	_animate_alive(delta)
+
+
+## Vrai pendant qu'il se couche ou se relève : l'unité ne doit ni bouger ni tirer.
+func is_changing_posture() -> bool:
+	return _transition_duration > 0.0
+
+
+func _start_transition(from: Posture, to: Posture) -> void:
+	_transition_time = 0.0
+	_transition_poses = [_current_pose()]
+	if to == Posture.PRONE:
+		if from == Posture.CROUCHED:
+			_transition_duration = GO_PRONE_FROM_CROUCH_TIME
+			_transition_times = [0.0, 0.3, 0.65, 1.0]
+		else:
+			_transition_duration = GO_PRONE_TIME
+			_transition_times = [0.0, 0.35, 0.7, 1.0]
+		_transition_poses.append_array([POSE_KNEES, POSE_ALL_FOURS, POSE_PRONE])
+	elif to == Posture.CROUCHED:
+		_transition_duration = GET_UP_TO_CROUCH_TIME
+		_transition_times = [0.0, 0.45, 1.0]
+		_transition_poses.append_array([POSE_ALL_FOURS, POSE_KNEEL])
+		_kneel = 1.0
+	else:
+		_transition_duration = GET_UP_TIME
+		_transition_times = [0.0, 0.35, 0.7, 1.0]
+		_transition_poses.append_array([POSE_ALL_FOURS, POSE_KNEEL, POSE_STAND])
+
+
+## Pose actuelle du modèle, au format des poses clés de transition, pour
+## partir de là où il en est (en marche, en pleine transition…).
+func _current_pose() -> Array[float]:
+	var hips := _body.transform * _hips.position
+	var lying := clampf(-_body.rotation.x / (PI / 2.0), 0.0, 1.0)
+	return [_body.rotation.x, hips.y, hips.z, _leg_l.rotation.x, _leg_r.rotation.x,
+			_knee_l.rotation.x, _knee_r.rotation.x, _lean, _head.rotation.x,
+			-_leg_l.rotation.z, 0.0, lying]
+
+
+## Se coucher : à genoux, main gauche au sol, puis allongé ; se relever :
+## l'inverse. Le bassin est placé dans le repère de l'unité, de sorte qu'il ne
+## saute pas quand le corps bascule autour des pieds.
+func _animate_transition(delta: float) -> void:
+	_transition_time += delta
+	var t := clampf(_transition_time / _transition_duration, 0.0, 1.0)
+	var index := 1
+	while index < _transition_times.size() - 1 and t > _transition_times[index]:
+		index += 1
+	var from_t := _transition_times[index - 1]
+	var weight := smoothstep(0.0, 1.0, (t - from_t) / (_transition_times[index] - from_t))
+	var from: Array = _transition_poses[index - 1]
+	var to: Array = _transition_poses[index]
+	var pose: Array[float] = []
+	for i in from.size():
+		pose.append(lerpf(from[i], to[i], weight))
+	var pitch := pose[0]
+	_body.rotation = Vector3(pitch, 0.0, 0.0)
+	_hips.position.y = HIP_HEIGHT
+	_body.position = Vector3(0.0, pose[1], pose[2]) - Basis(Vector3.RIGHT, pitch) * Vector3(0.0, HIP_HEIGHT, 0.0)
+	_leg_l.rotation = Vector3(pose[3], 0.0, -pose[9])
+	_leg_r.rotation = Vector3(pose[4], 0.0, pose[9])
+	_knee_l.rotation.x = pose[5]
+	_knee_r.rotation.x = pose[6]
+	# Pieds à plat par rapport au sol, puis pointes tendues une fois allongé.
+	var lying := clampf(-pitch / (PI / 2.0), 0.0, 1.0)
+	_ankle_l.rotation.x = lerpf(clampf(-(pitch + pose[3] + pose[5]), ANKLE_MIN, ANKLE_MAX), ANKLE_MIN, lying)
+	_ankle_r.rotation.x = lerpf(clampf(-(pitch + pose[4] + pose[6]), ANKLE_MIN, ANKLE_MAX), ANKLE_MIN, lying)
+	_lean = pose[7]
+	_torso_yaw = 0.0
+	_torso.rotation = Vector3(_lean, 0.0, 0.0)
+	_head.rotation = Vector3(pose[8], 0.0, 0.0)
+	_crawl = 0.0
+	_aim_weight = 0.0
+
+	# Arme tenue de la main droite ; la main gauche se pose au sol sous l'épaule.
+	var rifle_weight := pose[11]
+	var rifle_target := _rifle_hold.interpolate_with(_rifle_prone, rifle_weight)
+	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-14.0 * delta))
+	_rifle.transform = _rifle_base
+	var shoulder := _arm_joints[0].global_position
+	var ground := _torso.to_local(Vector3(shoulder.x, global_position.y + 0.05, shoulder.z) - global_basis.z * 0.05)
+	var hand := pose[10]
+	var left: Vector3
+	var right: Vector3
+	if is_armed:
+		left = _rifle.transform * LEFT_GRIP.lerp(LEFT_GRIP_PRONE, rifle_weight)
+		right = _rifle.transform * RIGHT_GRIP
+	else:
+		left = _arm_poses_hand(-1.0)
+		right = _arm_poses_hand(1.0)
+		var right_shoulder := _arm_joints[2].global_position
+		right = right.lerp(_torso.to_local(Vector3(right_shoulder.x, global_position.y + 0.05, right_shoulder.z)), hand)
+	left = left.lerp(ground, hand)
+	var target := _solve_arms(left, right, ARM_POLE.lerp(PRONE_ELBOW_POLE, rifle_weight))
+	var arm_blend := 1.0 - exp(-25.0 * delta)
+	for i in _arm_joints.size():
+		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(target[i], arm_blend)
+	_knife.visible = false
+	_update_magazines()
+	if t >= 1.0:
+		_transition_duration = 0.0
+
+
+## Position de la main quand le bras pend le long du corps (repère du torse).
+func _arm_poses_hand(side: float) -> Vector3:
+	return Vector3(0.29 * side, 0.0, -0.03)
 
 
 ## Tir : recul de l'arme, flash de bouche, arme épaulée quelques instants.
@@ -539,6 +679,7 @@ static func sample_keys(keys: Array[float], t: float) -> float:
 ## Pose d'escalade à l'instant `climb_progress` (le déplacement du corps dans
 ## le monde est géré par l'unité).
 func _animate_climb(delta: float) -> void:
+	_transition_duration = 0.0
 	var t := clampf(climb_progress, 0.0, 1.0)
 	var down := climb_descending
 	var blend := 1.0 - exp(-25.0 * delta)
