@@ -94,6 +94,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_pending_action(ACTION_KNIFE)
 	elif event.is_action_pressed(&"action_knockout"):
 		toggle_pending_action(ACTION_KNOCKOUT)
+	elif event.is_action_pressed(&"action_sling"):
+		SelectionManager.toggle_sling()
 	elif event.is_action_pressed(&"reload"):
 		SelectionManager.reload()
 	elif event.is_action_pressed(&"stop"):

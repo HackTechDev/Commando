@@ -34,6 +34,7 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
+| Arme à la bretelle / en main | G (bascule) |
 | Recharger | R |
 | Annuler l'ordre en cours | F (clic droit pour annuler une action V / B armée) |
 | Accroupi / rampé | C / X (bascule) |

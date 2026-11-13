@@ -4,6 +4,7 @@ extends CharacterBody3D
 
 signal selected_changed(is_selected: bool)
 signal posture_changed(posture: SoldierModel.Posture)
+signal sling_changed(slung: bool)
 
 enum MeleeKind { KNIFE, KNOCKOUT }
 
@@ -66,6 +67,13 @@ var _strike_kind: MeleeKind = MeleeKind.KNIFE
 var _strike_left: float = 0.0
 var _strike_landed: bool = false
 var _climb_point: Vector3
+## Choix du joueur : arme à la bretelle (mains libres) plutôt qu'en main.
+## Un ordre d'attaque ou de rechargement la fait reprendre en main.
+var weapon_slung: bool = false:
+	set(value):
+		if value != weapon_slung:
+			weapon_slung = value
+			sling_changed.emit(value)
 var _hopping: bool = false
 ## Vrai pendant une escalade (attente de la bretelle comprise).
 var _climbing: bool = false
@@ -100,7 +108,7 @@ func _exit_tree() -> void:
 
 func _physics_process(delta: float) -> void:
 	# Mains libres pour grimper ou frapper : arme à la bretelle.
-	_model.weapon_slung = not is_dead and (_climbing or _climb_target != null or _melee_target != null or _strike_left > 0.0)
+	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or _melee_target != null or _strike_left > 0.0)
 	_update_reload(delta)
 	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
 	if _hopping:
@@ -198,6 +206,7 @@ func move_to(target: Vector3, run: bool) -> void:
 func attack(enemy: Enemy, run: bool) -> void:
 	if is_dead or _hopping or enemy == null or enemy.is_dead or not has_ammo():
 		return
+	weapon_slung = false
 	_climb_target = null
 	_melee_target = null
 	_has_order = false
@@ -250,6 +259,7 @@ func is_reloading() -> bool:
 func reload() -> void:
 	if is_dead or is_reloading() or ammo_reserve <= 0 or ammo_in_magazine >= stats.magazine_size:
 		return
+	weapon_slung = false
 	_reload_left = stats.reload_time
 	EventBus.unit_ammo_changed.emit(self)
 
@@ -284,6 +294,13 @@ func stop() -> void:
 	_attack_target = null
 	_climb_target = null
 	_melee_target = null
+
+
+## Passe l'arme à la bretelle, ou la reprend en main.
+func toggle_sling() -> void:
+	if is_dead:
+		return
+	weapon_slung = not weapon_slung
 
 
 ## Bascule entre `new_posture` et debout.

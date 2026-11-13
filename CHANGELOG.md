@@ -121,3 +121,8 @@
 - Automatique avant de grimper ou de redescendre (l'escalade attend la fin du geste) et pendant l'approche d'un ennemi au corps à corps ; l'arme est reprise une fois l'action terminée.
 - Mains libres : les bras se balancent à la marche ; couché, les deux mains prennent appui au sol et travaillent en alternance pendant la reptation.
 - L'opérateur ne tire et ne recharge qu'arme en main.
+
+## Touche « arme à la bretelle »
+
+- G (ou le bouton « Bretelle » de la barre d'actions) passe l'arme des opérateurs sélectionnés à la bretelle, ou la leur fait reprendre en main. Avec une sélection mixte, tous la passent à la bretelle.
+- Un ordre d'attaque ou de rechargement fait reprendre l'arme automatiquement.

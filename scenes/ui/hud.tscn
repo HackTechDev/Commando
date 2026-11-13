@@ -29,7 +29,7 @@ offset_bottom = 100.0
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer  •  Clic droit sur une caisse : grimper
-V : couteau  •  B : assommer  (puis clic gauche sur un ennemi)
+V : couteau  •  B : assommer  (puis clic gauche sur un ennemi)  •  G : arme à la bretelle
 ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"
 
 [node name="TopRight" type="HBoxContainer" parent="PlayerController"]
@@ -127,6 +127,14 @@ focus_mode = 0
 tooltip_text = "Assommer : puis clic gauche sur un ennemi. Il reste inconscient 25 s, puis se réveille et donne l'alerte."
 toggle_mode = true
 text = "Assommer  [B]"
+
+[node name="Sling" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Arme à la bretelle : l'opérateur range son fusil sur le flanc et garde les mains libres. Il ne peut plus tirer ; un ordre d'attaque ou de rechargement lui fait reprendre son arme."
+toggle_mode = true
+text = "Bretelle  [G]"
 
 [node name="Reload" type="Button" parent="PlayerController/ActionBar/Buttons"]
 unique_name_in_owner = true

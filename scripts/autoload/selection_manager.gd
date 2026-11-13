@@ -92,6 +92,14 @@ func reload() -> void:
 		unit.reload()
 
 
+## Passe l'arme à la bretelle si au moins une unité sélectionnée l'a en main,
+## sinon la fait reprendre en main à toutes.
+func toggle_sling() -> void:
+	var sling := selected.any(func(unit: Commando) -> bool: return not unit.weapon_slung)
+	for unit in selected:
+		unit.weapon_slung = sling
+
+
 ## Applique une posture à toutes les unités sélectionnées (bascule).
 func toggle_posture(posture: SoldierModel.Posture) -> void:
 	for unit in selected:
