@@ -70,3 +70,4 @@
 
 - Préréglage d'export « Web » (`export_presets.cfg`), sans threads pour être hébergeable partout ; sortie dans `build/web/`.
 - Script `export_web.sh` : export Web automatisé, avec options `--serve` et `--debug`.
+- En passant d'une caisse à l'autre, l'opérateur marche réellement (jambes animées), à 60 % de sa vitesse au sol.

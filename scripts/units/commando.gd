@@ -10,6 +10,8 @@ const MASK_OCCLUDERS := 0b10
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
 const SIDESTEP_RATIO := 0.7
+## Part de la vitesse au sol utilisée pour marcher d'une caisse à l'autre.
+const CRATE_WALK_RATIO := 0.6
 const CLIMB_START_DISTANCE := 0.4
 const CLIMB_REACH := 1.2
 # Avancée et élévation du corps pendant l'escalade, par paires (instant,
@@ -105,6 +107,10 @@ func _physics_process(delta: float) -> void:
 
 ## Applique la vitesse horizontale (éventuellement corrigée par l'évitement).
 func _apply_velocity(horizontal: Vector3) -> void:
+	# Pendant une escalade ou une traversée de caisses, le déplacement et
+	# l'animation sont scriptés : la physique ne doit pas s'en mêler.
+	if _hopping:
+		return
 	# Une unité à l'arrêt ne se laisse pas pousser par l'évitement.
 	if not _wants_to_move:
 		horizontal = Vector3.ZERO
@@ -315,11 +321,13 @@ func _walk_across(route: Array[Climbable]) -> void:
 	perched_on = null
 	target.occupant = self
 	_running = false
-	var speed := _current_speed()
+	# Pas prudents sur les caisses : plus lent qu'au sol, à cadence de marche.
+	var speed := _current_speed() * CRATE_WALK_RATIO
 	var tween := create_tween()
 	tween.tween_method(func(t: float) -> void:
 		global_position = from.lerp(to, t)
-		_model.move_ratio = speed / stats.walk_speed
+		_model.posture = posture
+		_model.move_ratio = 1.0
 	, 0.0, 1.0, from.distance_to(to) / speed)
 	tween.tween_callback(func() -> void:
 		_hopping = false
