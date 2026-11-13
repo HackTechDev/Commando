@@ -138,4 +138,9 @@ curve = SubResource("patrol_a")
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -12, 0, 11)
 patrol_path = NodePath("../../PatrolPaths/PatrolA")
 
+[node name="TrainingDummy" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -14, 0, -6)
+armed = false
+stationary = true
+
 [node name="HUD" parent="." instance=ExtResource("6")]

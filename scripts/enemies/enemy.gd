@@ -19,6 +19,10 @@ signal state_changed(state: State)
 @export var stats: EnemyStats
 ## Chemin de patrouille (points de la courbe), parcouru en boucle.
 @export var patrol_path: Path3D
+## Porte une arme et tire en alerte. Sans arme, il se contente de regarder.
+@export var armed: bool = true
+## Ne se déplace jamais, même en alerte (sentinelle, cible d'entraînement).
+@export var stationary: bool = false
 
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
@@ -63,6 +67,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 func _ready() -> void:
 	health.reset(stats.max_health)
 	health.died.connect(_on_died)
+	_model.set_armed(armed)
 	_agent.velocity_computed.connect(_apply_velocity)
 	if patrol_path and patrol_path.curve:
 		for i in patrol_path.curve.point_count:
@@ -91,6 +96,8 @@ func _physics_process(delta: float) -> void:
 			_face(_last_seen - global_position, delta)
 		State.ALERT:
 			horizontal = _alert(delta)
+	if stationary:
+		horizontal = Vector3.ZERO
 
 	_vertical_velocity = 0.0 if is_on_floor() else velocity.y - _gravity * delta
 	_wants_to_move = horizontal != Vector3.ZERO
@@ -307,6 +314,8 @@ func _alert(delta: float) -> Vector3:
 
 
 func _try_fire(delta: float, to_target: Vector3) -> void:
+	if not armed:
+		return
 	_fire_cooldown -= delta
 	var distance := to_target.length()
 	if _fire_cooldown > 0.0 or distance > stats.fire_range:

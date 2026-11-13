@@ -79,3 +79,8 @@
 - Couteau : mort immédiate, sans alerte. Assommer : l'ennemi tombe 25 s (« z z » au-dessus de lui), ne voit plus rien, ne bloque plus le passage ; à son réveil il donne l'alerte sur place, puis reprend sa ronde.
 - Un ennemi assommé peut être achevé au couteau ou par balle.
 - Correction : une unité retirée de la scène quitte désormais la sélection.
+
+## Ennemi d'entraînement
+
+- Options `armed` et `stationary` sur les ennemis : sans arme, il ne tire jamais (bras le long du corps) ; immobile, il ne se déplace pas, même en alerte.
+- Sandbox : un ennemi sans arme et immobile (`Enemies/TrainingDummy`) à l'ouest du terrain, dos aux opérateurs, pour s'entraîner au couteau.

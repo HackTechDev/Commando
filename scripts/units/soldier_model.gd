@@ -53,6 +53,8 @@ var is_dead: bool = false
 var climb_progress: float = -1.0
 ## Vrai pour l'animation de descente, faux pour la montée.
 var climb_descending: bool = false
+## Vrai si le modèle porte sa carabine ; sans arme, les bras pendent le long du corps.
+var is_armed: bool = true
 ## Avancement d'une attaque au corps à corps (0 à 1) ; négatif hors attaque.
 var strike_progress: float = -1.0
 ## Vrai si l'attaque se fait au couteau (lame visible), faux pour un coup de poing.
@@ -183,6 +185,19 @@ func _process(delta: float) -> void:
 			var rest: Quaternion = _arm_poses[ArmPose.RIFLE][i]
 			_arm_joints[i].quaternion = rest.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
 	_head.rotation.y = lerp_angle(_head.rotation.y, sin(_time * 0.6) * 0.25 * (1.0 - minf(walk, 1.0)), blend)
+
+
+## Retire ou rend la carabine. Sans arme, la pose de repos des bras devient
+## « bras le long du corps ».
+func set_armed(value: bool) -> void:
+	is_armed = value
+	_rifle.visible = value
+	if value:
+		_arm_poses[ArmPose.RIFLE] = _solve_arms(_rifle_hold * Vector3(0.0, -0.02, -0.33), _rifle_hold * Vector3(0.0, -0.05, 0.05))
+	else:
+		_arm_poses[ArmPose.RIFLE] = _solve_arms(Vector3(-0.29, 0.0, -0.03), Vector3(0.29, 0.0, -0.03))
+	for i in _arm_joints.size():
+		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
 
 ## Valeur interpolée (avec adoucissement) d'une piste d'images clés donnée
