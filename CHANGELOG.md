@@ -100,3 +100,10 @@
 - Rechargement : arme inclinée, la main gauche retire le chargeur, le lâche au sol (il disparaît après quelques secondes), en prend un neuf dans le gilet et l'insère.
 - Blessure : le buste et la tête encaissent le choc, dans le sens du tir quand il est connu.
 - Mort et perte de connaissance : les genoux cèdent, le corps bascule sur le dos, l'arme tombe à côté et les bras retombent ; à plat ventre, il s'affaisse sur place. Un ennemi qui se réveille se relève.
+
+## Reptation améliorée
+
+- Cycle en diagonale : le coude gauche avance pendant que le genou droit remonte, puis l'inverse ; les deux jambes travaillent en continu.
+- Rythme lié à la distance parcourue (environ 0,8 m par cycle), au lieu d'un cycle trop lent qui faisait glisser le corps.
+- La main gauche lâche l'arme pour prendre appui au sol et se soulève en avançant ; la main droite porte l'arme, qui avance avec le coude droit ; coudes au sol.
+- Épaules et bassin ondulent, le corps avance par poussées et se fait plus bas ; la tête reste tournée vers l'avant.

@@ -68,10 +68,17 @@ const MAG_POUCH := Vector3(-0.105, 0.36, -0.22)
 ## Visée épaulée : le buste pivote (épaule gauche en avant), l'arme et la tête
 ## compensent pour rester dans l'axe.
 const AIM_TWIST := -0.4
+## Direction des coudes par défaut (repère du torse, x vers l'extérieur).
+const ARM_POLE := Vector3(0.7, -1.0, 0.2)
 ## Rampé : bassin au ras du sol, buste relevé sur les coudes.
 const PRONE_BODY_POS := Vector3(0.0, 0.18, 0.9)
 const PRONE_CHEST := 0.2
 const PRONE_HEAD := 1.2
+## Reptation : avance du cycle (rad) par unité de `move_ratio` et par seconde,
+## soit environ 0,8 m par cycle complet (un appui de chaque côté).
+const CRAWL_PHASE_RATE := 24.0
+## Direction des coudes au sol (repère du torse, x vers l'extérieur).
+const PRONE_ELBOW_POLE := Vector3(0.8, -0.4, -0.8)
 const FLASH_DURATION := 0.05
 const RECOIL_DECAY := 0.07
 const HIT_DURATION := 0.4
@@ -152,6 +159,7 @@ var _torso_yaw: float = 0.0
 var _aim_weight: float = 0.0
 var _aim_hold: float = 0.0
 var _kneel: float = 0.0
+var _crawl: float = 0.0
 var _shot_time: float = 10.0
 var _hit_time: float = 10.0
 ## +1 si l'impact vient de face (le buste part en arrière), -1 de dos.
@@ -236,12 +244,17 @@ func play_hit(from: Vector3 = Vector3.INF) -> void:
 func _animate_alive(delta: float) -> void:
 	var walk := clampf(move_ratio, 0.0, 2.0)
 	var moving := minf(walk, 1.0)
-	_phase += delta * (5.0 + 3.5 * walk) * moving
+	var prone := posture == Posture.PRONE
+	if prone:
+		_phase += delta * walk * CRAWL_PHASE_RATE
+	else:
+		_phase += delta * (5.0 + 3.5 * walk) * moving
+	_crawl = move_toward(_crawl, 1.0 if prone and walk > 0.02 else 0.0, delta * 4.0)
+	var crawl := smoothstep(0.0, 1.0, _crawl)
 	var blend := 1.0 - exp(-10.0 * delta)
 	var s := sin(_phase)
 	var c := cos(_phase)
 	var swing := 0.55 * moving + 0.25 * maxf(walk - 1.0, 0.0)
-	var prone := posture == Posture.PRONE
 	# Attaque au corps à corps : élan vers l'avant, puis retour.
 	var strike := 0.0
 	if strike_progress >= 0.0:
@@ -258,6 +271,9 @@ func _animate_alive(delta: float) -> void:
 	var knee := Vector2(-maxf(-c, 0.0) * swing * 1.6, -maxf(c, 0.0) * swing * 1.6)
 	var spread := Vector2.ZERO
 	var twist := Vector2.ZERO
+	var body_yaw := 0.0
+	var chest_roll := s * 0.10 * moving
+	var chest_turn := 0.0
 	var lean := -0.12 * maxf(walk - 1.0, 0.0)
 	var body_pitch := 0.0
 	var body_pos := Vector3.ZERO
@@ -276,18 +292,24 @@ func _animate_alive(delta: float) -> void:
 			lean = lerpf(-0.4, -0.12, k)
 			head_pitch = lerpf(0.3, 0.12, k)
 		Posture.PRONE:
-			# Sur les coudes, jambes écartées. En reptation, la jambe pivote
-			# sur son axe pour que le genou remonte sur le côté, à plat au sol.
-			var crawl_l := maxf(s, 0.0)
-			var crawl_r := maxf(-s, 0.0)
+			# Sur les coudes, jambes écartées. Reptation en diagonale : le
+			# coude gauche avance pendant que le genou droit remonte sur le
+			# côté (la jambe pivote sur son axe pour rester à plat au sol),
+			# puis l'inverse. Épaules et bassin ondulent, le corps avance par
+			# poussées et se fait plus bas.
+			var up_l := 0.5 * (1.0 - s)
+			var up_r := 0.5 * (1.0 + s)
 			body_pitch = -PI / 2.0
-			body_pos = PRONE_BODY_POS
-			lean = PRONE_CHEST
-			head_pitch = PRONE_HEAD
-			twist = Vector2(PI / 2.0, -PI / 2.0) * moving
-			thigh = Vector2(0.12 + 0.8 * crawl_l, 0.12 + 0.8 * crawl_r) * moving
-			knee = Vector2(-1.2 * crawl_l, -1.2 * crawl_r) * moving
-			spread = Vector2(-0.12, 0.12) * (1.0 - moving)
+			body_pos = PRONE_BODY_POS + Vector3(0.0, 0.0, -0.04 * sin(2.0 * _phase) * crawl)
+			lean = PRONE_CHEST - 0.08 * crawl
+			head_pitch = PRONE_HEAD + 0.1 * crawl
+			twist = Vector2(PI / 2.0, -PI / 2.0) * crawl
+			thigh = Vector2(0.12 + 0.9 * up_l, 0.12 + 0.9 * up_r) * crawl
+			knee = Vector2(-1.3 * up_l, -1.3 * up_r) * crawl
+			spread = Vector2(-0.12, 0.12) * (1.0 - crawl)
+			body_yaw = 0.05 * s * crawl
+			chest_roll = 0.1 * s * crawl
+			chest_turn = 0.12 * s * crawl
 			hips_y = HIP_HEIGHT
 	# Épauler redresse le buste.
 	lean = lerpf(lean, -0.05, aim)
@@ -297,7 +319,9 @@ func _animate_alive(delta: float) -> void:
 		hips_y -= 0.05 * hit
 
 	_body.rotation.x = lerp_angle(_body.rotation.x, body_pitch, blend)
-	_body.rotation.z = lerp_angle(_body.rotation.z, 0.0, blend)
+	# Couché, l'axe Z local du corps est vertical : sa rotation fait onduler
+	# le bassin.
+	_body.rotation.z = lerp_angle(_body.rotation.z, body_yaw, blend)
 	_body.position = _body.position.lerp(body_pos, blend)
 	_hips.position.y = lerpf(_hips.position.y, hips_y, blend)
 	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh.x, blend)
@@ -318,20 +342,23 @@ func _animate_alive(delta: float) -> void:
 	var breath := sin(_time * 1.8) * 0.012
 	var fast := 1.0 - exp(-18.0 * delta)
 	_lean = lerpf(_lean, lean + breath, fast)
-	_torso_yaw = lerp_angle(_torso_yaw, s * 0.10 * moving * (1.0 - aim) + AIM_TWIST * aim, blend)
-	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side)
+	# Debout, `_torso_yaw` tourne le buste ; couché, il le fait rouler.
+	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim, blend)
+	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side + chest_turn)
 	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
 	if prone:
-		head_yaw *= 0.4
+		head_yaw = head_yaw * 0.4 * (1.0 - crawl) - chest_roll
 	_head.rotation.x = lerp_angle(_head.rotation.x, head_pitch, fast)
 	_head.rotation.y = lerp_angle(_head.rotation.y, head_yaw, blend)
-	_head.rotation.z = lerp_angle(_head.rotation.z, 0.0, blend)
+	# La tête reste tournée vers l'avant malgré le balancement des épaules.
+	_head.rotation.z = lerp_angle(_head.rotation.z, -0.8 * chest_turn, blend)
 
 	# Arme : basse, épaulée ou en position couchée ; inclinée pendant le
 	# rechargement ; en bandoulière pendant une frappe.
 	var rifle_target := _rifle_prone if prone else _rifle_hold.interpolate_with(_rifle_aim, aim)
-	if prone and moving > 0.0:
-		rifle_target.origin.y += 0.03 * s * moving
+	if prone:
+		# Arme portée par la main droite, qui avance avec le coude droit.
+		rifle_target.origin += Vector3(0.0, -0.1 * s, -0.04) * crawl
 	if reloading:
 		var tilt := sample_keys(RELOAD_TILT, reload_progress)
 		rifle_target = rifle_target * Transform3D(Basis.from_euler(Vector3(0.25 * tilt, 0.0, -0.6 * tilt)), Vector3(-0.04 * tilt, 0.04 * tilt, 0.0))
@@ -348,9 +375,12 @@ func _animate_alive(delta: float) -> void:
 		var right := _rifle.transform * RIGHT_GRIP
 		if reloading:
 			left = _reload_hand(reload_progress)
-		elif prone and moving > 0.0:
-			left += Vector3(0.0, 0.05 * s * moving, 0.0)
-		target = _solve_arms(left, right)
+		elif prone:
+			# La main gauche lâche l'arme et prend appui au sol devant
+			# l'épaule ; elle se soulève en avançant.
+			var planted := Vector3(-0.27, 0.88 + 0.15 * s, -0.16 + 0.07 * maxf(c, 0.0))
+			left = left.lerp(planted, crawl)
+		target = _solve_arms(left, right, PRONE_ELBOW_POLE if prone else ARM_POLE)
 	else:
 		target = _arm_poses[ArmPose.RIFLE]
 	var arm_blend := 1.0 - exp(-25.0 * delta)
@@ -747,7 +777,7 @@ func _build_arm(side: float) -> void:
 
 ## Rotations [épaule gauche, coude gauche, épaule droite, coude droit] qui
 ## amènent les mains aux positions données (repère du torse).
-func _solve_arms(left_hand: Vector3, right_hand: Vector3) -> Array:
+func _solve_arms(left_hand: Vector3, right_hand: Vector3, pole_hint: Vector3 = ARM_POLE) -> Array:
 	var pose: Array = []
 	for side: float in [-1.0, 1.0]:
 		var shoulder := _shoulder_position(side)
@@ -757,7 +787,7 @@ func _solve_arms(left_hand: Vector3, right_hand: Vector3) -> Array:
 		var hand := shoulder + dir * reach
 		var along := (UPPER_ARM_LENGTH * UPPER_ARM_LENGTH - FOREARM_LENGTH * FOREARM_LENGTH + reach * reach) / (2.0 * reach)
 		var height := sqrt(maxf(UPPER_ARM_LENGTH * UPPER_ARM_LENGTH - along * along, 0.0))
-		var pole := Vector3(0.7 * side, -1.0, 0.2)
+		var pole := Vector3(pole_hint.x * side, pole_hint.y, pole_hint.z)
 		pole = (pole - dir * pole.dot(dir)).normalized()
 		var elbow := shoulder + dir * along + pole * height
 		var upper := _basis_pointing_down(elbow - shoulder)
