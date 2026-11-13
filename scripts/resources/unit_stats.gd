@@ -27,6 +27,15 @@ extends Resource
 ## Chances de parer et d'esquiver un coup ennemi (sinon il encaisse).
 @export_range(0.0, 1.0) var parry_chance: float = 0.45
 @export_range(0.0, 1.0) var dodge_chance: float = 0.35
+## Couteaux de lancer emportés (à ramasser après chaque lancer).
+@export var throwing_knives: int = 1
+## Portée maximale du lancer, et distance jusqu'à laquelle il porte toujours.
+@export var throw_range: float = 7.0
+@export var throw_sure_range: float = 4.0
+## Chance de toucher à portée maximale.
+@export_range(0.0, 1.0) var throw_hit_chance_far: float = 0.7
+## Durée du geste de lancer, en secondes.
+@export var throw_time: float = 0.8
 ## Durée d'une parade ou d'une esquive, en secondes.
 @export var defend_time: float = 0.5
 

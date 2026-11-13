@@ -196,6 +196,15 @@ const SHOVE_LEFT: Array[Vector3] = [Vector3.ZERO, Vector3(-0.18, 0.48, -0.22), V
 const SHOVE_RIGHT: Array[Vector3] = [Vector3.ZERO, Vector3(0.18, 0.48, -0.22), Vector3(0.18, 0.52, -0.58), Vector3.ZERO]
 const SHOVE_LEAN: Array[float] = [0.0, 0.0, 0.3, 0.08, 0.5, -0.3, 1.0, 0.0]
 const SHOVE_LUNGE: Array[float] = [0.0, 0.0, 0.3, 0.05, 0.5, -0.35, 1.0, 0.0]
+## Lancer de couteau (instants de 0 à 1) : main droite armée derrière la
+## tête, bras gauche tendu vers la cible, lâcher, puis accompagnement.
+const THROW_TIMES: Array[float] = [0.0, 0.35, 0.55, 0.75, 1.0]
+const THROW_RELEASE := 0.55
+const THROW_RIGHT: Array[Vector3] = [Vector3.ZERO, Vector3(0.26, 0.74, 0.1), Vector3(0.14, 0.66, -0.46), Vector3(0.02, 0.36, -0.38), Vector3.ZERO]
+const THROW_LEFT: Array[Vector3] = [Vector3.ZERO, Vector3(-0.1, 0.56, -0.44), Vector3(-0.2, 0.44, -0.2), Vector3(-0.24, 0.34, -0.08), Vector3.ZERO]
+const THROW_LEAN: Array[float] = [0.0, 0.0, 0.35, 0.12, 0.55, -0.2, 0.75, -0.25, 1.0, 0.0]
+const THROW_TWIST: Array[float] = [0.0, 0.0, 0.35, -0.45, 0.55, 0.25, 0.75, 0.3, 1.0, 0.0]
+const THROW_LUNGE: Array[float] = [0.0, 0.0, 0.35, 0.05, 0.55, -0.15, 0.75, -0.18, 1.0, 0.0]
 ## Parade à mains nues : avant-bras croisés devant le visage.
 const PARRY_LEFT := Vector3(-0.06, 0.74, -0.3)
 const PARRY_RIGHT := Vector3(0.1, 0.7, -0.27)
@@ -292,6 +301,8 @@ var strike_with_knife: bool = false
 ## Coup porté quand la frappe se fait sans couteau. Les coups de pied ne se
 ## donnent que debout ; dans une autre posture, c'est un uppercut.
 var strike_move: StrikeMove = StrikeMove.UPPERCUT
+## Avancement (0 à 1) d'un lancer de couteau ; -1 hors lancer.
+var throw_progress: float = -1.0
 ## Avancement (0 à 1) d'une poussée pour repousser un assaillant ; -1 hors poussée.
 var shove_progress: float = -1.0
 ## Avancement (0 à 1) d'une défense (parade ou esquive) ; -1 hors défense.
@@ -607,12 +618,14 @@ func _animate_alive(delta: float) -> void:
 	if unarmed_strike and posture == Posture.STANDING:
 		kick = KICKS.get(strike_move, {})
 	var uppercut := unarmed_strike and kick.is_empty() and not butt
+	var throwing := throw_progress >= 0.0 and strike_progress < 0.0
+	var throw_t := clampf(throw_progress, 0.0, 1.0)
 	var punch_t := clampf(strike_progress, 0.0, 1.0)
 	var hip_yaw := 0.0
 	var side_lean := 0.0
 	var kick_torso_yaw := 0.0
 	var reloading := reload_progress >= 0.0 and is_armed
-	var wants_aim := is_armed and (aiming or _aim_hold > 0.0) and strike == 0.0 and not grapple and not grabbed and not reloading and _sling <= 0.0
+	var wants_aim := is_armed and (aiming or _aim_hold > 0.0) and strike == 0.0 and not grapple and not grabbed and not throwing and not reloading and _sling <= 0.0
 	_aim_weight = move_toward(_aim_weight, 1.0 if wants_aim else 0.0, delta * 5.0)
 	var aim := 0.0 if prone else smoothstep(0.0, 1.0, _aim_weight)
 	var hit := _hit_weight()
@@ -704,6 +717,9 @@ func _animate_alive(delta: float) -> void:
 		hips_y -= dip
 		thigh += Vector2.ONE * _knee_bend(dip)
 		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
+	elif throwing:
+		lean += sample_keys(THROW_LEAN, throw_t)
+		body_pos.z += sample_keys(THROW_LUNGE, throw_t)
 	else:
 		lean += -0.35 * strike
 	var shake := 0.0
@@ -762,7 +778,7 @@ func _animate_alive(delta: float) -> void:
 	# le bassin.
 	_body.rotation.z = lerp_angle(_body.rotation.z, body_yaw, blend)
 	# Les frappes sont rapides : le corps suit les clés presque sans retard.
-	var limbs := 1.0 - exp(-30.0 * delta) if unarmed_strike or grapple or grabbed or shove or defend else blend
+	var limbs := 1.0 - exp(-30.0 * delta) if unarmed_strike or grapple or grabbed or shove or defend or throwing else blend
 	_body.position = _body.position.lerp(body_pos, limbs)
 	_hips.position.y = lerpf(_hips.position.y, hips_y, limbs)
 	# Pivot sur le pied d'appui pendant un coup de pied.
@@ -793,6 +809,8 @@ func _animate_alive(delta: float) -> void:
 		punch_twist = sample_keys(UPPERCUT_TWIST, punch_t)
 	elif butt:
 		punch_twist = sample_keys(BUTT_TWIST, punch_t)
+	elif throwing:
+		punch_twist = sample_keys(THROW_TWIST, throw_t)
 	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim + punch_twist, limbs)
 	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side + chest_turn + side_lean + shake)
 	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
@@ -817,7 +835,7 @@ func _animate_alive(delta: float) -> void:
 		rifle_target = rifle_target * Transform3D(Basis.from_euler(Vector3(0.25 * tilt, 0.0, -0.6 * tilt)), Vector3(-0.04 * tilt, 0.04 * tilt, 0.0))
 	# Une frappe sans l'arme la met à la bretelle ; le coup de crosse la garde.
 	var slung := _sling if butt else maxf(_sling, minf(strike * 1.5, 1.0))
-	if grapple or grabbed:
+	if grapple or grabbed or throwing:
 		slung = 1.0
 	if slung > 0.0:
 		rifle_target = _sling_transform(rifle_target, slung)
@@ -864,6 +882,10 @@ func _animate_alive(delta: float) -> void:
 	elif grabbed:
 		# Mains à la gorge, sur le bras qui l'étrangle.
 		target = _solve_arms(Vector3(-0.08, 0.56, -0.15), Vector3(0.08, 0.56, -0.15))
+	elif throwing:
+		var free_left := _free_hand(-1.0, posture == Posture.PRONE, s, c, moving, 0.0)
+		var free_right := _free_hand(1.0, posture == Posture.PRONE, s, c, moving, 0.0)
+		target = _solve_arms(_path(THROW_TIMES, THROW_LEFT, free_left, throw_t), _path(THROW_TIMES, THROW_RIGHT, free_right, throw_t))
 	elif shove and (not is_armed or _sling >= 0.5):
 		# Poussée des deux mains.
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
@@ -882,13 +904,13 @@ func _animate_alive(delta: float) -> void:
 		var guard := minf(punch_t / 0.2, 1.0) * minf((1.0 - punch_t) / 0.3, 1.0)
 		target = _solve_arms(_free_hand(-1.0, false, s, c, moving, 0.0).lerp(GUARD_LEFT, guard), _free_hand(1.0, false, s, c, moving, 0.0).lerp(GUARD_RIGHT, guard))
 	# Un coup de poing est rapide : les bras suivent sans retard.
-	var arm_blend := 1.0 - exp(-(60.0 if unarmed_strike or grapple or shove or defend else 25.0) * delta)
+	var arm_blend := 1.0 - exp(-(60.0 if unarmed_strike or grapple or shove or defend or throwing else 25.0) * delta)
 	for i in _arm_joints.size():
 		var goal: Quaternion = target[i]
 		if strike > 0.0 and not unarmed_strike:
 			goal = goal.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
-	_knife.visible = (strike > 0.0 and strike_with_knife) or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
+	_knife.visible = (strike > 0.0 and strike_with_knife) or (throwing and throw_t < THROW_RELEASE) or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
 	_update_magazines()
 
 

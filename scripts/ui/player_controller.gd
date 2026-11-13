@@ -3,7 +3,7 @@ extends Control
 ## Entrées du joueur : sélection (clic, rectangle, touches), ordres de
 ## déplacement, d'attaque et postures. Dessine aussi le rectangle de sélection.
 ##
-## Actions ciblées (couteau, assommer) : la touche ou le bouton arme l'action,
+## Actions ciblées (couteau, assommer, lancer de couteau) : la touche ou le bouton arme l'action,
 ## puis un clic gauche sur un ennemi la confie à l'opérateur sélectionné le plus
 ## proche. Un clic droit, ou un clic ailleurs que sur un ennemi, l'annule.
 
@@ -12,6 +12,7 @@ signal pending_action_changed(action: StringName)
 const ACTION_NONE := &""
 const ACTION_KNIFE := &"knife"
 const ACTION_KNOCKOUT := &"knockout"
+const ACTION_THROW := &"throw"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -94,6 +95,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_pending_action(ACTION_KNIFE)
 	elif event.is_action_pressed(&"action_knockout"):
 		toggle_pending_action(ACTION_KNOCKOUT)
+	elif event.is_action_pressed(&"action_throw"):
+		toggle_pending_action(ACTION_THROW)
 	elif event.is_action_pressed(&"action_sling"):
 		SelectionManager.toggle_sling()
 	elif event.is_action_pressed(&"reload"):
@@ -178,9 +181,13 @@ func _use_pending_action(screen_position: Vector2) -> void:
 	var hit := _raycast(screen_position, MASK_ENEMIES)
 	if hit.has("collider") and hit["collider"] is Enemy:
 		var enemy := hit["collider"] as Enemy
-		var kind := Commando.MeleeKind.KNIFE if pending_action == ACTION_KNIFE else Commando.MeleeKind.KNOCKOUT
-		if SelectionManager.order_melee(enemy, kind):
-			_spawn_marker(enemy.global_position, marker_melee_color)
+		if pending_action == ACTION_THROW:
+			if SelectionManager.order_throw(enemy):
+				_spawn_marker(enemy.global_position, marker_melee_color)
+		else:
+			var kind := Commando.MeleeKind.KNIFE if pending_action == ACTION_KNIFE else Commando.MeleeKind.KNOCKOUT
+			if SelectionManager.order_melee(enemy, kind):
+				_spawn_marker(enemy.global_position, marker_melee_color)
 	cancel_pending_action()
 
 

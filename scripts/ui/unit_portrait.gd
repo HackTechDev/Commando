@@ -24,6 +24,7 @@ var _fill: StyleBoxFlat
 @onready var _health_text: Label = %HealthText
 @onready var _status: Label = %Status
 @onready var _ammo: Label = %Ammo
+@onready var _no_knife: Label = %NoKnife
 
 
 ## Associe le portrait à une unité.
@@ -71,6 +72,7 @@ func _refresh() -> void:
 	if _unit.is_dead:
 		_status.text = "Mort"
 		_ammo.text = ""
+		_no_knife.visible = false
 		modulate = Color(1.0, 1.0, 1.0, 0.45)
 		return
 	_status.text = POSTURE_NAMES[_unit.posture]
@@ -80,4 +82,6 @@ func _refresh() -> void:
 		_ammo.text = "À sec"
 	else:
 		_ammo.text = "%d / %d" % [_unit.ammo_in_magazine, _unit.ammo_reserve]
+	# Couteau de lancer : rappel discret tant qu'il n'est pas ramassé.
+	_no_knife.visible = _unit.throwing_knives < _unit.stats.throwing_knives
 	_ammo.modulate = wounded_color if _unit.ammo_in_magazine == 0 else Color.WHITE

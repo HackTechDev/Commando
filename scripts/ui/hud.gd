@@ -10,6 +10,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _prone: Button = %Prone
 @onready var _knife: Button = %Knife
 @onready var _knockout: Button = %Knockout
+@onready var _throw: Button = %Throw
 @onready var _sling: Button = %Sling
 @onready var _reload: Button = %Reload
 @onready var _stop: Button = %Stop
@@ -34,6 +35,7 @@ func _ready() -> void:
 	_prone.pressed.connect(func() -> void: SelectionManager.toggle_posture(SoldierModel.Posture.PRONE))
 	_knife.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_KNIFE))
 	_knockout.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_KNOCKOUT))
+	_throw.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_THROW))
 	_controller.pending_action_changed.connect(func(_action: StringName) -> void: _refresh_actions())
 	_sling.pressed.connect(SelectionManager.toggle_sling)
 	_reload.pressed.connect(SelectionManager.reload)
@@ -47,11 +49,12 @@ func _ready() -> void:
 func _refresh_actions() -> void:
 	var selected := SelectionManager.selected
 	var empty := selected.is_empty()
-	for button: Button in [_crouch, _prone, _knife, _knockout, _sling, _reload, _stop]:
+	for button: Button in [_crouch, _prone, _knife, _knockout, _throw, _sling, _reload, _stop]:
 		button.disabled = empty
 	_action_bar.modulate.a = 0.5 if empty else 1.0
 	_crouch.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.posture == SoldierModel.Posture.CROUCHED))
 	_prone.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.posture == SoldierModel.Posture.PRONE))
 	_knife.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_KNIFE)
 	_knockout.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_KNOCKOUT)
+	_throw.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_THROW)
 	_sling.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.weapon_slung))

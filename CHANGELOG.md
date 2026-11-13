@@ -164,3 +164,10 @@
 
 - Nouveau casque balistique « high cut » pour les opérateurs : coque découpée au-dessus des oreilles avec garniture, rails RIS crantés sur les flancs (lampe tactique sur le rail droit), protection auditive électronique fixée aux rails par des adaptateurs, micro sur perche, support et jumelles de vision nocturne relevées, contrepoids à l'arrière, marqueur d'équipe.
 - Les soldats ennemis gardent leur casque simple, ce qui aide à distinguer les camps.
+
+## Lancer de couteau
+
+- Nouvelle action « Lancer » (T ou bouton, puis clic gauche sur un ennemi) : l'opérateur sélectionné le plus proche s'approche à 7 m avec une ligne de vue dégagée, passe son arme à la bretelle, arme le bras derrière la tête et lance ; le couteau vole en tournoyant.
+- Touché, l'ennemi meurt sans bruit (vers l'avant s'il est atteint dans le dos). Le lancer porte toujours jusqu'à 4 m, puis de moins en moins (70 % à 7 m).
+- Raté, le couteau file au-delà et tombe près de l'ennemi, qui l'entend et devient méfiant.
+- Chaque opérateur a un couteau de lancer : il reste au sol (repère violet) et se ramasse en passant dessus. Le portrait indique « sans couteau » en attendant. Le couteau de combat (V) reste toujours disponible.

@@ -64,6 +64,8 @@ var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING:
 var ammo_in_magazine: int = 0
 ## Cartouches en réserve.
 var ammo_reserve: int = 0
+## Couteaux de lancer en main (à ramasser après chaque lancer).
+var throwing_knives: int = 0
 ## Obstacle sur lequel l'unité se tient, le cas échéant.
 var perched_on: Climbable
 
@@ -75,6 +77,10 @@ var _reload_left: float = 0.0
 var _climb_target: Climbable
 var _melee_target: Enemy
 var _melee_kind: MeleeKind = MeleeKind.KNIFE
+## Lancer de couteau : cible, temps restant du geste, couteau parti.
+var _throw_target: Enemy
+var _throw_left: float = 0.0
+var _throw_released: bool = false
 var _strike_target: Enemy
 var _strike_kind: MeleeKind = MeleeKind.KNIFE
 var _strike_left: float = 0.0
@@ -127,6 +133,7 @@ func _ready() -> void:
 	_last_health = health.health
 	ammo_in_magazine = stats.magazine_size
 	ammo_reserve = stats.reserve_ammo
+	throwing_knives = stats.throwing_knives
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
 	_agent.velocity_computed.connect(_apply_velocity)
@@ -140,7 +147,8 @@ func _exit_tree() -> void:
 func _physics_process(delta: float) -> void:
 	# Mains libres pour grimper ou jouer du couteau : arme à la bretelle.
 	# Pour assommer, l'arme reste comme le joueur l'a choisie (crosse ou mains nues).
-	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and (_strike_kind == MeleeKind.KNIFE or _grapple))
+	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and (_strike_kind == MeleeKind.KNIFE or _grapple)) \
+			or _throw_target != null
 	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife)
 	_update_reload(delta)
 	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
@@ -155,12 +163,16 @@ func _physics_process(delta: float) -> void:
 		horizontal = _update_push(delta)
 	elif _strike_left > 0.0:
 		_update_strike(delta)
+	elif _throw_left > 0.0:
+		_update_throw(delta)
 	elif _climb_target:
 		horizontal = _approach_climb()
 		if horizontal != Vector3.ZERO:
 			_face(horizontal, delta)
 	elif _melee_target:
 		horizontal = _approach_melee(delta)
+	elif _throw_target:
+		horizontal = _approach_throw(delta)
 	elif _attack_target:
 		horizontal = _attack(delta)
 	elif _has_order:
@@ -232,6 +244,7 @@ func move_to(target: Vector3, run: bool) -> void:
 		_descend(target, move_to.bind(target, run))
 		return
 	_attack_target = null
+	_throw_target = null
 	_running = run
 	_has_order = true
 	_best_goal_distance = INF
@@ -246,6 +259,7 @@ func attack(enemy: Enemy, run: bool) -> void:
 	weapon_slung = false
 	_climb_target = null
 	_melee_target = null
+	_throw_target = null
 	_has_order = false
 	_running = run
 	_attack_target = enemy
@@ -275,6 +289,7 @@ func climb(target: Climbable, run: bool) -> bool:
 	_has_order = false
 	_attack_target = null
 	_melee_target = null
+	_throw_target = null
 	_running = run
 	_climb_target = target
 	_climb_point = access["point"]
@@ -314,9 +329,36 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
+	_throw_target = null
 	_running = run
 	_melee_target = enemy
 	_melee_kind = kind
+	return true
+
+
+## Ordonne de lancer un couteau sur `enemy` : l'unité s'approche à portée,
+## avec une ligne de vue dégagée, puis lance. Renvoie faux si c'est
+## impossible (plus de couteau, cible morte…).
+func throw_knife(enemy: Enemy, run: bool = false) -> bool:
+	if is_dead or _hopping or enemy == null or enemy.is_dead or throwing_knives <= 0:
+		return false
+	if perched_on and not _can_throw_at(enemy):
+		return _descend(enemy.global_position, throw_knife.bind(enemy, run))
+	_has_order = false
+	_attack_target = null
+	_climb_target = null
+	_melee_target = null
+	_running = run
+	_throw_target = enemy
+	return true
+
+
+## Ramasse un couteau de lancer au sol. Renvoie faux s'il en a déjà son compte.
+func pick_up_knife() -> bool:
+	if is_dead or throwing_knives >= stats.throwing_knives:
+		return false
+	throwing_knives += 1
+	EventBus.unit_ammo_changed.emit(self)
 	return true
 
 
@@ -331,6 +373,7 @@ func stop() -> void:
 	_attack_target = null
 	_climb_target = null
 	_melee_target = null
+	_throw_target = null
 
 
 ## Passe l'arme à la bretelle, ou la reprend en main.
@@ -528,6 +571,69 @@ func _approach_melee(delta: float) -> Vector3:
 	if _agent.is_navigation_finished():
 		return Vector3.ZERO
 	return _follow_path(delta)
+
+
+## Vrai si `enemy` est à portée de lancer, avec une ligne de vue dégagée.
+func _can_throw_at(enemy: Enemy) -> bool:
+	var offset := enemy.global_position - global_position
+	offset.y = 0.0
+	return offset.length() <= stats.throw_range and _has_line_of_fire(enemy)
+
+
+## Approche jusqu'à portée de lancer ; lance une fois les mains libres et
+## la cible dans l'axe.
+func _approach_throw(delta: float) -> Vector3:
+	var enemy := _throw_target
+	if not is_instance_valid(enemy) or enemy.is_dead or throwing_knives <= 0:
+		_throw_target = null
+		return Vector3.ZERO
+	var to_enemy := enemy.global_position - global_position
+	to_enemy.y = 0.0
+	if _can_throw_at(enemy):
+		_face(to_enemy, delta)
+		# On ne lance pas couché : l'opérateur se met à genoux.
+		if posture == SoldierModel.Posture.PRONE:
+			posture = SoldierModel.Posture.CROUCHED
+		if _model.is_weapon_slung() and not _model.is_changing_posture() and (-global_basis.z).angle_to(to_enemy) < 0.2:
+			_throw_left = stats.throw_time
+			_throw_released = false
+			_model.throw_progress = 0.0
+		return Vector3.ZERO
+	if _agent.target_position.distance_to(enemy.global_position) > 0.3:
+		_agent.target_position = enemy.global_position
+	if _agent.is_navigation_finished():
+		return Vector3.ZERO
+	return _follow_path(delta)
+
+
+func _update_throw(delta: float) -> void:
+	_throw_left = maxf(_throw_left - delta, 0.0)
+	var progress := 1.0 - _throw_left / stats.throw_time
+	_model.throw_progress = progress
+	var enemy := _throw_target
+	var valid := is_instance_valid(enemy) and not enemy.is_dead
+	if valid:
+		_face(enemy.global_position - global_position, delta)
+	if not _throw_released and progress >= SoldierModel.THROW_RELEASE:
+		_throw_released = true
+		if valid and throwing_knives > 0:
+			_release_knife(enemy)
+	if _throw_left <= 0.0:
+		_model.throw_progress = -1.0
+		_throw_target = null
+
+
+func _release_knife(enemy: Enemy) -> void:
+	throwing_knives -= 1
+	EventBus.unit_ammo_changed.emit(self)
+	var offset := enemy.global_position - global_position
+	offset.y = 0.0
+	var distance := offset.length()
+	var chance := 1.0
+	if distance > stats.throw_sure_range:
+		chance = lerpf(1.0, stats.throw_hit_chance_far, inverse_lerp(stats.throw_sure_range, stats.throw_range, minf(distance, stats.throw_range)))
+	var hand := global_position + Vector3.UP * (_weapon_height() + 0.25) + global_basis.x * 0.15 - global_basis.z * 0.3
+	ThrownKnife.spawn(get_tree().current_scene, hand, enemy, randf() < chance, global_position)
 
 
 ## Coup porté par `enemy` au corps à corps : l'opérateur pare ou esquive
@@ -834,6 +940,9 @@ func _on_died() -> void:
 	_attack_target = null
 	_climb_target = null
 	_melee_target = null
+	_throw_target = null
+	_throw_left = 0.0
+	_model.throw_progress = -1.0
 	_strike_left = 0.0
 	_model.strike_progress = -1.0
 	_end_grapple()

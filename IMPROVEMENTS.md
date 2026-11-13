@@ -38,7 +38,6 @@ Idées restantes, classées par ordre de mise en œuvre conseillé (crosse, pris
 - **Projection** : saisie et jeté au sol par-dessus la hanche, puis coup au sol.
 - **Désarmement** : arracher l'arme d'un ennemi en alerte pris de court ; il devient inoffensif sans être neutralisé.
 - **Bouclier humain** : saisir un ennemi par derrière et s'en couvrir ; déplacement lent, tir au pistolet seulement, les autres hésitent à tirer.
-- **Lancer de couteau** : élimination silencieuse jusqu'à 6 à 8 m, couteau à ramasser.
 - **Pistolet à silencieux** (déjà modélisé sur la cuisse) : plus discret, moins précis, utilisable arme à la bretelle.
 
 ### Défense

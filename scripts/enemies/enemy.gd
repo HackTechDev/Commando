@@ -276,6 +276,17 @@ func _cancel_melee() -> void:
 	_model.staggered = false
 
 
+## Bruit suspect tout près (couteau tombé) : il devient méfiant et regarde
+## vers `at`, sans passer en alerte.
+func startle(at: Vector3) -> void:
+	if is_dead or state == State.STUNNED or state == State.GRABBED or state == State.ALERT:
+		return
+	detection = maxf(detection, stats.suspicion_threshold + 0.15)
+	_last_seen = at
+	_update_state()
+	_update_feedback()
+
+
 ## Saisi par derrière : immobile, aveugle, il se débat (animation).
 func grab() -> void:
 	if is_dead or state == State.STUNNED or state == State.GRABBED:

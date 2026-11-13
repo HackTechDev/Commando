@@ -29,7 +29,7 @@ offset_bottom = 100.0
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer  •  Clic droit sur une caisse : grimper
-V : couteau  •  B : assommer  (puis clic gauche sur un ennemi)  •  G : arme à la bretelle
+V : couteau  •  B : assommer  •  T : lancer le couteau  (puis clic gauche sur un ennemi)  •  G : arme à la bretelle
 ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"
 
 [node name="TopRight" type="HBoxContainer" parent="PlayerController"]
@@ -127,6 +127,14 @@ focus_mode = 0
 tooltip_text = "Assommer : puis clic gauche sur un ennemi. Par derrière : étranglement silencieux (2,5 s). De face : coup de crosse arme en main, à mains nues arme à la bretelle (G). Il reste inconscient 25 s, puis se réveille et donne l'alerte. Un ennemi en alerte qui le voit venir le repousse."
 toggle_mode = true
 text = "Assommer  [B]"
+
+[node name="Throw" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Lancer le couteau : puis clic gauche sur un ennemi. L'opérateur le plus proche s'approche à 7 m, avec une ligne de vue dégagée, et le tue sans bruit (toujours jusqu'à 4 m, 70 % à 7 m). Un couteau raté tombe près de l'ennemi, qui l'entend et devient méfiant. Le couteau reste au sol : passer dessus pour le ramasser."
+toggle_mode = true
+text = "Lancer  [T]"
 
 [node name="Sling" type="Button" parent="PlayerController/ActionBar/Buttons"]
 unique_name_in_owner = true
