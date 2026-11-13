@@ -93,4 +93,4 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **Coût du cône de vision** : 49 lancers de rayon par ennemi et par image ; ne le recalculer que si l'ennemi a bougé, ou réduire le nombre de segments à distance de la caméra.
 - **Occlusion** (M8) : murs transparents entre la caméra et l'unité sélectionnée ; un opérateur derrière un mur est aujourd'hui invisible.
 - **Structure de niveau** (§7) : `LevelRoot` avec `SpawnPoints`, `Objectives`, `CameraBounds`, `ExtractionZone`, et un premier objectif simple pour avoir une boucle de jeu complète.
-- **Son** (§9) : aucun pour l'instant ; même des bips provisoires pour les tirs, les pas et l'alerte amélioreraient beaucoup la lisibilité.
+- **Son, suite** (§9) : remplacer les sons synthétisés par de vrais sons CC0 (M10) ; musique dynamique selon le niveau d'alerte (bus « Musique » prêt) ; répliques des opérateurs à la sélection et aux ordres (bus « Voix ») ; réglages de volume par bus dans les options ; sons d'ambiance ; sous-titres des sons importants pour l'accessibilité (le signal `Sfx.played` existe).

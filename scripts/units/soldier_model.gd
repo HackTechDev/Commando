@@ -381,6 +381,8 @@ var _hit_side: float = 0.0
 var _hit_strength: float = 1.0
 var _stagger: float = 0.0
 var _grip: float = 0.0
+## Demi-cycle de marche du dernier bruit de pas.
+var _last_step: int = 0
 ## Positions de l'arme pendant la poussée (contre la poitrine, puis en
 ## avant) et pendant la parade (horizontale devant le visage).
 var _rifle_shove_chamber: Transform3D
@@ -621,6 +623,7 @@ func _animate_alive(delta: float) -> void:
 		_phase += delta * walk * CRATE_PHASE_RATE * (-1.0 if crate_pull else 1.0)
 	else:
 		_phase += delta * (5.0 + 3.5 * walk) * moving
+	_play_steps(walk, moving, prone)
 	_crawl = move_toward(_crawl, 1.0 if prone and walk > 0.02 else 0.0, delta * 4.0)
 	var crawl := smoothstep(0.0, 1.0, _crawl)
 	var blend := 1.0 - exp(-10.0 * delta)
@@ -964,6 +967,26 @@ func _animate_alive(delta: float) -> void:
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
 	_knife.visible = (strike > 0.0 and strike_with_knife) or (throwing and throw_t < THROW_RELEASE) or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
 	_update_magazines()
+
+
+## Bruit de pas à chaque pied posé (deux par cycle), plus fort en courant,
+## plus discret accroupi ; bruissement en rampant.
+func _play_steps(walk: float, moving: float, prone: bool) -> void:
+	var step := floori(_phase / PI)
+	if step == _last_step:
+		return
+	_last_step = step
+	if moving < 0.15 or not is_inside_tree():
+		return
+	if prone:
+		Sfx.play_at(&"crawl", global_position, -16.0, 0.15)
+		return
+	var volume := -14.0
+	if walk > 1.3:
+		volume = -8.0
+	elif posture == Posture.CROUCHED or crate_grip:
+		volume = -18.0
+	Sfx.play_at(&"step", global_position, volume, 0.12)
 
 
 ## Angle de flexion des cuisses (genoux à deux fois cet angle) qui abaisse le

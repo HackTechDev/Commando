@@ -162,6 +162,7 @@ func take_hit(amount: float, from: Vector3) -> void:
 	if is_dead:
 		return
 	health.take_damage(amount)
+	Sfx.play_at(&"hit", global_position + Vector3.UP, -4.0)
 	if not is_dead:
 		_model.play_hit(from)
 	# Un soldat inconscient ne réagit pas.
@@ -342,6 +343,7 @@ func knock_out(fall_forward: bool = false) -> void:
 	_model.grabbed = false
 	_model.death_forward = fall_forward
 	_cancel_melee()
+	Sfx.play_at(&"fall", global_position, -2.0)
 	state = State.STUNNED
 	detection = 0.0
 	_target = null
@@ -374,6 +376,7 @@ func _wake_up() -> void:
 
 func _on_died() -> void:
 	is_dead = true
+	Sfx.play_at(&"fall", global_position, -2.0)
 	_cancel_melee()
 	state = State.PATROL
 	detection = 0.0
@@ -437,7 +440,13 @@ func _update_state() -> void:
 		new_state = State.SUSPICIOUS
 	if new_state == state:
 		return
+	var previous := state
 	state = new_state
+	# Signal sonore : alerte, ou méfiance naissante.
+	if state == State.ALERT:
+		Sfx.play_at(&"alert", global_position + Vector3.UP * 2.0)
+	elif state == State.SUSPICIOUS and previous == State.PATROL:
+		Sfx.play_at(&"suspicious", global_position + Vector3.UP * 2.0, -4.0)
 	if state == State.ALERT:
 		_fire_cooldown = stats.aim_time
 		_chase_arrived = false
@@ -525,6 +534,7 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 		aim += side + (aim - muzzle).normalized() * 4.0
 	Tracer.spawn(get_tree().current_scene, muzzle, aim)
 	_model.play_shot()
+	Sfx.play_at(&"shot", muzzle)
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if hit:
 		_target.health.take_damage(stats.fire_damage)

@@ -179,3 +179,11 @@
 - La caisse frotte au sol (bruit de 3 m). La navigation est recalculée dès qu'elle s'arrête : chemins, points d'escalade et passages entre caisses suivent sa nouvelle position.
 - Tout autre ordre (attaque, corps à corps, escalade, rechargement, reprise de l'arme avec G, posture), F ou P fait lâcher la caisse. On ne peut ni saisir une caisse occupée, ni monter sur une caisse tenue.
 - Les jambes marchent en poussant ou en tirant (elles restaient figées et le corps glissait) : pas courts et appuyés, cadence réglée sur la vitesse de la caisse ; pieds en arrière et jambe arrière qui pousse pour pousser, pieds en avant et marche à reculons pour tirer.
+
+## Sons provisoires
+
+- Premiers sons, synthétisés par le jeu au démarrage (aucun fichier audio) : tirs (sourds pour les armes à silencieux des opérateurs, détonation pour les ennemis), pas (plus forts en courant, discrets accroupi ou en poussant une caisse, bruissement en rampant), impacts, chutes de corps, coups, couteau, parade, esquive, lancer, tintement du couteau au sol, rechargement, caisse qui frotte.
+- Signaux d'état des ennemis : deux bips montants quand l'un passe en alerte, un bip interrogatif quand il devient méfiant.
+- Interface : bip de sélection, double bip d'ordre reçu, bip d'action armée (V, B, T, P), son grave d'ordre refusé.
+- Sons positionnels 3D : l'écoute se fait au centre de la vue, plus ou moins haut selon le zoom ; un son hors de l'écran est plus faible et vient du bon côté.
+- Bus audio du cahier des charges : Master, Musique, SFX, Voix, UI.

@@ -27,6 +27,10 @@ extends Node3D
 var _target_position: Vector3
 var _target_yaw: float = deg_to_rad(45.0)
 var _target_size: float
+## Écouteur audio au-dessus du centre de la vue, plus haut quand on dézoome :
+## les sons dépendent de ce qu'on regarde, pas de la position de la caméra
+## orthographique (très éloignée).
+var _listener: AudioListener3D
 
 @onready var _camera: Camera3D = $Camera3D
 
@@ -38,6 +42,10 @@ func _ready() -> void:
 	_camera.rotation = Vector3(deg_to_rad(pitch_degrees), 0.0, 0.0)
 	_camera.position = _camera.basis.z * distance
 	_camera.size = _target_size
+	_listener = AudioListener3D.new()
+	add_child(_listener)
+	_listener.make_current()
+	_update_listener()
 
 
 func _process(delta: float) -> void:
@@ -52,6 +60,7 @@ func _process(delta: float) -> void:
 
 	var blend := 1.0 - exp(-smoothing * delta)
 	position = position.lerp(_target_position, blend)
+	_update_listener()
 	rotation.y = lerpf(rotation.y, _target_yaw, 1.0 - exp(-rotation_smoothing * delta))
 	_camera.size = lerpf(_camera.size, _target_size, blend)
 
@@ -103,3 +112,8 @@ func _edge_scroll() -> Vector2:
 func _clamp_target() -> void:
 	_target_position.x = clampf(_target_position.x, bounds.position.x, bounds.end.x)
 	_target_position.z = clampf(_target_position.z, bounds.position.z, bounds.end.z)
+
+
+func _update_listener() -> void:
+	if _listener:
+		_listener.position = Vector3(0.0, 4.0 + _camera.size * 0.5, 0.0)

@@ -42,7 +42,9 @@ var _drag_end: Vector2
 func _ready() -> void:
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
-			cancel_pending_action())
+			cancel_pending_action()
+		else:
+			Sfx.play_ui(&"select"))
 
 
 ## Arme l'action ciblée `action`, ou la désarme si elle l'était déjà.
@@ -51,6 +53,7 @@ func toggle_pending_action(action: StringName) -> void:
 		cancel_pending_action()
 		return
 	pending_action = action
+	Sfx.play_ui(&"arm")
 	Input.set_default_cursor_shape(Input.CURSOR_CROSS)
 	pending_action_changed.emit(pending_action)
 
@@ -190,6 +193,8 @@ func _use_pending_action(screen_position: Vector2) -> void:
 			var crate := crate_hit["collider"] as Climbable
 			if SelectionManager.order_crate(crate, crate_hit["position"]):
 				_spawn_marker(crate.global_position, marker_color)
+			else:
+				Sfx.play_ui(&"denied")
 		cancel_pending_action()
 		return
 	var hit := _raycast(screen_position, MASK_ENEMIES)
@@ -198,10 +203,14 @@ func _use_pending_action(screen_position: Vector2) -> void:
 		if pending_action == ACTION_THROW:
 			if SelectionManager.order_throw(enemy):
 				_spawn_marker(enemy.global_position, marker_melee_color)
+			else:
+				Sfx.play_ui(&"denied")
 		else:
 			var kind := Commando.MeleeKind.KNIFE if pending_action == ACTION_KNIFE else Commando.MeleeKind.KNOCKOUT
 			if SelectionManager.order_melee(enemy, kind):
 				_spawn_marker(enemy.global_position, marker_melee_color)
+			else:
+				Sfx.play_ui(&"denied")
 	cancel_pending_action()
 
 
@@ -221,8 +230,9 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	return camera.get_world_3d().direct_space_state.intersect_ray(query)
 
 
-## Anneau éphémère indiquant la destination.
+## Anneau éphémère indiquant la destination, et bip d'ordre reçu.
 func _spawn_marker(at: Vector3, color: Color) -> void:
+	Sfx.play_ui(&"order")
 	var mesh := TorusMesh.new()
 	mesh.inner_radius = 0.28
 	mesh.outer_radius = 0.36

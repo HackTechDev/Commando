@@ -98,6 +98,7 @@ func _arrive() -> void:
 		if not _target.is_dead:
 			# Touché dans le dos, il s'effondre vers l'avant.
 			_target.kill_silently(_target.is_behind(_thrower_position))
+			Sfx.play_at(&"knife", global_position, -4.0)
 		# Le couteau tombe à côté du corps.
 		var side := (global_position - _thrower_position).normalized().cross(Vector3.UP)
 		rest = _target.global_position + side * 0.45
@@ -107,6 +108,7 @@ func _arrive() -> void:
 			if _target.global_position.distance_to(global_position) <= MISS_NOISE_RADIUS:
 				_target.startle(global_position)
 		EventBus.noise_emitted.emit(global_position, MISS_NOISE_RADIUS, &"knife")
+		Sfx.play_at(&"clink", global_position, -4.0)
 	_land(rest)
 
 

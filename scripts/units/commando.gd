@@ -343,6 +343,7 @@ func reload() -> void:
 	weapon_slung = false
 	_reload_left = stats.reload_time
 	EventBus.unit_ammo_changed.emit(self)
+	Sfx.play_at(&"reload", global_position + Vector3.UP, -8.0)
 
 
 ## Ordonne d'éliminer `enemy` au corps à corps : l'unité s'en approche (à la
@@ -390,6 +391,7 @@ func pick_up_knife() -> bool:
 		return false
 	throwing_knives += 1
 	EventBus.unit_ammo_changed.emit(self)
+	Sfx.play_at(&"clink", global_position, -12.0)
 	return true
 
 
@@ -526,6 +528,7 @@ func _update_crate(delta: float) -> void:
 			if _crate_noise_left <= 0.0:
 				_crate_noise_left = CRATE_NOISE_INTERVAL
 				EventBus.noise_emitted.emit(crate.global_position, stats.crate_noise_radius, &"crate")
+				Sfx.play_at(&"scrape", crate.global_position, -6.0, 0.15)
 			return
 		# Bloqué : la caisse reste où elle est.
 		_crate_goal = crate.global_position
@@ -800,6 +803,7 @@ func _release_knife(enemy: Enemy) -> void:
 		chance = lerpf(1.0, stats.throw_hit_chance_far, inverse_lerp(stats.throw_sure_range, stats.throw_range, minf(distance, stats.throw_range)))
 	var hand := global_position + Vector3.UP * (_weapon_height() + 0.25) + global_basis.x * 0.15 - global_basis.z * 0.3
 	ThrownKnife.spawn(get_tree().current_scene, hand, enemy, randf() < chance, global_position)
+	Sfx.play_at(&"whoosh", hand, -6.0)
 
 
 ## Coup porté par `enemy` au corps à corps : l'opérateur pare ou esquive
@@ -813,6 +817,7 @@ func defend_against(enemy: Enemy) -> bool:
 			or posture == SoldierModel.Posture.PRONE or _model.is_changing_posture()
 	var roll := randf()
 	if busy or roll >= stats.parry_chance + stats.dodge_chance:
+		Sfx.play_at(&"punch", global_position + Vector3.UP * 1.4)
 		health.take_damage(enemy.stats.melee_damage)
 		if not is_dead:
 			_model.play_hit(enemy.global_position, SHOVED_HIT_STRENGTH)
@@ -821,12 +826,14 @@ func defend_against(enemy: Enemy) -> bool:
 	_defend_enemy = enemy
 	if roll < stats.parry_chance:
 		_model.defend_move = SoldierModel.DefendMove.PARRY
+		Sfx.play_at(&"block", global_position + Vector3.UP * 1.5)
 	else:
 		# Pas de côté, perpendiculaire à l'axe du coup.
 		var side := 1.0 if randf() < 0.5 else -1.0
 		var to_enemy := enemy.global_position - global_position
 		to_enemy.y = 0.0
 		_model.defend_move = SoldierModel.DefendMove.DODGE
+		Sfx.play_at(&"whoosh", global_position + Vector3.UP * 1.4, -4.0)
 		_model.defend_side = side
 		_push(to_enemy.normalized().cross(Vector3.UP) * side * DODGE_DISTANCE, DODGE_TIME, 0.0)
 	_model.defend_progress = 0.0
@@ -871,6 +878,7 @@ func _update_push(delta: float) -> Vector3:
 		_push_delay -= delta
 		if _push_delay <= 0.0 and _push_hit_from != Vector3.INF:
 			_model.play_hit(_push_hit_from, SHOVED_HIT_STRENGTH)
+			Sfx.play_at(&"punch", global_position + Vector3.UP * 1.2, -6.0)
 		return Vector3.ZERO
 	_push_left = maxf(_push_left - delta, 0.0)
 	# Vitesse décroissante : départ brusque, arrêt en douceur.
@@ -970,6 +978,7 @@ func _land_strike() -> void:
 		match _strike_kind:
 			MeleeKind.KNIFE:
 				enemy.kill_silently(true)
+				Sfx.play_at(&"knife", enemy.global_position + Vector3.UP * 1.4, -12.0)
 			MeleeKind.KNOCKOUT:
 				enemy.knock_out(true)
 		return
@@ -982,8 +991,10 @@ func _land_strike() -> void:
 			# De face, la victime a le temps de crier.
 			enemy.kill_silently()
 			EventBus.noise_emitted.emit(global_position, stats.knife_front_noise_radius, &"scream")
+			Sfx.play_at(&"knife", enemy.global_position + Vector3.UP * 1.2, -2.0)
 		MeleeKind.KNOCKOUT:
 			enemy.knock_out()
+			Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 1.4)
 			EventBus.noise_emitted.emit(global_position, stats.melee_noise_radius, &"melee")
 
 
@@ -1079,6 +1090,7 @@ func _fire(enemy: Enemy, distance: float) -> void:
 		aim += side + (aim - muzzle).normalized() * 4.0
 	Tracer.spawn(get_tree().current_scene, muzzle, aim, Color(0.6, 0.9, 1.0))
 	_model.play_shot()
+	Sfx.play_at(&"shot_suppressed", muzzle, -4.0)
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if hit:
 		enemy.take_hit(stats.fire_damage, global_position)
@@ -1096,12 +1108,14 @@ func _current_speed() -> float:
 func _on_health_changed(current: float, _maximum: float) -> void:
 	if current < _last_health and current > 0.0:
 		_model.play_hit()
+		Sfx.play_at(&"hit", global_position + Vector3.UP, -4.0)
 	_last_health = current
 	EventBus.unit_damaged.emit(self, health.max_health - health.health)
 
 
 func _on_died() -> void:
 	is_dead = true
+	Sfx.play_at(&"fall", global_position, -2.0)
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
