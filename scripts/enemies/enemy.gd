@@ -87,6 +87,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_detection(delta)
 	_update_state()
+	_model.aiming = armed and state == State.ALERT and _target != null
 
 	var horizontal := Vector3.ZERO
 	match state:
@@ -133,6 +134,8 @@ func take_hit(amount: float, from: Vector3) -> void:
 	if is_dead:
 		return
 	health.take_damage(amount)
+	if not is_dead:
+		_model.play_hit(from)
 	# Un soldat inconscient ne réagit pas.
 	if is_dead or state == State.STUNNED:
 		return
@@ -339,6 +342,7 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
 		aim += side + (aim - muzzle).normalized() * 4.0
 	Tracer.spawn(get_tree().current_scene, muzzle, aim)
+	_model.play_shot()
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if hit:
 		_target.health.take_damage(stats.fire_damage)

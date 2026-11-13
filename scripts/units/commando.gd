@@ -66,6 +66,7 @@ var _strike_landed: bool = false
 var _climb_point: Vector3
 var _hopping: bool = false
 var _vertical_velocity: float = 0.0
+var _last_health: float = INF
 var _wants_to_move: bool = false
 var _desired_velocity: Vector3
 var _stuck_time: float = 0.0
@@ -80,6 +81,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	health.reset(stats.max_health)
+	_last_health = health.health
 	ammo_in_magazine = stats.magazine_size
 	ammo_reserve = stats.reserve_ammo
 	health.health_changed.connect(_on_health_changed)
@@ -94,6 +96,7 @@ func _exit_tree() -> void:
 
 func _physics_process(delta: float) -> void:
 	_update_reload(delta)
+	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
 	if _hopping:
 		return
 	var horizontal := Vector3.ZERO
@@ -490,8 +493,10 @@ func _update_reload(delta: float) -> void:
 	if not is_reloading() or is_dead:
 		return
 	_reload_left -= delta
+	_model.reload_progress = 1.0 - _reload_left / stats.reload_time
 	if _reload_left <= 0.0:
 		_reload_left = 0.0
+		_model.reload_progress = -1.0
 		var loaded := mini(stats.magazine_size - ammo_in_magazine, ammo_reserve)
 		ammo_in_magazine += loaded
 		ammo_reserve -= loaded
@@ -572,6 +577,7 @@ func _fire(enemy: Enemy, distance: float) -> void:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
 		aim += side + (aim - muzzle).normalized() * 4.0
 	Tracer.spawn(get_tree().current_scene, muzzle, aim, Color(0.6, 0.9, 1.0))
+	_model.play_shot()
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if hit:
 		enemy.take_hit(stats.fire_damage, global_position)
@@ -586,7 +592,10 @@ func _current_speed() -> float:
 	return stats.run_speed if _running else stats.walk_speed
 
 
-func _on_health_changed(_current: float, _maximum: float) -> void:
+func _on_health_changed(current: float, _maximum: float) -> void:
+	if current < _last_health and current > 0.0:
+		_model.play_hit()
+	_last_health = current
 	EventBus.unit_damaged.emit(self, health.max_health - health.health)
 
 
@@ -598,6 +607,8 @@ func _on_died() -> void:
 	_melee_target = null
 	_strike_left = 0.0
 	_model.strike_progress = -1.0
+	_reload_left = 0.0
+	_model.reload_progress = -1.0
 	remove_from_group(&"commandos")
 	collision_layer = 0
 	_agent.avoidance_enabled = false

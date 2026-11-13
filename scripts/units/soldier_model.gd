@@ -9,7 +9,7 @@ extends Node3D
 ## L'animation (marche, course, postures) est procédurale.
 
 enum Posture { STANDING, CROUCHED, PRONE }
-enum ArmPose { RIFLE, REACH, PUSH, STRIKE }
+enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
 # une caisse de 1,2 m sans que les membres ne traversent la caisse ni le sol
@@ -32,6 +32,52 @@ const CLIMB_DOWN_LEAN: Array[float] = [0, 0, 0.25, -0.3, 0.35, -0.247, 0.45, -0.
 const CLIMB_DOWN_SLING: Array[float] = [0.0, 0.0, 0.15, 1.0, 0.75, 1.0, 1.0, 0.0]
 const CLIMB_DOWN_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.22, ArmPose.PUSH, 0.5, ArmPose.REACH, 0.82, ArmPose.RIFLE]
 
+# Mort (instants en secondes) : les genoux cèdent, le corps bascule en arrière,
+# puis les jambes se relâchent.
+const DEATH_HIPS: Array[float] = [0.0, 0.92, 0.3, 0.6, 0.75, 0.6, 1.1, 0.92]
+const DEATH_THIGH_L: Array[float] = [0.0, 0.0, 0.3, 0.75, 0.75, 0.7, 1.1, 0.5]
+const DEATH_KNEE_L: Array[float] = [0.0, 0.0, 0.3, -1.4, 0.75, -1.2, 1.1, -1.0]
+const DEATH_THIGH_R: Array[float] = [0.0, 0.0, 0.3, 0.6, 0.75, 0.4, 1.1, 0.05]
+const DEATH_KNEE_R: Array[float] = [0.0, 0.0, 0.3, -1.2, 0.75, -0.6, 1.1, -0.1]
+const DEATH_LEAN: Array[float] = [0.0, 0.0, 0.3, -0.35, 0.75, 0.15, 1.1, 0.0]
+const DEATH_PITCH: Array[float] = [0.0, 0.0, 0.3, 0.05, 0.8, PI / 2.0, 1.1, PI / 2.0]
+const DEATH_POS_Y: Array[float] = [0.0, 0.0, 0.3, 0.0, 0.8, 0.24, 1.1, 0.24]
+const DEATH_POS_Z: Array[float] = [0.0, 0.0, 0.3, 0.0, 0.8, -0.5, 1.1, -0.9]
+const DEATH_HEAD: Array[float] = [0.0, 0.0, 0.3, 0.4, 0.8, -0.3, 1.1, -0.1]
+
+# Rechargement (instants 0..1) : chemin de la main gauche entre la poignée
+# avant, le puits de chargeur, le bas (chargeur vide lâché), la poche de
+# gilet et retour ; bascule de l'arme pendant l'opération.
+const RELOAD_HAND_TIMES: Array[float] = [0.0, 0.15, 0.27, 0.48, 0.65, 0.74, 1.0]
+const RELOAD_TILT: Array[float] = [0.0, 0.0, 0.12, 1.0, 0.85, 1.0, 1.0, 0.0]
+const RELOAD_MAG_OUT := 0.2
+const RELOAD_MAG_DROP := 0.3
+const RELOAD_MAG_TAKEN := 0.46
+const RELOAD_MAG_IN := 0.72
+
+## Prises des mains sur l'arme (repère de l'arme).
+const LEFT_GRIP := Vector3(0.0, -0.02, -0.33)
+const LEFT_GRIP_PRONE := Vector3(0.0, -0.06, -0.12)
+const RIGHT_GRIP := Vector3(0.0, -0.05, 0.05)
+const MAG_WELL := Vector3(0.0, -0.17, -0.1)
+const MAG_DROP := Vector3(0.0, -0.32, -0.08)
+const MAG_BELOW := Vector3(0.0, -0.28, -0.12)
+## Poche à chargeurs gauche du gilet (repère du torse).
+const MAG_POUCH := Vector3(-0.105, 0.36, -0.22)
+
+## Visée épaulée : le buste pivote (épaule gauche en avant), l'arme et la tête
+## compensent pour rester dans l'axe.
+const AIM_TWIST := -0.4
+## Rampé : bassin au ras du sol, buste relevé sur les coudes.
+const PRONE_BODY_POS := Vector3(0.0, 0.18, 0.9)
+const PRONE_CHEST := 0.2
+const PRONE_HEAD := 1.2
+const FLASH_DURATION := 0.05
+const RECOIL_DECAY := 0.07
+const HIT_DURATION := 0.4
+## Durée pendant laquelle l'arme reste épaulée après un tir.
+const AIM_HOLD := 1.5
+
 const HIP_HEIGHT := 0.92
 const THIGH_LENGTH := 0.44
 const UPPER_ARM_LENGTH := 0.29
@@ -53,8 +99,18 @@ const ANKLE_MAX := 1.0
 var posture: Posture = Posture.STANDING
 ## 0 = immobile, 1 = marche, 2 = course.
 var move_ratio: float = 0.0
-## Unité morte : étendue sur le dos, immobile.
-var is_dead: bool = false
+## Unité morte (ou inconsciente) : elle s'effondre puis reste étendue.
+var is_dead: bool = false:
+	set(value):
+		if value and not is_dead:
+			_death_time = 0.0
+			_death_prone = posture == Posture.PRONE
+			_death_twist = randf_range(-0.4, 0.4)
+		is_dead = value
+## Vrai quand l'unité vise une cible : arme épaulée.
+var aiming: bool = false
+## Avancement du rechargement (0 à 1) ; négatif hors rechargement.
+var reload_progress: float = -1.0
 ## Avancement de l'animation d'escalade (0 à 1), piloté par l'unité ;
 ## négatif quand aucune escalade n'est en cours.
 var climb_progress: float = -1.0
@@ -81,7 +137,30 @@ var _phase: float = 0.0
 var _rifle: Node3D
 var _rifle_hold: Transform3D
 var _rifle_slung: Transform3D
+var _rifle_aim: Transform3D
+var _rifle_prone: Transform3D
+var _rifle_dropped: Transform3D
+var _rifle_dropped_prone: Transform3D
+## Position lissée de l'arme, avant le recul.
+var _rifle_base: Transform3D
+var _rifle_mag: Node3D
+var _hand_mag: Node3D
+var _flash: Node3D
 var _knife: Node3D
+var _lean: float = 0.0
+var _torso_yaw: float = 0.0
+var _aim_weight: float = 0.0
+var _aim_hold: float = 0.0
+var _kneel: float = 0.0
+var _shot_time: float = 10.0
+var _hit_time: float = 10.0
+## +1 si l'impact vient de face (le buste part en arrière), -1 de dos.
+var _hit_push: float = 1.0
+var _hit_side: float = 0.0
+var _death_time: float = 0.0
+var _death_prone: bool = false
+var _death_twist: float = 0.0
+var _mag_dropped: bool = false
 ## Pivots des bras : [épaule gauche, coude gauche, épaule droite, coude droit].
 var _arm_joints: Array[Node3D] = []
 ## Poses des bras (une rotation par pivot), indexées par `ArmPose`.
@@ -121,80 +200,283 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	_shot_time += delta
+	_hit_time += delta
+	_aim_hold = maxf(_aim_hold - delta, 0.0)
+	_flash.visible = _shot_time < FLASH_DURATION and is_armed and not is_dead
 	if climb_progress >= 0.0 and not is_dead:
 		_animate_climb(delta)
 		return
-	var walk := clampf(move_ratio, 0.0, 2.0)
-	_phase += delta * (5.0 + 3.5 * walk) * minf(walk, 1.0)
-	var blend := 1.0 - exp(-10.0 * delta)
+	if is_dead:
+		_animate_death(delta)
+		return
+	_animate_alive(delta)
 
-	# Cibles selon la posture.
-	var hips_y := HIP_HEIGHT
-	var thigh_base := 0.0
-	var knee_base := 0.0
+
+## Tir : recul de l'arme, flash de bouche, arme épaulée quelques instants.
+func play_shot() -> void:
+	_shot_time = 0.0
+	_aim_hold = AIM_HOLD
+	_flash.rotation.z = randf() * TAU
+	_flash.scale = Vector3.ONE * randf_range(0.7, 1.2)
+
+
+## Impact : le buste et la tête encaissent le choc. `from` (position dans le
+## monde du tireur) oriente la réaction ; sans elle, le choc vient de face.
+func play_hit(from: Vector3 = Vector3.INF) -> void:
+	_hit_time = 0.0
+	_hit_push = 1.0
+	_hit_side = randf_range(-1.0, 1.0)
+	if from != Vector3.INF and is_inside_tree():
+		var local := to_local(from)
+		_hit_push = 1.0 if local.z < 0.0 else -1.0
+		_hit_side = clampf(-local.x, -1.0, 1.0)
+
+
+func _animate_alive(delta: float) -> void:
+	var walk := clampf(move_ratio, 0.0, 2.0)
+	var moving := minf(walk, 1.0)
+	_phase += delta * (5.0 + 3.5 * walk) * moving
+	var blend := 1.0 - exp(-10.0 * delta)
+	var s := sin(_phase)
+	var c := cos(_phase)
+	var swing := 0.55 * moving + 0.25 * maxf(walk - 1.0, 0.0)
+	var prone := posture == Posture.PRONE
+	# Attaque au corps à corps : élan vers l'avant, puis retour.
+	var strike := 0.0
+	if strike_progress >= 0.0:
+		strike = sin(PI * clampf(strike_progress, 0.0, 1.0))
+	var reloading := reload_progress >= 0.0 and is_armed
+	var wants_aim := is_armed and (aiming or _aim_hold > 0.0) and strike == 0.0 and not reloading
+	_aim_weight = move_toward(_aim_weight, 1.0 if wants_aim else 0.0, delta * 5.0)
+	var aim := 0.0 if prone else smoothstep(0.0, 1.0, _aim_weight)
+	var hit := _hit_weight()
+
+	# Cibles selon la posture (x = jambe gauche, y = jambe droite).
+	var hips_y := HIP_HEIGHT + absf(s) * 0.03 * moving
+	var thigh := Vector2(s * swing, -s * swing)
+	var knee := Vector2(-maxf(-c, 0.0) * swing * 1.6, -maxf(c, 0.0) * swing * 1.6)
+	var spread := Vector2.ZERO
+	var twist := Vector2.ZERO
 	var lean := -0.12 * maxf(walk - 1.0, 0.0)
 	var body_pitch := 0.0
 	var body_pos := Vector3.ZERO
-	var swing := 0.55 * minf(walk, 1.0) + 0.25 * maxf(walk - 1.0, 0.0)
-	# Attaque au corps à corps : élan vers l'avant, puis retour.
-	var strike := 0.0
-	if strike_progress >= 0.0 and not is_dead:
-		strike = sin(PI * clampf(strike_progress, 0.0, 1.0))
-	lean -= 0.35 * strike
+	var head_pitch := 0.0
+	_kneel = move_toward(_kneel, 1.0 if posture == Posture.CROUCHED and walk < 0.05 else 0.0, delta * 4.0)
 	match posture:
 		Posture.CROUCHED:
-			hips_y = 0.56
-			thigh_base = 1.0
-			knee_base = -1.9
-			lean = -0.4
-			swing *= 0.5
+			# En mouvement : marche accroupie ; à l'arrêt : un genou à terre.
+			var k := smoothstep(0.0, 1.0, _kneel)
+			var half := swing * 0.5
+			var crouch_thigh := Vector2(1.0 + s * half, 1.0 - s * half)
+			var crouch_knee := Vector2(-1.9 - maxf(-c, 0.0) * half * 1.6, -1.9 - maxf(c, 0.0) * half * 1.6)
+			hips_y = lerpf(0.56 + absf(s) * 0.02 * moving, 0.52, k)
+			thigh = crouch_thigh.lerp(Vector2(1.45, -0.1), k)
+			knee = crouch_knee.lerp(Vector2(-1.45, -1.47), k)
+			lean = lerpf(-0.4, -0.12, k)
+			head_pitch = lerpf(0.3, 0.12, k)
 		Posture.PRONE:
+			# Sur les coudes, jambes écartées. En reptation, la jambe pivote
+			# sur son axe pour que le genou remonte sur le côté, à plat au sol.
+			var crawl_l := maxf(s, 0.0)
+			var crawl_r := maxf(-s, 0.0)
 			body_pitch = -PI / 2.0
-			body_pos = Vector3(0.0, 0.16, 0.9)
-			swing *= 0.35
+			body_pos = PRONE_BODY_POS
+			lean = PRONE_CHEST
+			head_pitch = PRONE_HEAD
+			twist = Vector2(PI / 2.0, -PI / 2.0) * moving
+			thigh = Vector2(0.12 + 0.8 * crawl_l, 0.12 + 0.8 * crawl_r) * moving
+			knee = Vector2(-1.2 * crawl_l, -1.2 * crawl_r) * moving
+			spread = Vector2(-0.12, 0.12) * (1.0 - moving)
+			hips_y = HIP_HEIGHT
+	# Épauler redresse le buste.
+	lean = lerpf(lean, -0.05, aim)
+	lean += -0.35 * strike + 0.4 * hit * _hit_push
+	head_pitch += 0.12 * aim - 0.4 * hit * _hit_push
+	if not prone:
+		hips_y -= 0.05 * hit
 
-	if is_dead:
-		hips_y = HIP_HEIGHT
-		thigh_base = 0.0
-		knee_base = 0.0
-		lean = 0.0
-		swing = 0.0
-		body_pitch = PI / 2.0
-		body_pos = Vector3(0.0, 0.2, -0.9)
-
-	var s := sin(_phase)
 	_body.rotation.x = lerp_angle(_body.rotation.x, body_pitch, blend)
+	_body.rotation.z = lerp_angle(_body.rotation.z, 0.0, blend)
 	_body.position = _body.position.lerp(body_pos, blend)
-	_hips.position.y = lerpf(_hips.position.y, hips_y + absf(s) * 0.03 * minf(walk, 1.0), blend)
-	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh_base + s * swing, blend)
-	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh_base - s * swing, blend)
-	_knee_l.rotation.x = lerp_angle(_knee_l.rotation.x, knee_base - maxf(-cos(_phase), 0.0) * swing * 1.6, blend)
-	_knee_r.rotation.x = lerp_angle(_knee_r.rotation.x, knee_base - maxf(cos(_phase), 0.0) * swing * 1.6, blend)
-	_level_feet()
-	# Respiration au repos, léger balancement en mouvement.
-	var breath := 0.0 if is_dead else sin(_time * 1.8) * 0.012
-	_torso.rotation.x = lerp_angle(_torso.rotation.x, lean + breath, blend)
-	_torso.rotation.y = lerp_angle(_torso.rotation.y, s * 0.10 * minf(walk, 1.0), blend)
-	var head_pitch := 0.0
-	if is_dead:
-		_time = 0.0
-	elif posture == Posture.PRONE:
-		head_pitch = 0.9
-	elif posture == Posture.CROUCHED:
-		head_pitch = 0.3
-	_head.rotation.x = lerp_angle(_head.rotation.x, head_pitch, blend)
-	# Retour à la tenue de l'arme (après une escalade, par exemple).
-	_rifle.transform = _rifle.transform.interpolate_with(_rifle_hold, blend)
-	for i in _arm_joints.size():
-		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(_arm_poses[ArmPose.RIFLE][i], blend)
-	_knife.visible = strike > 0.0 and strike_with_knife
+	_hips.position.y = lerpf(_hips.position.y, hips_y, blend)
+	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh.x, blend)
+	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh.y, blend)
+	_leg_l.rotation.z = lerp_angle(_leg_l.rotation.z, spread.x, blend)
+	_leg_r.rotation.z = lerp_angle(_leg_r.rotation.z, spread.y, blend)
+	_leg_l.rotation.y = lerp_angle(_leg_l.rotation.y, twist.x, blend)
+	_leg_r.rotation.y = lerp_angle(_leg_r.rotation.y, twist.y, blend)
+	_knee_l.rotation.x = lerp_angle(_knee_l.rotation.x, knee.x, blend)
+	_knee_r.rotation.x = lerp_angle(_knee_r.rotation.x, knee.y, blend)
+	if prone:
+		# Pointes de pied tendues vers l'arrière.
+		_ankle_l.rotation.x = lerpf(_ankle_l.rotation.x, ANKLE_MIN, blend)
+		_ankle_r.rotation.x = lerpf(_ankle_r.rotation.x, ANKLE_MIN, blend)
+	else:
+		_level_feet()
+	# Respiration au repos, balancement en marche, choc des impacts.
+	var breath := sin(_time * 1.8) * 0.012
+	var fast := 1.0 - exp(-18.0 * delta)
+	_lean = lerpf(_lean, lean + breath, fast)
+	_torso_yaw = lerp_angle(_torso_yaw, s * 0.10 * moving * (1.0 - aim) + AIM_TWIST * aim, blend)
+	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side)
+	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
+	if prone:
+		head_yaw *= 0.4
+	_head.rotation.x = lerp_angle(_head.rotation.x, head_pitch, fast)
+	_head.rotation.y = lerp_angle(_head.rotation.y, head_yaw, blend)
+	_head.rotation.z = lerp_angle(_head.rotation.z, 0.0, blend)
+
+	# Arme : basse, épaulée ou en position couchée ; inclinée pendant le
+	# rechargement ; en bandoulière pendant une frappe.
+	var rifle_target := _rifle_prone if prone else _rifle_hold.interpolate_with(_rifle_aim, aim)
+	if prone and moving > 0.0:
+		rifle_target.origin.y += 0.03 * s * moving
+	if reloading:
+		var tilt := sample_keys(RELOAD_TILT, reload_progress)
+		rifle_target = rifle_target * Transform3D(Basis.from_euler(Vector3(0.25 * tilt, 0.0, -0.6 * tilt)), Vector3(-0.04 * tilt, 0.04 * tilt, 0.0))
 	if strike > 0.0:
-		# La main droite lâche la poignée : l'arme pend, les bras frappent.
-		_rifle.transform = _rifle_hold.interpolate_with(_rifle_slung, minf(strike * 1.5, 1.0))
-		for i in _arm_joints.size():
-			var rest: Quaternion = _arm_poses[ArmPose.RIFLE][i]
-			_arm_joints[i].quaternion = rest.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
-	_head.rotation.y = lerp_angle(_head.rotation.y, sin(_time * 0.6) * 0.25 * (1.0 - minf(walk, 1.0)), blend)
+		rifle_target = _rifle_hold.interpolate_with(_rifle_slung, minf(strike * 1.5, 1.0))
+	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-14.0 * delta))
+	var kick := exp(-_shot_time / RECOIL_DECAY)
+	_rifle.transform = _rifle_base * Transform3D(Basis(Vector3.RIGHT, 0.12 * kick), Vector3(0.0, 0.0, 0.06 * kick))
+
+	# Bras : mains sur l'arme (IK), ou le long du corps sans arme.
+	var target: Array
+	if is_armed:
+		var left := _rifle.transform * (LEFT_GRIP_PRONE if prone else LEFT_GRIP)
+		var right := _rifle.transform * RIGHT_GRIP
+		if reloading:
+			left = _reload_hand(reload_progress)
+		elif prone and moving > 0.0:
+			left += Vector3(0.0, 0.05 * s * moving, 0.0)
+		target = _solve_arms(left, right)
+	else:
+		target = _arm_poses[ArmPose.RIFLE]
+	var arm_blend := 1.0 - exp(-25.0 * delta)
+	for i in _arm_joints.size():
+		var goal: Quaternion = target[i]
+		if strike > 0.0:
+			goal = goal.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
+		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
+	_knife.visible = strike > 0.0 and strike_with_knife
+	_update_magazines()
+
+
+## Poids (0 à 1) de la réaction à l'impact en cours : montée brève, retour lent.
+func _hit_weight() -> float:
+	if _hit_time >= HIT_DURATION:
+		return 0.0
+	var t := _hit_time / HIT_DURATION
+	return minf(t * 6.0, 1.0) * (1.0 - t) * (1.0 - t)
+
+
+## Position de la main gauche pendant le rechargement (repère du torse).
+func _reload_hand(t: float) -> Vector3:
+	var rifle := _rifle.transform
+	var points: Array[Vector3] = [rifle * LEFT_GRIP, rifle * MAG_WELL, rifle * MAG_DROP, MAG_POUCH, rifle * MAG_BELOW, rifle * MAG_WELL, rifle * LEFT_GRIP]
+	for i in range(1, RELOAD_HAND_TIMES.size()):
+		if t <= RELOAD_HAND_TIMES[i]:
+			var from_t := RELOAD_HAND_TIMES[i - 1]
+			var weight := smoothstep(0.0, 1.0, (t - from_t) / (RELOAD_HAND_TIMES[i] - from_t))
+			return points[i - 1].lerp(points[i], weight)
+	return points[points.size() - 1]
+
+
+## Chargeur sur l'arme ou dans la main gauche selon l'avancement du
+## rechargement ; le chargeur vide tombe au sol.
+func _update_magazines() -> void:
+	var t := reload_progress if is_armed and not is_dead else -1.0
+	var out := t >= RELOAD_MAG_OUT and t < RELOAD_MAG_IN
+	_rifle_mag.visible = not out
+	_hand_mag.visible = out and (t < RELOAD_MAG_DROP or t >= RELOAD_MAG_TAKEN)
+	if t < 0.0 or t < RELOAD_MAG_OUT:
+		_mag_dropped = false
+	elif t >= RELOAD_MAG_DROP and not _mag_dropped:
+		_mag_dropped = true
+		_drop_magazine()
+
+
+func _drop_magazine() -> void:
+	if not is_inside_tree() or get_tree().current_scene == null:
+		return
+	var mag := MeshInstance3D.new()
+	mag.mesh = (_hand_mag as MeshInstance3D).mesh
+	mag.material_override = _m_weapon
+	get_tree().current_scene.add_child(mag)
+	mag.global_transform = _hand_mag.global_transform
+	var ground := Vector3(mag.global_position.x, global_position.y + 0.03, mag.global_position.z)
+	var tween := mag.create_tween()
+	tween.tween_property(mag, "global_position", ground, 0.25).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(mag, "rotation", Vector3(PI / 2.0, randf() * TAU, 0.0), 0.25)
+	tween.tween_interval(4.0)
+	tween.tween_callback(mag.queue_free)
+
+
+## Chute (mort ou perte de connaissance) : les genoux cèdent, le corps bascule
+## sur le dos et l'arme tombe à côté. Couché, il s'affaisse simplement.
+func _animate_death(delta: float) -> void:
+	_death_time += delta
+	var t := _death_time
+	var blend := 1.0 - exp(-14.0 * delta)
+	var hips_y := HIP_HEIGHT
+	var thigh := Vector2.ZERO
+	var knee := Vector2.ZERO
+	var spread := Vector2(-0.1, 0.1)
+	var lean := 0.0
+	var pitch := 0.0
+	var roll := 0.0
+	var pos := Vector3.ZERO
+	var head := Vector3.ZERO
+	var limp: Array = _arm_poses[ArmPose.LIMP]
+	var dropped := _rifle_dropped
+	if _death_prone:
+		pitch = -PI / 2.0
+		pos = PRONE_BODY_POS - Vector3(0.0, 0.03, 0.0)
+		thigh = Vector2(0.1, 0.1)
+		knee = Vector2(-0.2, -0.2)
+		spread = Vector2(-0.15, 0.15)
+		head = Vector3(0.3, signf(_death_twist + 0.001) * 1.1, 0.0)
+		limp = _arm_poses[ArmPose.LIMP_PRONE]
+		dropped = _rifle_dropped_prone
+	else:
+		hips_y = sample_keys(DEATH_HIPS, t)
+		thigh = Vector2(sample_keys(DEATH_THIGH_L, t), sample_keys(DEATH_THIGH_R, t))
+		knee = Vector2(sample_keys(DEATH_KNEE_L, t), sample_keys(DEATH_KNEE_R, t))
+		lean = sample_keys(DEATH_LEAN, t)
+		pitch = sample_keys(DEATH_PITCH, t)
+		roll = _death_twist * smoothstep(0.3, 1.0, t)
+		pos = Vector3(0.0, sample_keys(DEATH_POS_Y, t), sample_keys(DEATH_POS_Z, t))
+		head = Vector3(sample_keys(DEATH_HEAD, t), _death_twist * 1.5 * smoothstep(0.6, 1.1, t), 0.0)
+	_body.rotation.x = lerp_angle(_body.rotation.x, pitch, blend)
+	_body.rotation.z = lerp_angle(_body.rotation.z, roll, blend)
+	_body.position = _body.position.lerp(pos, blend)
+	_hips.position.y = lerpf(_hips.position.y, hips_y, blend)
+	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh.x, blend)
+	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh.y, blend)
+	_leg_l.rotation.z = lerp_angle(_leg_l.rotation.z, spread.x, blend)
+	_leg_r.rotation.z = lerp_angle(_leg_r.rotation.z, spread.y, blend)
+	_leg_l.rotation.y = lerp_angle(_leg_l.rotation.y, 0.0, blend)
+	_leg_r.rotation.y = lerp_angle(_leg_r.rotation.y, 0.0, blend)
+	_knee_l.rotation.x = lerp_angle(_knee_l.rotation.x, knee.x, blend)
+	_knee_r.rotation.x = lerp_angle(_knee_r.rotation.x, knee.y, blend)
+	if _death_prone:
+		_ankle_l.rotation.x = lerpf(_ankle_l.rotation.x, ANKLE_MIN, blend)
+		_ankle_r.rotation.x = lerpf(_ankle_r.rotation.x, ANKLE_MIN, blend)
+	else:
+		_level_feet()
+	_lean = lerpf(_lean, lean, blend)
+	_torso_yaw = lerp_angle(_torso_yaw, 0.0, blend)
+	_torso.rotation = Vector3(_lean, _torso_yaw, 0.0)
+	_head.rotation = _head.rotation.lerp(head, blend)
+	# Les bras suivent la chute avec retard, puis retombent au sol.
+	var slow := 1.0 - exp(-(1.5 if t < 0.6 else 6.0) * delta)
+	for i in _arm_joints.size():
+		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(limp[i], slow)
+	_rifle_base = _rifle_base.interpolate_with(dropped, slow)
+	_rifle.transform = _rifle_base
+	_knife.visible = false
+	_update_magazines()
 
 
 ## Retire ou rend la carabine. Sans arme, la pose de repos des bras devient
@@ -231,7 +513,12 @@ func _animate_climb(delta: float) -> void:
 	var down := climb_descending
 	var blend := 1.0 - exp(-25.0 * delta)
 	_body.rotation.x = lerp_angle(_body.rotation.x, 0.0, blend)
+	_body.rotation.z = lerp_angle(_body.rotation.z, 0.0, blend)
 	_body.position = _body.position.lerp(Vector3.ZERO, blend)
+	_leg_l.rotation.z = 0.0
+	_leg_r.rotation.z = 0.0
+	_leg_l.rotation.y = 0.0
+	_leg_r.rotation.y = 0.0
 	_hips.position.y = sample_keys(CLIMB_DOWN_HIPS if down else CLIMB_UP_HIPS, t)
 	_leg_l.rotation.x = sample_keys(CLIMB_DOWN_THIGH if down else CLIMB_UP_THIGH_L, t)
 	_knee_l.rotation.x = sample_keys(CLIMB_DOWN_KNEE if down else CLIMB_UP_KNEE_L, t)
@@ -240,9 +527,13 @@ func _animate_climb(delta: float) -> void:
 	_level_feet()
 	_torso.rotation.x = sample_keys(CLIMB_DOWN_LEAN if down else CLIMB_UP_LEAN, t)
 	_torso.rotation.y = 0.0
+	_torso.rotation.z = 0.0
+	_lean = _torso.rotation.x
+	_torso_yaw = 0.0
 	_head.rotation = Vector3(-0.5 * _torso.rotation.x, 0.0, 0.0)
 	var sling := sample_keys(CLIMB_DOWN_SLING if down else CLIMB_UP_SLING, t)
 	_rifle.transform = _rifle_hold.interpolate_with(_rifle_slung, sling)
+	_rifle_base = _rifle.transform
 	_apply_arm_keys(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t)
 
 
@@ -372,6 +663,7 @@ func _build_rifle_and_arms() -> void:
 	grip.rotation.x = deg_to_rad(18.0)
 	var mag := _box(rifle, Vector3(0.03, 0.17, 0.06), Vector3(0.0, -0.08, -0.09), _m_weapon)
 	mag.rotation.x = deg_to_rad(-12.0)
+	_rifle_mag = mag
 	_box(rifle, Vector3(0.05, 0.06, 0.27), Vector3(0.0, 0.045, -0.335), _m_gear)      # garde-main
 	_box(rifle, Vector3(0.025, 0.07, 0.035), Vector3(0.0, -0.01, -0.36), _m_weapon)   # poignée avant
 	var barrel := _cylinder(rifle, 0.012, 0.12, Vector3(0.0, 0.045, -0.52), _m_weapon)
@@ -382,6 +674,27 @@ func _build_rifle_and_arms() -> void:
 	_box(rifle, Vector3(0.04, 0.05, 0.08), Vector3(0.0, 0.115, -0.05), _m_weapon)
 	_box(rifle, Vector3(0.03, 0.03, 0.005), Vector3(0.0, 0.118, -0.092), _m_lens)
 	_box(rifle, Vector3(0.03, 0.03, 0.09), Vector3(0.042, 0.05, -0.40), _m_weapon)
+	# Flash de bouche (discret : arme à silencieux).
+	var flash_material := StandardMaterial3D.new()
+	flash_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flash_material.albedo_color = Color(1.0, 0.8, 0.35)
+	_flash = _pivot(rifle, Vector3(0.0, 0.045, -0.77), "MuzzleFlash")
+	var flash := _sphere(_flash, 0.045, Vector3.ZERO, flash_material)
+	flash.scale = Vector3(1.0, 1.0, 1.8)
+	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_flash.visible = false
+
+	# Positions de l'arme (repère du torse). Épaulée : crosse à l'épaule,
+	# viseur à hauteur d'œil, dans l'axe malgré la rotation du buste.
+	_rifle_aim = Transform3D(Basis.from_euler(Vector3(0.0, -AIM_TWIST, 0.0)), Vector3(0.1, 0.52, -0.2))
+	# Couché : définie dans le repère de l'unité puis ramenée dans celui du torse.
+	var prone_torso := Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), PRONE_BODY_POS) \
+			* Transform3D(Basis(Vector3.RIGHT, PRONE_CHEST), Vector3(0.0, HIP_HEIGHT, 0.0))
+	_rifle_prone = prone_torso.affine_inverse() * Transform3D(Basis.from_euler(Vector3(0.03, 0.15, 0.0)), Vector3(0.12, 0.3, -0.82))
+	# Au sol après une chute, sur le côté droit (sur le dos, puis à plat ventre).
+	_rifle_dropped = Transform3D(Basis.from_euler(Vector3(PI / 2.0, 0.2, PI / 2.0)), Vector3(0.5, 0.3, 0.2))
+	_rifle_dropped_prone = Transform3D(Basis.from_euler(Vector3(PI / 2.0, -0.2, -PI / 2.0)), Vector3(0.5, 0.6, -0.12))
+	_rifle_base = _rifle_hold
 
 	_build_arm(-1.0)
 	_build_arm(1.0)
@@ -393,6 +706,10 @@ func _build_rifle_and_arms() -> void:
 	_arm_poses[ArmPose.PUSH] = _solve_arms(Vector3(-0.22, 0.05, -0.25), Vector3(0.22, 0.05, -0.25))
 	# Main gauche qui saisit la cible, main droite qui frappe vers l'avant.
 	_arm_poses[ArmPose.STRIKE] = _solve_arms(Vector3(-0.1, 0.42, -0.38), Vector3(0.08, 0.45, -0.56))
+	# Bras relâchés au sol, sur le dos (le sol est vers +Z du torse) ou à plat
+	# ventre (vers -Z).
+	_arm_poses[ArmPose.LIMP] = _solve_arms(Vector3(-0.6, 0.62, 0.2), Vector3(0.58, 0.2, 0.2))
+	_arm_poses[ArmPose.LIMP_PRONE] = _solve_arms(Vector3(-0.55, 0.75, -0.12), Vector3(0.55, 0.3, -0.12))
 	for i in _arm_joints.size():
 		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
@@ -415,6 +732,11 @@ func _build_arm(side: float) -> void:
 	_sphere(elbow, 0.058, Vector3(0.0, -FOREARM_LENGTH, 0.0), _m_gear)
 	_arm_joints.append(shoulder)
 	_arm_joints.append(elbow)
+	if side < 0.0:
+		# Chargeur tenu en main pendant le rechargement.
+		var held := _box(elbow, Vector3(0.03, 0.06, 0.17), Vector3(0.0, -FOREARM_LENGTH - 0.05, -0.04), _m_weapon)
+		held.visible = false
+		_hand_mag = held
 	if side > 0.0:
 		# Couteau de combat dans la main droite, sorti seulement pour frapper.
 		_knife = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.03, 0.0), "Knife")

@@ -34,7 +34,7 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 - **Pause tactique et ordres simultanés** (§5.1) : aucun des deux n'existe, alors que la planification est un pilier du jeu.
 - **Annulation propre pendant l'escalade** : l'opérateur n'accepte aucun ordre pendant 1 à 1,4 s ; mettre l'ordre en file d'attente plutôt que de l'ignorer.
 - **Groupes de contrôle** (Ctrl + chiffre) et double appui sur un chiffre pour centrer la caméra.
-- **Retour visuel des tirs** : flash de bouche, impact, recul du modèle, marqueur de dégâts. Le traceur seul est discret.
+- **Retour visuel des tirs** : le modèle a désormais recul et flash de bouche ; manquent l'impact sur la cible ou l'obstacle et un marqueur de dégâts.
 - **Lignes de vue bloquées** : indiquer pourquoi un opérateur ne tire pas (hors de portée, obstacle, à sec).
 
 ## 4. Interface
@@ -48,8 +48,7 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 
 ## 5. Modèle et animation
 
-- **Postures accroupie et rampée** : approximatives (corps simplement basculé à plat) ; leur donner de vraies poses, avec les bras articulés désormais disponibles.
-- **Animations de tir, de rechargement, de blessure et de mort** : tout se fait aujourd'hui sans mouvement du modèle, et la mort est un simple basculement sur le dos.
+- **Transitions de posture** : passer de debout à couché se fait par simple interpolation ; une vraie animation (genou à terre, puis mains au sol) serait plus crédible.
 - **Différencier les trois opérateurs** (§5.4) : silhouettes, équipement et compétences propres (choc, tireur d'élite, sapeur) ; ils sont identiques.
 - **Passer à des modèles et animations CC0** avec un `AnimationTree` (M10) quand le prototype sera stabilisé.
 

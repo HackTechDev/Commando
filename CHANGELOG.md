@@ -90,3 +90,13 @@
 - Cheville articulée : les pieds restent à plat (IK simple compensant hanche et genou), ce qui évite aussi les pointes de pied enfoncées dans le sol en position accroupie.
 - Poses clés de montée et de descente recalculées par optimisation (géométrie de la caisse de 1,2 m) : passage de jambe au-dessus du rebord, appui des mains sur le dessus, descente face au vide (accroupi au bord, saut, réception accroupie).
 - Interpénétration mesurée avec la caisse : au pire 2,5 cm à la montée et 3 cm à la descente (contre 49 cm et 17 cm auparavant).
+
+## Postures et animations de combat
+
+- Accroupi : marche accroupie en mouvement, un genou à terre à l'arrêt.
+- Rampé : appui sur les coudes, buste relevé, arme pointée vers l'avant ; en reptation, les genoux remontent sur le côté, à plat au sol.
+- Visée : l'unité qui attaque épaule son arme (buste de trois quarts, tête dans l'axe) ; elle reste épaulée 1,5 s après chaque tir.
+- Tir : recul de l'arme et petit flash de bouche, pour les opérateurs comme pour les ennemis.
+- Rechargement : arme inclinée, la main gauche retire le chargeur, le lâche au sol (il disparaît après quelques secondes), en prend un neuf dans le gilet et l'insère.
+- Blessure : le buste et la tête encaissent le choc, dans le sens du tir quand il est connu.
+- Mort et perte de connaissance : les genoux cèdent, le corps bascule sur le dos, l'arme tombe à côté et les bras retombent ; à plat ventre, il s'affaisse sur place. Un ennemi qui se réveille se relève.
