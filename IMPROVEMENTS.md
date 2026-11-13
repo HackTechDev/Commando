@@ -48,7 +48,6 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 
 ## 5. Modèle et animation
 
-- **Jambes qui traversent la caisse** pendant le passage de jambe : affiner les poses clés ou ajouter une IK des pieds.
 - **Postures accroupie et rampée** : approximatives (corps simplement basculé à plat) ; leur donner de vraies poses, avec les bras articulés désormais disponibles.
 - **Animations de tir, de rechargement, de blessure et de mort** : tout se fait aujourd'hui sans mouvement du modèle, et la mort est un simple basculement sur le dos.
 - **Différencier les trois opérateurs** (§5.4) : silhouettes, équipement et compétences propres (choc, tireur d'élite, sapeur) ; ils sont identiques.

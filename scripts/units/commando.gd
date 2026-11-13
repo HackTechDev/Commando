@@ -24,10 +24,10 @@ const CLIMB_START_DISTANCE := 0.4
 const CLIMB_REACH := 1.2
 # Avancée et élévation du corps pendant l'escalade, par paires (instant,
 # fraction du trajet), calées sur les images clés de `SoldierModel`.
-const CLIMB_UP_FORWARD: Array[float] = [0.0, 0.0, 0.18, 0.28, 0.5, 0.33, 0.66, 0.55, 0.82, 0.8, 1.0, 1.0]
-const CLIMB_UP_HEIGHT: Array[float] = [0.0, 0.0, 0.18, 0.0, 0.5, 0.28, 0.66, 0.75, 0.82, 1.0, 1.0, 1.0]
-const CLIMB_DOWN_FORWARD: Array[float] = [0.0, 0.0, 0.25, 0.42, 0.6, 0.85, 0.8, 1.0, 1.0, 1.0]
-const CLIMB_DOWN_HEIGHT: Array[float] = [0.0, 0.0, 0.25, 0.0, 0.6, 1.0, 1.0, 1.0]
+const CLIMB_UP_FORWARD: Array[float] = [0, 0, 0.12, 0.069, 0.26, 0.194, 0.45, 0.312, 0.54, 0.3, 0.62, 0.344, 0.72, 0.5, 0.84, 0.75, 1, 1]
+const CLIMB_UP_HEIGHT: Array[float] = [0, 0, 0.12, 0, 0.26, 0.06, 0.45, 0.438, 0.54, 0.709, 0.62, 0.674, 0.72, 0.938, 0.84, 1, 1, 1]
+const CLIMB_DOWN_FORWARD: Array[float] = [0, 0, 0.25, 0.3, 0.35, 0.529, 0.45, 0.688, 0.6, 0.85, 0.74, 1, 1, 1]
+const CLIMB_DOWN_HEIGHT: Array[float] = [0, 0, 0.25, 0, 0.35, 0.006, 0.45, 0.338, 0.6, 0.668, 0.74, 1, 1, 1]
 const STUCK_PROGRESS := 0.05
 const STUCK_DELAY := 0.6
 const STUCK_GOAL_DISTANCE := 2.0

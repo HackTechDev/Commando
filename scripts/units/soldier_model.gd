@@ -11,21 +11,24 @@ extends Node3D
 enum Posture { STANDING, CROUCHED, PRONE }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE }
 
-# Images clés de l'escalade, par paires (instant 0..1, valeur). Montée : élan,
-# mains sur le rebord, traction, passage d'une jambe, redressement.
-const CLIMB_UP_HIPS: Array[float] = [0.0, 0.92, 0.15, 0.78, 0.28, 0.92, 0.5, 0.92, 0.66, 0.5, 0.82, 0.54, 1.0, 0.92]
-const CLIMB_UP_THIGH_L: Array[float] = [0.0, 0.0, 0.15, 0.5, 0.28, 0.1, 0.5, 0.25, 0.66, -0.2, 0.82, 1.0, 1.0, 0.0]
-const CLIMB_UP_KNEE_L: Array[float] = [0.0, 0.0, 0.15, -1.0, 0.28, -0.1, 0.5, -0.5, 0.66, -0.9, 0.82, -1.9, 1.0, 0.0]
-const CLIMB_UP_THIGH_R: Array[float] = [0.0, 0.0, 0.15, 0.5, 0.28, 0.1, 0.5, 0.6, 0.66, 1.75, 0.82, 1.0, 1.0, 0.0]
-const CLIMB_UP_KNEE_R: Array[float] = [0.0, 0.0, 0.15, -1.0, 0.28, -0.1, 0.5, -0.9, 0.66, -1.7, 0.82, -1.9, 1.0, 0.0]
-const CLIMB_UP_LEAN: Array[float] = [0.0, 0.0, 0.15, -0.25, 0.5, -0.55, 0.82, -0.5, 1.0, 0.0]
+# Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
+# une caisse de 1,2 m sans que les membres ne traversent la caisse ni le sol
+# (cf. DECISIONS.md). Montée : accroupi, mains sur le rebord, traction, pied
+# droit posé sur le dessus, jambe gauche ramenée, redressement.
+const CLIMB_UP_HIPS: Array[float] = [0, 0.92, 0.12, 0.85, 0.26, 0.95, 0.45, 0.801, 0.54, 0.95, 0.62, 0.95, 0.72, 0.95, 0.84, 0.793, 1, 0.92]
+const CLIMB_UP_THIGH_L: Array[float] = [0, 0, 0.12, 0.3, 0.26, 0.285, 0.45, 0.271, 0.54, 0.283, 0.62, 0.298, 0.72, 0.419, 0.84, 0.6, 1, 0]
+const CLIMB_UP_KNEE_L: Array[float] = [0, 0, 0.12, -0.788, 0.26, -0.869, 0.45, -0.954, 0.54, -1.032, 0.62, -1.107, 0.72, -1.157, 0.84, -1.2, 1, 0]
+const CLIMB_UP_THIGH_R: Array[float] = [0, 0, 0.12, 0.3, 0.26, 0.227, 0.45, 0.156, 0.54, 0.723, 0.62, 1.325, 0.72, 0.962, 0.84, 0.6, 1, 0]
+const CLIMB_UP_KNEE_R: Array[float] = [0, 0, 0.12, -0.793, 0.26, -1.238, 0.45, -1.678, 0.54, -1.987, 0.62, -1.663, 0.72, -1.431, 0.84, -1.2, 1, 0]
+const CLIMB_UP_LEAN: Array[float] = [0, 0, 0.12, -0.181, 0.26, -0.375, 0.45, -0.612, 0.54, -1.1, 0.62, -0.831, 0.72, -0.556, 0.84, -0.277, 1, 0]
 const CLIMB_UP_SLING: Array[float] = [0.0, 0.0, 0.14, 1.0, 0.82, 1.0, 1.0, 0.0]
-const CLIMB_UP_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.18, ArmPose.REACH, 0.5, ArmPose.PUSH, 0.72, ArmPose.PUSH, 0.96, ArmPose.RIFLE]
-# Descente : accroupi au bord, appui des mains, chute, réception, redressement.
-const CLIMB_DOWN_HIPS: Array[float] = [0.0, 0.92, 0.25, 0.54, 0.45, 0.88, 0.6, 0.9, 0.74, 0.62, 1.0, 0.92]
-const CLIMB_DOWN_THIGH: Array[float] = [0.0, 0.0, 0.25, 1.0, 0.45, 0.3, 0.6, 0.15, 0.74, 0.85, 1.0, 0.0]
-const CLIMB_DOWN_KNEE: Array[float] = [0.0, 0.0, 0.25, -1.9, 0.45, -0.5, 0.6, -0.3, 0.74, -1.6, 1.0, 0.0]
-const CLIMB_DOWN_LEAN: Array[float] = [0.0, 0.0, 0.25, -0.5, 0.5, -0.15, 0.74, -0.4, 1.0, 0.0]
+const CLIMB_UP_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.2, ArmPose.REACH, 0.45, ArmPose.PUSH, 0.72, ArmPose.PUSH, 0.96, ArmPose.RIFLE]
+# Descente (face au vide) : accroupi au bord, saut vers l'avant, réception
+# accroupie, redressement.
+const CLIMB_DOWN_HIPS: Array[float] = [0, 0.92, 0.25, 0.75, 0.35, 0.762, 0.45, 0.772, 0.6, 0.787, 0.74, 0.8, 1, 0.92]
+const CLIMB_DOWN_THIGH: Array[float] = [0, 0, 0.25, 0.6, 0.35, 0.684, 0.45, 0.718, 0.6, 0.756, 0.74, 0.791, 1, 0]
+const CLIMB_DOWN_KNEE: Array[float] = [0, 0, 0.25, -1.394, 0.35, -1.271, 0.45, -1.15, 0.6, -1.025, 0.74, -0.9, 1, 0]
+const CLIMB_DOWN_LEAN: Array[float] = [0, 0, 0.25, -0.3, 0.35, -0.247, 0.45, -0.188, 0.6, -0.131, 0.74, -0.069, 1, 0]
 const CLIMB_DOWN_SLING: Array[float] = [0.0, 0.0, 0.15, 1.0, 0.75, 1.0, 1.0, 0.0]
 const CLIMB_DOWN_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.22, ArmPose.PUSH, 0.5, ArmPose.REACH, 0.82, ArmPose.RIFLE]
 
@@ -33,6 +36,10 @@ const HIP_HEIGHT := 0.92
 const THIGH_LENGTH := 0.44
 const UPPER_ARM_LENGTH := 0.29
 const FOREARM_LENGTH := 0.29
+const SHIN_LENGTH := 0.40
+## Débattement de la cheville (rad) : négatif = pointe vers le bas.
+const ANKLE_MIN := -0.9
+const ANKLE_MAX := 1.0
 
 @export var uniform_color := Color(0.30, 0.33, 0.24)
 @export var gear_color := Color(0.16, 0.17, 0.14)
@@ -68,6 +75,8 @@ var _leg_l: Node3D
 var _leg_r: Node3D
 var _knee_l: Node3D
 var _knee_r: Node3D
+var _ankle_l: Node3D
+var _ankle_r: Node3D
 var _phase: float = 0.0
 var _rifle: Node3D
 var _rifle_hold: Transform3D
@@ -161,6 +170,7 @@ func _process(delta: float) -> void:
 	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh_base - s * swing, blend)
 	_knee_l.rotation.x = lerp_angle(_knee_l.rotation.x, knee_base - maxf(-cos(_phase), 0.0) * swing * 1.6, blend)
 	_knee_r.rotation.x = lerp_angle(_knee_r.rotation.x, knee_base - maxf(cos(_phase), 0.0) * swing * 1.6, blend)
+	_level_feet()
 	# Respiration au repos, léger balancement en mouvement.
 	var breath := 0.0 if is_dead else sin(_time * 1.8) * 0.012
 	_torso.rotation.x = lerp_angle(_torso.rotation.x, lean + breath, blend)
@@ -227,12 +237,21 @@ func _animate_climb(delta: float) -> void:
 	_knee_l.rotation.x = sample_keys(CLIMB_DOWN_KNEE if down else CLIMB_UP_KNEE_L, t)
 	_leg_r.rotation.x = sample_keys(CLIMB_DOWN_THIGH if down else CLIMB_UP_THIGH_R, t)
 	_knee_r.rotation.x = sample_keys(CLIMB_DOWN_KNEE if down else CLIMB_UP_KNEE_R, t)
+	_level_feet()
 	_torso.rotation.x = sample_keys(CLIMB_DOWN_LEAN if down else CLIMB_UP_LEAN, t)
 	_torso.rotation.y = 0.0
 	_head.rotation = Vector3(-0.5 * _torso.rotation.x, 0.0, 0.0)
 	var sling := sample_keys(CLIMB_DOWN_SLING if down else CLIMB_UP_SLING, t)
 	_rifle.transform = _rifle_hold.interpolate_with(_rifle_slung, sling)
 	_apply_arm_keys(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t)
+
+
+## IK des pieds : la cheville compense la flexion de la hanche et du genou
+## pour garder la semelle parallèle au bassin (donc au sol quand le corps est
+## droit), dans la limite du débattement de la cheville.
+func _level_feet() -> void:
+	_ankle_l.rotation.x = clampf(-(_leg_l.rotation.x + _knee_l.rotation.x), ANKLE_MIN, ANKLE_MAX)
+	_ankle_r.rotation.x = clampf(-(_leg_r.rotation.x + _knee_r.rotation.x), ANKLE_MIN, ANKLE_MAX)
 
 
 ## Interpole les bras entre les poses d'une piste (instant, `ArmPose`).
@@ -263,15 +282,18 @@ func _build_legs() -> void:
 		_box(knee, Vector3(0.14, 0.40, 0.16), Vector3(0.0, -0.20, 0.0), _m_uniform)
 		# Genouillère.
 		_box(knee, Vector3(0.15, 0.13, 0.07), Vector3(0.0, -0.02, -0.085), _m_gear)
-		# Botte : tige + semelle.
-		_box(knee, Vector3(0.15, 0.16, 0.18), Vector3(0.0, -0.36, 0.0), _m_boot)
-		_box(knee, Vector3(0.15, 0.09, 0.30), Vector3(0.0, -0.435, -0.05), _m_boot)
+		# Botte (tige + semelle) articulée à la cheville.
+		var ankle := _pivot(knee, Vector3(0.0, -SHIN_LENGTH, 0.0), "Ankle")
+		_box(ankle, Vector3(0.15, 0.16, 0.18), Vector3(0.0, 0.04, 0.0), _m_boot)
+		_box(ankle, Vector3(0.15, 0.09, 0.30), Vector3(0.0, -0.035, -0.05), _m_boot)
 		if side < 0.0:
 			_leg_l = leg
 			_knee_l = knee
+			_ankle_l = ankle
 		else:
 			_leg_r = leg
 			_knee_r = knee
+			_ankle_r = ankle
 			# Holster de cuisse avec pistolet.
 			_box(leg, Vector3(0.05, 0.20, 0.12), Vector3(0.115, -0.20, 0.0), _m_gear)
 			_box(leg, Vector3(0.035, 0.07, 0.10), Vector3(0.12, -0.07, 0.02), _m_weapon)
