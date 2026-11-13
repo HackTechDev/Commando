@@ -15,6 +15,11 @@ const MELEE_RANGE := 1.3
 const STRIKE_HIT_TIME := 0.45
 ## Marge tolérée si la cible s'éloigne pendant l'élan.
 const STRIKE_REACH_MARGIN := 0.4
+## Instants (0 à 1) où l'étranglement et l'égorgement neutralisent la victime.
+const CHOKE_HIT_TIME := 0.85
+const THROAT_CUT_HIT_TIME := 0.6
+## Durée (s) du glissement de l'opérateur contre la victime d'une prise.
+const GRAB_SLIDE_TIME := 0.15
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
@@ -66,6 +71,14 @@ var _strike_target: Enemy
 var _strike_kind: MeleeKind = MeleeKind.KNIFE
 var _strike_left: float = 0.0
 var _strike_landed: bool = false
+## Durée et instant d'impact (0 à 1) de la frappe en cours.
+var _strike_duration: float = 1.0
+var _strike_hit_time: float = STRIKE_HIT_TIME
+## Prise par derrière en cours (étranglement, égorgement) et glissement de
+## l'opérateur vers sa place, juste derrière la victime.
+var _grapple: bool = false
+var _grab_from: Vector3
+var _grab_to: Vector3
 var _climb_point: Vector3
 ## Choix du joueur : arme à la bretelle (mains libres) plutôt qu'en main.
 ## Un ordre d'attaque ou de rechargement la fait reprendre en main.
@@ -109,7 +122,7 @@ func _exit_tree() -> void:
 func _physics_process(delta: float) -> void:
 	# Mains libres pour grimper ou jouer du couteau : arme à la bretelle.
 	# Pour assommer, l'arme reste comme le joueur l'a choisie (crosse ou mains nues).
-	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and _strike_kind == MeleeKind.KNIFE)
+	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and (_strike_kind == MeleeKind.KNIFE or _grapple))
 	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife)
 	_update_reload(delta)
 	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
@@ -489,14 +502,39 @@ func _approach_melee(delta: float) -> Vector3:
 func _start_strike(enemy: Enemy, kind: MeleeKind) -> void:
 	_strike_target = enemy
 	_strike_kind = kind
-	_strike_left = stats.melee_time
 	_strike_landed = false
-	# On ne frappe pas allongé : l'opérateur se met à genoux.
-	if posture == SoldierModel.Posture.PRONE:
-		posture = SoldierModel.Posture.CROUCHED
 	_model.strike_with_knife = kind == MeleeKind.KNIFE
-	if kind == MeleeKind.KNOCKOUT:
-		_model.strike_move = _pick_strike_move()
+	# Un ennemi déjà au sol s'achève sans prise.
+	_grapple = not enemy.is_stunned() and enemy.is_behind(global_position)
+	if _grapple:
+		# Par derrière : l'opérateur se glisse contre la victime, qui est
+		# immobilisée, puis l'étrangle ou l'égorge.
+		posture = SoldierModel.Posture.STANDING
+		enemy.grab()
+		add_collision_exception_with(enemy)
+		_grab_from = global_position
+		_grab_to = enemy.global_position + enemy.global_basis.z * SoldierModel.GRAB_DISTANCE
+		_grab_to.y = global_position.y
+		rotation.y = enemy.rotation.y
+		if kind == MeleeKind.KNIFE:
+			_model.strike_move = SoldierModel.StrikeMove.THROAT_CUT
+			_strike_duration = stats.throat_cut_time
+			_strike_hit_time = THROAT_CUT_HIT_TIME
+		else:
+			_model.strike_move = SoldierModel.StrikeMove.CHOKE
+			_strike_duration = stats.choke_time
+			_strike_hit_time = CHOKE_HIT_TIME
+	else:
+		_strike_duration = stats.melee_time
+		_strike_hit_time = STRIKE_HIT_TIME
+		# On ne frappe pas allongé : l'opérateur se met à genoux.
+		if posture == SoldierModel.Posture.PRONE:
+			posture = SoldierModel.Posture.CROUCHED
+		if kind == MeleeKind.KNOCKOUT:
+			_model.strike_move = _pick_strike_move()
+		elif _model.strike_move == SoldierModel.StrikeMove.CHOKE or _model.strike_move == SoldierModel.StrikeMove.THROAT_CUT:
+			_model.strike_move = SoldierModel.StrikeMove.UPPERCUT
+	_strike_left = _strike_duration
 	_model.strike_progress = 0.0
 
 
@@ -516,21 +554,46 @@ func _pick_strike_move() -> SoldierModel.StrikeMove:
 
 func _update_strike(delta: float) -> void:
 	_strike_left = maxf(_strike_left - delta, 0.0)
-	var progress := 1.0 - _strike_left / stats.melee_time
+	var progress := 1.0 - _strike_left / _strike_duration
 	_model.strike_progress = progress
-	if is_instance_valid(_strike_target):
+	if _grapple:
+		var slide := smoothstep(0.0, 1.0, minf(progress * _strike_duration / GRAB_SLIDE_TIME, 1.0))
+		global_position = _grab_from.lerp(_grab_to, slide)
+		velocity = Vector3.ZERO
+	elif is_instance_valid(_strike_target):
 		_face(_strike_target.global_position - global_position, delta)
-	if not _strike_landed and progress >= STRIKE_HIT_TIME:
+	if not _strike_landed and progress >= _strike_hit_time:
 		_strike_landed = true
 		_land_strike()
 	if _strike_left <= 0.0:
 		_model.strike_progress = -1.0
+		_end_grapple()
 		_strike_target = null
+
+
+## Fin d'une prise par derrière : la victime n'est plus tenue. Si elle n'a
+## pas été neutralisée (opérateur tué), elle se dégage et donne l'alerte.
+func _end_grapple() -> void:
+	if not _grapple:
+		return
+	_grapple = false
+	if is_instance_valid(_strike_target):
+		remove_collision_exception_with(_strike_target)
+		if not _strike_landed:
+			_strike_target.release()
 
 
 func _land_strike() -> void:
 	var enemy := _strike_target
 	if not is_instance_valid(enemy) or enemy.is_dead:
+		return
+	if _grapple:
+		# Par derrière : sans un bruit, la victime s'effondre vers l'avant.
+		match _strike_kind:
+			MeleeKind.KNIFE:
+				enemy.kill_silently(true)
+			MeleeKind.KNOCKOUT:
+				enemy.knock_out(true)
 		return
 	var offset := enemy.global_position - global_position
 	offset.y = 0.0
@@ -538,10 +601,12 @@ func _land_strike() -> void:
 		return
 	match _strike_kind:
 		MeleeKind.KNIFE:
+			# De face, la victime a le temps de crier.
 			enemy.kill_silently()
+			EventBus.noise_emitted.emit(global_position, stats.knife_front_noise_radius, &"scream")
 		MeleeKind.KNOCKOUT:
 			enemy.knock_out()
-	EventBus.noise_emitted.emit(global_position, stats.melee_noise_radius, &"melee")
+			EventBus.noise_emitted.emit(global_position, stats.melee_noise_radius, &"melee")
 
 
 func _update_reload(delta: float) -> void:
@@ -665,6 +730,7 @@ func _on_died() -> void:
 	_melee_target = null
 	_strike_left = 0.0
 	_model.strike_progress = -1.0
+	_end_grapple()
 	_reload_left = 0.0
 	_model.reload_progress = -1.0
 	remove_from_group(&"commandos")

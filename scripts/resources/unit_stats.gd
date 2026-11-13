@@ -18,6 +18,12 @@ extends Resource
 @export var melee_time: float = 0.6
 ## Rayon du bruit d'une élimination au corps à corps.
 @export var melee_noise_radius: float = 1.5
+## Rayon du bruit d'un coup de couteau porté de face (la victime crie).
+@export var knife_front_noise_radius: float = 6.0
+## Durée d'un étranglement par derrière, en secondes.
+@export var choke_time: float = 2.5
+## Durée d'un égorgement par derrière, en secondes.
+@export var throat_cut_time: float = 1.0
 
 @export_group("Arme")
 ## Portée de tir maximale.

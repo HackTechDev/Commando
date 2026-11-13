@@ -141,3 +141,10 @@
 
 - « Assommer » dépend désormais de l'arme : arme en main, l'opérateur frappe d'un coup de crosse (arme ramenée sur la hanche, crosse projetée vers le visage avec rotation du buste et fente) ; arme à la bretelle (G), il frappe à mains nues (uppercut ou coup de pied).
 - Pour assommer, l'opérateur ne passe plus automatiquement son arme à la bretelle ; il le fait toujours pour le couteau et l'escalade.
+
+## Prises par derrière
+
+- Dans le dos d'un ennemi, « Assommer » devient un étranglement : l'opérateur se colle à lui, passe le bras autour du cou et serre (2,5 s) ; la victime se débat, mains à la gorge, puis s'effondre en avant, inconsciente, sans un bruit.
+- Le couteau devient un égorgement : main gauche sur la bouche, lame passée sous la gorge (1 s), chute vers l'avant, silencieux.
+- La victime est immobilisée dès la saisie (son cône s'éteint) ; si l'opérateur est tué avant la fin, elle se dégage et passe en alerte.
+- De face, les coups restent les mêmes, mais le couteau fait crier la victime (bruit de 6 m).

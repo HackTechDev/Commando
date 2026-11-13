@@ -10,9 +10,11 @@ extends CharacterBody3D
 ##   qu'il la voit ; s'il la perd, il court à sa dernière position connue,
 ##   y attend `alert_memory` secondes, puis reprend sa patrouille ;
 ## - STUNNED : assommé, au sol, aveugle, pendant `stun_duration` secondes. Au
-##   réveil, il passe en alerte sur place, puis reprend sa patrouille.
+##   réveil, il passe en alerte sur place, puis reprend sa patrouille ;
+## - GRABBED : saisi par derrière (étranglement, égorgement), immobile et
+##   sans réaction ; relâché, il passe en alerte.
 
-enum State { PATROL, SUSPICIOUS, ALERT, STUNNED }
+enum State { PATROL, SUSPICIOUS, ALERT, STUNNED, GRABBED }
 
 signal state_changed(state: State)
 
@@ -32,6 +34,9 @@ const SIDESTEP_RATIO := 0.7
 ## (« Interactables ») : assommé, il ne bloque plus le passage mais reste ciblable.
 const LAYER_ACTIVE := 0b1000
 const LAYER_DOWN := 0b10000
+## Au-delà de cet angle (degrés) entre son regard et la direction d'une
+## position, celle-ci est considérée comme dans son dos.
+const BEHIND_ANGLE := 110.0
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -84,6 +89,9 @@ func _physics_process(delta: float) -> void:
 		_stun_left -= delta
 		if _stun_left <= 0.0:
 			_wake_up()
+		return
+	if state == State.GRABBED:
+		velocity = Vector3.ZERO
 		return
 	_update_detection(delta)
 	_update_state()
@@ -151,21 +159,68 @@ func is_stunned() -> bool:
 	return state == State.STUNNED
 
 
+## Vrai si `world_position` est dans son dos.
+func is_behind(world_position: Vector3) -> bool:
+	var to := world_position - global_position
+	to.y = 0.0
+	if to.length_squared() < 0.0001:
+		return false
+	return rad_to_deg((-global_basis.z).angle_to(to)) > BEHIND_ANGLE
+
+
+## Saisi par derrière : immobile, aveugle, il se débat (animation).
+func grab() -> void:
+	if is_dead or state == State.STUNNED or state == State.GRABBED:
+		return
+	state = State.GRABBED
+	_target = null
+	velocity = Vector3.ZERO
+	_agent.avoidance_enabled = false
+	_model.grabbed = true
+	_model.move_ratio = 0.0
+	_vision.visible = false
+	_vision.set_physics_process(false)
+	_gauge.visible = false
+	state_changed.emit(state)
+	GameState.refresh_alert()
+
+
+## Relâché avant d'être neutralisé (l'opérateur a été tué) : il donne l'alerte.
+func release() -> void:
+	if is_dead or state != State.GRABBED:
+		return
+	_model.grabbed = false
+	_agent.avoidance_enabled = true
+	_vision.visible = true
+	_vision.set_physics_process(true)
+	state = State.PATROL
+	detection = 1.0
+	_last_seen = global_position
+	_memory_left = stats.alert_memory
+	_update_state()
+	_update_feedback()
+
+
 ## Élimination silencieuse (couteau) : mort immédiate, sans alerte.
-func kill_silently() -> void:
+## `fall_forward` : il s'effondre vers l'avant (attaqué par derrière).
+func kill_silently(fall_forward: bool = false) -> void:
 	if is_dead:
 		return
+	_model.grabbed = false
+	_model.death_forward = fall_forward
 	health.take_damage(health.health)
 
 
 ## Assomme l'ennemi : il tombe et reste inconscient `stun_duration` secondes.
 ## Assommer un ennemi déjà inconscient prolonge sa perte de connaissance.
-func knock_out() -> void:
+func knock_out(fall_forward: bool = false) -> void:
 	if is_dead:
 		return
 	_stun_left = stats.stun_duration
 	if state == State.STUNNED:
 		return
+	_model.grabbed = false
+	_model.death_forward = fall_forward
 	state = State.STUNNED
 	detection = 0.0
 	_target = null

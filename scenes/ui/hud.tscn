@@ -116,7 +116,7 @@ text = "Rampé  [X]"
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
-tooltip_text = "Couteau : puis clic gauche sur un ennemi. L'opérateur le plus proche s'en approche et le tue sans bruit. À faire hors de son champ de vision."
+tooltip_text = "Couteau : puis clic gauche sur un ennemi. L'opérateur le plus proche s'en approche et le tue. Par derrière, il l'égorge sans un bruit ; de face, la victime crie."
 toggle_mode = true
 text = "Couteau  [V]"
 
@@ -124,7 +124,7 @@ text = "Couteau  [V]"
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
-tooltip_text = "Assommer : puis clic gauche sur un ennemi. Coup de crosse arme en main, à mains nues arme à la bretelle (G). Il reste inconscient 25 s, puis se réveille et donne l'alerte."
+tooltip_text = "Assommer : puis clic gauche sur un ennemi. Par derrière : étranglement silencieux (2,5 s). De face : coup de crosse arme en main, à mains nues arme à la bretelle (G). Il reste inconscient 25 s, puis se réveille et donne l'alerte."
 toggle_mode = true
 text = "Assommer  [B]"
 
