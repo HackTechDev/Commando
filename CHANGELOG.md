@@ -131,3 +131,8 @@
 
 - « Assommer » se fait désormais mains nues, arme à la bretelle, par un uppercut : genoux fléchis et buste tourné, main gauche qui saisit l'ennemi, poing droit à la hanche ; puis jambes et hanches qui se détendent, fente vers la cible et poing qui remonte en arc jusqu'au menton.
 - Le couteau garde son animation de frappe.
+
+## Coups de pied
+
+- Trois coups de pied s'ajoutent à l'uppercut pour assommer : coup de pied de face (genou monté puis jambe tendue), circulaire (pivot sur le pied d'appui, jambe qui fouette jusqu'à la poitrine) et chassé latéral (de profil, genou ramené puis poussée du talon). Poings en garde, regard sur la cible.
+- L'opérateur choisit un coup au hasard, jamais deux fois de suite le même ; accroupi, il donne un uppercut.

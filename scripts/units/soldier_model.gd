@@ -9,6 +9,8 @@ extends Node3D
 ## L'animation (marche, course, postures) est procédurale.
 
 enum Posture { STANDING, CROUCHED, PRONE }
+## Coup porté au corps à corps sans couteau.
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -115,6 +117,54 @@ const UPPERCUT_LUNGE: Array[float] = [0.0, 0.0, 0.3, -0.1, 0.45, -0.38, 0.6, -0.
 const UPPERCUT_RIGHT: Array[Vector3] = [Vector3.ZERO, Vector3(0.24, 0.16, -0.06), Vector3(0.04, 0.6, -0.5), Vector3(0.02, 0.76, -0.36), Vector3.ZERO]
 const UPPERCUT_LEFT: Array[Vector3] = [Vector3.ZERO, Vector3(-0.1, 0.5, -0.42), Vector3(-0.2, 0.5, -0.2), Vector3(-0.2, 0.52, -0.22), Vector3.ZERO]
 
+# Coups de pied (jambe droite), instants 0..1 de la frappe : armé à 0,3,
+# impact à 0,45, retour de jambe à 0,6, garde à 1. Pistes : rotation du
+# bassin (vers la gauche), flexion de la jambe d'appui (m), buste (+ = en
+# arrière), inclinaison latérale du buste, rotation du buste (compense le
+# bassin), fente (m, - = en avant), cuisse droite (flexion, écart), genou
+# droit, cheville droite.
+const KICKS := {
+	StrikeMove.FRONT_KICK: {
+		"hip_yaw": [0.0, 0.0, 0.3, 0.15, 0.45, 0.2, 0.6, 0.15, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.3, 0.04, 0.45, 0.03, 0.6, 0.04, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.3, 0.12, 0.45, 0.3, 0.6, 0.15, 1.0, 0.0],
+		"side_lean": [0.0, 0.0, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.3, -0.15, 0.45, -0.2, 0.6, -0.15, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.3, -0.05, 0.45, -0.22, 0.6, -0.18, 1.0, 0.0],
+		"thigh_x": [0.0, 0.0, 0.3, 1.6, 0.45, 1.35, 0.6, 1.5, 1.0, 0.0],
+		"thigh_z": [0.0, 0.0, 1.0, 0.0],
+		"knee": [0.0, 0.0, 0.3, -2.1, 0.45, -0.05, 0.6, -1.9, 1.0, 0.0],
+		"ankle": [0.0, 0.0, 0.3, 0.3, 0.45, 0.9, 0.6, 0.3, 1.0, 0.0],
+	},
+	StrikeMove.ROUNDHOUSE: {
+		"hip_yaw": [0.0, 0.0, 0.3, 0.6, 0.45, 1.3, 0.6, 1.1, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.3, 0.05, 0.45, 0.03, 0.6, 0.04, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.3, 0.1, 0.45, 0.15, 0.6, 0.1, 1.0, 0.0],
+		"side_lean": [0.0, 0.0, 0.3, 0.25, 0.45, 0.5, 0.6, 0.4, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.3, -0.3, 0.45, -0.8, 0.6, -0.7, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.3, -0.05, 0.45, -0.2, 0.6, -0.15, 1.0, 0.0],
+		"thigh_x": [0.0, 0.0, 0.3, 0.9, 0.45, 0.3, 0.6, 0.5, 1.0, 0.0],
+		"thigh_z": [0.0, 0.0, 0.3, 1.1, 0.45, 1.85, 0.6, 1.5, 1.0, 0.0],
+		"knee": [0.0, 0.0, 0.3, -2.0, 0.45, -0.1, 0.6, -1.6, 1.0, 0.0],
+		"ankle": [0.0, 0.0, 0.3, -0.5, 0.45, -0.9, 0.6, -0.5, 1.0, 0.0],
+	},
+	StrikeMove.SIDE_KICK: {
+		"hip_yaw": [0.0, 0.0, 0.3, 1.35, 0.45, 1.45, 0.6, 1.4, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.3, 0.05, 0.45, 0.03, 0.6, 0.04, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.3, 0.05, 0.45, 0.1, 0.6, 0.05, 1.0, 0.0],
+		"side_lean": [0.0, 0.0, 0.3, 0.3, 0.45, 0.75, 0.6, 0.5, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.3, -0.9, 0.45, -1.0, 0.6, -1.0, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.3, -0.05, 0.45, -0.25, 0.6, -0.2, 1.0, 0.0],
+		"thigh_x": [0.0, 0.0, 0.3, 1.5, 0.45, 0.15, 0.6, 1.2, 1.0, 0.0],
+		"thigh_z": [0.0, 0.0, 0.3, 0.3, 0.45, 1.55, 0.6, 0.6, 1.0, 0.0],
+		"knee": [0.0, 0.0, 0.3, -2.2, 0.45, -0.05, 0.6, -2.0, 1.0, 0.0],
+		"ankle": [0.0, 0.0, 0.3, 0.5, 0.45, 1.0, 0.6, 0.5, 1.0, 0.0],
+	},
+}
+## Garde des poings pendant un coup de pied (repère du torse).
+const GUARD_LEFT := Vector3(-0.12, 0.62, -0.28)
+const GUARD_RIGHT := Vector3(0.14, 0.58, -0.22)
+
 ## Durée (s) pour passer l'arme à la bretelle, ou pour la reprendre en main.
 const SLING_TIME := 0.7
 ## Mains libres, arme à la bretelle (repère du torse).
@@ -174,6 +224,9 @@ var is_armed: bool = true
 var strike_progress: float = -1.0
 ## Vrai si l'attaque se fait au couteau (lame visible), faux pour un coup de poing.
 var strike_with_knife: bool = false
+## Coup porté quand la frappe se fait sans couteau. Les coups de pied ne se
+## donnent que debout ; dans une autre posture, c'est un uppercut.
+var strike_move: StrikeMove = StrikeMove.UPPERCUT
 
 var _body: Node3D
 var _hips: Node3D
@@ -366,6 +419,7 @@ func _animate_transition(delta: float) -> void:
 	var pitch := pose[0]
 	_body.rotation = Vector3(pitch, 0.0, 0.0)
 	_hips.position.y = HIP_HEIGHT
+	_hips.rotation.y = 0.0
 	_body.position = Vector3(0.0, pose[1], pose[2]) - Basis(Vector3.RIGHT, pitch) * Vector3(0.0, HIP_HEIGHT, 0.0)
 	_leg_l.rotation = Vector3(pose[3], 0.0, -pose[9])
 	_leg_r.rotation = Vector3(pose[4], 0.0, pose[9])
@@ -455,9 +509,16 @@ func _animate_alive(delta: float) -> void:
 	var strike := 0.0
 	if strike_progress >= 0.0:
 		strike = sin(PI * clampf(strike_progress, 0.0, 1.0))
-	# Sans couteau, la frappe est un uppercut.
-	var uppercut := strike_progress >= 0.0 and not strike_with_knife
+	# Sans couteau : uppercut ou coup de pied.
+	var unarmed_strike := strike_progress >= 0.0 and not strike_with_knife
+	var kick: Dictionary = {}
+	if unarmed_strike and posture == Posture.STANDING:
+		kick = KICKS.get(strike_move, {})
+	var uppercut := unarmed_strike and kick.is_empty()
 	var punch_t := clampf(strike_progress, 0.0, 1.0)
+	var hip_yaw := 0.0
+	var side_lean := 0.0
+	var kick_torso_yaw := 0.0
 	var reloading := reload_progress >= 0.0 and is_armed
 	var wants_aim := is_armed and (aiming or _aim_hold > 0.0) and strike == 0.0 and not reloading and _sling <= 0.0
 	_aim_weight = move_toward(_aim_weight, 1.0 if wants_aim else 0.0, delta * 5.0)
@@ -522,6 +583,19 @@ func _animate_alive(delta: float) -> void:
 			thigh += Vector2(bend, bend)
 			knee -= Vector2(2.0 * bend, 2.0 * bend)
 		body_pos.z += sample_keys(UPPERCUT_LUNGE, punch_t)
+	elif not kick.is_empty():
+		# Jambe d'appui (gauche) fléchie, jambe droite qui frappe.
+		var dip := sample_keys(kick["dip"], punch_t)
+		var bend := acos(clampf((THIGH_LENGTH + SHIN_LENGTH - dip) / (THIGH_LENGTH + SHIN_LENGTH), -1.0, 1.0))
+		hips_y -= dip
+		thigh = Vector2(thigh.x + bend, sample_keys(kick["thigh_x"], punch_t))
+		knee = Vector2(knee.x - 2.0 * bend, sample_keys(kick["knee"], punch_t))
+		spread.y = sample_keys(kick["thigh_z"], punch_t)
+		lean += sample_keys(kick["lean"], punch_t)
+		body_pos.z += sample_keys(kick["lunge"], punch_t)
+		hip_yaw = sample_keys(kick["hip_yaw"], punch_t)
+		side_lean = sample_keys(kick["side_lean"], punch_t)
+		kick_torso_yaw = sample_keys(kick["torso_yaw"], punch_t)
 	else:
 		lean += -0.35 * strike
 	lean += 0.4 * hit * _hit_push
@@ -533,33 +607,42 @@ func _animate_alive(delta: float) -> void:
 	# Couché, l'axe Z local du corps est vertical : sa rotation fait onduler
 	# le bassin.
 	_body.rotation.z = lerp_angle(_body.rotation.z, body_yaw, blend)
-	_body.position = _body.position.lerp(body_pos, 1.0 - exp(-30.0 * delta) if uppercut else blend)
-	_hips.position.y = lerpf(_hips.position.y, hips_y, blend)
-	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh.x, blend)
-	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh.y, blend)
-	_leg_l.rotation.z = lerp_angle(_leg_l.rotation.z, spread.x, blend)
-	_leg_r.rotation.z = lerp_angle(_leg_r.rotation.z, spread.y, blend)
+	# Les frappes sont rapides : le corps suit les clés presque sans retard.
+	var limbs := 1.0 - exp(-30.0 * delta) if unarmed_strike else blend
+	_body.position = _body.position.lerp(body_pos, limbs)
+	_hips.position.y = lerpf(_hips.position.y, hips_y, limbs)
+	# Pivot sur le pied d'appui pendant un coup de pied.
+	_hips.rotation.y = lerp_angle(_hips.rotation.y, hip_yaw, limbs)
+	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh.x, limbs)
+	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh.y, limbs)
+	_leg_l.rotation.z = lerp_angle(_leg_l.rotation.z, spread.x, limbs)
+	_leg_r.rotation.z = lerp_angle(_leg_r.rotation.z, spread.y, limbs)
 	_leg_l.rotation.y = lerp_angle(_leg_l.rotation.y, twist.x, blend)
 	_leg_r.rotation.y = lerp_angle(_leg_r.rotation.y, twist.y, blend)
-	_knee_l.rotation.x = lerp_angle(_knee_l.rotation.x, knee.x, blend)
-	_knee_r.rotation.x = lerp_angle(_knee_r.rotation.x, knee.y, blend)
+	_knee_l.rotation.x = lerp_angle(_knee_l.rotation.x, knee.x, limbs)
+	_knee_r.rotation.x = lerp_angle(_knee_r.rotation.x, knee.y, limbs)
 	if prone:
 		# Pointes de pied tendues vers l'arrière.
 		_ankle_l.rotation.x = lerpf(_ankle_l.rotation.x, ANKLE_MIN, blend)
 		_ankle_r.rotation.x = lerpf(_ankle_r.rotation.x, ANKLE_MIN, blend)
 	else:
 		_level_feet()
+		if not kick.is_empty():
+			_ankle_r.rotation.x = sample_keys(kick["ankle"], punch_t)
 	# Respiration au repos, balancement en marche, choc des impacts.
 	var breath := sin(_time * 1.8) * 0.012
 	var fast := 1.0 - exp(-18.0 * delta)
 	_lean = lerpf(_lean, lean + breath, fast)
 	# Debout, `_torso_yaw` tourne le buste ; couché, il le fait rouler.
-	var punch_twist := sample_keys(UPPERCUT_TWIST, punch_t) if uppercut else 0.0
-	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim + punch_twist, 1.0 - exp(-30.0 * delta) if uppercut else blend)
-	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side + chest_turn)
+	var punch_twist := sample_keys(UPPERCUT_TWIST, punch_t) if uppercut else kick_torso_yaw
+	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim + punch_twist, limbs)
+	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side + chest_turn + side_lean)
 	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
 	if prone:
 		head_yaw = head_yaw * 0.4 * (1.0 - crawl) - chest_roll
+	elif not kick.is_empty():
+		# Les yeux restent sur la cible malgré la rotation du bassin.
+		head_yaw = -0.8 * (hip_yaw + kick_torso_yaw)
 	_head.rotation.x = lerp_angle(_head.rotation.x, head_pitch, fast)
 	_head.rotation.y = lerp_angle(_head.rotation.y, head_yaw, blend)
 	# La tête reste tournée vers l'avant malgré le balancement des épaules.
@@ -578,8 +661,8 @@ func _animate_alive(delta: float) -> void:
 	if slung > 0.0:
 		rifle_target = _sling_transform(rifle_target, slung)
 	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-14.0 * delta))
-	var kick := exp(-_shot_time / RECOIL_DECAY)
-	_rifle.transform = _rifle_base * Transform3D(Basis(Vector3.RIGHT, 0.12 * kick), Vector3(0.0, 0.0, 0.06 * kick))
+	var recoil := exp(-_shot_time / RECOIL_DECAY)
+	_rifle.transform = _rifle_base * Transform3D(Basis(Vector3.RIGHT, 0.12 * recoil), Vector3(0.0, 0.0, 0.06 * recoil))
 
 	# Bras : mains sur l'arme (IK), ou le long du corps sans arme.
 	var target: Array
@@ -605,11 +688,15 @@ func _animate_alive(delta: float) -> void:
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
 		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
 		target = _solve_arms(_sample_points(UPPERCUT_LEFT, free_left, punch_t), _sample_points(UPPERCUT_RIGHT, free_right, punch_t))
+	elif not kick.is_empty():
+		# Poings en garde devant le visage pendant le coup de pied.
+		var guard := minf(punch_t / 0.2, 1.0) * minf((1.0 - punch_t) / 0.3, 1.0)
+		target = _solve_arms(_free_hand(-1.0, false, s, c, moving, 0.0).lerp(GUARD_LEFT, guard), _free_hand(1.0, false, s, c, moving, 0.0).lerp(GUARD_RIGHT, guard))
 	# Un coup de poing est rapide : les bras suivent sans retard.
-	var arm_blend := 1.0 - exp(-(60.0 if uppercut else 25.0) * delta)
+	var arm_blend := 1.0 - exp(-(60.0 if unarmed_strike else 25.0) * delta)
 	for i in _arm_joints.size():
 		var goal: Quaternion = target[i]
-		if strike > 0.0 and not uppercut:
+		if strike > 0.0 and not unarmed_strike:
 			goal = goal.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
 	_knife.visible = strike > 0.0 and strike_with_knife
@@ -719,6 +806,7 @@ func _animate_death(delta: float) -> void:
 	_body.rotation.z = lerp_angle(_body.rotation.z, roll, blend)
 	_body.position = _body.position.lerp(pos, blend)
 	_hips.position.y = lerpf(_hips.position.y, hips_y, blend)
+	_hips.rotation.y = lerp_angle(_hips.rotation.y, 0.0, blend)
 	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh.x, blend)
 	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh.y, blend)
 	_leg_l.rotation.z = lerp_angle(_leg_l.rotation.z, spread.x, blend)
@@ -761,13 +849,13 @@ func set_armed(value: bool) -> void:
 
 ## Valeur interpolée (avec adoucissement) d'une piste d'images clés donnée
 ## par paires (instant, valeur).
-static func sample_keys(keys: Array[float], t: float) -> float:
+static func sample_keys(keys: Array, t: float) -> float:
 	var count := keys.size() / 2
 	if t <= keys[0]:
 		return keys[1]
 	for i in range(1, count):
 		if t <= keys[i * 2]:
-			var from_t := keys[(i - 1) * 2]
+			var from_t: float = keys[(i - 1) * 2]
 			var weight := smoothstep(0.0, 1.0, (t - from_t) / (keys[i * 2] - from_t))
 			return lerpf(keys[(i - 1) * 2 + 1], keys[i * 2 + 1], weight)
 	return keys[count * 2 - 1]
@@ -777,6 +865,7 @@ static func sample_keys(keys: Array[float], t: float) -> float:
 ## le monde est géré par l'unité).
 func _animate_climb(delta: float) -> void:
 	_transition_duration = 0.0
+	_hips.rotation.y = 0.0
 	var t := clampf(climb_progress, 0.0, 1.0)
 	var down := climb_descending
 	var blend := 1.0 - exp(-25.0 * delta)

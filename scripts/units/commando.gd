@@ -493,7 +493,19 @@ func _start_strike(enemy: Enemy, kind: MeleeKind) -> void:
 	if posture == SoldierModel.Posture.PRONE:
 		posture = SoldierModel.Posture.CROUCHED
 	_model.strike_with_knife = kind == MeleeKind.KNIFE
+	if kind == MeleeKind.KNOCKOUT:
+		_model.strike_move = _pick_strike_move()
 	_model.strike_progress = 0.0
+
+
+## Coup pour assommer : tiré au hasard, jamais deux fois de suite le même.
+## Hors de la position debout, seul l'uppercut est possible.
+func _pick_strike_move() -> SoldierModel.StrikeMove:
+	if posture != SoldierModel.Posture.STANDING:
+		return SoldierModel.StrikeMove.UPPERCUT
+	var moves: Array = SoldierModel.StrikeMove.values()
+	moves.erase(_model.strike_move)
+	return moves.pick_random()
 
 
 func _update_strike(delta: float) -> void:
