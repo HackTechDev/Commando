@@ -26,6 +26,33 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 - **Couverture** : réduire la probabilité d'être touché derrière une caisse ou un angle de mur ; aujourd'hui seule la ligne de vue compte.
 - **Tirs ratés** : ils n'ont aucun effet. Ils pourraient toucher un obstacle, une autre unité, ou faire du bruit à l'impact.
 
+## 2 bis. Combat rapproché
+
+Idées classées par ordre de mise en œuvre conseillé ; les quatre premières sont en cours.
+
+### Attaque
+
+- **Coup de crosse** : assommer arme en main frappe avec la crosse ; mains nues (arme à la bretelle, G) donne l'uppercut ou un coup de pied. Donne un sens tactique à la touche G.
+- **Étranglement arrière** : par derrière, bras autour du cou pendant 2 à 3 s ; l'ennemi s'effondre sans bruit, inconscient. Plus lent que le couteau.
+- **Égorgement par derrière** : variante du couteau dans le dos de l'ennemi, main sur la bouche ; de face, le coup reste possible mais plus bruyant.
+- **Coup de coude** et **coup de genou** (saisie par la nuque) : variantes à très courte portée.
+- **Balayage** : coup de pied bas qui fauche les jambes ; l'ennemi tombe, sonné moins longtemps.
+- **Enchaînement direct + crochet** : plus lisible qu'un coup unique.
+- **Projection** : saisie et jeté au sol par-dessus la hanche, puis coup au sol.
+- **Désarmement** : arracher l'arme d'un ennemi en alerte pris de court ; il devient inoffensif sans être neutralisé.
+- **Bouclier humain** : saisir un ennemi par derrière et s'en couvrir ; déplacement lent, tir au pistolet seulement, les autres hésitent à tirer.
+- **Lancer de couteau** : élimination silencieuse jusqu'à 6 à 8 m, couteau à ramasser.
+- **Pistolet à silencieux** (déjà modélisé sur la cuisse) : plus discret, moins précis, utilisable arme à la bretelle.
+
+### Défense
+
+- **Lutte de l'ennemi en alerte** : un ennemi qui voit l'opérateur arriver le repousse ; le coup échoue.
+- **Parade, esquive et contre** de l'opérateur face à un ennemi qui frappe ; le contre exploite la fenêtre où l'ennemi est déséquilibré.
+- **Roulade** : plonger au sol pour sortir d'un cône de vision ou d'une ligne de tir, et finir couché.
+- **Garde de l'ennemi** : un ennemi en alerte lève les bras, ce qui impose un contre ou une prise par derrière.
+- **Riposte au corps à corps** des ennemis désarmés ou à court de munitions.
+- **Appel à l'aide** : un ennemi saisi mais pas encore neutralisé crie (bruit qui attire les autres ; dépend de l'ouïe des ennemis).
+
 ## 3. Contrôles et lisibilité
 
 - **Curseur contextuel** (§5.1) : changer le curseur au survol d'un ennemi (tirer), d'une caisse (grimper) ou d'un endroit inaccessible.
