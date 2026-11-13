@@ -17,11 +17,28 @@ const SIDES: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vec
 @export var half_extent: float = 0.6
 ## Distance entre le bord de l'objet et le point d'où l'on grimpe.
 @export var access_margin: float = 0.55
+## Texture remplaçant celle de la scène (variante de caisse), ou rien.
+@export var skin: Texture2D
 
 ## Unité actuellement dessus (ou en train d'y monter).
 var occupant: Commando
 ## Unité qui la pousse ou la tire.
 var handler: Commando
+
+
+func _ready() -> void:
+	if skin == null:
+		return
+	# Même matériau, autre texture : copie propre à cette caisse.
+	for child in get_children():
+		var mesh := child as MeshInstance3D
+		if mesh == null:
+			continue
+		var material := mesh.get_active_material(0) as StandardMaterial3D
+		if material:
+			material = material.duplicate() as StandardMaterial3D
+			material.albedo_texture = skin
+			mesh.material_override = material
 
 
 ## Position des pieds d'une unité debout sur l'objet.

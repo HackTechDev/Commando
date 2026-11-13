@@ -187,3 +187,9 @@
 - Interface : bip de sélection, double bip d'ordre reçu, bip d'action armée (V, B, T, P), son grave d'ordre refusé.
 - Sons positionnels 3D : l'écoute se fait au centre de la vue, plus ou moins haut selon le zoom ; un son hors de l'écran est plus faible et vient du bon côté.
 - Bus audio du cahier des charges : Master, Musique, SFX, Voix, UI.
+
+## Textures du sandbox
+
+- Sol en herbe, chemin de terre qui suit la ronde de la sentinelle, murs en parpaings, caisses en bois (trois variantes : claire, sombre, marquée de bandes de danger).
+- Textures tirées du lot `data/textures` et copiées dans `assets/textures` (origine de chacune dans `assets/textures/SOURCES.md`).
+- Nouvelle propriété `skin` des caisses (`Climbable`) pour choisir la texture d'une caisse dans l'éditeur.
