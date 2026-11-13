@@ -20,6 +20,10 @@ const CHOKE_HIT_TIME := 0.85
 const THROAT_CUT_HIT_TIME := 0.6
 ## Durée (s) du glissement de l'opérateur contre la victime d'une prise.
 const GRAB_SLIDE_TIME := 0.15
+## Caisse : distance au point de prise à partir de laquelle l'opérateur s'y
+## glisse sans navigation, et intervalle entre deux bruits de frottement.
+const CRATE_GRIP_REACH := 0.75
+const CRATE_NOISE_INTERVAL := 0.5
 ## Repoussé par un ennemi en alerte : recul (m) et durée du recul (s).
 const REPEL_DISTANCE := 1.0
 const REPEL_TIME := 0.35
@@ -77,6 +81,14 @@ var _reload_left: float = 0.0
 var _climb_target: Climbable
 var _melee_target: Enemy
 var _melee_kind: MeleeKind = MeleeKind.KNIFE
+## Caisse à saisir (approche), côté choisi (direction du centre vers
+## l'opérateur), caisse tenue, position visée pour la caisse.
+var _crate_target: Climbable
+var _crate_side: Vector3
+var _crate: Climbable
+var _crate_goal: Vector3
+var _crate_moving: bool = false
+var _crate_noise_left: float = 0.0
 ## Lancer de couteau : cible, temps restant du geste, couteau parti.
 var _throw_target: Enemy
 var _throw_left: float = 0.0
@@ -149,10 +161,14 @@ func _physics_process(delta: float) -> void:
 	# Pour assommer, l'arme reste comme le joueur l'a choisie (crosse ou mains nues).
 	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and (_strike_kind == MeleeKind.KNIFE or _grapple)) \
 			or _throw_target != null
-	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife)
+	var crate := _crate_target != null or _crate != null
+	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife or crate)
 	_update_reload(delta)
 	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
 	if _hopping:
+		return
+	if _crate and not is_dead:
+		_update_crate(delta)
 		return
 	var horizontal := Vector3.ZERO
 	if is_dead:
@@ -173,6 +189,8 @@ func _physics_process(delta: float) -> void:
 		horizontal = _approach_melee(delta)
 	elif _throw_target:
 		horizontal = _approach_throw(delta)
+	elif _crate_target:
+		horizontal = _approach_crate(delta)
 	elif _attack_target:
 		horizontal = _attack(delta)
 	elif _has_order:
@@ -238,6 +256,11 @@ func _update_stuck(delta: float, desired: Vector3) -> void:
 func move_to(target: Vector3, run: bool) -> void:
 	if is_dead or _hopping:
 		return
+	if _crate:
+		# Mains sur une caisse : l'ordre de déplacement la pousse ou la tire.
+		_set_crate_goal(target)
+		return
+	_crate_target = null
 	_climb_target = null
 	_melee_target = null
 	if perched_on:
@@ -256,6 +279,7 @@ func move_to(target: Vector3, run: bool) -> void:
 func attack(enemy: Enemy, run: bool) -> void:
 	if is_dead or _hopping or enemy == null or enemy.is_dead or not has_ammo():
 		return
+	_release_crate()
 	weapon_slung = false
 	_climb_target = null
 	_melee_target = null
@@ -275,6 +299,9 @@ func climb(target: Climbable, run: bool) -> bool:
 		return true
 	if target.occupant != null and target.occupant != self:
 		return false
+	if target.handler != null:
+		return false
+	_release_crate()
 	if perched_on:
 		var route := _route_across(perched_on, target)
 		if not route.is_empty():
@@ -311,6 +338,7 @@ func is_reloading() -> bool:
 func reload() -> void:
 	if is_dead or is_reloading() or ammo_reserve <= 0 or ammo_in_magazine >= stats.magazine_size:
 		return
+	_release_crate()
 	weapon_slung = false
 	_reload_left = stats.reload_time
 	EventBus.unit_ammo_changed.emit(self)
@@ -326,6 +354,7 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 		return false
 	if perched_on:
 		return _descend(enemy.global_position, melee.bind(enemy, kind, run))
+	_release_crate()
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
@@ -344,6 +373,7 @@ func throw_knife(enemy: Enemy, run: bool = false) -> bool:
 		return false
 	if perched_on and not _can_throw_at(enemy):
 		return _descend(enemy.global_position, throw_knife.bind(enemy, run))
+	_release_crate()
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
@@ -374,6 +404,135 @@ func stop() -> void:
 	_climb_target = null
 	_melee_target = null
 	_throw_target = null
+	_release_crate()
+
+
+## Ordonne de pousser ou tirer `crate` : l'unité rejoint le côté le plus
+## proche de `near`, passe son arme à la bretelle et pose les mains dessus.
+## Ensuite, un ordre de déplacement fait glisser la caisse dans l'axe de ce
+## côté. Renvoie faux si c'est impossible (caisse occupée, aucun côté libre).
+func handle_crate(crate: Climbable, near: Vector3) -> bool:
+	if is_dead or _hopping or crate == null or crate.occupant != null:
+		return false
+	if crate.handler != null and crate.handler != self:
+		return false
+	if perched_on:
+		return _descend(near, handle_crate.bind(crate, near))
+	var side := crate.get_side_toward(near)
+	if side == Vector3.ZERO:
+		return false
+	_release_crate()
+	_has_order = false
+	_attack_target = null
+	_climb_target = null
+	_melee_target = null
+	_throw_target = null
+	_crate_target = crate
+	_crate_side = side
+	_agent.target_position = crate.get_access_point(side)
+	return true
+
+
+## Lâche la caisse tenue.
+func release_crate() -> void:
+	_release_crate()
+
+
+## Vrai pendant qu'il tient une caisse.
+func is_handling_crate() -> bool:
+	return _crate != null
+
+
+## Lâche la caisse tenue (ou abandonne l'approche).
+func _release_crate() -> void:
+	_crate_target = null
+	if _crate == null:
+		return
+	if is_instance_valid(_crate):
+		remove_collision_exception_with(_crate)
+		_crate.handler = null
+	_crate = null
+	_model.crate_grip = false
+	if _crate_moving:
+		_crate_moving = false
+		EventBus.navigation_obstacle_moved.emit()
+
+
+func _crate_grip_point(crate: Climbable) -> Vector3:
+	var point := crate.global_position + _crate_side * (crate.half_extent + SoldierModel.CRATE_GRIP_GAP)
+	point.y = global_position.y
+	return point
+
+
+## Rejoint le côté choisi ; tout près, se glisse au point de prise, face à
+## la caisse, et la saisit une fois l'arme à la bretelle.
+func _approach_crate(delta: float) -> Vector3:
+	var crate := _crate_target
+	if not is_instance_valid(crate) or crate.occupant != null or (crate.handler != null and crate.handler != self):
+		_crate_target = null
+		return Vector3.ZERO
+	var to_grip := _crate_grip_point(crate) - global_position
+	to_grip.y = 0.0
+	if to_grip.length() > CRATE_GRIP_REACH:
+		if _agent.is_navigation_finished():
+			_crate_target = null
+			return Vector3.ZERO
+		return _follow_path(delta)
+	posture = SoldierModel.Posture.STANDING
+	if to_grip.length() > 0.04:
+		_face(to_grip, delta)
+		return to_grip.normalized() * minf(stats.walk_speed * 0.5, to_grip.length() / delta)
+	_face(-_crate_side, delta)
+	if _model.is_weapon_slung() and not _model.is_changing_posture() and (-global_basis.z).angle_to(-_crate_side) < 0.15:
+		_crate_target = null
+		_crate = crate
+		crate.handler = self
+		add_collision_exception_with(crate)
+		_crate_goal = crate.global_position
+		_model.crate_grip = true
+	return Vector3.ZERO
+
+
+## Destination de la caisse : projection de `target` sur l'axe du côté tenu.
+func _set_crate_goal(target: Vector3) -> void:
+	var axis := -_crate_side
+	var along := (target - _crate.global_position).dot(axis)
+	_crate_goal = _crate.global_position + axis * along
+
+
+## Pousse ou tire la caisse vers `_crate_goal`, pas à pas, et s'arrête au
+## premier obstacle (la caisse ou l'opérateur heurterait quelque chose).
+func _update_crate(delta: float) -> void:
+	var crate := _crate
+	if not is_instance_valid(crate):
+		_release_crate()
+		return
+	velocity = Vector3.ZERO
+	_model.posture = posture
+	var axis := -_crate_side
+	_face(axis, delta)
+	var remaining := (_crate_goal - crate.global_position).dot(axis)
+	if absf(remaining) > 0.01:
+		_model.crate_pull = remaining < 0.0
+		var speed := stats.crate_push_speed if remaining > 0.0 else stats.crate_pull_speed
+		var step := axis * signf(remaining) * minf(absf(remaining), speed * delta)
+		if crate.is_free_at(crate.global_position + step, [get_rid()]) and not test_move(global_transform, step):
+			crate.global_position += step
+			global_position += step
+			_crate_moving = true
+			_model.move_ratio = speed / stats.walk_speed
+			_crate_noise_left -= delta
+			if _crate_noise_left <= 0.0:
+				_crate_noise_left = CRATE_NOISE_INTERVAL
+				EventBus.noise_emitted.emit(crate.global_position, stats.crate_noise_radius, &"crate")
+			return
+		# Bloqué : la caisse reste où elle est.
+		_crate_goal = crate.global_position
+	_model.move_ratio = 0.0
+	_crate_noise_left = 0.0
+	if _crate_moving:
+		_crate_moving = false
+		EventBus.navigation_obstacle_moved.emit()
 
 
 ## Passe l'arme à la bretelle, ou la reprend en main.
@@ -381,6 +540,9 @@ func toggle_sling() -> void:
 	if is_dead:
 		return
 	weapon_slung = not weapon_slung
+	# Reprendre son arme oblige à lâcher la caisse.
+	if not weapon_slung:
+		_release_crate()
 
 
 ## Bascule entre `new_posture` et debout.
@@ -388,6 +550,9 @@ func toggle_posture(new_posture: SoldierModel.Posture) -> void:
 	if is_dead:
 		return
 	posture = SoldierModel.Posture.STANDING if posture == new_posture else new_posture
+	# On ne déplace une caisse que debout.
+	if posture != SoldierModel.Posture.STANDING:
+		_release_crate()
 
 
 ## Met à jour l'état de sélection et l'anneau au sol.
@@ -943,6 +1108,7 @@ func _on_died() -> void:
 	_throw_target = null
 	_throw_left = 0.0
 	_model.throw_progress = -1.0
+	_release_crate()
 	_strike_left = 0.0
 	_model.strike_progress = -1.0
 	_end_grapple()

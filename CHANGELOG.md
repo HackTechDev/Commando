@@ -171,3 +171,10 @@
 - Touché, l'ennemi meurt sans bruit (vers l'avant s'il est atteint dans le dos). Le lancer porte toujours jusqu'à 4 m, puis de moins en moins (70 % à 7 m).
 - Raté, le couteau file au-delà et tombe près de l'ennemi, qui l'entend et devient méfiant.
 - Chaque opérateur a un couteau de lancer : il reste au sol (repère violet) et se ramasse en passant dessus. Le portrait indique « sans couteau » en attendant. Le couteau de combat (V) reste toujours disponible.
+
+## Pousser et tirer les caisses
+
+- Nouvelle action « Caisse » (P ou bouton, puis clic gauche sur le côté d'une caisse) : l'opérateur sélectionné le plus proche rejoint ce côté, se relève s'il le faut, passe son arme à la bretelle et pose les mains sur la caisse.
+- Clic droit au sol : il pousse (buste en avant, mains à plat, 1 m/s) ou tire (buste en arrière, mains au rebord, 0,8 m/s) la caisse dans l'axe du côté tenu, jusqu'au point visé ou au premier obstacle (mur, autre caisse, unité, ennemi assommé).
+- La caisse frotte au sol (bruit de 3 m). La navigation est recalculée dès qu'elle s'arrête : chemins, points d'escalade et passages entre caisses suivent sa nouvelle position.
+- Tout autre ordre (attaque, corps à corps, escalade, rechargement, reprise de l'arme avec G, posture), F ou P fait lâcher la caisse. On ne peut ni saisir une caisse occupée, ni monter sur une caisse tenue.

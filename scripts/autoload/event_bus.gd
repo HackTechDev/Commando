@@ -10,4 +10,6 @@ signal enemy_killed(enemy: Node3D)
 signal alarm_raised(position: Vector3)
 signal objective_completed(objective_id: StringName)
 signal noise_emitted(position: Vector3, radius: float, type: StringName)
+## Un obstacle (caisse) a été déplacé : la navigation doit être recalculée.
+signal navigation_obstacle_moved
 @warning_ignore_restore("unused_signal")

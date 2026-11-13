@@ -34,10 +34,11 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
 | Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le couteau pour le ramasser |
+| Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
 | Arme à la bretelle / en main | G (bascule) |
 | Recharger | R |
-| Annuler l'ordre en cours | F (clic droit pour annuler une action V / B / T armée) |
+| Annuler l'ordre en cours | F (clic droit pour annuler une action V / B / T / P armée) |
 | Accroupi / rampé | C / X (bascule) |
 | Déplacer la caméra | ZQSD, flèches, bord d'écran, clic molette maintenu |
 | Zoom | Molette |

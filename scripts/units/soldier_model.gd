@@ -205,6 +205,12 @@ const THROW_LEFT: Array[Vector3] = [Vector3.ZERO, Vector3(-0.1, 0.56, -0.44), Ve
 const THROW_LEAN: Array[float] = [0.0, 0.0, 0.35, 0.12, 0.55, -0.2, 0.75, -0.25, 1.0, 0.0]
 const THROW_TWIST: Array[float] = [0.0, 0.0, 0.35, -0.45, 0.55, 0.25, 0.75, 0.3, 1.0, 0.0]
 const THROW_LUNGE: Array[float] = [0.0, 0.0, 0.35, 0.05, 0.55, -0.15, 0.75, -0.18, 1.0, 0.0]
+## Mains sur une caisse (repère du modèle, main droite ; la gauche est
+## symétrique) : à plat sur le flanc pour pousser, agrippées au rebord
+## supérieur pour tirer. L'unité se tient à `CRATE_GRIP_GAP` du flanc.
+const CRATE_PUSH_HAND := Vector3(0.2, 1.02, -0.42)
+const CRATE_PULL_HAND := Vector3(0.22, 1.16, -0.42)
+const CRATE_GRIP_GAP := 0.4
 ## Parade à mains nues : avant-bras croisés devant le visage.
 const PARRY_LEFT := Vector3(-0.06, 0.74, -0.3)
 const PARRY_RIGHT := Vector3(0.1, 0.7, -0.27)
@@ -301,6 +307,9 @@ var strike_with_knife: bool = false
 ## Coup porté quand la frappe se fait sans couteau. Les coups de pied ne se
 ## donnent que debout ; dans une autre posture, c'est un uppercut.
 var strike_move: StrikeMove = StrikeMove.UPPERCUT
+## Mains posées sur une caisse, pour la pousser ou (`crate_pull`) la tirer.
+var crate_grip: bool = false
+var crate_pull: bool = false
 ## Avancement (0 à 1) d'un lancer de couteau ; -1 hors lancer.
 var throw_progress: float = -1.0
 ## Avancement (0 à 1) d'une poussée pour repousser un assaillant ; -1 hors poussée.
@@ -361,6 +370,7 @@ var _hit_push: float = 1.0
 var _hit_side: float = 0.0
 var _hit_strength: float = 1.0
 var _stagger: float = 0.0
+var _grip: float = 0.0
 ## Positions de l'arme pendant la poussée (contre la poitrine, puis en
 ## avant) et pendant la parade (horizontale devant le visage).
 var _rifle_shove_chamber: Transform3D
@@ -768,6 +778,17 @@ func _animate_alive(delta: float) -> void:
 		knee -= Vector2.ONE * 2.0 * _knee_bend(0.06 * stagger)
 		body_pos.z += 0.12 * stagger
 		shake += sin(_time * 7.0) * 0.1 * stagger
+	# Caisse : buste penché en avant pour pousser, en arrière pour tirer,
+	# genoux fléchis.
+	_grip = move_toward(_grip, 1.0 if crate_grip else 0.0, delta * 4.0)
+	var grip := smoothstep(0.0, 1.0, _grip)
+	if grip > 0.0:
+		var crouch := (0.1 if crate_pull else 0.06) * grip
+		lean += (0.12 if crate_pull else -0.38) * grip
+		head_pitch += (0.1 if crate_pull else -0.15) * grip
+		hips_y -= crouch
+		thigh += Vector2.ONE * _knee_bend(crouch)
+		knee -= Vector2.ONE * 2.0 * _knee_bend(crouch)
 	lean += 0.4 * hit * _hit_push * _hit_strength
 	head_pitch += 0.12 * aim - 0.4 * hit * _hit_push * _hit_strength
 	if not prone:
@@ -835,7 +856,7 @@ func _animate_alive(delta: float) -> void:
 		rifle_target = rifle_target * Transform3D(Basis.from_euler(Vector3(0.25 * tilt, 0.0, -0.6 * tilt)), Vector3(-0.04 * tilt, 0.04 * tilt, 0.0))
 	# Une frappe sans l'arme la met à la bretelle ; le coup de crosse la garde.
 	var slung := _sling if butt else maxf(_sling, minf(strike * 1.5, 1.0))
-	if grapple or grabbed or throwing:
+	if grapple or grabbed or throwing or crate_grip:
 		slung = 1.0
 	if slung > 0.0:
 		rifle_target = _sling_transform(rifle_target, slung)
@@ -886,6 +907,14 @@ func _animate_alive(delta: float) -> void:
 		var free_left := _free_hand(-1.0, posture == Posture.PRONE, s, c, moving, 0.0)
 		var free_right := _free_hand(1.0, posture == Posture.PRONE, s, c, moving, 0.0)
 		target = _solve_arms(_path(THROW_TIMES, THROW_LEFT, free_left, throw_t), _path(THROW_TIMES, THROW_RIGHT, free_right, throw_t))
+	elif grip > 0.0:
+		# Mains sur la caisse : cibles fixes dans le repère du modèle,
+		# ramenées dans celui du torse (qui se penche).
+		var hand := CRATE_PULL_HAND if crate_pull else CRATE_PUSH_HAND
+		var to_torso := (_body.transform * _hips.transform * _torso.transform).affine_inverse()
+		var left := to_torso * Vector3(-hand.x, hand.y, hand.z)
+		var right := to_torso * hand
+		target = _solve_arms(_free_hand(-1.0, false, s, c, moving, 0.0).lerp(left, grip), _free_hand(1.0, false, s, c, moving, 0.0).lerp(right, grip))
 	elif shove and (not is_armed or _sling >= 0.5):
 		# Poussée des deux mains.
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)

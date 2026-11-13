@@ -12,6 +12,11 @@ extends Resource
 @export var climb_time: float = 1.4
 ## Durée pour en redescendre, en secondes.
 @export var descend_time: float = 1.0
+## Vitesses pour pousser et tirer une caisse, en m/s.
+@export var crate_push_speed: float = 1.0
+@export var crate_pull_speed: float = 0.8
+## Rayon du bruit d'une caisse qui frotte au sol.
+@export var crate_noise_radius: float = 3.0
 
 @export_group("Corps à corps")
 ## Durée d'une attaque au couteau ou d'un coup pour assommer, en secondes.

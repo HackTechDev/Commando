@@ -44,7 +44,8 @@ func order_move(target: Vector3, run: bool) -> void:
 		if count > 1:
 			var angle := TAU * float(i) / float(count)
 			offset = Vector3(cos(angle), 0.0, sin(angle)) * FORMATION_SPACING
-		selected[i].move_to(target + offset, run)
+		# Une unité qui tient une caisse la déplace vers le point visé.
+		selected[i].move_to(target if selected[i].is_handling_crate() else target + offset, run)
 
 
 ## Ordonne aux unités sélectionnées d'attaquer `enemy`.
@@ -73,6 +74,29 @@ func order_throw(enemy: Enemy, run: bool = false) -> bool:
 		return a.global_position.distance_squared_to(enemy.global_position) < b.global_position.distance_squared_to(enemy.global_position))
 	for unit in candidates:
 		if unit.throw_knife(enemy, run):
+			return true
+	return false
+
+
+## Fait lâcher leur caisse aux unités sélectionnées. Renvoie faux si
+## aucune n'en tenait.
+func release_crates() -> bool:
+	var released := false
+	for unit in selected:
+		if unit.is_handling_crate():
+			unit.release_crate()
+			released = true
+	return released
+
+
+## Confie la caisse `crate` à l'unité sélectionnée la plus proche, qui se
+## place du côté le plus proche de `near`. Renvoie faux si aucune ne le peut.
+func order_crate(crate: Climbable, near: Vector3) -> bool:
+	var candidates: Array[Commando] = selected.duplicate()
+	candidates.sort_custom(func(a: Commando, b: Commando) -> bool:
+		return a.global_position.distance_squared_to(near) < b.global_position.distance_squared_to(near))
+	for unit in candidates:
+		if unit.handle_crate(crate, near):
 			return true
 	return false
 

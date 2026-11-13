@@ -3,9 +3,10 @@ extends Control
 ## Entrées du joueur : sélection (clic, rectangle, touches), ordres de
 ## déplacement, d'attaque et postures. Dessine aussi le rectangle de sélection.
 ##
-## Actions ciblées (couteau, assommer, lancer de couteau) : la touche ou le bouton arme l'action,
-## puis un clic gauche sur un ennemi la confie à l'opérateur sélectionné le plus
-## proche. Un clic droit, ou un clic ailleurs que sur un ennemi, l'annule.
+## Actions ciblées (couteau, assommer, lancer de couteau, caisse) : la touche
+## ou le bouton arme l'action, puis un clic gauche sur un ennemi (ou une
+## caisse) la confie à l'opérateur sélectionné le plus proche. Un clic droit,
+## ou un clic ailleurs que sur une cible valable, l'annule.
 
 signal pending_action_changed(action: StringName)
 
@@ -13,6 +14,7 @@ const ACTION_NONE := &""
 const ACTION_KNIFE := &"knife"
 const ACTION_KNOCKOUT := &"knockout"
 const ACTION_THROW := &"throw"
+const ACTION_CRATE := &"crate"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -95,6 +97,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_pending_action(ACTION_KNIFE)
 	elif event.is_action_pressed(&"action_knockout"):
 		toggle_pending_action(ACTION_KNOCKOUT)
+	elif event.is_action_pressed(&"action_crate"):
+		# P lâche la caisse tenue ; sinon, arme l'action.
+		if not SelectionManager.release_crates():
+			toggle_pending_action(ACTION_CRATE)
 	elif event.is_action_pressed(&"action_throw"):
 		toggle_pending_action(ACTION_THROW)
 	elif event.is_action_pressed(&"action_sling"):
@@ -178,6 +184,14 @@ func _order(screen_position: Vector2, run: bool) -> void:
 
 
 func _use_pending_action(screen_position: Vector2) -> void:
+	if pending_action == ACTION_CRATE:
+		var crate_hit := _raycast(screen_position, MASK_GROUND)
+		if crate_hit.has("collider") and crate_hit["collider"] is Climbable:
+			var crate := crate_hit["collider"] as Climbable
+			if SelectionManager.order_crate(crate, crate_hit["position"]):
+				_spawn_marker(crate.global_position, marker_color)
+		cancel_pending_action()
+		return
 	var hit := _raycast(screen_position, MASK_ENEMIES)
 	if hit.has("collider") and hit["collider"] is Enemy:
 		var enemy := hit["collider"] as Enemy

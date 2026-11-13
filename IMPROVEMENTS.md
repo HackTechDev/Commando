@@ -22,6 +22,7 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 - **Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
 - **Plusieurs ennemis et types** : sentinelle fixe qui balaie du regard, officier, chien. Le sandbox n'a qu'un soldat et une cible d'entraînement, ce qui ne permet pas de tester la coordination (un ennemi qui voit un camarade se faire saisir, plusieurs ennemis au corps à corps).
 - **Mouvement de tête des ennemis** : pauses et rotations du regard en patrouille, pour rendre les cônes moins prévisibles.
+- **Caisses, suite** : cacher un corps derrière ou dessous, écraser ou coincer un ennemi, faire tomber une caisse d'un rebord, tourner une caisse, caisses trop lourdes pour un seul opérateur (pousser à deux), et réaction des ennemis à un décor qui a bougé.
 - **Végétation** (couche 6) : buissons où se cacher, qui masquent partiellement la vue.
 - **Ramassage de munitions et de soins** (§5.5) : un opérateur à sec ou blessé le reste jusqu'à la fin.
 - **Munitions et rechargement pour les ennemis**, pour créer des fenêtres d'action.
