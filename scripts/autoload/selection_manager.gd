@@ -53,6 +53,18 @@ func order_attack(enemy: Enemy, run: bool) -> void:
 		unit.attack(enemy, run)
 
 
+## Confie l'élimination au corps à corps de `enemy` à l'unité sélectionnée
+## la plus proche qui peut s'en charger. Renvoie faux si aucune ne le peut.
+func order_melee(enemy: Enemy, kind: Commando.MeleeKind, run: bool = false) -> bool:
+	var candidates: Array[Commando] = selected.duplicate()
+	candidates.sort_custom(func(a: Commando, b: Commando) -> bool:
+		return a.global_position.distance_squared_to(enemy.global_position) < b.global_position.distance_squared_to(enemy.global_position))
+	for unit in candidates:
+		if unit.melee(enemy, kind, run):
+			return true
+	return false
+
+
 ## Fait grimper une unité sélectionnée sur `target` ; les autres unités au
 ## sol se regroupent autour.
 func order_climb(target: Climbable, run: bool) -> void:

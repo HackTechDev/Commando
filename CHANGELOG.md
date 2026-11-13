@@ -71,3 +71,11 @@
 - Préréglage d'export « Web » (`export_presets.cfg`), sans threads pour être hébergeable partout ; sortie dans `build/web/`.
 - Script `export_web.sh` : export Web automatisé, avec options `--serve` et `--debug`.
 - En passant d'une caisse à l'autre, l'opérateur marche réellement (jambes animées), à 60 % de sa vitesse au sol.
+
+## Élimination silencieuse
+
+- Couteau (V) et assommer (B) : l'action s'arme par la touche ou le bouton, puis un clic gauche sur un ennemi la confie à l'opérateur sélectionné le plus proche ; clic droit pour annuler.
+- L'opérateur s'approche à la vitesse de sa posture et frappe à 1,3 m : animation de saisie et de frappe, couteau visible dans la main.
+- Couteau : mort immédiate, sans alerte. Assommer : l'ennemi tombe 25 s (« z z » au-dessus de lui), ne voit plus rien, ne bloque plus le passage ; à son réveil il donne l'alerte sur place, puis reprend sa ronde.
+- Un ennemi assommé peut être achevé au couteau ou par balle.
+- Correction : une unité retirée de la scène quitte désormais la sélection.

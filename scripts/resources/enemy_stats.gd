@@ -28,5 +28,7 @@ extends Resource
 ## Probabilité de toucher à bout portant et à portée maximale.
 @export_range(0.0, 1.0) var hit_chance_near: float = 0.85
 @export_range(0.0, 1.0) var hit_chance_far: float = 0.35
+## Durée pendant laquelle un soldat assommé reste inconscient, en secondes.
+@export var stun_duration: float = 25.0
 ## Rayon du bruit d'un coup de feu.
 @export var gunshot_noise_radius: float = 30.0

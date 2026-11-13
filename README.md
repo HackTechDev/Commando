@@ -31,9 +31,11 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Sélectionner | Clic gauche, rectangle, touches 1 à 3 (Maj : ajouter) |
 | Marcher / courir | Clic droit / double clic droit |
 | Tirer sur un ennemi | Clic droit sur l'ennemi |
+| Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
+| Assommer | B, puis clic gauche sur l'ennemi |
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
 | Recharger | R |
-| Annuler l'ordre en cours | F |
+| Annuler l'ordre en cours | F (clic droit pour annuler une action V / B armée) |
 | Accroupi / rampé | C / X (bascule) |
 | Déplacer la caméra | ZQSD, flèches, bord d'écran, clic molette maintenu |
 | Zoom | Molette |

@@ -5,7 +5,15 @@ extends CharacterBody3D
 signal selected_changed(is_selected: bool)
 signal posture_changed(posture: SoldierModel.Posture)
 
+enum MeleeKind { KNIFE, KNOCKOUT }
+
 const MASK_OCCLUDERS := 0b10
+## Distance (entre centres) à partir de laquelle une attaque au corps à corps est possible.
+const MELEE_RANGE := 1.3
+## Instant de l'attaque (0 à 1) où le coup porte.
+const STRIKE_HIT_TIME := 0.45
+## Marge tolérée si la cible s'éloigne pendant l'élan.
+const STRIKE_REACH_MARGIN := 0.4
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
@@ -49,6 +57,12 @@ var _attack_target: Enemy
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
 var _climb_target: Climbable
+var _melee_target: Enemy
+var _melee_kind: MeleeKind = MeleeKind.KNIFE
+var _strike_target: Enemy
+var _strike_kind: MeleeKind = MeleeKind.KNIFE
+var _strike_left: float = 0.0
+var _strike_landed: bool = false
 var _climb_point: Vector3
 var _hopping: bool = false
 var _vertical_velocity: float = 0.0
@@ -73,6 +87,11 @@ func _ready() -> void:
 	_agent.velocity_computed.connect(_apply_velocity)
 
 
+func _exit_tree() -> void:
+	# Une unité retirée de la scène (changement de niveau…) quitte la sélection.
+	SelectionManager.remove(self)
+
+
 func _physics_process(delta: float) -> void:
 	_update_reload(delta)
 	if _hopping:
@@ -80,10 +99,14 @@ func _physics_process(delta: float) -> void:
 	var horizontal := Vector3.ZERO
 	if is_dead:
 		pass
+	elif _strike_left > 0.0:
+		_update_strike(delta)
 	elif _climb_target:
 		horizontal = _approach_climb()
 		if horizontal != Vector3.ZERO:
 			_face(horizontal, delta)
+	elif _melee_target:
+		horizontal = _approach_melee(delta)
 	elif _attack_target:
 		horizontal = _attack(delta)
 	elif _has_order:
@@ -147,6 +170,7 @@ func move_to(target: Vector3, run: bool) -> void:
 	if is_dead or _hopping:
 		return
 	_climb_target = null
+	_melee_target = null
 	if perched_on:
 		_descend(target, move_to.bind(target, run))
 		return
@@ -163,6 +187,7 @@ func attack(enemy: Enemy, run: bool) -> void:
 	if is_dead or _hopping or enemy == null or enemy.is_dead or not has_ammo():
 		return
 	_climb_target = null
+	_melee_target = null
 	_has_order = false
 	_running = run
 	_attack_target = enemy
@@ -191,6 +216,7 @@ func climb(target: Climbable, run: bool) -> bool:
 		return false
 	_has_order = false
 	_attack_target = null
+	_melee_target = null
 	_running = run
 	_climb_target = target
 	_climb_point = access["point"]
@@ -216,11 +242,36 @@ func reload() -> void:
 	EventBus.unit_ammo_changed.emit(self)
 
 
-## Arrête le déplacement et l'attaque en cours.
+## Ordonne d'éliminer `enemy` au corps à corps : l'unité s'en approche (à la
+## vitesse de sa posture), puis frappe. Au couteau, l'ennemi est tué ; sinon il
+## est assommé. Renvoie faux si l'ordre est impossible.
+func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
+	if is_dead or _hopping or enemy == null or enemy.is_dead:
+		return false
+	if kind == MeleeKind.KNOCKOUT and enemy.is_stunned():
+		return false
+	if perched_on:
+		return _descend(enemy.global_position, melee.bind(enemy, kind, run))
+	_has_order = false
+	_attack_target = null
+	_climb_target = null
+	_running = run
+	_melee_target = enemy
+	_melee_kind = kind
+	return true
+
+
+## Vrai pendant une attaque au corps à corps (élan et coup).
+func is_striking() -> bool:
+	return _strike_left > 0.0
+
+
+## Arrête le déplacement et l'attaque en cours (un coup déjà lancé va à son terme).
 func stop() -> void:
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
+	_melee_target = null
 
 
 ## Bascule entre `new_posture` et debout.
@@ -374,6 +425,67 @@ func _hop(to: Vector3, done: Callable) -> void:
 			done.call())
 
 
+## Approche de la cible du corps à corps ; frappe dès qu'elle est à portée.
+func _approach_melee(delta: float) -> Vector3:
+	var enemy := _melee_target
+	if not is_instance_valid(enemy) or enemy.is_dead or (_melee_kind == MeleeKind.KNOCKOUT and enemy.is_stunned()):
+		_melee_target = null
+		return Vector3.ZERO
+	var to_enemy := enemy.global_position - global_position
+	to_enemy.y = 0.0
+	if to_enemy.length() <= MELEE_RANGE:
+		_melee_target = null
+		_start_strike(enemy, _melee_kind)
+		return Vector3.ZERO
+	if _agent.target_position.distance_to(enemy.global_position) > 0.3:
+		_agent.target_position = enemy.global_position
+	if _agent.is_navigation_finished():
+		return Vector3.ZERO
+	return _follow_path(delta)
+
+
+func _start_strike(enemy: Enemy, kind: MeleeKind) -> void:
+	_strike_target = enemy
+	_strike_kind = kind
+	_strike_left = stats.melee_time
+	_strike_landed = false
+	# On ne frappe pas allongé : l'opérateur se met à genoux.
+	if posture == SoldierModel.Posture.PRONE:
+		posture = SoldierModel.Posture.CROUCHED
+	_model.strike_with_knife = kind == MeleeKind.KNIFE
+	_model.strike_progress = 0.0
+
+
+func _update_strike(delta: float) -> void:
+	_strike_left = maxf(_strike_left - delta, 0.0)
+	var progress := 1.0 - _strike_left / stats.melee_time
+	_model.strike_progress = progress
+	if is_instance_valid(_strike_target):
+		_face(_strike_target.global_position - global_position, delta)
+	if not _strike_landed and progress >= STRIKE_HIT_TIME:
+		_strike_landed = true
+		_land_strike()
+	if _strike_left <= 0.0:
+		_model.strike_progress = -1.0
+		_strike_target = null
+
+
+func _land_strike() -> void:
+	var enemy := _strike_target
+	if not is_instance_valid(enemy) or enemy.is_dead:
+		return
+	var offset := enemy.global_position - global_position
+	offset.y = 0.0
+	if offset.length() > MELEE_RANGE + STRIKE_REACH_MARGIN:
+		return
+	match _strike_kind:
+		MeleeKind.KNIFE:
+			enemy.kill_silently()
+		MeleeKind.KNOCKOUT:
+			enemy.knock_out()
+	EventBus.noise_emitted.emit(global_position, stats.melee_noise_radius, &"melee")
+
+
 func _update_reload(delta: float) -> void:
 	if not is_reloading() or is_dead:
 		return
@@ -483,6 +595,9 @@ func _on_died() -> void:
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
+	_melee_target = null
+	_strike_left = 0.0
+	_model.strike_progress = -1.0
 	remove_from_group(&"commandos")
 	collision_layer = 0
 	_agent.avoidance_enabled = false

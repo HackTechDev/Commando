@@ -14,8 +14,8 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 ## 2. Gameplay d'infiltration
 
 - **Ouïe des ennemis** (§5.2) : les tirs émettent déjà `noise_emitted`, mais personne n'écoute. Ajouter `HearingComponent`, le bruit de la course, et un état `Investigate` qui envoie l'ennemi voir la source.
-- **Découverte des corps** : un ennemi qui voit un cadavre devrait donner l'alerte ; pouvoir porter et cacher les corps (M5).
-- **Élimination silencieuse** : couteau et assommer par-derrière (M5). Aujourd'hui le tir est la seule façon de neutraliser un ennemi.
+- **Découverte des corps** : un ennemi qui voit un cadavre ou un camarade assommé devrait donner l'alerte ; pouvoir porter et cacher les corps (M5). Sans cela, l'élimination silencieuse n'a aucun risque.
+- **Ligoter un ennemi assommé** (§5.4) pour qu'il ne se réveille pas.
 - **États `Search` et `Return`** : après avoir perdu sa cible, l'ennemi fouille la zone puis reprend sa ronde avec une vigilance accrue, au lieu de repartir comme si de rien n'était.
 - **Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
 - **Plusieurs ennemis et types** : sentinelle fixe qui balaie du regard, officier, chien. Le sandbox n'a qu'un seul soldat.

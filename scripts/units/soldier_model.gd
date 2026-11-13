@@ -9,7 +9,7 @@ extends Node3D
 ## L'animation (marche, course, postures) est procédurale.
 
 enum Posture { STANDING, CROUCHED, PRONE }
-enum ArmPose { RIFLE, REACH, PUSH }
+enum ArmPose { RIFLE, REACH, PUSH, STRIKE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur). Montée : élan,
 # mains sur le rebord, traction, passage d'une jambe, redressement.
@@ -53,6 +53,10 @@ var is_dead: bool = false
 var climb_progress: float = -1.0
 ## Vrai pour l'animation de descente, faux pour la montée.
 var climb_descending: bool = false
+## Avancement d'une attaque au corps à corps (0 à 1) ; négatif hors attaque.
+var strike_progress: float = -1.0
+## Vrai si l'attaque se fait au couteau (lame visible), faux pour un coup de poing.
+var strike_with_knife: bool = false
 
 var _body: Node3D
 var _hips: Node3D
@@ -66,6 +70,7 @@ var _phase: float = 0.0
 var _rifle: Node3D
 var _rifle_hold: Transform3D
 var _rifle_slung: Transform3D
+var _knife: Node3D
 ## Pivots des bras : [épaule gauche, coude gauche, épaule droite, coude droit].
 var _arm_joints: Array[Node3D] = []
 ## Poses des bras (une rotation par pivot), indexées par `ArmPose`.
@@ -79,6 +84,7 @@ var _m_weapon: StandardMaterial3D
 var _m_skin: StandardMaterial3D
 var _m_team: StandardMaterial3D
 var _m_lens: StandardMaterial3D
+var _m_steel: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -92,6 +98,7 @@ func _ready() -> void:
 	_m_team.emission = team_color
 	_m_team.emission_energy_multiplier = 0.4
 	_m_lens = _mat(Color(0.1, 0.5, 0.3), 0.15, 0.8)
+	_m_steel = _mat(Color(0.72, 0.74, 0.78), 0.25, 0.9)
 
 	_body = _pivot(self, Vector3.ZERO, "Body")
 	_hips = _pivot(_body, Vector3(0.0, HIP_HEIGHT, 0.0), "Hips")
@@ -118,6 +125,11 @@ func _process(delta: float) -> void:
 	var body_pitch := 0.0
 	var body_pos := Vector3.ZERO
 	var swing := 0.55 * minf(walk, 1.0) + 0.25 * maxf(walk - 1.0, 0.0)
+	# Attaque au corps à corps : élan vers l'avant, puis retour.
+	var strike := 0.0
+	if strike_progress >= 0.0 and not is_dead:
+		strike = sin(PI * clampf(strike_progress, 0.0, 1.0))
+	lean -= 0.35 * strike
 	match posture:
 		Posture.CROUCHED:
 			hips_y = 0.56
@@ -163,6 +175,13 @@ func _process(delta: float) -> void:
 	_rifle.transform = _rifle.transform.interpolate_with(_rifle_hold, blend)
 	for i in _arm_joints.size():
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(_arm_poses[ArmPose.RIFLE][i], blend)
+	_knife.visible = strike > 0.0 and strike_with_knife
+	if strike > 0.0:
+		# La main droite lâche la poignée : l'arme pend, les bras frappent.
+		_rifle.transform = _rifle_hold.interpolate_with(_rifle_slung, minf(strike * 1.5, 1.0))
+		for i in _arm_joints.size():
+			var rest: Quaternion = _arm_poses[ArmPose.RIFLE][i]
+			_arm_joints[i].quaternion = rest.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
 	_head.rotation.y = lerp_angle(_head.rotation.y, sin(_time * 0.6) * 0.25 * (1.0 - minf(walk, 1.0)), blend)
 
 
@@ -335,6 +354,8 @@ func _build_rifle_and_arms() -> void:
 	_arm_poses[ArmPose.RIFLE] = _solve_arms(rifle.transform * Vector3(0.0, -0.02, -0.33), rifle.transform * Vector3(0.0, -0.05, 0.05))
 	_arm_poses[ArmPose.REACH] = _solve_arms(Vector3(-0.2, 0.5, -0.42), Vector3(0.2, 0.5, -0.42))
 	_arm_poses[ArmPose.PUSH] = _solve_arms(Vector3(-0.22, 0.05, -0.25), Vector3(0.22, 0.05, -0.25))
+	# Main gauche qui saisit la cible, main droite qui frappe vers l'avant.
+	_arm_poses[ArmPose.STRIKE] = _solve_arms(Vector3(-0.1, 0.42, -0.38), Vector3(0.08, 0.45, -0.56))
 	for i in _arm_joints.size():
 		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
@@ -357,6 +378,12 @@ func _build_arm(side: float) -> void:
 	_sphere(elbow, 0.058, Vector3(0.0, -FOREARM_LENGTH, 0.0), _m_gear)
 	_arm_joints.append(shoulder)
 	_arm_joints.append(elbow)
+	if side > 0.0:
+		# Couteau de combat dans la main droite, sorti seulement pour frapper.
+		_knife = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.03, 0.0), "Knife")
+		_box(_knife, Vector3(0.028, 0.09, 0.032), Vector3.ZERO, _m_gear)
+		_box(_knife, Vector3(0.012, 0.19, 0.03), Vector3(0.0, -0.13, 0.0), _m_steel)
+		_knife.visible = false
 
 
 ## Rotations [épaule gauche, coude gauche, épaule droite, coude droit] qui

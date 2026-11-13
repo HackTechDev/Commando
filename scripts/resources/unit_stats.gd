@@ -13,6 +13,12 @@ extends Resource
 ## Durée pour en redescendre, en secondes.
 @export var descend_time: float = 1.0
 
+@export_group("Corps à corps")
+## Durée d'une attaque au couteau ou d'un coup pour assommer, en secondes.
+@export var melee_time: float = 0.6
+## Rayon du bruit d'une élimination au corps à corps.
+@export var melee_noise_radius: float = 1.5
+
 @export_group("Arme")
 ## Portée de tir maximale.
 @export var fire_range: float = 16.0

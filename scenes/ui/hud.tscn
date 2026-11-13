@@ -25,10 +25,11 @@ layout_mode = 0
 offset_left = 16.0
 offset_top = 12.0
 offset_right = 900.0
-offset_bottom = 80.0
+offset_bottom = 100.0
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer  •  Clic droit sur une caisse : grimper
+V : couteau  •  B : assommer  (puis clic gauche sur un ennemi)
 ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"
 
 [node name="TopRight" type="HBoxContainer" parent="PlayerController"]
@@ -110,6 +111,22 @@ focus_mode = 0
 tooltip_text = "Ramper ou se relever : très lent, se cache derrière les obstacles bas."
 toggle_mode = true
 text = "Rampé  [X]"
+
+[node name="Knife" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Couteau : puis clic gauche sur un ennemi. L'opérateur le plus proche s'en approche et le tue sans bruit. À faire hors de son champ de vision."
+toggle_mode = true
+text = "Couteau  [V]"
+
+[node name="Knockout" type="Button" parent="PlayerController/ActionBar/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Assommer : puis clic gauche sur un ennemi. Il reste inconscient 25 s, puis se réveille et donne l'alerte."
+toggle_mode = true
+text = "Assommer  [B]"
 
 [node name="Reload" type="Button" parent="PlayerController/ActionBar/Buttons"]
 unique_name_in_owner = true

@@ -2,12 +2,23 @@ class_name PlayerController
 extends Control
 ## Entrées du joueur : sélection (clic, rectangle, touches), ordres de
 ## déplacement, d'attaque et postures. Dessine aussi le rectangle de sélection.
+##
+## Actions ciblées (couteau, assommer) : la touche ou le bouton arme l'action,
+## puis un clic gauche sur un ennemi la confie à l'opérateur sélectionné le plus
+## proche. Un clic droit, ou un clic ailleurs que sur un ennemi, l'annule.
+
+signal pending_action_changed(action: StringName)
+
+const ACTION_NONE := &""
+const ACTION_KNIFE := &"knife"
+const ACTION_KNOCKOUT := &"knockout"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
 const MASK_GROUND := 0b011
 const MASK_COMMANDOS := 0b100
-const MASK_ENEMIES := 0b1000
+## Ennemis actifs (couche 4) et assommés (couche 5).
+const MASK_ENEMIES := 0b11000
 
 @export var box_fill := Color(0.2, 0.6, 1.0, 0.15)
 @export var box_border := Color(0.3, 0.7, 1.0, 0.9)
@@ -15,12 +26,51 @@ const MASK_ENEMIES := 0b1000
 @export var marker_color := Color(0.3, 0.9, 0.4)
 @export var marker_run_color := Color(1.0, 0.75, 0.2)
 @export var marker_attack_color := Color(1.0, 0.25, 0.2)
+@export var marker_melee_color := Color(0.75, 0.4, 1.0)
+
+## Action ciblée en attente d'un clic sur un ennemi (`ACTION_NONE` sinon).
+var pending_action: StringName = ACTION_NONE
 
 var _dragging: bool = false
 var _drag_start: Vector2
 var _drag_end: Vector2
 
+
+func _ready() -> void:
+	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
+		if units.is_empty():
+			cancel_pending_action())
+
+
+## Arme l'action ciblée `action`, ou la désarme si elle l'était déjà.
+func toggle_pending_action(action: StringName) -> void:
+	if action == pending_action or SelectionManager.selected.is_empty():
+		cancel_pending_action()
+		return
+	pending_action = action
+	Input.set_default_cursor_shape(Input.CURSOR_CROSS)
+	pending_action_changed.emit(pending_action)
+
+
+## Désarme l'action ciblée en cours.
+func cancel_pending_action() -> void:
+	if pending_action == ACTION_NONE:
+		return
+	pending_action = ACTION_NONE
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	pending_action_changed.emit(pending_action)
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if pending_action != ACTION_NONE and event is InputEventMouseButton:
+		if event.is_action_pressed(&"select"):
+			_use_pending_action((event as InputEventMouseButton).position)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed(&"order"):
+			cancel_pending_action()
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if event.is_action_pressed(&"select"):
@@ -40,6 +90,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		SelectionManager.toggle_posture(SoldierModel.Posture.CROUCHED)
 	elif event.is_action_pressed(&"posture_prone"):
 		SelectionManager.toggle_posture(SoldierModel.Posture.PRONE)
+	elif event.is_action_pressed(&"action_knife"):
+		toggle_pending_action(ACTION_KNIFE)
+	elif event.is_action_pressed(&"action_knockout"):
+		toggle_pending_action(ACTION_KNOCKOUT)
 	elif event.is_action_pressed(&"reload"):
 		SelectionManager.reload()
 	elif event.is_action_pressed(&"stop"):
@@ -116,6 +170,16 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	target.y = 0.0
 	SelectionManager.order_move(target, run)
 	_spawn_marker(target, marker_run_color if run else marker_color)
+
+
+func _use_pending_action(screen_position: Vector2) -> void:
+	var hit := _raycast(screen_position, MASK_ENEMIES)
+	if hit.has("collider") and hit["collider"] is Enemy:
+		var enemy := hit["collider"] as Enemy
+		var kind := Commando.MeleeKind.KNIFE if pending_action == ACTION_KNIFE else Commando.MeleeKind.KNOCKOUT
+		if SelectionManager.order_melee(enemy, kind):
+			_spawn_marker(enemy.global_position, marker_melee_color)
+	cancel_pending_action()
 
 
 func _focus_camera() -> void:

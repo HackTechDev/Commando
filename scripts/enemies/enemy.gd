@@ -8,9 +8,11 @@ extends CharacterBody3D
 ## - SUSPICIOUS : la jauge de détection monte, il s'arrête et regarde la cible ;
 ## - ALERT : cible repérée. Il la poursuit jusqu'à portée de tir et tire tant
 ##   qu'il la voit ; s'il la perd, il court à sa dernière position connue,
-##   y attend `alert_memory` secondes, puis reprend sa patrouille.
+##   y attend `alert_memory` secondes, puis reprend sa patrouille ;
+## - STUNNED : assommé, au sol, aveugle, pendant `stun_duration` secondes. Au
+##   réveil, il passe en alerte sur place, puis reprend sa patrouille.
 
-enum State { PATROL, SUSPICIOUS, ALERT }
+enum State { PATROL, SUSPICIOUS, ALERT, STUNNED }
 
 signal state_changed(state: State)
 
@@ -22,6 +24,12 @@ signal state_changed(state: State)
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
 const SIDESTEP_RATIO := 0.7
+## Couche physique d'un ennemi actif (« Ennemis ») et d'un ennemi assommé
+## (« Interactables ») : assommé, il ne bloque plus le passage mais reste ciblable.
+const LAYER_ACTIVE := 0b1000
+const LAYER_DOWN := 0b10000
+const GAUGE_HEIGHT := 2.3
+const GAUGE_HEIGHT_DOWN := 1.0
 
 var state: State = State.PATROL
 var is_dead: bool = false
@@ -36,6 +44,7 @@ var _last_seen: Vector3
 var _memory_left: float = 0.0
 var _chase_arrived: bool = false
 var _fire_cooldown: float = 0.0
+var _stun_left: float = 0.0
 var _vertical_velocity: float = 0.0
 var _wants_to_move: bool = false
 var _desired_velocity: Vector3
@@ -45,6 +54,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @onready var _model: SoldierModel = $SoldierModel
 @onready var _vision: VisionComponent = $VisionComponent
 @onready var _gauge: Node3D = $Gauge
+@onready var _gauge_back: MeshInstance3D = $Gauge/Back
 @onready var _gauge_fill: MeshInstance3D = $Gauge/Fill
 @onready var _mark: Label3D = $Gauge/Mark
 @onready var health: HealthComponent = $HealthComponent
@@ -64,6 +74,11 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		return
+	if state == State.STUNNED:
+		_stun_left -= delta
+		if _stun_left <= 0.0:
+			_wake_up()
 		return
 	_update_detection(delta)
 	_update_state()
@@ -111,13 +126,64 @@ func take_hit(amount: float, from: Vector3) -> void:
 	if is_dead:
 		return
 	health.take_damage(amount)
-	if is_dead:
+	# Un soldat inconscient ne réagit pas.
+	if is_dead or state == State.STUNNED:
 		return
 	detection = 1.0
 	if _target == null:
 		_last_seen = from
 		_memory_left = stats.alert_memory
 		_chase_arrived = false
+
+
+## Vrai si l'ennemi est assommé.
+func is_stunned() -> bool:
+	return state == State.STUNNED
+
+
+## Élimination silencieuse (couteau) : mort immédiate, sans alerte.
+func kill_silently() -> void:
+	if is_dead:
+		return
+	health.take_damage(health.health)
+
+
+## Assomme l'ennemi : il tombe et reste inconscient `stun_duration` secondes.
+## Assommer un ennemi déjà inconscient prolonge sa perte de connaissance.
+func knock_out() -> void:
+	if is_dead:
+		return
+	_stun_left = stats.stun_duration
+	if state == State.STUNNED:
+		return
+	state = State.STUNNED
+	detection = 0.0
+	_target = null
+	velocity = Vector3.ZERO
+	collision_layer = LAYER_DOWN
+	_agent.avoidance_enabled = false
+	_model.is_dead = true
+	_model.move_ratio = 0.0
+	_vision.visible = false
+	_vision.set_physics_process(false)
+	_update_feedback()
+	state_changed.emit(state)
+	GameState.refresh_alert()
+
+
+## Fin de la perte de connaissance : il se relève et donne l'alerte sur place.
+func _wake_up() -> void:
+	collision_layer = LAYER_ACTIVE
+	_agent.avoidance_enabled = true
+	_model.is_dead = false
+	_vision.visible = true
+	_vision.set_physics_process(true)
+	state = State.PATROL
+	detection = 1.0
+	_last_seen = global_position
+	_memory_left = stats.alert_memory
+	_update_state()
+	_update_feedback()
 
 
 func _on_died() -> void:
@@ -278,6 +344,17 @@ func _face(direction: Vector3, delta: float) -> void:
 
 
 func _update_feedback() -> void:
+	if state == State.STUNNED:
+		_gauge.visible = true
+		_gauge.position.y = GAUGE_HEIGHT_DOWN
+		_gauge_back.visible = false
+		_gauge_fill.visible = false
+		_mark.text = "z z"
+		_mark.modulate = Color(0.6, 0.8, 1.0)
+		return
+	_gauge.position.y = GAUGE_HEIGHT
+	_gauge_back.visible = true
+	_gauge_fill.visible = true
 	var color := _vision.calm_color
 	if state == State.ALERT:
 		color = _vision.alert_color
