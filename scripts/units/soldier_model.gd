@@ -100,6 +100,21 @@ const GO_PRONE_FROM_CROUCH_TIME := 0.9
 const GET_UP_TIME := 1.1
 const GET_UP_TO_CROUCH_TIME := 0.8
 
+# Uppercut (assommer, instants 0..1 de la frappe) : armé (genoux fléchis,
+# buste tourné à droite, poing droit à la hanche, main gauche qui saisit),
+# impact (jambes et hanches qui se détendent, poing qui remonte en arc sous
+# le menton), accompagnement vers le haut, retour.
+const UPPERCUT_TIMES: Array[float] = [0.0, 0.3, 0.45, 0.6, 1.0]
+const UPPERCUT_DIP: Array[float] = [0.0, 0.0, 0.3, 0.09, 0.45, 0.0, 0.6, 0.0, 1.0, 0.0]
+const UPPERCUT_TWIST: Array[float] = [0.0, 0.0, 0.3, -0.4, 0.45, 0.25, 0.6, 0.3, 1.0, 0.0]
+const UPPERCUT_LEAN: Array[float] = [0.0, 0.0, 0.3, -0.25, 0.45, -0.1, 0.6, 0.0, 1.0, 0.0]
+## Fente vers la cible (m, -Z = avant) pour que le poing l'atteigne.
+const UPPERCUT_LUNGE: Array[float] = [0.0, 0.0, 0.3, -0.1, 0.45, -0.38, 0.6, -0.38, 1.0, 0.0]
+## Positions des poings (repère du torse) aux instants `UPPERCUT_TIMES`
+## (la première est remplacée par la pose de départ).
+const UPPERCUT_RIGHT: Array[Vector3] = [Vector3.ZERO, Vector3(0.24, 0.16, -0.06), Vector3(0.04, 0.6, -0.5), Vector3(0.02, 0.76, -0.36), Vector3.ZERO]
+const UPPERCUT_LEFT: Array[Vector3] = [Vector3.ZERO, Vector3(-0.1, 0.5, -0.42), Vector3(-0.2, 0.5, -0.2), Vector3(-0.2, 0.52, -0.22), Vector3.ZERO]
+
 ## Durée (s) pour passer l'arme à la bretelle, ou pour la reprendre en main.
 const SLING_TIME := 0.7
 ## Mains libres, arme à la bretelle (repère du torse).
@@ -440,6 +455,9 @@ func _animate_alive(delta: float) -> void:
 	var strike := 0.0
 	if strike_progress >= 0.0:
 		strike = sin(PI * clampf(strike_progress, 0.0, 1.0))
+	# Sans couteau, la frappe est un uppercut.
+	var uppercut := strike_progress >= 0.0 and not strike_with_knife
+	var punch_t := clampf(strike_progress, 0.0, 1.0)
 	var reloading := reload_progress >= 0.0 and is_armed
 	var wants_aim := is_armed and (aiming or _aim_hold > 0.0) and strike == 0.0 and not reloading and _sling <= 0.0
 	_aim_weight = move_toward(_aim_weight, 1.0 if wants_aim else 0.0, delta * 5.0)
@@ -494,7 +512,19 @@ func _animate_alive(delta: float) -> void:
 			hips_y = HIP_HEIGHT
 	# Épauler redresse le buste.
 	lean = lerpf(lean, -0.05, aim)
-	lean += -0.35 * strike + 0.4 * hit * _hit_push
+	if uppercut:
+		lean += sample_keys(UPPERCUT_LEAN, punch_t)
+		if posture == Posture.STANDING:
+			# Flexion des genoux : le bassin descend, les pieds restent au sol.
+			var dip := sample_keys(UPPERCUT_DIP, punch_t)
+			var bend := acos(clampf((THIGH_LENGTH + SHIN_LENGTH - dip) / (THIGH_LENGTH + SHIN_LENGTH), -1.0, 1.0))
+			hips_y -= dip
+			thigh += Vector2(bend, bend)
+			knee -= Vector2(2.0 * bend, 2.0 * bend)
+		body_pos.z += sample_keys(UPPERCUT_LUNGE, punch_t)
+	else:
+		lean += -0.35 * strike
+	lean += 0.4 * hit * _hit_push
 	head_pitch += 0.12 * aim - 0.4 * hit * _hit_push
 	if not prone:
 		hips_y -= 0.05 * hit
@@ -503,7 +533,7 @@ func _animate_alive(delta: float) -> void:
 	# Couché, l'axe Z local du corps est vertical : sa rotation fait onduler
 	# le bassin.
 	_body.rotation.z = lerp_angle(_body.rotation.z, body_yaw, blend)
-	_body.position = _body.position.lerp(body_pos, blend)
+	_body.position = _body.position.lerp(body_pos, 1.0 - exp(-30.0 * delta) if uppercut else blend)
 	_hips.position.y = lerpf(_hips.position.y, hips_y, blend)
 	_leg_l.rotation.x = lerp_angle(_leg_l.rotation.x, thigh.x, blend)
 	_leg_r.rotation.x = lerp_angle(_leg_r.rotation.x, thigh.y, blend)
@@ -524,7 +554,8 @@ func _animate_alive(delta: float) -> void:
 	var fast := 1.0 - exp(-18.0 * delta)
 	_lean = lerpf(_lean, lean + breath, fast)
 	# Debout, `_torso_yaw` tourne le buste ; couché, il le fait rouler.
-	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim, blend)
+	var punch_twist := sample_keys(UPPERCUT_TWIST, punch_t) if uppercut else 0.0
+	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim + punch_twist, 1.0 - exp(-30.0 * delta) if uppercut else blend)
 	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side + chest_turn)
 	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
 	if prone:
@@ -570,14 +601,33 @@ func _animate_alive(delta: float) -> void:
 		target = _solve_arms(left, right, PRONE_ELBOW_POLE if prone else ARM_POLE)
 	else:
 		target = _arm_poses[ArmPose.RIFLE]
-	var arm_blend := 1.0 - exp(-25.0 * delta)
+	if uppercut:
+		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
+		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
+		target = _solve_arms(_sample_points(UPPERCUT_LEFT, free_left, punch_t), _sample_points(UPPERCUT_RIGHT, free_right, punch_t))
+	# Un coup de poing est rapide : les bras suivent sans retard.
+	var arm_blend := 1.0 - exp(-(60.0 if uppercut else 25.0) * delta)
 	for i in _arm_joints.size():
 		var goal: Quaternion = target[i]
-		if strike > 0.0:
+		if strike > 0.0 and not uppercut:
 			goal = goal.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
 	_knife.visible = strike > 0.0 and strike_with_knife
 	_update_magazines()
+
+
+## Position interpolée le long d'une trajectoire de main aux instants
+## `UPPERCUT_TIMES` ; la première et la dernière clé valent `rest`.
+func _sample_points(points: Array[Vector3], rest: Vector3, t: float) -> Vector3:
+	var last := UPPERCUT_TIMES.size() - 1
+	for i in range(1, UPPERCUT_TIMES.size()):
+		if t <= UPPERCUT_TIMES[i]:
+			var from_t := UPPERCUT_TIMES[i - 1]
+			var weight := smoothstep(0.0, 1.0, (t - from_t) / (UPPERCUT_TIMES[i] - from_t))
+			var from := rest if i - 1 == 0 else points[i - 1]
+			var to := rest if i == last else points[i]
+			return from.lerp(to, weight)
+	return rest
 
 
 ## Poids (0 à 1) de la réaction à l'impact en cours : montée brève, retour lent.

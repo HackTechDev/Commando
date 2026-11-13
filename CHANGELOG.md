@@ -126,3 +126,8 @@
 
 - G (ou le bouton « Bretelle » de la barre d'actions) passe l'arme des opérateurs sélectionnés à la bretelle, ou la leur fait reprendre en main. Avec une sélection mixte, tous la passent à la bretelle.
 - Un ordre d'attaque ou de rechargement fait reprendre l'arme automatiquement.
+
+## Uppercut
+
+- « Assommer » se fait désormais mains nues, arme à la bretelle, par un uppercut : genoux fléchis et buste tourné, main gauche qui saisit l'ennemi, poing droit à la hanche ; puis jambes et hanches qui se détendent, fente vers la cible et poing qui remonte en arc jusqu'au menton.
+- Le couteau garde son animation de frappe.
