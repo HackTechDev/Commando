@@ -114,3 +114,10 @@
 - Se relever : appui sur la main, genou à terre, puis debout (1,1 s) ou accroupi (0,8 s).
 - L'animation part de la pose du moment (en marche, en pleine transition), sans à-coup ; l'arme reste tenue de la main droite, pointée vers l'avant.
 - Pendant la transition, l'opérateur ne se déplace pas et ne tire pas ; l'ordre en cours reprend ensuite.
+
+## Arme à la bretelle
+
+- Nouveau geste : l'opérateur bascule son fusil canon vers le bas, le laisse pendre sur son flanc droit et lâche la poignée pour avoir les mains libres (0,7 s) ; il le reprend en main par le geste inverse.
+- Automatique avant de grimper ou de redescendre (l'escalade attend la fin du geste) et pendant l'approche d'un ennemi au corps à corps ; l'arme est reprise une fois l'action terminée.
+- Mains libres : les bras se balancent à la marche ; couché, les deux mains prennent appui au sol et travaillent en alternance pendant la reptation.
+- L'opérateur ne tire et ne recharge qu'arme en main.

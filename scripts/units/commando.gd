@@ -67,6 +67,8 @@ var _strike_left: float = 0.0
 var _strike_landed: bool = false
 var _climb_point: Vector3
 var _hopping: bool = false
+## Vrai pendant une escalade (attente de la bretelle comprise).
+var _climbing: bool = false
 var _vertical_velocity: float = 0.0
 var _last_health: float = INF
 var _wants_to_move: bool = false
@@ -97,6 +99,8 @@ func _exit_tree() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Mains libres pour grimper ou frapper : arme à la bretelle.
+	_model.weapon_slung = not is_dead and (_climbing or _climb_target != null or _melee_target != null or _strike_left > 0.0)
 	_update_reload(delta)
 	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
 	if _hopping:
@@ -406,6 +410,7 @@ func _walk_across(route: Array[Climbable]) -> void:
 ## courbes calées sur l'animation du modèle (`SoldierModel.climb_progress`).
 func _hop(to: Vector3, done: Callable) -> void:
 	_hopping = true
+	_climbing = true
 	_has_order = false
 	velocity = Vector3.ZERO
 	posture = SoldierModel.Posture.STANDING
@@ -414,6 +419,15 @@ func _hop(to: Vector3, done: Callable) -> void:
 	flat.y = 0.0
 	if flat.length_squared() > 0.0001:
 		rotation.y = atan2(-flat.x, -flat.z)
+	# Se relever et passer l'arme à la bretelle avant de grimper.
+	_model.weapon_slung = true
+	_model.move_ratio = 0.0
+	while not is_dead and (_model.is_changing_posture() or not _model.is_weapon_slung()):
+		await get_tree().physics_frame
+	if is_dead:
+		_hopping = false
+		_climbing = false
+		return
 	var going_up := to.y > from.y
 	var forward_keys := CLIMB_UP_FORWARD if going_up else CLIMB_DOWN_FORWARD
 	var height_keys := CLIMB_UP_HEIGHT if going_up else CLIMB_DOWN_HEIGHT
@@ -428,6 +442,7 @@ func _hop(to: Vector3, done: Callable) -> void:
 	, 0.0, 1.0, stats.climb_time if going_up else stats.descend_time)
 	tween.tween_callback(func() -> void:
 		_hopping = false
+		_climbing = false
 		_model.climb_progress = -1.0
 		if not is_dead:
 			done.call())
@@ -497,6 +512,9 @@ func _land_strike() -> void:
 func _update_reload(delta: float) -> void:
 	if not is_reloading() or is_dead:
 		return
+	# On ne recharge qu'arme en main.
+	if not _model.is_weapon_ready():
+		return
 	_reload_left -= delta
 	_model.reload_progress = 1.0 - _reload_left / stats.reload_time
 	if _reload_left <= 0.0:
@@ -538,7 +556,7 @@ func _attack(delta: float) -> Vector3:
 		_fire_cooldown -= delta
 		if ammo_in_magazine <= 0:
 			reload()
-		elif not is_reloading() and not _model.is_changing_posture() and _fire_cooldown <= 0.0 and (-global_basis.z).angle_to(to_target) < 0.25:
+		elif not is_reloading() and _model.is_weapon_ready() and not _model.is_changing_posture() and _fire_cooldown <= 0.0 and (-global_basis.z).angle_to(to_target) < 0.25:
 			_fire(_attack_target, distance)
 		return Vector3.ZERO
 	# Pas de ligne de tir : s'approcher, puis viser de nouveau.

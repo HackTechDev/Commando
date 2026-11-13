@@ -9,7 +9,7 @@ extends Node3D
 ## L'animation (marche, course, postures) est procédurale.
 
 enum Posture { STANDING, CROUCHED, PRONE }
-enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE }
+enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
 # une caisse de 1,2 m sans que les membres ne traversent la caisse ni le sol
@@ -100,6 +100,11 @@ const GO_PRONE_FROM_CROUCH_TIME := 0.9
 const GET_UP_TIME := 1.1
 const GET_UP_TO_CROUCH_TIME := 0.8
 
+## Durée (s) pour passer l'arme à la bretelle, ou pour la reprendre en main.
+const SLING_TIME := 0.7
+## Mains libres, arme à la bretelle (repère du torse).
+const FREE_HAND := Vector3(0.27, 0.08, -0.12)
+
 const HIP_HEIGHT := 0.92
 const THIGH_LENGTH := 0.44
 const UPPER_ARM_LENGTH := 0.29
@@ -138,6 +143,9 @@ var is_dead: bool = false:
 		is_dead = value
 ## Vrai quand l'unité vise une cible : arme épaulée.
 var aiming: bool = false
+## Vrai pour passer l'arme à la bretelle (mains libres pour grimper, frapper…),
+## faux pour la reprendre en main. Le geste prend `SLING_TIME`.
+var weapon_slung: bool = false
 ## Avancement du rechargement (0 à 1) ; négatif hors rechargement.
 var reload_progress: float = -1.0
 ## Avancement de l'animation d'escalade (0 à 1), piloté par l'unité ;
@@ -166,6 +174,10 @@ var _phase: float = 0.0
 var _rifle: Node3D
 var _rifle_hold: Transform3D
 var _rifle_slung: Transform3D
+## Étape intermédiaire du geste : canon vers le bas devant la hanche droite.
+var _rifle_sling_mid: Transform3D
+## 0 = arme en main, 1 = arme à la bretelle.
+var _sling: float = 0.0
 var _rifle_aim: Transform3D
 var _rifle_prone: Transform3D
 var _rifle_dropped: Transform3D
@@ -253,6 +265,34 @@ func _process(delta: float) -> void:
 			return
 		_transition_duration = 0.0
 	_animate_alive(delta)
+
+
+## Vrai si l'arme est en main, prête à tirer.
+func is_weapon_ready() -> bool:
+	return is_armed and _sling <= 0.0
+
+
+## Vrai si les mains sont libres (arme à la bretelle, ou pas d'arme).
+func is_weapon_slung() -> bool:
+	return not is_armed or _sling >= 1.0
+
+
+## Position de l'arme pendant le geste (0 = `base`, 1 = à la bretelle) :
+## elle bascule canon vers le bas devant la hanche, puis passe sur le flanc.
+func _sling_transform(base: Transform3D, amount: float) -> Transform3D:
+	if amount <= 0.5:
+		return base.interpolate_with(_rifle_sling_mid, smoothstep(0.0, 0.5, amount))
+	return _rifle_sling_mid.interpolate_with(_rifle_slung, smoothstep(0.5, 0.8, amount))
+
+
+## Position d'une main libre (repère du torse), avec balancement à la marche,
+## ou en appui au sol quand l'opérateur est couché.
+func _free_hand(side: float, prone: bool, s: float, c: float, moving: float, crawl: float) -> Vector3:
+	if prone:
+		var rest := Vector3(0.25 * side, 0.75, -0.15)
+		var planted := Vector3(0.27 * side, 0.88 + 0.15 * s * -side, -0.16 + 0.07 * maxf(c * -side, 0.0))
+		return rest.lerp(planted, crawl)
+	return Vector3(FREE_HAND.x * side, FREE_HAND.y, FREE_HAND.z + 0.12 * s * moving * -side)
 
 
 ## Vrai pendant qu'il se couche ou se relève : l'unité ne doit ni bouger ni tirer.
@@ -395,12 +435,13 @@ func _animate_alive(delta: float) -> void:
 	var s := sin(_phase)
 	var c := cos(_phase)
 	var swing := 0.55 * moving + 0.25 * maxf(walk - 1.0, 0.0)
+	_sling = move_toward(_sling, 1.0 if weapon_slung and is_armed else 0.0, delta / SLING_TIME)
 	# Attaque au corps à corps : élan vers l'avant, puis retour.
 	var strike := 0.0
 	if strike_progress >= 0.0:
 		strike = sin(PI * clampf(strike_progress, 0.0, 1.0))
 	var reloading := reload_progress >= 0.0 and is_armed
-	var wants_aim := is_armed and (aiming or _aim_hold > 0.0) and strike == 0.0 and not reloading
+	var wants_aim := is_armed and (aiming or _aim_hold > 0.0) and strike == 0.0 and not reloading and _sling <= 0.0
 	_aim_weight = move_toward(_aim_weight, 1.0 if wants_aim else 0.0, delta * 5.0)
 	var aim := 0.0 if prone else smoothstep(0.0, 1.0, _aim_weight)
 	var hit := _hit_weight()
@@ -494,7 +535,7 @@ func _animate_alive(delta: float) -> void:
 	_head.rotation.z = lerp_angle(_head.rotation.z, -0.8 * chest_turn, blend)
 
 	# Arme : basse, épaulée ou en position couchée ; inclinée pendant le
-	# rechargement ; en bandoulière pendant une frappe.
+	# rechargement ; à la bretelle sur le flanc pour libérer les mains.
 	var rifle_target := _rifle_prone if prone else _rifle_hold.interpolate_with(_rifle_aim, aim)
 	if prone:
 		# Arme portée par la main droite, qui avance avec le coude droit.
@@ -502,8 +543,9 @@ func _animate_alive(delta: float) -> void:
 	if reloading:
 		var tilt := sample_keys(RELOAD_TILT, reload_progress)
 		rifle_target = rifle_target * Transform3D(Basis.from_euler(Vector3(0.25 * tilt, 0.0, -0.6 * tilt)), Vector3(-0.04 * tilt, 0.04 * tilt, 0.0))
-	if strike > 0.0:
-		rifle_target = _rifle_hold.interpolate_with(_rifle_slung, minf(strike * 1.5, 1.0))
+	var slung := maxf(_sling, minf(strike * 1.5, 1.0))
+	if slung > 0.0:
+		rifle_target = _sling_transform(rifle_target, slung)
 	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-14.0 * delta))
 	var kick := exp(-_shot_time / RECOIL_DECAY)
 	_rifle.transform = _rifle_base * Transform3D(Basis(Vector3.RIGHT, 0.12 * kick), Vector3(0.0, 0.0, 0.06 * kick))
@@ -520,6 +562,11 @@ func _animate_alive(delta: float) -> void:
 			# l'épaule ; elle se soulève en avançant.
 			var planted := Vector3(-0.27, 0.88 + 0.15 * s, -0.16 + 0.07 * maxf(c, 0.0))
 			left = left.lerp(planted, crawl)
+		# Geste de la bretelle : la main gauche lâche le garde-main dès que
+		# le canon descend, la droite lâche la poignée une fois l'arme sur
+		# le flanc.
+		left = left.lerp(_free_hand(-1.0, prone, s, c, moving, crawl), smoothstep(0.35, 0.75, _sling))
+		right = right.lerp(_free_hand(1.0, prone, s, c, moving, crawl), smoothstep(0.65, 1.0, _sling))
 		target = _solve_arms(left, right, PRONE_ELBOW_POLE if prone else ARM_POLE)
 	else:
 		target = _arm_poses[ArmPose.RIFLE]
@@ -702,8 +749,9 @@ func _animate_climb(delta: float) -> void:
 	_lean = _torso.rotation.x
 	_torso_yaw = 0.0
 	_head.rotation = Vector3(-0.5 * _torso.rotation.x, 0.0, 0.0)
-	var sling := sample_keys(CLIMB_DOWN_SLING if down else CLIMB_UP_SLING, t)
-	_rifle.transform = _rifle_hold.interpolate_with(_rifle_slung, sling)
+	_sling = move_toward(_sling, 1.0 if weapon_slung and is_armed else 0.0, delta / SLING_TIME)
+	var sling := maxf(_sling, sample_keys(CLIMB_DOWN_SLING if down else CLIMB_UP_SLING, t))
+	_rifle.transform = _sling_transform(_rifle_hold, sling)
 	_rifle_base = _rifle.transform
 	_apply_arm_keys(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t)
 
@@ -725,8 +773,12 @@ func _apply_arm_keys(keys: Array[float], t: float) -> void:
 	var from_t := keys[from_index * 2]
 	var to_t := keys[(from_index + 1) * 2]
 	var weight := smoothstep(0.0, 1.0, clampf((t - from_t) / (to_t - from_t), 0.0, 1.0))
-	var from_pose: Array = _arm_poses[int(keys[from_index * 2 + 1])]
-	var to_pose: Array = _arm_poses[int(keys[(from_index + 1) * 2 + 1])]
+	# Arme à la bretelle : les mains ne reviennent pas sur l'arme.
+	var rest := ArmPose.FREE if _sling >= 0.5 else ArmPose.RIFLE
+	var from_key := int(keys[from_index * 2 + 1])
+	var to_key := int(keys[(from_index + 1) * 2 + 1])
+	var from_pose: Array = _arm_poses[rest if from_key == ArmPose.RIFLE else from_key]
+	var to_pose: Array = _arm_poses[rest if to_key == ArmPose.RIFLE else to_key]
 	for i in _arm_joints.size():
 		var from_rotation: Quaternion = from_pose[i]
 		_arm_joints[i].quaternion = from_rotation.slerp(to_pose[i], weight)
@@ -825,8 +877,10 @@ func _build_rifle_and_arms() -> void:
 	rifle.rotation = Vector3(deg_to_rad(-22.0), deg_to_rad(16.0), 0.0)
 	_rifle = rifle
 	_rifle_hold = rifle.transform
-	# En bandoulière : en travers de la poitrine, canon vers le bas.
-	_rifle_slung = Transform3D(Basis.from_euler(Vector3(deg_to_rad(-70.0), deg_to_rad(35.0), deg_to_rad(20.0))), Vector3(0.02, 0.27, -0.2))
+	# À la bretelle : pendue sur le flanc droit, canon vers le bas et un peu
+	# vers l'avant, crosse sous l'aisselle.
+	_rifle_slung = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.25, 0.0, 0.1)), Vector3(0.28, 0.2, 0.08))
+	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
 	_box(rifle, Vector3(0.045, 0.08, 0.30), Vector3(0.0, 0.04, -0.05), _m_weapon)      # boîtier
 	_box(rifle, Vector3(0.04, 0.065, 0.20), Vector3(0.0, 0.035, 0.19), _m_weapon)     # crosse
 	_box(rifle, Vector3(0.045, 0.10, 0.03), Vector3(0.0, 0.02, 0.30), _m_gear)        # plaque de couche
@@ -879,6 +933,7 @@ func _build_rifle_and_arms() -> void:
 	_arm_poses[ArmPose.STRIKE] = _solve_arms(Vector3(-0.1, 0.42, -0.38), Vector3(0.08, 0.45, -0.56))
 	# Bras relâchés au sol, sur le dos (le sol est vers +Z du torse) ou à plat
 	# ventre (vers -Z).
+	_arm_poses[ArmPose.FREE] = _solve_arms(Vector3(-FREE_HAND.x, FREE_HAND.y, FREE_HAND.z), FREE_HAND)
 	_arm_poses[ArmPose.LIMP] = _solve_arms(Vector3(-0.6, 0.62, 0.2), Vector3(0.58, 0.2, 0.2))
 	_arm_poses[ArmPose.LIMP_PRONE] = _solve_arms(Vector3(-0.55, 0.75, -0.12), Vector3(0.55, 0.3, -0.12))
 	for i in _arm_joints.size():
