@@ -24,6 +24,11 @@ extends Resource
 @export var choke_time: float = 2.5
 ## Durée d'un égorgement par derrière, en secondes.
 @export var throat_cut_time: float = 1.0
+## Chances de parer et d'esquiver un coup ennemi (sinon il encaisse).
+@export_range(0.0, 1.0) var parry_chance: float = 0.45
+@export_range(0.0, 1.0) var dodge_chance: float = 0.35
+## Durée d'une parade ou d'une esquive, en secondes.
+@export var defend_time: float = 0.5
 
 @export_group("Arme")
 ## Portée de tir maximale.

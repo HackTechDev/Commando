@@ -153,3 +153,9 @@
 
 - Un ennemi en alerte qui voit l'opérateur arriver de face le repousse : poussée à deux mains (ou du plat de l'arme, tenue en travers de la poitrine), l'opérateur encaisse et recule d'un mètre, le coup (couteau ou assommer) n'a pas lieu.
 - L'ennemi reste en alerte et reprend le combat ; il faut le prendre de flanc ou de dos.
+
+## Parade, esquive et contre
+
+- Au contact de sa cible (1,6 m), un ennemi en alerte frappe au lieu de tirer : coup de crosse s'il est armé, uppercut sinon (25 PV, un coup toutes les 2 s environ). Un ennemi sans arme vient désormais au contact.
+- L'opérateur pare (45 % : arme levée en travers du visage, ou avant-bras croisés à mains nues), esquive (35 % : pas de côté, buste baissé) ou encaisse. Occupé (en train de frapper, couché, en escalade), il encaisse toujours.
+- Un coup paré ou esquivé déséquilibre l'ennemi 1,5 s : il recule, vacille, ne frappe ni ne tire, et ne repousse plus l'opérateur. C'est la fenêtre du contre : un ordre « Assommer » ou « Couteau » réussit à coup sûr, et part aussitôt s'il était déjà donné pendant l'attaque.

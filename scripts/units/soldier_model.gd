@@ -734,7 +734,7 @@ func _animate_alive(delta: float) -> void:
 		thigh += Vector2.ONE * _knee_bend(duck)
 		knee -= Vector2.ONE * 2.0 * _knee_bend(duck)
 		lean -= 0.25 * defend_w
-		side_lean += 0.3 * defend_side * defend_w
+		side_lean -= 0.3 * defend_side * defend_w
 	_stagger = move_toward(_stagger, 1.0 if staggered else 0.0, delta * 5.0)
 	var stagger := smoothstep(0.0, 1.0, _stagger)
 	if stagger > 0.0:

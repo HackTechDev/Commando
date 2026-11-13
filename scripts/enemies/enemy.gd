@@ -11,6 +11,8 @@ extends CharacterBody3D
 ##   y attend `alert_memory` secondes, puis reprend sa patrouille ;
 ## - STUNNED : assommé, au sol, aveugle, pendant `stun_duration` secondes. Au
 ##   réveil, il passe en alerte sur place, puis reprend sa patrouille ;
+##   au contact de sa cible, il frappe au lieu de tirer ; un coup paré ou
+##   esquivé le déséquilibre un instant ;
 ## - GRABBED : saisi par derrière (étranglement, égorgement), immobile et
 ##   sans réaction ; relâché, il passe en alerte.
 
@@ -56,6 +58,12 @@ var _fire_cooldown: float = 0.0
 var _stun_left: float = 0.0
 var _shove_left: float = 0.0
 var _shove_target: Commando
+## Coup au corps à corps en cours (temps restant, cible, impact joué).
+var _attack_left: float = 0.0
+var _attack_target: Commando
+var _attack_landed: bool = false
+var _melee_cooldown: float = 0.0
+var _off_balance_left: float = 0.0
 var _vertical_velocity: float = 0.0
 var _wants_to_move: bool = false
 var _desired_velocity: Vector3
@@ -100,8 +108,15 @@ func _physics_process(delta: float) -> void:
 	_model.aiming = armed and state == State.ALERT and _target != null
 
 	var horizontal := Vector3.ZERO
+	_melee_cooldown -= delta
+	_off_balance_left = maxf(_off_balance_left - delta, 0.0)
+	_model.staggered = _off_balance_left > 0.0
 	if _shove_left > 0.0:
 		_update_shove(delta)
+	elif _attack_left > 0.0:
+		_update_attack(delta)
+	elif _off_balance_left > 0.0:
+		pass
 	else:
 		match state:
 			State.PATROL:
@@ -176,7 +191,7 @@ func is_behind(world_position: Vector3) -> bool:
 ## Vrai s'il repousse un assaillant venant de `from` : en alerte, il le voit
 ## arriver de face et le coup échoue.
 func resists(from: Vector3) -> bool:
-	if is_dead or state != State.ALERT:
+	if is_dead or state != State.ALERT or _off_balance_left > 0.0:
 		return false
 	var to := from - global_position
 	to.y = 0.0
@@ -207,11 +222,58 @@ func _update_shove(delta: float) -> void:
 		_shove_target = null
 
 
-## Interrompt une action de corps à corps en cours (poussée).
+## Vrai pendant qu'il porte un coup au corps à corps.
+func is_attacking() -> bool:
+	return _attack_left > 0.0
+
+
+## Vrai pendant le déséquilibre qui suit un coup paré ou esquivé.
+func is_off_balance() -> bool:
+	return _off_balance_left > 0.0
+
+
+func _try_melee(to_target: Vector3) -> void:
+	if _melee_cooldown > 0.0 or (-global_basis.z).angle_to(to_target) > 0.5:
+		return
+	_attack_left = stats.melee_time
+	_attack_target = _target
+	_attack_landed = false
+	_melee_cooldown = stats.melee_time + stats.melee_interval
+	_model.strike_with_knife = false
+	_model.strike_move = SoldierModel.StrikeMove.BUTT_STRIKE if armed else SoldierModel.StrikeMove.UPPERCUT
+	_model.strike_progress = 0.0
+
+
+func _update_attack(delta: float) -> void:
+	_attack_left = maxf(_attack_left - delta, 0.0)
+	var progress := 1.0 - _attack_left / stats.melee_time
+	_model.strike_progress = progress
+	var valid := is_instance_valid(_attack_target) and not _attack_target.is_dead
+	if valid:
+		_face(_attack_target.global_position - global_position, delta)
+	if not _attack_landed and progress >= Commando.STRIKE_HIT_TIME:
+		_attack_landed = true
+		if valid:
+			var offset := _attack_target.global_position - global_position
+			offset.y = 0.0
+			if offset.length() <= stats.melee_range + Commando.STRIKE_REACH_MARGIN and _attack_target.defend_against(self):
+				# Paré ou esquivé : emporté par son élan, il perd l'équilibre.
+				_off_balance_left = stats.off_balance_time
+	if _attack_left <= 0.0:
+		_model.strike_progress = -1.0
+		_attack_target = null
+
+
+## Interrompt une action de corps à corps en cours (poussée, coup, déséquilibre).
 func _cancel_melee() -> void:
 	_shove_left = 0.0
 	_shove_target = null
 	_model.shove_progress = -1.0
+	_attack_left = 0.0
+	_attack_target = null
+	_model.strike_progress = -1.0
+	_off_balance_left = 0.0
+	_model.staggered = false
 
 
 ## Saisi par derrière : immobile, aveugle, il se débat (animation).
@@ -403,8 +465,13 @@ func _alert(delta: float) -> Vector3:
 	if _target:
 		_chase_arrived = false
 		_face(to_target, delta)
+		if to_target.length() <= stats.melee_range:
+			# Au contact : il frappe au lieu de tirer.
+			_try_melee(to_target)
+			return Vector3.ZERO
 		_try_fire(delta, to_target)
-		if to_target.length() <= stats.hold_range:
+		# Sans arme, il vient au contact.
+		if to_target.length() <= (stats.hold_range if armed else stats.melee_range * 0.8):
 			return Vector3.ZERO
 	if _agent.target_position.distance_to(_last_seen) > 0.5:
 		_agent.target_position = _last_seen

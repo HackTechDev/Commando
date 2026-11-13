@@ -35,5 +35,14 @@ extends Resource
 @export var resist_angle: float = 75.0
 ## Durée de la poussée qui repousse l'assaillant, en secondes.
 @export var shove_time: float = 0.5
+## Corps à corps : en alerte, à cette distance de sa cible, il frappe au lieu
+## de tirer (crosse, ou poing s'il n'est pas armé).
+@export var melee_range: float = 1.6
+## Durée d'un coup et délai minimal entre deux coups, en secondes.
+@export var melee_time: float = 0.6
+@export var melee_interval: float = 1.5
+@export var melee_damage: float = 25.0
+## Durée du déséquilibre après un coup paré ou esquivé, en secondes.
+@export var off_balance_time: float = 1.5
 ## Rayon du bruit d'un coup de feu.
 @export var gunshot_noise_radius: float = 30.0

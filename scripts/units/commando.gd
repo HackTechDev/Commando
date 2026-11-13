@@ -25,6 +25,9 @@ const REPEL_DISTANCE := 1.0
 const REPEL_TIME := 0.35
 ## Réaction d'un opérateur repoussé ou frappé.
 const SHOVED_HIT_STRENGTH := 1.8
+## Esquive : pas de côté (m) et sa durée (s).
+const DODGE_DISTANCE := 0.5
+const DODGE_TIME := 0.3
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
@@ -92,6 +95,9 @@ var _push_left: float = 0.0
 var _push_time: float = 1.0
 var _push_velocity: Vector3
 var _push_hit_from: Vector3 = Vector3.INF
+## Parade ou esquive en cours face à `_defend_enemy`.
+var _defend_left: float = 0.0
+var _defend_enemy: Enemy
 ## Choix du joueur : arme à la bretelle (mains libres) plutôt qu'en main.
 ## Un ordre d'attaque ou de rechargement la fait reprendre en main.
 var weapon_slung: bool = false:
@@ -143,6 +149,8 @@ func _physics_process(delta: float) -> void:
 	var horizontal := Vector3.ZERO
 	if is_dead:
 		pass
+	elif _defend_left > 0.0:
+		horizontal = _update_defend(delta)
 	elif _push_delay > 0.0 or _push_left > 0.0:
 		horizontal = _update_push(delta)
 	elif _strike_left > 0.0:
@@ -503,6 +511,10 @@ func _approach_melee(delta: float) -> Vector3:
 	var to_enemy := enemy.global_position - global_position
 	to_enemy.y = 0.0
 	if to_enemy.length() <= MELEE_RANGE:
+		if enemy.is_attacking():
+			# Il frappe le premier : on attend l'issue (parade, puis contre).
+			_face(to_enemy, delta)
+			return Vector3.ZERO
 		_melee_target = null
 		if enemy.resists(global_position):
 			# Il l'a vu venir : il le repousse, le coup échoue.
@@ -516,6 +528,60 @@ func _approach_melee(delta: float) -> Vector3:
 	if _agent.is_navigation_finished():
 		return Vector3.ZERO
 	return _follow_path(delta)
+
+
+## Coup porté par `enemy` au corps à corps : l'opérateur pare ou esquive
+## s'il est disponible et que le tirage le permet, sinon il encaisse.
+## Renvoie vrai si le coup est évité.
+func defend_against(enemy: Enemy) -> bool:
+	if is_dead:
+		return false
+	var busy := _strike_left > 0.0 or _hopping or perched_on != null or _defend_left > 0.0 \
+			or _push_delay > 0.0 or _push_left > 0.0 \
+			or posture == SoldierModel.Posture.PRONE or _model.is_changing_posture()
+	var roll := randf()
+	if busy or roll >= stats.parry_chance + stats.dodge_chance:
+		health.take_damage(enemy.stats.melee_damage)
+		if not is_dead:
+			_model.play_hit(enemy.global_position, SHOVED_HIT_STRENGTH)
+		return false
+	_defend_left = stats.defend_time
+	_defend_enemy = enemy
+	if roll < stats.parry_chance:
+		_model.defend_move = SoldierModel.DefendMove.PARRY
+	else:
+		# Pas de côté, perpendiculaire à l'axe du coup.
+		var side := 1.0 if randf() < 0.5 else -1.0
+		var to_enemy := enemy.global_position - global_position
+		to_enemy.y = 0.0
+		_model.defend_move = SoldierModel.DefendMove.DODGE
+		_model.defend_side = side
+		_push(to_enemy.normalized().cross(Vector3.UP) * side * DODGE_DISTANCE, DODGE_TIME, 0.0)
+	_model.defend_progress = 0.0
+	return true
+
+
+func _update_defend(delta: float) -> Vector3:
+	_defend_left = maxf(_defend_left - delta, 0.0)
+	_model.defend_progress = 1.0 - _defend_left / stats.defend_time
+	var horizontal := Vector3.ZERO
+	if _push_left > 0.0:
+		horizontal = _update_push(delta)
+	var enemy := _defend_enemy
+	if is_instance_valid(enemy):
+		_face(enemy.global_position - global_position, delta)
+	if _defend_left <= 0.0:
+		_model.defend_progress = -1.0
+		_defend_enemy = null
+		# Contre : un ordre de corps à corps en attente sur l'assaillant
+		# déséquilibré part aussitôt, s'il est à portée.
+		if _melee_target == enemy and is_instance_valid(enemy) and not enemy.is_dead and enemy.is_off_balance():
+			var offset := enemy.global_position - global_position
+			offset.y = 0.0
+			if offset.length() <= MELEE_RANGE + STRIKE_REACH_MARGIN:
+				_melee_target = null
+				_start_strike(enemy, _melee_kind)
+	return horizontal
 
 
 ## Fait subir un déplacement de `offset` en `duration` secondes, après
@@ -773,6 +839,9 @@ func _on_died() -> void:
 	_end_grapple()
 	_push_delay = 0.0
 	_push_left = 0.0
+	_defend_left = 0.0
+	_defend_enemy = null
+	_model.defend_progress = -1.0
 	_reload_left = 0.0
 	_model.reload_progress = -1.0
 	remove_from_group(&"commandos")

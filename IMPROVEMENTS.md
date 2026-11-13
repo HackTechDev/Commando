@@ -28,7 +28,7 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 
 ## 2 bis. Combat rapproché
 
-Idées classées par ordre de mise en œuvre conseillé ; les quatre premières sont en cours.
+Idées restantes, classées par ordre de mise en œuvre conseillé (crosse, prises par derrière, lutte, parade et contre sont faits).
 
 ### Attaque
 
@@ -43,10 +43,10 @@ Idées classées par ordre de mise en œuvre conseillé ; les quatre premières 
 
 ### Défense
 
-- **Parade, esquive et contre** de l'opérateur face à un ennemi qui frappe ; le contre exploite la fenêtre où l'ennemi est déséquilibré.
 - **Roulade** : plonger au sol pour sortir d'un cône de vision ou d'une ligne de tir, et finir couché.
 - **Garde de l'ennemi** : un ennemi en alerte lève les bras, ce qui impose un contre ou une prise par derrière.
-- **Riposte au corps à corps** des ennemis désarmés ou à court de munitions.
+- **Riposte au corps à corps** des ennemis à court de munitions (les ennemis frappent déjà au contact).
+- **Parade au choix du joueur** : touche de défense au bon moment au lieu du tirage au sort.
 - **Appel à l'aide** : un ennemi saisi mais pas encore neutralisé crie (bruit qui attire les autres ; dépend de l'ouïe des ennemis).
 
 ## 3. Contrôles et lisibilité
