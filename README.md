@@ -54,4 +54,20 @@ Les touches sont définies par position physique dans l'InputMap : sur un clavie
 
 ## Tests
 
-Aucun framework de tests n'est encore installé (GUT ou gdUnit4 à choisir, jalon M0).
+Les tests utilisent [GUT](https://github.com/bitwes/Gut) 9.7.1 (licence MIT), installé dans `addons/gut`.
+
+```sh
+./run_tests.sh                                   # toute la suite (environ 3 min)
+./run_tests.sh -gdir=res://tests/unit            # tests unitaires seuls (quelques secondes)
+./run_tests.sh -gselect=test_crate.gd            # un fichier
+./run_tests.sh -gselect=test_crate.gd -gunit_test_name=push   # un test
+```
+
+Le script renvoie un code non nul si un test échoue. Dans l'éditeur, le panneau « GUT » (en bas) lance les mêmes tests.
+
+- `tests/unit/` : logique pure, sans scène (cône de vision, points de vie, lecture des cartes UFO:AI, textures et dossiers externes, sons).
+- `tests/gameplay/` : parties jouées dans le terrain d'essai (escalade, fusillade, postures, corps à corps, prises par derrière, lutte, parade, lancer de couteau, caisses, sons).
+- `tests/levels/` : carte `training_a` (ignorée si le fichier de carte est absent) et menu de démarrage.
+- `tests/helpers/level_test.gd` : classe de base `LevelTest` (chargement d'un niveau, attente en images de physique, mise à l'écart des ennemis).
+
+Les tests de jeu tournent en temps réel simulé : ils sont lents (quelques secondes chacun) mais vérifient le comportement réel. Les tirages au sort sont rendus reproductibles par `seed()` ; un test qui dépend d'une probabilité la fixe sur une copie des réglages de l'unité (`own_stats`).

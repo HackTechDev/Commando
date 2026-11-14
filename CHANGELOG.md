@@ -214,3 +214,9 @@
 - Le jeu s'ouvre sur un menu qui propose les cartes (terrain d'essai, Entraînement A) avec leur description ; une carte dont le fichier UFO:AI est introuvable est grisée, avec la raison.
 - Chargement du niveau en arrière-plan, avec sa progression.
 - Bouton « Menu » dans le HUD pour abandonner la partie et revenir au choix de la carte.
+
+## Tests automatisés
+
+- Framework de tests GUT 9.7.1 installé (`addons/gut`), lancé par `./run_tests.sh` ou depuis le panneau GUT de l'éditeur.
+- 63 tests permanents remplacent les scripts de vérification jetables perdus : logique pure (cône de vision, points de vie, cartes UFO:AI, textures et dossiers externes, sons) et parties jouées (escalade, fusillade, postures, coups pour assommer, coup de crosse, prises par derrière, lutte, parade, esquive, contre, lancer de couteau, caisses, sons, carte `training_a`, menu).
+- GUT et les tests sont exclus de l'export Web.
