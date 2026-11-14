@@ -18,6 +18,8 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _menu: Button = %Menu
 @onready var _quit: Button = %Quit
 @onready var _controller: PlayerController = $PlayerController
+## Confirmation avant de quitter.
+var quit_dialog: QuitDialog
 
 
 func _ready() -> void:
@@ -44,7 +46,9 @@ func _ready() -> void:
 	_reload.pressed.connect(SelectionManager.reload)
 	_stop.pressed.connect(SelectionManager.stop)
 	_menu.pressed.connect(func() -> void: get_tree().change_scene_to_file(LevelCatalog.MENU_SCENE))
-	_quit.pressed.connect(func() -> void: get_tree().quit())
+	quit_dialog = QuitDialog.new()
+	add_child(quit_dialog)
+	_quit.pressed.connect(quit_dialog.ask)
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	_refresh_actions()
 

@@ -10,6 +10,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	OS.set_environment("COMMANDO_MAPS", _saved_maps_env)
+	get_tree().paused = false
 	var scene := get_tree().current_scene
 	if is_instance_valid(scene):
 		get_tree().root.remove_child(scene)
@@ -70,3 +71,39 @@ func test_play_sandbox_then_back_to_menu() -> void:
 	assert_eq(get_tree().get_nodes_in_group(&"commandos").size(), 0, "niveau libéré")
 	assert_eq(SelectionManager.selected.size(), 0, "sélection vidée")
 	assert_eq(GameState.alert_level, GameState.AlertLevel.CALM)
+
+
+## Le bouton « Quitter » de `scene` demande confirmation : Annuler reprend le
+## jeu, Quitter quitte.
+func _check_quit_confirmation(scene: Node, dialog: QuitDialog) -> void:
+	var quit_calls := [0]
+	dialog.quit_action = func() -> void: quit_calls[0] += 1
+	var quit_button: Button = scene.find_children("Quit", "Button", true, false)[0]
+	quit_button.pressed.emit()
+	await wait_process_frames(2)
+	assert_true(dialog.visible, "fenêtre de confirmation ouverte")
+	assert_true(get_tree().paused, "jeu en pause pendant la question")
+	assert_eq(quit_calls[0], 0, "pas encore quitté")
+	assert_true(dialog.get_cancel_button().has_focus(), "Annuler par défaut")
+	dialog.get_cancel_button().pressed.emit()
+	await wait_process_frames(2)
+	assert_false(dialog.visible, "fermée par Annuler")
+	assert_false(get_tree().paused, "le jeu reprend")
+	assert_eq(quit_calls[0], 0, "Annuler ne quitte pas")
+	quit_button.pressed.emit()
+	await wait_process_frames(2)
+	dialog.get_ok_button().pressed.emit()
+	assert_eq(quit_calls[0], 1, "Quitter quitte")
+
+
+func test_quit_from_menu_asks_confirmation() -> void:
+	var menu := await _open_menu()
+	await _check_quit_confirmation(menu, menu.quit_dialog)
+
+
+func test_quit_from_game_asks_confirmation() -> void:
+	var menu := await _open_menu()
+	_play_buttons(menu)[0].pressed.emit()
+	assert_true(await _wait_scene("Sandbox"), "terrain d'essai lancé")
+	var hud: Hud = get_tree().current_scene.find_children("*", "Hud", true, false)[0]
+	await _check_quit_confirmation(hud, hud.quit_dialog)

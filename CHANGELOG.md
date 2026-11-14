@@ -240,3 +240,7 @@
 
 - Les 22 bidons de `training_a` se poussent et se tirent comme les caisses (même ordre : action caisse, puis clic de destination). On ne monte pas dessus : un clic droit sur un bidon envoie à côté. Ils gardent leurs textures et ont une collision cylindrique.
 - Les murs invisibles partagés entre un objet déplaçable et du décor fixe sont désormais découpés au lieu de figer l'objet : seule l'emprise de l'objet est retirée.
+
+## Confirmation avant de quitter
+
+- Les boutons « Quitter » du menu et du jeu ouvrent une petite fenêtre « Quitter le jeu ? » (Quitter / Annuler). « Annuler » est sélectionné par défaut et Échap annule ; le jeu est en pause tant que la fenêtre est ouverte.
