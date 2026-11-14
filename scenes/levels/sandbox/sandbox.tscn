@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -7,10 +7,6 @@
 [ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="7"]
-[ext_resource type="Texture2D" path="res://assets/textures/ground_grass.jpg" id="8"]
-[ext_resource type="Texture2D" path="res://assets/textures/ground_dirt.png" id="9"]
-[ext_resource type="Texture2D" path="res://assets/textures/crate_wood_dark.jpg" id="10"]
-[ext_resource type="Texture2D" path="res://assets/textures/crate_wood_hazard.jpg" id="11"]
 
 [sub_resource type="Curve3D" id="patrol_a"]
 _data = {
@@ -39,20 +35,20 @@ size = Vector3(60, 1, 60)
 
 [sub_resource type="StandardMaterial3D" id="ground_mat"]
 albedo_color = Color(0.85, 0.85, 0.8, 1)
-albedo_texture = ExtResource("8")
 roughness = 1.0
 uv1_scale = Vector3(0.33, 0.33, 0.33)
 uv1_triplanar = true
 uv1_world_triplanar = true
 texture_filter = 5
+metadata/albedo_source = "tex_nature/grass_mowed_green_a.jpg"
 
 [sub_resource type="StandardMaterial3D" id="dirt_mat"]
-albedo_texture = ExtResource("9")
 roughness = 1.0
 uv1_scale = Vector3(0.4, 0.4, 0.4)
 uv1_triplanar = true
 uv1_world_triplanar = true
 texture_filter = 5
+metadata/albedo_source = "tex_nature/dirt002.png"
 
 [sub_resource type="PlaneMesh" id="dirt_long"]
 material = SubResource("dirt_mat")
@@ -137,7 +133,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 5)
 
 [node name="Crate2" parent="NavigationRegion3D" instance=ExtResource("5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 6.3)
-skin = ExtResource("10")
+skin = "tex_base/ecrate_drty-fmtl3.jpg"
 
 [node name="Crate3" parent="NavigationRegion3D" instance=ExtResource("5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.7, 0, 5)
@@ -147,7 +143,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 5)
 
 [node name="Crate5" parent="NavigationRegion3D" instance=ExtResource("5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0, 8)
-skin = ExtResource("11")
+skin = "tex_base/ecrate_dunno.jpg"
 
 [node name="Crate6" parent="NavigationRegion3D" instance=ExtResource("5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -5)

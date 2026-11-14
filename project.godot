@@ -22,6 +22,10 @@ GameState="*res://scripts/autoload/game_state.gd"
 SelectionManager="*res://scripts/autoload/selection_manager.gd"
 Sfx="*res://scripts/autoload/sfx.gd"
 
+[commando]
+
+assets/texture_dir="../CommandoAsset/textures"
+
 [display]
 
 window/size/viewport_width=1920

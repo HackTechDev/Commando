@@ -191,5 +191,12 @@
 ## Textures du sandbox
 
 - Sol en herbe, chemin de terre qui suit la ronde de la sentinelle, murs en parpaings, caisses en bois (trois variantes : claire, sombre, marquée de bandes de danger).
-- Textures tirées du lot `../CommandoAsset/textures` (anciennement `data/textures`) et copiées dans `assets/textures` (origine de chacune dans `assets/textures/SOURCES.md`).
+- Textures tirées du lot `../CommandoAsset/textures` (anciennement `data/textures`) et copiées dans `assets/textures` (origine de chacune dans `assets/TEXTURES.md`).
 - Nouvelle propriété `skin` des caisses (`Climbable`) pour choisir la texture d'une caisse dans l'éditeur.
+
+## Textures lues au chargement du niveau
+
+- Les textures ne sont plus copiées dans le projet : chaque niveau les lit au chargement dans le dossier externe `../CommandoAsset/textures` (`TextureLibrary`), en décodant les images en parallèle.
+- Un matériau désigne sa texture par une métadonnée (`albedo_source`, `normal_source`, `roughness_source`) ; la propriété `skin` des caisses devient un chemin dans ce dossier.
+- Dossier réglable (réglage de projet `commando/assets/texture_dir`, variable d'environnement `COMMANDO_TEXTURES`) ; une texture manquante laisse le matériau à sa couleur, avec un avertissement.
+- Liste des textures utilisées et licence : `assets/TEXTURES.md`.
