@@ -60,3 +60,16 @@ func test_cannot_climb_a_crate_held_by_another_operator() -> void:
 	assert_true(alpha.handle_crate(crate, crate.global_position + Vector3.LEFT))
 	assert_gt(await frames_until(alpha.is_handling_crate, 600), -1, "caisse saisie")
 	assert_false(bravo.climb(crate, false), "escalade refusée")
+
+
+func test_jump_trajectory_rises_then_falls_to_the_ground() -> void:
+	var previous := Commando._jump_progress(0.0)
+	assert_eq(previous, Vector2.ZERO)
+	var highest := 0.0
+	for i in range(1, 101):
+		var progress := Commando._jump_progress(i / 100.0)
+		assert_gte(progress.x, previous.x - 0.0001, "toujours vers l'avant")
+		highest = minf(highest, progress.y)
+		previous = progress
+	assert_lt(highest, 0.0, "impulsion vers le haut")
+	assert_eq(Commando._jump_progress(Commando.JUMP_LANDING), Vector2.ONE, "au sol à la réception")

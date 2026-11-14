@@ -12,6 +12,10 @@ extends Resource
 @export var climb_time: float = 1.4
 ## Durée pour en redescendre, en secondes.
 @export var descend_time: float = 1.0
+## Durée d'un saut du haut d'un mur (accroupi, vol, amorti), en secondes.
+@export var jump_time: float = 1.7
+## Rayon du bruit de la réception d'un saut.
+@export var jump_noise_radius: float = 4.0
 ## Vitesses pour pousser et tirer une caisse, en m/s.
 @export var crate_push_speed: float = 1.0
 @export var crate_pull_speed: float = 0.8

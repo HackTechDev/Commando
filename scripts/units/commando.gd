@@ -46,6 +46,17 @@ const CLIMB_UP_FORWARD: Array[float] = [0, 0, 0.12, 0.069, 0.26, 0.194, 0.45, 0.
 const CLIMB_UP_HEIGHT: Array[float] = [0, 0, 0.12, 0, 0.26, 0.06, 0.45, 0.438, 0.54, 0.709, 0.62, 0.674, 0.72, 0.938, 0.84, 1, 1, 1]
 const CLIMB_DOWN_FORWARD: Array[float] = [0, 0, 0.25, 0.3, 0.35, 0.529, 0.45, 0.688, 0.6, 0.85, 0.74, 1, 1, 1]
 const CLIMB_DOWN_HEIGHT: Array[float] = [0, 0, 0.25, 0, 0.35, 0.006, 0.45, 0.338, 0.6, 0.668, 0.74, 1, 1, 1]
+## Au-delà de ce dénivelé (m), on descend en sautant (`SoldierModel.JUMP_*`).
+const JUMP_MIN_DROP := 1.5
+## Saut : pas jusqu'au bord, impulsion (part du trajet horizontal, hauteur
+## négative = au-dessus du départ), puis vol de JUMP_TAKEOFF à JUMP_LANDING,
+## parabole en hauteur (chute accélérée), droite à l'horizontale.
+const JUMP_PREP_FORWARD: Array[float] = [0, 0, 0.18, 0.26, 0.26, 0.35]
+const JUMP_PREP_HEIGHT: Array[float] = [0, 0, 0.18, 0, 0.26, -0.04]
+const JUMP_TAKEOFF := 0.26
+const JUMP_LANDING := 0.62
+## Vitesse verticale d'impulsion (en part du dénivelé, vers le haut).
+const JUMP_LIFT := 0.1
 const STUCK_PROGRESS := 0.05
 const STUCK_DELAY := 0.6
 const STUCK_GOAL_DISTANCE := 2.0
@@ -788,23 +799,51 @@ func _hop(to: Vector3, done: Callable) -> void:
 		_climbing = false
 		return
 	var going_up := to.y > from.y
+	var jumping := not going_up and from.y - to.y > JUMP_MIN_DROP
 	var forward_keys := CLIMB_UP_FORWARD if going_up else CLIMB_DOWN_FORWARD
 	var height_keys := CLIMB_UP_HEIGHT if going_up else CLIMB_DOWN_HEIGHT
 	_model.climb_descending = not going_up
+	_model.climb_jump = jumping
 	_model.climb_progress = 0.0
+	var landed := [false]
+	var duration := stats.climb_time if going_up else (stats.jump_time if jumping else stats.descend_time)
 	var tween := create_tween()
 	tween.tween_method(func(t: float) -> void:
-		var forward := SoldierModel.sample_keys(forward_keys, t)
-		var height := SoldierModel.sample_keys(height_keys, t)
-		global_position = Vector3(lerpf(from.x, to.x, forward), lerpf(from.y, to.y, height), lerpf(from.z, to.z, forward))
+		var progress := _jump_progress(t) if jumping else Vector2(SoldierModel.sample_keys(forward_keys, t), SoldierModel.sample_keys(height_keys, t))
+		global_position = Vector3(lerpf(from.x, to.x, progress.x), lerpf(from.y, to.y, progress.y), lerpf(from.z, to.z, progress.x))
 		_model.climb_progress = t
-	, 0.0, 1.0, stats.climb_time if going_up else stats.descend_time)
+		if jumping and t >= JUMP_LANDING and not landed[0]:
+			landed[0] = true
+			_on_jump_landed()
+	, 0.0, 1.0, duration)
 	tween.tween_callback(func() -> void:
 		_hopping = false
 		_climbing = false
 		_model.climb_progress = -1.0
 		if not is_dead:
 			done.call())
+
+
+## Avancement d'un saut à l'instant `t` : (part du trajet horizontal, part
+## du dénivelé descendue).
+static func _jump_progress(t: float) -> Vector2:
+	if t < JUMP_TAKEOFF:
+		return Vector2(SoldierModel.sample_keys(JUMP_PREP_FORWARD, t), SoldierModel.sample_keys(JUMP_PREP_HEIGHT, t))
+	if t >= JUMP_LANDING:
+		return Vector2.ONE
+	var u := (t - JUMP_TAKEOFF) / (JUMP_LANDING - JUMP_TAKEOFF)
+	var start_forward: float = JUMP_PREP_FORWARD[JUMP_PREP_FORWARD.size() - 1]
+	var start_height: float = JUMP_PREP_HEIGHT[JUMP_PREP_HEIGHT.size() - 1]
+	# Chute libre : hauteur du second degré, de la vitesse d'impulsion (vers
+	# le haut) jusqu'au sol.
+	var height := start_height - JUMP_LIFT * u + (1.0 - start_height + JUMP_LIFT) * u * u
+	return Vector2(lerpf(start_forward, 1.0, u), height)
+
+
+## Réception d'un saut : bruit sourd (son et bruit signalé aux alentours).
+func _on_jump_landed() -> void:
+	Sfx.play_at(&"fall", global_position, -8.0)
+	EventBus.noise_emitted.emit(global_position, stats.jump_noise_radius, &"jump")
 
 
 ## Approche de la cible du corps à corps ; frappe dès qu'elle est à portée.

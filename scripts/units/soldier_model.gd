@@ -36,6 +36,16 @@ const CLIMB_DOWN_KNEE: Array[float] = [0, 0, 0.25, -1.394, 0.35, -1.271, 0.45, -
 const CLIMB_DOWN_LEAN: Array[float] = [0, 0, 0.25, -0.3, 0.35, -0.247, 0.45, -0.188, 0.6, -0.131, 0.74, -0.069, 1, 0]
 const CLIMB_DOWN_SLING: Array[float] = [0.0, 0.0, 0.15, 1.0, 0.75, 1.0, 1.0, 0.0]
 const CLIMB_DOWN_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.22, ArmPose.PUSH, 0.5, ArmPose.REACH, 0.82, ArmPose.RIFLE]
+# Saut depuis un mur (descente de plus de 1,5 m) : accroupi au bord (0,18),
+# impulsion (0,26), vol jambes groupées, contact (0,62), amorti accroupi
+# (0,72), redressement. Hauteurs de bassin calculées pour garder les pieds
+# sous le bassin, au sol hors du vol (cuisse 0,44 m, tibia 0,40 m, pied 0,08 m).
+const JUMP_HIPS: Array[float] = [0, 0.92, 0.18, 0.566, 0.26, 0.9, 0.36, 0.768, 0.62, 0.768, 0.72, 0.456, 0.95, 0.92, 1, 0.92]
+const JUMP_THIGH: Array[float] = [0, 0, 0.18, 1.0, 0.26, 0.3, 0.36, 0.7, 0.62, 0.7, 0.72, 1.2, 0.95, 0, 1, 0]
+const JUMP_KNEE: Array[float] = [0, 0, 0.18, -1.9, 0.26, -0.3, 0.36, -1.2, 0.62, -1.2, 0.72, -2.2, 0.95, 0, 1, 0]
+const JUMP_LEAN: Array[float] = [0, 0, 0.18, -0.6, 0.26, -0.35, 0.36, -0.2, 0.62, -0.25, 0.72, -0.7, 0.95, 0, 1, 0]
+const JUMP_SLING: Array[float] = [0.0, 0.0, 1.0, 0.0]
+const JUMP_ARMS: Array[float] = [0.0, ArmPose.RIFLE, 0.16, ArmPose.REACH, 0.62, ArmPose.REACH, 0.72, ArmPose.PUSH, 0.95, ArmPose.RIFLE]
 
 # Mort (instants en secondes) : les genoux cèdent, le corps bascule en arrière,
 # puis les jambes se relâchent.
@@ -308,6 +318,8 @@ var reload_progress: float = -1.0
 var climb_progress: float = -1.0
 ## Vrai pour l'animation de descente, faux pour la montée.
 var climb_descending: bool = false
+## Vrai si la descente est un saut (du haut d'un mur).
+var climb_jump: bool = false
 ## Vrai si le modèle porte sa carabine ; sans arme, les bras pendent le long du corps.
 var is_armed: bool = true
 ## Avancement d'une attaque au corps à corps (0 à 1) ; négatif hors attaque.
@@ -1210,6 +1222,9 @@ func _animate_climb(delta: float) -> void:
 	_hips.rotation.y = 0.0
 	var t := clampf(climb_progress, 0.0, 1.0)
 	var down := climb_descending
+	if down and climb_jump:
+		_animate_jump(delta, t)
+		return
 	var blend := 1.0 - exp(-25.0 * delta)
 	_body.rotation.x = lerp_angle(_body.rotation.x, 0.0, blend)
 	_body.rotation.z = lerp_angle(_body.rotation.z, 0.0, blend)
@@ -1235,6 +1250,30 @@ func _animate_climb(delta: float) -> void:
 	_rifle.transform = _sling_transform(_rifle_hold, sling)
 	_rifle_base = _rifle.transform
 	_apply_arm_keys(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t)
+
+
+## Pose du saut depuis un mur à l'instant `t` (même squelette que l'escalade).
+func _animate_jump(delta: float, t: float) -> void:
+	_hips.position.y = sample_keys(JUMP_HIPS, t)
+	var thigh := sample_keys(JUMP_THIGH, t)
+	var knee := sample_keys(JUMP_KNEE, t)
+	# Jambes légèrement décalées : on pose un pied après l'autre.
+	_leg_l.rotation.x = thigh
+	_knee_l.rotation.x = knee
+	_leg_r.rotation.x = thigh * 0.9
+	_knee_r.rotation.x = knee * 0.95
+	_level_feet()
+	_torso.rotation.x = sample_keys(JUMP_LEAN, t)
+	_torso.rotation.y = 0.0
+	_torso.rotation.z = 0.0
+	_lean = _torso.rotation.x
+	_torso_yaw = 0.0
+	_head.rotation = Vector3(-0.6 * _torso.rotation.x, 0.0, 0.0)
+	_sling = move_toward(_sling, 1.0 if weapon_slung and is_armed else 0.0, delta / SLING_TIME)
+	var sling := maxf(_sling, sample_keys(JUMP_SLING, t))
+	_rifle.transform = _sling_transform(_rifle_hold, sling)
+	_rifle_base = _rifle.transform
+	_apply_arm_keys(JUMP_ARMS, t)
 
 
 ## IK des pieds : la cheville compense la flexion de la hanche et du genou

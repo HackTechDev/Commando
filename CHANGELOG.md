@@ -231,3 +231,7 @@
 
 - Depuis le dessus d'une caisse, un opérateur peut grimper sur le mur voisin (murs pleins de 2,25 à 2,5 m sur les cartes UFO:AI) : clic droit sur le dessus du mur. Ordonné depuis le sol, il passe par la caisse la plus proche qui y mène.
 - Sur les murs, il marche de case en case et peut redescendre sur une autre caisse. Pour revenir au sol, il repasse par une caisse ; s'il n'y en a plus (caisse poussée ailleurs), il saute.
+
+## Saut du haut d'un mur
+
+- Descendre d'un mur sans caisse à côté se fait désormais par un vrai saut : l'opérateur s'accroupit au bord, prend son impulsion, tombe jambes groupées (chute accélérée), se réceptionne accroupi puis se relève (1,7 s). La réception fait du bruit (son sourd, bruit signalé dans un rayon de 4 m).

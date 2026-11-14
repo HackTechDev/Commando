@@ -183,6 +183,41 @@ func test_ledge_ordered_from_the_ground_goes_through_a_crate() -> void:
 	assert_gt(await frames_until(func() -> bool: return alpha.perched_on == ledge and not alpha._hopping, 2000), -1, "sur le mur")
 
 
+func test_jump_down_from_wall_without_crate() -> void:
+	if _skip_without_map():
+		return
+	var alpha: Commando = node("Units/Alpha")
+	var bravo: Commando = node("Units/Bravo")
+	var ledge := _ledge_with_ground_below()
+	assert_not_null(ledge, "mur contre une caisse, sol dégagé au pied")
+	assert_true(alpha.climb(ledge, true))
+	assert_gt(await frames_until(func() -> bool: return alpha.perched_on == ledge and not alpha._hopping, 2000), -1, "sur le mur")
+	# Plus aucune caisse libre pour redescendre : il saute.
+	for crate in _map_crates():
+		crate.occupant = bravo
+	var noises: Array[StringName] = []
+	var listener := func(_at: Vector3, _radius: float, type: StringName) -> void: noises.append(type)
+	EventBus.noise_emitted.connect(listener)
+	alpha.move_to(ledge.get_access_points()[0], false)
+	var jumped := false
+	var lowest_hips := INF
+	for i in 600:
+		await wait_physics_frames(1)
+		jumped = jumped or alpha._model.climb_jump and alpha._model.climb_progress >= 0.0
+		if alpha._model.climb_progress >= 0.0:
+			lowest_hips = minf(lowest_hips, alpha._model._hips.position.y)
+		if alpha.perched_on == null and not alpha._hopping:
+			break
+	EventBus.noise_emitted.disconnect(listener)
+	for crate in _map_crates():
+		crate.occupant = null
+	assert_true(jumped, "animation de saut")
+	assert_lt(lowest_hips, 0.6, "réception accroupie")
+	assert_has(noises, &"jump", "bruit de réception")
+	assert_lt(alpha.global_position.y, 0.1, "au sol")
+	assert_null(ledge.occupant)
+
+
 func _map_crates() -> Array[Climbable]:
 	var crates: Array[Climbable] = []
 	for node_ in node("NavigationRegion3D/Map").get_children():
@@ -197,6 +232,17 @@ func _ledges() -> Array[Climbable]:
 		if node_ is Climbable and not node_.movable:
 			ledges.append(node_)
 	return ledges
+
+
+## Corniche voisine d'une caisse, d'où l'on peut sauter au sol.
+func _ledge_with_ground_below() -> Climbable:
+	for ledge in _ledges():
+		if ledge.get_access_points().is_empty():
+			continue
+		for crate in _map_crates():
+			if crate.can_reach(ledge):
+				return ledge
+	return null
 
 
 ## Corniche qu'on atteint en grimpant depuis le dessus de `crate`.
