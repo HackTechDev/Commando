@@ -191,5 +191,5 @@
 ## Textures du sandbox
 
 - Sol en herbe, chemin de terre qui suit la ronde de la sentinelle, murs en parpaings, caisses en bois (trois variantes : claire, sombre, marquée de bandes de danger).
-- Textures tirées du lot `data/textures` et copiées dans `assets/textures` (origine de chacune dans `assets/textures/SOURCES.md`).
+- Textures tirées du lot `../CommandoAsset/textures` (anciennement `data/textures`) et copiées dans `assets/textures` (origine de chacune dans `assets/textures/SOURCES.md`).
 - Nouvelle propriété `skin` des caisses (`Climbable`) pour choisir la texture d'une caisse dans l'éditeur.

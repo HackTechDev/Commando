@@ -1,6 +1,6 @@
 # Sources des textures
 
-Copiées depuis `data/textures` (textures du jeu UFO:AI, http://ufoai.org).
+Copiées depuis le lot de textures du jeu UFO:AI (http://ufoai.org), rangé hors du dépôt dans `../CommandoAsset/textures`.
 Ce lot mélange plusieurs licences : certaines textures ne sont pas libres
 (liste sur http://ufoai.org/licenses/), d'autres viennent de mayang.com ou
 cgtextures.com, utilisables dans un jeu mais pas redistribuables en tant que
