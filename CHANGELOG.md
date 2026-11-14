@@ -244,3 +244,4 @@
 ## Confirmation avant de quitter
 
 - Les boutons « Quitter » du menu et du jeu ouvrent une petite fenêtre « Quitter le jeu ? » (Quitter / Annuler). « Annuler » est sélectionné par défaut et Échap annule ; le jeu est en pause tant que la fenêtre est ouverte.
+- Le bouton « Menu » en jeu demande aussi confirmation : « Revenir au menu ? La partie en cours sera perdue. » (Menu / Annuler).

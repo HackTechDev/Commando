@@ -10,14 +10,14 @@ extends Control
 ## Scène en cours de chargement, ou vide.
 var _loading: String = ""
 ## Confirmation avant de quitter.
-var quit_dialog: QuitDialog
+var quit_dialog: ConfirmDialog
 
 
 func _ready() -> void:
 	# Revenir au menu remet l'alerte à zéro (elle ne se recalcule qu'en jeu).
 	GameState.alert_level = GameState.AlertLevel.CALM
 	_status.text = ""
-	quit_dialog = QuitDialog.new()
+	quit_dialog = ConfirmDialog.for_quit(self)
 	add_child(quit_dialog)
 	_quit.pressed.connect(quit_dialog.ask)
 	var first: Button = null

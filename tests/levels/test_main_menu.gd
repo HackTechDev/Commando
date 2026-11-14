@@ -67,43 +67,51 @@ func test_play_sandbox_then_back_to_menu() -> void:
 	assert_eq(get_tree().get_nodes_in_group(&"commandos").size(), 3)
 	var menu_button: Button = get_tree().current_scene.find_children("Menu", "Button", true, false)[0]
 	menu_button.pressed.emit()
+	await wait_process_frames(2)
+	var hud: Hud = get_tree().current_scene.find_children("*", "Hud", true, false)[0]
+	assert_true(hud.menu_dialog.visible, "confirmation demandée")
+	hud.menu_dialog.get_ok_button().pressed.emit()
 	assert_true(await _wait_scene("MainMenu"), "retour au menu")
+	assert_false(get_tree().paused, "menu pas en pause")
 	assert_eq(get_tree().get_nodes_in_group(&"commandos").size(), 0, "niveau libéré")
 	assert_eq(SelectionManager.selected.size(), 0, "sélection vidée")
 	assert_eq(GameState.alert_level, GameState.AlertLevel.CALM)
 
 
-## Le bouton « Quitter » de `scene` demande confirmation : Annuler reprend le
-## jeu, Quitter quitte.
-func _check_quit_confirmation(scene: Node, dialog: QuitDialog) -> void:
-	var quit_calls := [0]
-	dialog.quit_action = func() -> void: quit_calls[0] += 1
-	var quit_button: Button = scene.find_children("Quit", "Button", true, false)[0]
-	quit_button.pressed.emit()
+## Le bouton `button_name` de `scene` demande confirmation : Annuler reprend
+## le jeu, la confirmation lève la pause et exécute l'action.
+func _check_confirmation(scene: Node, button_name: String, dialog: ConfirmDialog) -> void:
+	var calls := [0]
+	dialog.action = func() -> void:
+		calls[0] += 1
+		assert_false(get_tree().paused, "pause levée avant l'action")
+	var button: Button = scene.find_children(button_name, "Button", true, false)[0]
+	button.pressed.emit()
 	await wait_process_frames(2)
 	assert_true(dialog.visible, "fenêtre de confirmation ouverte")
 	assert_true(get_tree().paused, "jeu en pause pendant la question")
-	assert_eq(quit_calls[0], 0, "pas encore quitté")
+	assert_eq(calls[0], 0, "pas encore confirmé")
 	assert_true(dialog.get_cancel_button().has_focus(), "Annuler par défaut")
 	dialog.get_cancel_button().pressed.emit()
 	await wait_process_frames(2)
 	assert_false(dialog.visible, "fermée par Annuler")
 	assert_false(get_tree().paused, "le jeu reprend")
-	assert_eq(quit_calls[0], 0, "Annuler ne quitte pas")
-	quit_button.pressed.emit()
+	assert_eq(calls[0], 0, "Annuler n'exécute rien")
+	button.pressed.emit()
 	await wait_process_frames(2)
 	dialog.get_ok_button().pressed.emit()
-	assert_eq(quit_calls[0], 1, "Quitter quitte")
+	assert_eq(calls[0], 1, "confirmé")
 
 
 func test_quit_from_menu_asks_confirmation() -> void:
 	var menu := await _open_menu()
-	await _check_quit_confirmation(menu, menu.quit_dialog)
+	await _check_confirmation(menu, "Quit", menu.quit_dialog)
 
 
-func test_quit_from_game_asks_confirmation() -> void:
+func test_quit_and_menu_from_game_ask_confirmation() -> void:
 	var menu := await _open_menu()
 	_play_buttons(menu)[0].pressed.emit()
 	assert_true(await _wait_scene("Sandbox"), "terrain d'essai lancé")
 	var hud: Hud = get_tree().current_scene.find_children("*", "Hud", true, false)[0]
-	await _check_quit_confirmation(hud, hud.quit_dialog)
+	await _check_confirmation(hud, "Quit", hud.quit_dialog)
+	await _check_confirmation(hud, "Menu", hud.menu_dialog)
