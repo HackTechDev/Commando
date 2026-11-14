@@ -7,10 +7,13 @@ Voir `CAHIER_DES_CHARGES.md` pour la vision, l'architecture et les jalons.
 
 ```sh
 godot --path .            # lance le niveau sandbox
+godot --path . scenes/levels/training_a/training_a.tscn   # carte UFO:AI « training_a »
 godot --headless --path . --quit-after 60   # vérification sans affichage
 ```
 
 (`godot` = exécutable Godot 4.7.x.)
+
+Les textures et les cartes ne sont pas dans le dépôt : elles sont lues au chargement de chaque niveau dans `../CommandoAsset/textures` et `../CommandoAsset/maps` (réglages de projet `commando/assets/texture_dir` et `commando/assets/map_dir`, ou variables d'environnement `COMMANDO_TEXTURES` et `COMMANDO_MAPS`). Voir `assets/TEXTURES.md`.
 
 ## Export Web (HTML)
 
@@ -22,7 +25,7 @@ godot --headless --path . --quit-after 60   # vérification sans affichage
 
 Le script cherche Godot dans la variable `GODOT`, puis dans le PATH, puis à son emplacement par défaut.
 
-Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'ouvrir directement depuis le disque (`file://`) ne fonctionne pas. Les modèles d'export Web de Godot 4.7.2 doivent être installés.
+Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'ouvrir directement depuis le disque (`file://`) ne fonctionne pas. Les modèles d'export Web de Godot 4.7.2 doivent être installés. Le jeu Web n'a pas accès au disque : il tourne sans les textures ni les cartes externes (sandbox sans textures).
 
 ## Contrôles
 

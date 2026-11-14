@@ -13,6 +13,11 @@ var _bake_pending: bool = false
 func _ready() -> void:
 	# Après le `_ready` des enfants : les caisses ont déjà choisi leur variante.
 	TextureLibrary.apply_to_tree(self)
+	# La carte de navigation doit avoir la même résolution que le maillage
+	# (plus fine sur les cartes aux couloirs étroits).
+	var map := get_world_3d().navigation_map
+	NavigationServer3D.map_set_cell_size(map, _navigation.navigation_mesh.cell_size)
+	NavigationServer3D.map_set_cell_height(map, _navigation.navigation_mesh.cell_height)
 	_navigation.bake_navigation_mesh(false)
 	_navigation.bake_finished.connect(_on_bake_finished)
 	EventBus.navigation_obstacle_moved.connect(_rebake)

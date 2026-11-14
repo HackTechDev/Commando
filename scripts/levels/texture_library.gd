@@ -9,18 +9,18 @@ extends RefCounted
 ## `apply_to_tree` parcourt un niveau, décode toutes les images demandées en
 ## parallèle puis les affecte aux matériaux.
 ##
-## Dossier : variable d'environnement `COMMANDO_TEXTURES`, sinon le réglage
-## de projet `commando/assets/texture_dir`. Un chemin relatif part du
-## dossier du projet (éditeur) ou de l'exécutable (jeu exporté).
+## Dossier : voir `AssetPaths.textures_dir` (réglage de projet
+## `commando/assets/texture_dir`, variable d'environnement
+## `COMMANDO_TEXTURES`). Un chemin sans extension (cartes UFO:AI) désigne le
+## premier fichier trouvé parmi `EXTENSIONS`.
 
-const SETTING := "commando/assets/texture_dir"
-const DEFAULT_DIR := "../CommandoAsset/textures"
-const ENV_VAR := "COMMANDO_TEXTURES"
+const EXTENSIONS: Array[String] = ["png", "jpg", "jpeg", "tga", "webp"]
 ## Métadonnée du matériau → emplacement de texture qu'elle remplit.
 const SLOTS := {
 	&"albedo_source": BaseMaterial3D.TEXTURE_ALBEDO,
 	&"normal_source": BaseMaterial3D.TEXTURE_NORMAL,
 	&"roughness_source": BaseMaterial3D.TEXTURE_ROUGHNESS,
+	&"emission_source": BaseMaterial3D.TEXTURE_EMISSION,
 }
 
 ## Chemin relatif → texture (null si le fichier manque ou est illisible).
@@ -29,15 +29,18 @@ static var _cache: Dictionary = {}
 
 ## Dossier absolu des textures.
 static func root_dir() -> String:
-	var dir := OS.get_environment(ENV_VAR)
-	if dir.is_empty():
-		dir = str(ProjectSettings.get_setting(SETTING, DEFAULT_DIR))
-	if dir.is_absolute_path():
-		return dir
-	var base := ProjectSettings.globalize_path("res://")
-	if not OS.has_feature("editor"):
-		base = OS.get_executable_path().get_base_dir()
-	return base.path_join(dir).simplify_path()
+	return AssetPaths.textures_dir()
+
+
+## Fichier (chemin absolu) de la texture `path`, ou vide s'il n'existe pas.
+static func find_file(path: String) -> String:
+	var full := root_dir().path_join(path)
+	if not path.get_extension().is_empty() and FileAccess.file_exists(full):
+		return full
+	for extension in EXTENSIONS:
+		if FileAccess.file_exists(full + "." + extension):
+			return full + "." + extension
+	return ""
 
 
 ## Affecte leurs textures externes à tous les matériaux de `root` et de ses
@@ -63,15 +66,17 @@ static func apply_to_tree(root: Node) -> void:
 ## Charge en parallèle les textures de `paths` absentes du cache.
 static func load_textures(paths: Array[String]) -> void:
 	var todo: Array[String] = []
-	var root := root_dir()
+	var files: Array[String] = []
 	for path in paths:
 		if _cache.has(path) or todo.has(path):
 			continue
-		if not FileAccess.file_exists(root.path_join(path)):
-			push_warning("Texture introuvable : %s" % root.path_join(path))
+		var file := find_file(path)
+		if file.is_empty():
+			push_warning("Texture introuvable : %s" % root_dir().path_join(path))
 			_cache[path] = null
 			continue
 		todo.append(path)
+		files.append(file)
 	if todo.is_empty():
 		return
 	# Décodage et mipmaps (le plus long) dans les fils de travail ; la
@@ -79,7 +84,7 @@ static func load_textures(paths: Array[String]) -> void:
 	var images: Array = []
 	images.resize(todo.size())
 	var decode := func(i: int) -> void:
-		var image := Image.load_from_file(root.path_join(todo[i]))
+		var image := Image.load_from_file(files[i])
 		if image != null and not image.is_empty():
 			image.generate_mipmaps()
 			images[i] = image
@@ -88,7 +93,7 @@ static func load_textures(paths: Array[String]) -> void:
 	for i in todo.size():
 		var image: Image = images[i]
 		if image == null:
-			push_warning("Texture illisible : %s" % root.path_join(todo[i]))
+			push_warning("Texture illisible : %s" % files[i])
 			_cache[todo[i]] = null
 		else:
 			_cache[todo[i]] = ImageTexture.create_from_image(image)

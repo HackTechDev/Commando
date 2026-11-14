@@ -25,6 +25,7 @@ Sfx="*res://scripts/autoload/sfx.gd"
 [commando]
 
 assets/texture_dir="../CommandoAsset/textures"
+assets/map_dir="../CommandoAsset/maps"
 
 [display]
 

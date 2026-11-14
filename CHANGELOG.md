@@ -200,3 +200,11 @@
 - Un matériau désigne sa texture par une métadonnée (`albedo_source`, `normal_source`, `roughness_source`) ; la propriété `skin` des caisses devient un chemin dans ce dossier.
 - Dossier réglable (réglage de projet `commando/assets/texture_dir`, variable d'environnement `COMMANDO_TEXTURES`) ; une texture manquante laisse le matériau à sa couleur, avec un avertissement.
 - Liste des textures utilisées et licence : `assets/TEXTURES.md`.
+
+## Cartes UFO:AI
+
+- Lecture des cartes sources d'UFO:AI (`.map`, format Radiant de Quake 2) à la volée, au chargement du niveau, depuis `../CommandoAsset/maps` (`UfoMap`, `UfoMapLevel`).
+- Géométrie reconstruite à partir des brushes : maillage texturé (textures du lot externe, cartes normales quand elles existent, faces lumineuses, tonneaux lissés), collisions (sol, murs qui masquent la vue, murs invisibles qui arrêtent seulement les unités).
+- Opérateurs placés sur les points de départ de la carte, sentinelles fixes sur les positions des aliens, limites de la caméra réglées sur la carte.
+- Premier niveau converti : `scenes/levels/training_a/training_a.tscn` (carte d'entraînement de 41 × 41 m, 8 sentinelles).
+- Navigation plus fine sur ce niveau (cellules de 10 cm) pour passer dans les couloirs d'une case.

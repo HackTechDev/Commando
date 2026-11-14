@@ -1,0 +1,462 @@
+class_name UfoMapLevel
+extends Node3D
+## Construit un niveau à partir d'une carte source UFO:AI (`UfoMap`) lue à la
+## volée dans le dossier des cartes (`AssetPaths.maps_dir`) : maillage
+## texturé, collisions, opérateurs placés sur les points de départ, ennemis en
+## faction sur les positions des aliens.
+##
+## À placer sous le `NavigationRegion3D` du niveau : son `_ready` s'exécute
+## avant celui de `LevelRoot`, qui génère ensuite la navigation à partir des
+## collisions créées ici.
+
+## Pieds d'une unité sous l'origine de son point de départ (unités UFO:AI).
+const FEET_BELOW_ORIGIN := 24.0
+## Un brush visible pas plus haut que ceci est du sol (ne masque pas la vue).
+const GROUND_MAX_HEIGHT := 8.0
+## Faces lissées entre elles (drapeau « phong ») sous cet angle.
+const PHONG_MAX_ANGLE := deg_to_rad(60.0)
+const EPSILON := 0.01
+const BASE_WINDING_SIZE := 16384.0
+const DEFAULT_TEXTURE_SIZE := Vector2(256.0, 256.0)
+const LAYER_GROUND := 1
+const LAYER_WALLS := 2
+## Textures techniques (invisibles) d'UFO:AI.
+const TECHNICAL_PREFIX := "tex_common/"
+const NON_SOLID_TEXTURES: Array[String] = ["tex_common/trigger", "tex_common/hint", "tex_common/origin", "tex_common/lightclip", "tex_common/weaponclip"]
+## Axes de projection des textures de Quake 2 : normale de référence, axe
+## horizontal, axe vertical de la texture.
+const BASE_AXES: Array = [
+	[Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0)],
+	[Vector3(0, 0, -1), Vector3(1, 0, 0), Vector3(0, -1, 0)],
+	[Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, -1)],
+	[Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, -1)],
+	[Vector3(0, 1, 0), Vector3(1, 0, 0), Vector3(0, 0, -1)],
+	[Vector3(0, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, -1)],
+]
+
+## Fichier de la carte, relatif au dossier des cartes.
+@export var map_file: String = "training_a.map"
+## Échelle : unités UFO:AI par mètre (25 : une case de 32 unités fait
+## 1,28 m, un étage de 64 unités 2,56 m).
+@export var units_per_meter: float = 25.0
+## Opérateurs à placer sur les points de départ (`info_player_start`).
+@export var units_parent: NodePath
+## Ennemis créés sur les positions des aliens (`info_alien_start`).
+@export var enemy_scene: PackedScene
+@export var enemies_parent: NodePath
+## Nombre maximal d'ennemis créés (-1 : tous).
+@export var max_enemies: int = -1
+## Caméra dont les limites sont réglées sur la carte.
+@export var camera_rig: NodePath
+
+## Emprise de la carte dans le monde (mètres), une fois construite.
+var map_bounds: AABB
+## Origine de la carte (unités UFO:AI) placée à l'origine du monde.
+var _offset: Vector3 = Vector3.ZERO
+var _materials: Dictionary = {}
+
+
+func _ready() -> void:
+	var map := UfoMap.load_file(AssetPaths.maps_dir().path_join(map_file))
+	if map == null:
+		return
+	var solids := _collect_brushes(map)
+	_compute_offset(map, solids)
+	_build(solids)
+	_place_units(map)
+	_spawn_enemies(map)
+	_setup_camera()
+
+
+## Point en unités UFO:AI → point du monde (Y vers le haut, mètres).
+func to_world(point: Vector3) -> Vector3:
+	var p := point - _offset
+	return Vector3(p.x, p.z, -p.y) / units_per_meter
+
+
+## Lacet UFO:AI (degrés, depuis +X autour de Z) → rotation Y de Godot.
+static func yaw_to_world(angle_degrees: float) -> float:
+	return deg_to_rad(angle_degrees - 90.0)
+
+
+# --- Brushes ----------------------------------------------------------------
+
+## Brushes retenus, avec leurs polygones : [{brush, polygons, kind}].
+## `kind` : &"solid" (visible), &"clip" (invisible mais bloquant),
+## &"passable" (visible, sans collision).
+func _collect_brushes(map: UfoMap) -> Array[Dictionary]:
+	var solids: Array[Dictionary] = []
+	for entity in map.entities:
+		if entity.classname().begins_with("trigger_"):
+			continue
+		for brush in entity.brushes:
+			var kind := _brush_kind(brush)
+			if kind == &"":
+				continue
+			var polygons := _brush_polygons(brush)
+			if polygons.is_empty():
+				continue
+			solids.append({"brush": brush, "polygons": polygons, "kind": kind})
+	return solids
+
+
+func _brush_kind(brush: UfoMap.Brush) -> StringName:
+	var contents := brush.contents()
+	if contents & UfoMap.CONTENTS_ACTORCLIP:
+		return &"clip"
+	if brush.all_textures_start_with(TECHNICAL_PREFIX):
+		for face in brush.faces:
+			if NON_SOLID_TEXTURES.has(face.texture):
+				return &""
+		return &"clip"
+	if contents & UfoMap.CONTENTS_PASSABLE:
+		return &"passable"
+	return &"solid"
+
+
+## Polygone de chaque face (unités UFO:AI) : [{face, points}], points dans le
+## sens trigonométrique autour de la normale.
+func _brush_polygons(brush: UfoMap.Brush) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for i in brush.faces.size():
+		var plane := brush.faces[i].plane
+		var points := _base_winding(plane)
+		for j in brush.faces.size():
+			if j != i:
+				points = _clip(points, brush.faces[j].plane)
+				if points.size() < 3:
+					break
+		points = _cleanup(points)
+		if points.size() < 3:
+			continue
+		if (points[1] - points[0]).cross(points[2] - points[0]).dot(plane.normal) < 0.0:
+			points.reverse()
+		result.append({"face": brush.faces[i], "points": points})
+	return result
+
+
+## Grand carré sur le plan, réduit ensuite par les autres plans du brush.
+func _base_winding(plane: Plane) -> PackedVector3Array:
+	var normal := plane.normal
+	var up := Vector3(0, 0, 1) if absf(normal.z) < 0.9 else Vector3(1, 0, 0)
+	var right := up.cross(normal).normalized()
+	up = normal.cross(right).normalized()
+	var center := normal * plane.d
+	right *= BASE_WINDING_SIZE
+	up *= BASE_WINDING_SIZE
+	return PackedVector3Array([center - right + up, center + right + up, center + right - up, center - right - up])
+
+
+## Garde la partie du polygone derrière le plan (intérieur du brush).
+func _clip(points: PackedVector3Array, plane: Plane) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var count := points.size()
+	for i in count:
+		var a := points[i]
+		var b := points[(i + 1) % count]
+		var da := plane.distance_to(a)
+		var db := plane.distance_to(b)
+		if da <= EPSILON:
+			out.append(a)
+		if (da < -EPSILON and db > EPSILON) or (da > EPSILON and db < -EPSILON):
+			out.append(a.lerp(b, da / (da - db)))
+	return out
+
+
+## Aligne sur la grille les sommets qui en sont tout proches et supprime les
+## doublons.
+func _cleanup(points: PackedVector3Array) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	for point in points:
+		var snapped := point.snapped(Vector3.ONE * 0.125)
+		if point.distance_to(snapped) < 0.02:
+			point = snapped
+		if out.is_empty() or out[out.size() - 1].distance_to(point) > EPSILON * 10.0:
+			out.append(point)
+	while out.size() > 1 and out[0].distance_to(out[out.size() - 1]) <= EPSILON * 10.0:
+		out.remove_at(out.size() - 1)
+	return out
+
+
+# --- Placement --------------------------------------------------------------
+
+## Centre la carte horizontalement sur l'origine du monde, avec le sol des
+## points de départ à y = 0.
+func _compute_offset(map: UfoMap, solids: Array[Dictionary]) -> void:
+	var bounds := AABB()
+	var first := true
+	for solid in solids:
+		if solid["kind"] == &"clip":
+			continue
+		for polygon: Dictionary in solid["polygons"]:
+			for point: Vector3 in polygon["points"]:
+				if first:
+					bounds = AABB(point, Vector3.ZERO)
+					first = false
+				else:
+					bounds = bounds.expand(point)
+	var center := bounds.get_center()
+	var floor_z := bounds.position.z
+	var starts := map.find_entities("info_player_start")
+	if not starts.is_empty():
+		floor_z = starts[0].origin().z - FEET_BELOW_ORIGIN
+	_offset = Vector3(center.x, center.y, floor_z)
+	var low := to_world(bounds.position)
+	var high := to_world(bounds.end)
+	map_bounds = AABB(low.min(high), (high - low).abs())
+
+
+# --- Construction -----------------------------------------------------------
+
+func _build(solids: Array[Dictionary]) -> void:
+	_load_textures(solids)
+	var tools: Dictionary = {}
+	var bodies: Dictionary = {}
+	for solid in solids:
+		var kind: StringName = solid["kind"]
+		var polygons: Array = solid["polygons"]
+		if kind != &"clip":
+			_add_faces(polygons, tools)
+		if kind == &"passable":
+			continue
+		var body_name := &"Clip" if kind == &"clip" else (&"Ground" if _height(polygons) <= GROUND_MAX_HEIGHT else &"Walls")
+		_add_collision(polygons, _body(bodies, body_name))
+	var mesh := ArrayMesh.new()
+	for key: String in tools:
+		var tool: SurfaceTool = tools[key]
+		tool.generate_tangents()
+		tool.commit(mesh)
+	var geometry := MeshInstance3D.new()
+	geometry.name = "Geometry"
+	geometry.mesh = mesh
+	add_child(geometry)
+	TextureLibrary.apply_to_tree(self)
+
+
+func _load_textures(solids: Array[Dictionary]) -> void:
+	var names: Array[String] = []
+	for solid in solids:
+		for polygon: Dictionary in solid["polygons"]:
+			var face: UfoMap.Face = polygon["face"]
+			if _is_visible(face) and not names.has(face.texture):
+				names.append(face.texture)
+	var all_names: Array[String] = names.duplicate()
+	for texture_name in names:
+		if not TextureLibrary.find_file(texture_name + "_nm").is_empty():
+			all_names.append(texture_name + "_nm")
+	TextureLibrary.load_textures(all_names)
+
+
+func _is_visible(face: UfoMap.Face) -> bool:
+	return not face.texture.begins_with(TECHNICAL_PREFIX) and not (face.surface & UfoMap.SURF_NODRAW)
+
+
+func _height(polygons: Array) -> float:
+	var low := INF
+	var high := -INF
+	for polygon: Dictionary in polygons:
+		for point: Vector3 in polygon["points"]:
+			low = minf(low, point.z)
+			high = maxf(high, point.z)
+	return high - low
+
+
+func _add_faces(polygons: Array, tools: Dictionary) -> void:
+	for polygon: Dictionary in polygons:
+		var face: UfoMap.Face = polygon["face"]
+		if not _is_visible(face):
+			continue
+		var material := _material(face)
+		var key := material.resource_name
+		if not tools.has(key):
+			var new_tool := SurfaceTool.new()
+			new_tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+			new_tool.set_material(material)
+			tools[key] = new_tool
+		var tool: SurfaceTool = tools[key]
+		var points: PackedVector3Array = polygon["points"]
+		var normals := _vertex_normals(polygon, polygons)
+		var uvs := _uvs(face, points)
+		var world_points := PackedVector3Array()
+		var world_normals := PackedVector3Array()
+		for i in points.size():
+			world_points.append(to_world(points[i]))
+			var n := normals[i]
+			world_normals.append(Vector3(n.x, n.z, -n.y))
+		# Godot : faces avant dans le sens horaire vu de face.
+		for i in range(1, points.size() - 1):
+			for index in [0, i + 1, i]:
+				tool.set_normal(world_normals[index])
+				tool.set_uv(uvs[index])
+				tool.add_vertex(world_points[index])
+
+
+## Normales par sommet : celle de la face, ou la moyenne des faces voisines
+## lissées (« phong ») du même brush, pour les tonneaux et autres formes rondes.
+func _vertex_normals(polygon: Dictionary, polygons: Array) -> PackedVector3Array:
+	var face: UfoMap.Face = polygon["face"]
+	var points: PackedVector3Array = polygon["points"]
+	var normals := PackedVector3Array()
+	var smooth := face.surface & UfoMap.SURF_PHONG
+	var min_dot := cos(PHONG_MAX_ANGLE)
+	for point in points:
+		var normal := face.plane.normal
+		if smooth:
+			normal = Vector3.ZERO
+			for other: Dictionary in polygons:
+				var other_face: UfoMap.Face = other["face"]
+				if not (other_face.surface & UfoMap.SURF_PHONG):
+					continue
+				if other_face.plane.normal.dot(face.plane.normal) < min_dot:
+					continue
+				for other_point: Vector3 in other["points"]:
+					if other_point.distance_to(point) < 0.05:
+						normal += other_face.plane.normal
+						break
+			normal = normal.normalized() if normal.length_squared() > 0.0 else face.plane.normal
+		normals.append(normal)
+	return normals
+
+
+## Coordonnées de texture d'UFO:AI (Quake 2) : projection sur les axes de
+## référence, rotation, échelle (en texels par unité) et décalage en texels.
+func _uvs(face: UfoMap.Face, points: PackedVector3Array) -> PackedVector2Array:
+	var best := 0
+	var best_dot := 0.0
+	for i in BASE_AXES.size():
+		var d := face.plane.normal.dot(BASE_AXES[i][0])
+		if d > best_dot:
+			best_dot = d
+			best = i
+	var axes: Array[Vector3] = [BASE_AXES[best][1], BASE_AXES[best][2]]
+	var angle := deg_to_rad(face.rotation)
+	var sin_a := sin(angle)
+	var cos_a := cos(angle)
+	var sv := 0 if axes[0].x != 0.0 else (1 if axes[0].y != 0.0 else 2)
+	var tv := 0 if axes[1].x != 0.0 else (1 if axes[1].y != 0.0 else 2)
+	for k in 2:
+		var v := axes[k]
+		var ns := cos_a * v[sv] - sin_a * v[tv]
+		var nt := sin_a * v[sv] + cos_a * v[tv]
+		v[sv] = ns
+		v[tv] = nt
+		axes[k] = v
+	var scale_x := face.scale.x if face.scale.x != 0.0 else 1.0
+	var scale_y := face.scale.y if face.scale.y != 0.0 else 1.0
+	var texture := TextureLibrary.get_texture(face.texture)
+	var size := texture.get_size() if texture else DEFAULT_TEXTURE_SIZE
+	var uvs := PackedVector2Array()
+	for point in points:
+		var u := point.dot(axes[0]) / scale_x + face.shift.x
+		var v := point.dot(axes[1]) / scale_y + face.shift.y
+		uvs.append(Vector2(u / size.x, v / size.y))
+	return uvs
+
+
+## Matériau partagé par toutes les faces d'une même texture et d'un même rendu.
+func _material(face: UfoMap.Face) -> StandardMaterial3D:
+	var render_flags := face.surface & (UfoMap.SURF_LIGHT | UfoMap.SURF_BLEND33 | UfoMap.SURF_BLEND66 | UfoMap.SURF_ALPHATEST)
+	var key := "%s|%d" % [face.texture, render_flags]
+	if _materials.has(key):
+		return _materials[key]
+	var material := StandardMaterial3D.new()
+	material.resource_name = key
+	material.roughness = 0.9
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	material.set_meta(&"albedo_source", face.texture)
+	if not TextureLibrary.find_file(face.texture + "_nm").is_empty():
+		material.normal_enabled = true
+		material.set_meta(&"normal_source", face.texture + "_nm")
+	if render_flags & UfoMap.SURF_LIGHT:
+		material.emission_enabled = true
+		material.set_meta(&"emission_source", face.texture)
+	if render_flags & UfoMap.SURF_ALPHATEST:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	elif render_flags & (UfoMap.SURF_BLEND33 | UfoMap.SURF_BLEND66):
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.albedo_color.a = 0.33 if render_flags & UfoMap.SURF_BLEND33 else 0.66
+	_materials[key] = material
+	return material
+
+
+func _body(bodies: Dictionary, body_name: StringName) -> StaticBody3D:
+	if bodies.has(body_name):
+		return bodies[body_name]
+	var body := StaticBody3D.new()
+	body.name = body_name
+	body.collision_layer = LAYER_WALLS if body_name == &"Walls" else LAYER_GROUND
+	body.collision_mask = 0
+	add_child(body)
+	bodies[body_name] = body
+	return body
+
+
+func _add_collision(polygons: Array, body: StaticBody3D) -> void:
+	var points := PackedVector3Array()
+	for polygon: Dictionary in polygons:
+		for point: Vector3 in polygon["points"]:
+			var world := to_world(point)
+			var known := false
+			for existing in points:
+				if existing.distance_squared_to(world) < 0.000001:
+					known = true
+					break
+			if not known:
+				points.append(world)
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = points
+	var collision := CollisionShape3D.new()
+	collision.shape = shape
+	body.add_child(collision)
+
+
+# --- Unités -----------------------------------------------------------------
+
+func _place_units(map: UfoMap) -> void:
+	var parent := get_node_or_null(units_parent)
+	if parent == null:
+		return
+	var starts := map.find_entities("info_player_start")
+	var index := 0
+	for child in parent.get_children():
+		var unit := child as Node3D
+		if unit == null or index >= starts.size():
+			continue
+		unit.global_position = _feet(starts[index])
+		unit.rotation.y = yaw_to_world(starts[index].angle())
+		index += 1
+
+
+func _spawn_enemies(map: UfoMap) -> void:
+	var parent := get_node_or_null(enemies_parent) as Node3D
+	if parent == null or enemy_scene == null:
+		return
+	var count := 0
+	for start in map.find_entities("info_alien_start"):
+		if max_enemies >= 0 and count >= max_enemies:
+			break
+		var enemy := enemy_scene.instantiate() as Enemy
+		enemy.name = "Sentry%d" % (count + 1)
+		enemy.stationary = true
+		enemy.position = parent.to_local(_feet(start))
+		enemy.rotation.y = yaw_to_world(start.angle())
+		parent.add_child(enemy)
+		count += 1
+
+
+func _feet(entity: UfoMap.Entity) -> Vector3:
+	return to_world(entity.origin() - Vector3(0, 0, FEET_BELOW_ORIGIN))
+
+
+func _setup_camera() -> void:
+	var rig := get_node_or_null(camera_rig) as Node3D
+	if rig == null:
+		return
+	rig.set(&"bounds", AABB(Vector3(map_bounds.position.x, 0.0, map_bounds.position.z), Vector3(map_bounds.size.x, 0.0, map_bounds.size.z)))
+	var parent := get_node_or_null(units_parent)
+	if parent and parent.get_child_count() > 0:
+		var sum := Vector3.ZERO
+		for child in parent.get_children():
+			sum += (child as Node3D).global_position
+		var center := sum / parent.get_child_count()
+		rig.global_position = Vector3(center.x, 0.0, center.z)
