@@ -103,3 +103,46 @@ func test_operator_climbs_and_descends_narrow_stairs() -> void:
 		await frames(30)
 		assert_almost_eq(alpha._model.position.y, 0.0, 0.01, "modèle recalé sur le corps à l'arrêt")
 
+
+func test_roof_fades_when_an_operator_is_inside() -> void:
+	# Les bâtiments de training_b ont un toit qui s'efface quand un opérateur
+	# entre, et réapparaît quand il sort.
+	if not await _load("training_b.map"):
+		return
+	for enemy in node("Enemies").get_children():
+		enemy.free()
+	var roofs := level.find_children("Roof*", "Roof", true, false)
+	assert_gte(roofs.size(), 8, "toits repérés")
+	var roof: Roof = null
+	for candidate: Roof in roofs:
+		if candidate.covers(Vector3(-9.6, 0.0, -12.6)):
+			roof = candidate
+	assert_not_null(roof, "toit du bâtiment visé")
+	if roof == null:
+		return
+	assert_false(roof.is_revealed(), "toit affiché au départ")
+	assert_eq(roof.view.transparency, 0.0)
+	var alpha: Commando = node("Units/Alpha")
+	var outside := alpha.global_position
+	var inside := Vector3(-9.6, 0.05, -12.6)
+	alpha.global_position = inside
+	alpha.velocity = Vector3.ZERO
+	await frames(60)
+	assert_true(roof.is_revealed(), "toit effacé, opérateur dedans")
+	assert_almost_eq(roof.view.transparency, 1.0, 0.01)
+	assert_true(Roof.is_revealed_body(roof.body), "les clics traversent le toit effacé")
+	for other: Roof in roofs:
+		if other != roof:
+			assert_false(other.is_revealed(), "les autres toits restent affichés : %s" % other.name)
+	# Le toit effacé reste solide : on peut toujours s'y tenir.
+	var bravo: Commando = node("Units/Bravo")
+	var top := roof.areas[0].get_center()
+	bravo.global_position = Vector3(top.x, roof.ceiling + 1.5, top.y)
+	bravo.velocity = Vector3.ZERO
+	await frames(60)
+	assert_gt(bravo.global_position.y, roof.ceiling, "debout sur le toit effacé (%s)" % bravo.global_position)
+	alpha.global_position = outside
+	await frames(60)
+	assert_false(roof.is_revealed(), "toit réaffiché, opérateur sorti")
+	assert_eq(roof.view.transparency, 0.0)
+	assert_false(Roof.is_revealed_body(roof.body))

@@ -20,6 +20,13 @@ const BASE_WINDING_SIZE := 16384.0
 const DEFAULT_TEXTURE_SIZE := Vector2(256.0, 256.0)
 ## Caisse convertie en `Climbable` : cube de cette taille (unités UFO:AI),
 ## posé au sol, rien dessus.
+## Vide (m) sous un brush pour en faire un plafond : de quoi tenir debout.
+const ROOF_HEADROOM := 1.8
+## Surface minimale (en cases) d'un toit : en deçà (linteau au-dessus d'une
+## porte), il reste affiché.
+const ROOF_MIN_CELLS := 4
+## Taille des cases de la grille de recherche des brushes (unités UFO:AI).
+const GRID_SIZE := 64.0
 ## Durée maximale d'une tranche de construction avant d'afficher une image (µs).
 const SLICE_USEC := 25000
 const CRATE_SIZE := 32.0
@@ -62,6 +69,9 @@ const BASE_AXES: Array = [
 ## qu'on tire (sans monter dessus).
 @export var movable_barrels: bool = true
 @export var barrel_textures: PackedStringArray = ["tex_misc/barrel"]
+## Toits effaçables : quand un opérateur entre dans un bâtiment, son toit
+## s'efface pour qu'on voie l'intérieur (`Roof`).
+@export var reveal_roofs: bool = true
 ## Découpe le dessus des murs bas (accessibles depuis une caisse) en
 ## corniches où l'on peut se tenir.
 @export var ledges: bool = true
@@ -80,6 +90,8 @@ var map_bounds: AABB
 ## Origine de la carte (unités UFO:AI) placée à l'origine du monde.
 var _offset: Vector3 = Vector3.ZERO
 var _materials: Dictionary = {}
+## Toits repérés par `_find_roofs` : [{areas, ceiling}] (monde).
+var _roofs: Array[Dictionary] = []
 
 
 ## Émis quand le niveau est construit (géométrie, objets, unités placées).
@@ -118,6 +130,10 @@ func _build_level() -> void:
 	await get_tree().process_frame
 	_load_textures(solids)
 	var crates := _extract_crates(solids)
+	if reveal_roofs:
+		build_stage = "Repérage des toits"
+		await get_tree().process_frame
+		_find_roofs(solids)
 	build_stage = "Construction du décor"
 	await _build(solids)
 	if not is_inside_tree():
@@ -301,6 +317,8 @@ func _compute_offset(map: UfoMap, solids: Array[Dictionary]) -> void:
 func _build(solids: Array[Dictionary]) -> void:
 	var tools: Dictionary = {}
 	var bodies: Dictionary = {}
+	# Par toit : outils de maillage et corps de collision à part.
+	var roof_tools: Dictionary = {}
 	var slice := [Time.get_ticks_usec()]
 	for solid in solids:
 		await _yield_if_slice_spent(slice)
@@ -308,26 +326,58 @@ func _build(solids: Array[Dictionary]) -> void:
 			return
 		var kind: StringName = solid["kind"]
 		var polygons: Array = solid["polygons"]
+		var roof: int = solid.get("roof", -1)
 		if kind != &"clip":
-			_add_faces(polygons, tools)
+			if roof >= 0:
+				if not roof_tools.has(roof):
+					roof_tools[roof] = {}
+				_add_faces(polygons, roof_tools[roof])
+			else:
+				_add_faces(polygons, tools)
 		if kind == &"passable":
+			continue
+		if roof >= 0:
+			_add_collision(polygons, _body(bodies, StringName("RoofBody%d" % (roof + 1)), LAYER_WALLS))
 			continue
 		var body_name := &"Clip" if kind == &"clip" else (&"Ground" if _height(polygons) <= GROUND_MAX_HEIGHT else &"Walls")
 		_add_collision(polygons, _body(bodies, body_name))
+	var geometry := MeshInstance3D.new()
+	geometry.name = "Geometry"
+	geometry.mesh = await _commit(tools, slice)
+	if not is_inside_tree():
+		return
+	add_child(geometry)
+	for body_name: StringName in bodies:
+		if not String(body_name).begins_with("RoofBody"):
+			add_child(bodies[body_name])
+	for roof: int in roof_tools:
+		var node := Roof.new()
+		node.name = "Roof%d" % (roof + 1)
+		node.areas = _roofs[roof]["areas"]
+		node.ceiling = _roofs[roof]["ceiling"]
+		node.view = MeshInstance3D.new()
+		node.view.name = "View"
+		node.view.mesh = await _commit(roof_tools[roof], slice)
+		if not is_inside_tree():
+			return
+		node.add_child(node.view)
+		node.body = bodies.get(StringName("RoofBody%d" % (roof + 1)))
+		if node.body:
+			node.add_child(node.body)
+		add_child(node)
+
+
+## Maillage des surfaces de `tools` (une par matériau), par tranches.
+func _commit(tools: Dictionary, slice: Array) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	for key: String in tools:
 		await _yield_if_slice_spent(slice)
 		if not is_inside_tree():
-			return
+			return mesh
 		var tool: SurfaceTool = tools[key]
 		tool.generate_tangents()
 		tool.commit(mesh)
-	var geometry := MeshInstance3D.new()
-	geometry.name = "Geometry"
-	geometry.mesh = mesh
-	add_child(geometry)
-	for body: StaticBody3D in bodies.values():
-		add_child(body)
+	return mesh
 
 
 func _load_textures(solids: Array[Dictionary]) -> void:
@@ -478,7 +528,7 @@ func _material(face: UfoMap.Face) -> StandardMaterial3D:
 	return material
 
 
-func _body(bodies: Dictionary, body_name: StringName) -> StaticBody3D:
+func _body(bodies: Dictionary, body_name: StringName, layer: int = -1) -> StaticBody3D:
 	if bodies.has(body_name):
 		return bodies[body_name]
 	# Ajouté à la scène par l'appelant une fois rempli : ajouter des milliers
@@ -486,7 +536,9 @@ func _body(bodies: Dictionary, body_name: StringName) -> StaticBody3D:
 	# à chaque fois.
 	var body := StaticBody3D.new()
 	body.name = body_name
-	body.collision_layer = LAYER_WALLS if body_name == &"Walls" else LAYER_GROUND
+	if layer < 0:
+		layer = LAYER_WALLS if body_name == &"Walls" else LAYER_GROUND
+	body.collision_layer = layer
 	body.collision_mask = 0
 	bodies[body_name] = body
 	return body
@@ -706,6 +758,136 @@ func _build_crates(crates: Array[Dictionary]) -> void:
 		collision.position = Vector3(0.0, size.y * 0.5, 0.0)
 		crate.position = base
 		add_child(crate)
+
+
+# --- Toits ------------------------------------------------------------------
+
+## Repère les toits : un brush visible est un plafond si, en un point au moins
+## de son emprise, il y a de quoi tenir debout (`ROOF_HEADROOM`) entre le sol
+## le plus haut en dessous et son dessous. Les plafonds qui se touchent
+## forment un toit, avec ce qui repose dessus (parapets, bordures). Les toits
+## trop petits (linteaux) restent dans le décor. Marque `solid["roof"]`.
+func _find_roofs(solids: Array[Dictionary]) -> void:
+	_roofs.clear()
+	var bounds: Array[AABB] = []
+	for solid in solids:
+		bounds.append(_bounds(solid["polygons"]))
+	var grid := _grid(bounds)
+	var headroom := ROOF_HEADROOM * units_per_meter
+	var overhead: Array[int] = []
+	for i in solids.size():
+		if solids[i]["kind"] == &"solid" and _has_room_below(i, solids, bounds, grid, headroom):
+			overhead.append(i)
+	# Plafonds qui se touchent : même toit (union-find).
+	var parent := {}
+	for i in overhead:
+		parent[i] = i
+	for i in overhead:
+		for j in _neighbours(bounds[i].grow(1.0), grid):
+			if j != i and parent.has(j) and bounds[i].grow(1.0).intersects(bounds[j]):
+				parent[_find(parent, i)] = _find(parent, j)
+	var groups := {}
+	for i in overhead:
+		var root: int = _find(parent, i)
+		if not groups.has(root):
+			groups[root] = []
+		groups[root].append(i)
+	for members: Array in groups.values():
+		var area := 0.0
+		var ceiling := INF
+		for i: int in members:
+			area += bounds[i].size.x * bounds[i].size.y
+			ceiling = minf(ceiling, bounds[i].position.z)
+		if area < ROOF_MIN_CELLS * CRATE_SIZE * CRATE_SIZE:
+			continue
+		var roof := _roofs.size()
+		var areas: Array[Rect2] = []
+		for i: int in members:
+			solids[i]["roof"] = roof
+			var low := to_world(bounds[i].position)
+			var high := to_world(bounds[i].end)
+			areas.append(Rect2(minf(low.x, high.x), minf(low.z, high.z), absf(high.x - low.x), absf(high.z - low.z)))
+		# Ce qui repose sur le toit (parapets) : posé au-dessus du plafond,
+		# touchant un de ses brushes.
+		for i: int in members:
+			for j in _neighbours(bounds[i].grow(1.0), grid):
+				if solids[j].has("roof") or solids[j]["kind"] == &"clip" or bounds[j].position.z < ceiling - CRATE_TOLERANCE:
+					continue
+				if bounds[i].grow(1.0).intersects(bounds[j]):
+					solids[j]["roof"] = roof
+		_roofs.append({"areas": areas, "ceiling": to_world(Vector3(0, 0, ceiling)).y})
+
+
+## Vrai si le brush `index` est au moins à `headroom` au-dessus du sol
+## principal et si, en un point de son emprise (une case sur deux), le sol le
+## plus haut en dessous laisse au moins `headroom` de vide.
+func _has_room_below(index: int, solids: Array[Dictionary], bounds: Array[AABB], grid: Dictionary, headroom: float) -> bool:
+	var box := bounds[index]
+	var bottom := box.position.z
+	# Sous le sol principal, le vide entre les dalles et le fond de la carte
+	# est caché, pas un intérieur : un plafond est au-dessus de ce sol.
+	if bottom - _offset.z < headroom - CRATE_TOLERANCE:
+		return false
+	var step := CRATE_SIZE
+	var x := box.position.x + minf(step * 0.5, box.size.x * 0.5)
+	while x < box.end.x:
+		var y := box.position.y + minf(step * 0.5, box.size.y * 0.5)
+		while y < box.end.y:
+			if bottom - _floor_below(Vector2(x, y), bottom, index, solids, bounds, grid) >= headroom:
+				return true
+			y += step
+		x += step
+	return false
+
+
+## Dessus le plus haut (unités) d'un brush plein sous le point `at`, sans
+## dépasser `below` ; INF s'il n'y a rien (le vide sous la carte ne compte
+## pas comme de la place pour tenir debout).
+func _floor_below(at: Vector2, below: float, skip: int, solids: Array[Dictionary], bounds: Array[AABB], grid: Dictionary) -> float:
+	var best := -INF
+	var key := Vector2i(floori(at.x / GRID_SIZE), floori(at.y / GRID_SIZE))
+	for j: int in grid.get(key, []):
+		if j == skip or solids[j]["kind"] == &"passable":
+			continue
+		var box := bounds[j]
+		if at.x < box.position.x or at.x > box.end.x or at.y < box.position.y or at.y > box.end.y:
+			continue
+		if box.end.z <= below + CRATE_TOLERANCE:
+			best = maxf(best, box.end.z)
+	return best if best > -INF else INF
+
+
+## Grille des brushes par case de `GRID_SIZE` (emprise au sol).
+static func _grid(bounds: Array[AABB]) -> Dictionary:
+	var grid := {}
+	for i in bounds.size():
+		var box := bounds[i]
+		for gx in range(floori(box.position.x / GRID_SIZE), floori(box.end.x / GRID_SIZE) + 1):
+			for gy in range(floori(box.position.y / GRID_SIZE), floori(box.end.y / GRID_SIZE) + 1):
+				var key := Vector2i(gx, gy)
+				if not grid.has(key):
+					grid[key] = []
+				grid[key].append(i)
+	return grid
+
+
+## Brushes de la grille dont la case touche l'emprise de `box`.
+static func _neighbours(box: AABB, grid: Dictionary) -> Array[int]:
+	var found := {}
+	for gx in range(floori(box.position.x / GRID_SIZE), floori(box.end.x / GRID_SIZE) + 1):
+		for gy in range(floori(box.position.y / GRID_SIZE), floori(box.end.y / GRID_SIZE) + 1):
+			for j: int in grid.get(Vector2i(gx, gy), []):
+				found[j] = true
+	var result: Array[int] = []
+	result.assign(found.keys())
+	return result
+
+
+static func _find(parent: Dictionary, i: int) -> int:
+	while parent[i] != i:
+		parent[i] = parent[parent[i]]
+		i = parent[i]
+	return i
 
 
 # --- Corniches --------------------------------------------------------------

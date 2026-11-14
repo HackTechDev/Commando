@@ -233,7 +233,14 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	var from := camera.project_ray_origin(screen_position)
 	var to := from + camera.project_ray_normal(screen_position) * RAY_LENGTH
 	var query := PhysicsRayQueryParameters3D.create(from, to, mask)
-	return camera.get_world_3d().direct_space_state.intersect_ray(query)
+	var space := camera.get_world_3d().direct_space_state
+	var hit := space.intersect_ray(query)
+	# Un toit effacé (opérateur à l'intérieur) laisse passer les clics vers
+	# l'intérieur du bâtiment.
+	while not hit.is_empty() and Roof.is_revealed_body(hit["collider"]):
+		query.exclude += [hit["rid"]]
+		hit = space.intersect_ray(query)
+	return hit
 
 
 ## Anneau éphémère indiquant la destination, et bip d'ordre reçu.
