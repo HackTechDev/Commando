@@ -208,3 +208,9 @@
 - Opérateurs placés sur les points de départ de la carte, sentinelles fixes sur les positions des aliens, limites de la caméra réglées sur la carte.
 - Premier niveau converti : `scenes/levels/training_a/training_a.tscn` (carte d'entraînement de 41 × 41 m, 8 sentinelles).
 - Navigation plus fine sur ce niveau (cellules de 10 cm) pour passer dans les couloirs d'une case.
+
+## Menu de démarrage
+
+- Le jeu s'ouvre sur un menu qui propose les cartes (terrain d'essai, Entraînement A) avec leur description ; une carte dont le fichier UFO:AI est introuvable est grisée, avec la raison.
+- Chargement du niveau en arrière-plan, avec sa progression.
+- Bouton « Menu » dans le HUD pour abandonner la partie et revenir au choix de la carte.

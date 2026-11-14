@@ -6,12 +6,13 @@ Voir `CAHIER_DES_CHARGES.md` pour la vision, l'architecture et les jalons.
 ## Lancement
 
 ```sh
-godot --path .            # lance le niveau sandbox
-godot --path . scenes/levels/training_a/training_a.tscn   # carte UFO:AI « training_a »
+godot --path .            # menu de démarrage : choix de la carte
+godot --path . scenes/levels/sandbox/sandbox.tscn          # lance directement le terrain d'essai
+godot --path . scenes/levels/training_a/training_a.tscn   # lance directement la carte UFO:AI « training_a »
 godot --headless --path . --quit-after 60   # vérification sans affichage
 ```
 
-(`godot` = exécutable Godot 4.7.x.)
+(`godot` = exécutable Godot 4.7.x.) Dans l'éditeur, F5 ouvre le menu ; F6 lance directement la scène ouverte. Le bouton « Menu » du HUD ramène au choix de la carte. Pour proposer un nouveau niveau dans le menu, l'ajouter à `LevelCatalog.LEVELS` (`scripts/levels/level_catalog.gd`).
 
 Les textures et les cartes ne sont pas dans le dépôt : elles sont lues au chargement de chaque niveau dans `../CommandoAsset/textures` et `../CommandoAsset/maps` (réglages de projet `commando/assets/texture_dir` et `commando/assets/map_dir`, ou variables d'environnement `COMMANDO_TEXTURES` et `COMMANDO_MAPS`). Voir `assets/TEXTURES.md`.
 

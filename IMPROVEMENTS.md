@@ -4,7 +4,7 @@ Pistes classées par priorité. Les renvois « § » et « M » pointent vers `C
 
 ## 1. À faire en premier (fondations)
 
-- **Installer un framework de tests** (GUT ou gdUnit4, M0). Aucun test unitaire n'existe : toutes les vérifications passent par une quinzaine de scripts jetables (escalade, fusillade, transitions, bretelle, coups, prises par derrière, lutte, parade, lancer). Les transformer en tests permanents. Premières cibles : `VisionComponent.zone_for`, `HealthComponent`, munitions et rechargement, `SoldierModel.sample_keys`, `Climbable.get_access_points`, `Enemy.is_behind` / `resists`.
+- **Installer un framework de tests** (GUT ou gdUnit4, M0). Aucun test unitaire n'existe : toutes les vérifications passaient par une quinzaine de scripts jetables, rangés dans un dossier temporaire et perdus au redémarrage de la session (escalade, fusillade, transitions, bretelle, coups, prises par derrière, lutte, parade, lancer). Les transformer en tests permanents. Premières cibles : `VisionComponent.zone_for`, `HealthComponent`, munitions et rechargement, `SoldierModel.sample_keys`, `Climbable.get_access_points`, `Enemy.is_behind` / `resists`.
 - **Rendre le hasard injectable** : parade, esquive, précision des tirs et du lancer utilisent `randf()` directement ; un générateur par unité (ou global, avec graine) rendrait les tests déterministes et les parties rejouables.
 - **Restructurer l'IA ennemie en vraie machine à états** (§5.3). `enemy.gd` mélange détection, patrouille, poursuite, tir, corps à corps (coup, poussée, déséquilibre), saisie et perte de connaissance avec un `enum` et des minuteurs ; il deviendra ingérable avec les états `Investigate`, `Search`, `Return`.
 - **Restructurer les actions de `Commando`** : déplacement, attaque, escalade, corps à corps, prise, lancer, recul, défense sont autant de variables et de branches dans `_physics_process`, avec des remises à zéro dispersées (`stop`, `_on_died`, chaque ordre). Une petite file d'actions (une action courante, interruptible ou non) simplifierait l'ajout de nouveaux gestes.
@@ -70,6 +70,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 ## 4. Interface
 
 - **Portraits avec image** : rendre le modèle 3D dans un `SubViewport` pour chaque opérateur.
+- **Menu, suite** : confirmation avant d'abandonner une partie, menu pause sur Échap, aperçu de chaque carte, mémoriser la dernière carte jouée, proposer automatiquement les autres cartes UFO:AI du dossier.
 - **Écran de fin et redémarrage** : après « ÉCHEC — opérateur tué », la partie continue ; proposer de recommencer.
 - **Journal d'objectifs, minimap, menus principal et pause, options** (§6).
 - **Traduction** : passer tous les textes par `tr()` (français et anglais, M10).

@@ -15,6 +15,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _sling: Button = %Sling
 @onready var _reload: Button = %Reload
 @onready var _stop: Button = %Stop
+@onready var _menu: Button = %Menu
 @onready var _quit: Button = %Quit
 @onready var _controller: PlayerController = $PlayerController
 
@@ -42,6 +43,7 @@ func _ready() -> void:
 	_sling.pressed.connect(SelectionManager.toggle_sling)
 	_reload.pressed.connect(SelectionManager.reload)
 	_stop.pressed.connect(SelectionManager.stop)
+	_menu.pressed.connect(func() -> void: get_tree().change_scene_to_file(LevelCatalog.MENU_SCENE))
 	_quit.pressed.connect(func() -> void: get_tree().quit())
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	_refresh_actions()

@@ -56,6 +56,13 @@ text = "CALME"
 horizontal_alignment = 1
 script = ExtResource("3")
 
+[node name="Menu" type="Button" parent="PlayerController/TopRight"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Abandonner la partie et revenir au choix de la carte."
+text = "Menu"
+
 [node name="Quit" type="Button" parent="PlayerController/TopRight"]
 unique_name_in_owner = true
 layout_mode = 2
