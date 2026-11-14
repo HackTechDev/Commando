@@ -28,6 +28,9 @@ func load_level(path: String = SANDBOX) -> Node:
 	level = load(path).instantiate()
 	get_tree().root.add_child(level)
 	get_tree().current_scene = level
+	# Navigation générée en arrière-plan derrière l'écran de chargement.
+	if level is LevelRoot and not level.is_level_ready:
+		await wait_for_signal(level.level_ready, 30.0)
 	await wait_physics_frames(20)
 	return level
 

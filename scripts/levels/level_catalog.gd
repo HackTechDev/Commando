@@ -35,6 +35,15 @@ const LEVELS: Array[Dictionary] = [
 ]
 
 
+## Titre du niveau dont la scène est `scene_path`, ou vide s'il n'est pas au
+## catalogue.
+static func title_of(scene_path: String) -> String:
+	for level in LEVELS:
+		if level["scene"] == scene_path:
+			return level["title"]
+	return ""
+
+
 ## Raison pour laquelle le niveau ne peut pas être lancé, ou vide s'il le peut.
 static func unavailable_reason(level: Dictionary) -> String:
 	if not ResourceLoader.exists(level["scene"]):

@@ -35,6 +35,8 @@ func _wait_scene(scene_name: String) -> bool:
 		await get_tree().process_frame
 		var scene := get_tree().current_scene
 		if scene and scene.name == scene_name:
+			if scene is LevelRoot and not scene.is_level_ready:
+				await wait_for_signal(scene.level_ready, 30.0)
 			await wait_physics_frames(10)
 			return true
 	return false

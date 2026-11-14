@@ -20,6 +20,8 @@ const BASE_WINDING_SIZE := 16384.0
 const DEFAULT_TEXTURE_SIZE := Vector2(256.0, 256.0)
 ## Caisse convertie en `Climbable` : cube de cette taille (unités UFO:AI),
 ## posé au sol, rien dessus.
+## Durée maximale d'une tranche de construction avant d'afficher une image (µs).
+const SLICE_USEC := 25000
 const CRATE_SIZE := 32.0
 const CRATE_TOLERANCE := 0.5
 const CRATE_SCENE: PackedScene = preload("res://scenes/props/crate.tscn")
@@ -80,22 +82,80 @@ var _offset: Vector3 = Vector3.ZERO
 var _materials: Dictionary = {}
 
 
+## Émis quand le niveau est construit (géométrie, objets, unités placées).
+signal built
+
+## Vrai une fois le niveau construit.
+var is_built: bool = false
+## Étape en cours, pour l'écran de chargement.
+var build_stage: String = ""
+
+
 func _ready() -> void:
-	var map := UfoMap.load_file(AssetPaths.maps_dir().path_join(map_file))
-	if map == null:
+	_build_level()
+
+
+## Construction répartie sur plusieurs images (l'écran de chargement reste
+## animé) : lecture et découpe des brushes sur un fil de travail, puis
+## maillages et collisions par tranches de `SLICE_USEC`.
+func _build_level() -> void:
+	build_stage = "Lecture de la carte"
+	var path := AssetPaths.maps_dir().path_join(map_file)
+	var loaded: Dictionary = await _run_in_thread(func() -> Dictionary:
+		var parsed := UfoMap.load_file(path)
+		if parsed == null:
+			return {}
+		return {"map": parsed, "solids": _collect_brushes(parsed)})
+	if not is_inside_tree():
 		return
-	var solids := _collect_brushes(map)
+	if loaded.is_empty():
+		_finish_build()
+		return
+	var map: UfoMap = loaded["map"]
+	var solids: Array[Dictionary] = loaded["solids"]
 	_compute_offset(map, solids)
+	build_stage = "Chargement des textures"
+	await get_tree().process_frame
 	_load_textures(solids)
 	var crates := _extract_crates(solids)
-	_build(solids)
+	build_stage = "Construction du décor"
+	await _build(solids)
+	if not is_inside_tree():
+		return
 	_build_crates(crates)
 	if ledges:
 		_build_ledges(solids)
+	await get_tree().process_frame
 	TextureLibrary.apply_to_tree(self)
 	_place_units(map)
 	_spawn_enemies(map)
 	_setup_camera()
+	_finish_build()
+
+
+func _finish_build() -> void:
+	build_stage = ""
+	is_built = true
+	built.emit()
+
+
+## Exécute `task` sur un fil de travail et rend son résultat, sans bloquer
+## l'affichage.
+func _run_in_thread(task: Callable) -> Variant:
+	var result := []
+	var id := WorkerThreadPool.add_task(func() -> void: result.append(task.call()), true)
+	while not WorkerThreadPool.is_task_completed(id):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(id)
+	return result[0]
+
+
+## Rend la main pour une image si la tranche de calcul en cours a dépassé
+## `SLICE_USEC`. `slice` : [début de la tranche, en µs].
+func _yield_if_slice_spent(slice: Array) -> void:
+	if Time.get_ticks_usec() - slice[0] > SLICE_USEC:
+		await get_tree().process_frame
+		slice[0] = Time.get_ticks_usec()
 
 
 ## Point en unités UFO:AI → point du monde (Y vers le haut, mètres).
@@ -241,7 +301,11 @@ func _compute_offset(map: UfoMap, solids: Array[Dictionary]) -> void:
 func _build(solids: Array[Dictionary]) -> void:
 	var tools: Dictionary = {}
 	var bodies: Dictionary = {}
+	var slice := [Time.get_ticks_usec()]
 	for solid in solids:
+		await _yield_if_slice_spent(slice)
+		if not is_inside_tree():
+			return
 		var kind: StringName = solid["kind"]
 		var polygons: Array = solid["polygons"]
 		if kind != &"clip":
@@ -252,6 +316,9 @@ func _build(solids: Array[Dictionary]) -> void:
 		_add_collision(polygons, _body(bodies, body_name))
 	var mesh := ArrayMesh.new()
 	for key: String in tools:
+		await _yield_if_slice_spent(slice)
+		if not is_inside_tree():
+			return
 		var tool: SurfaceTool = tools[key]
 		tool.generate_tangents()
 		tool.commit(mesh)
@@ -259,6 +326,8 @@ func _build(solids: Array[Dictionary]) -> void:
 	geometry.name = "Geometry"
 	geometry.mesh = mesh
 	add_child(geometry)
+	for body: StaticBody3D in bodies.values():
+		add_child(body)
 
 
 func _load_textures(solids: Array[Dictionary]) -> void:
@@ -412,11 +481,13 @@ func _material(face: UfoMap.Face) -> StandardMaterial3D:
 func _body(bodies: Dictionary, body_name: StringName) -> StaticBody3D:
 	if bodies.has(body_name):
 		return bodies[body_name]
+	# Ajouté à la scène par l'appelant une fois rempli : ajouter des milliers
+	# de formes à un corps déjà dans la scène coûte une mise à jour physique
+	# à chaque fois.
 	var body := StaticBody3D.new()
 	body.name = body_name
 	body.collision_layer = LAYER_WALLS if body_name == &"Walls" else LAYER_GROUND
 	body.collision_mask = 0
-	add_child(body)
 	bodies[body_name] = body
 	return body
 

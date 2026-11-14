@@ -252,3 +252,8 @@
 - **Gare du désert** (`fighter_crash`) : 56 × 58 m, hameau en ruine, voie ferrée et wagons sur un relief en terrasses. L'épave du vaisseau, faite de modèles 3D absents, n'apparaît pas.
 - Douze sentinelles sur chacune, réparties sur toute la carte (au lieu des douze premières positions du fichier, toutes du même côté).
 - Déplacements plus sûrs sur terrain inégal (opérateurs et ennemis) : une marche basse (jusqu'à 35 cm) est franchie d'elle-même, et un point de chemin bloqué (coéquipier immobile dessus, décalage en hauteur sur une pente) est sauté au lieu de faire tourner l'unité en rond.
+
+## Écran de chargement
+
+- Les niveaux se préparent derrière un écran de chargement (nom du niveau, étape en cours, points animés) au lieu de figer l'affichage : la carte UFO:AI est lue sur un fil de travail, le décor construit par tranches entre deux images, et la navigation générée en arrière-plan. Le jeu reste en pause jusqu'à la fin ; un ordre donné entre-temps s'exécute ensuite.
+- Correction : quitter un niveau pendant sa préparation ne laisse pas le jeu en pause.
