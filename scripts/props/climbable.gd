@@ -1,11 +1,16 @@
 class_name Climbable
 extends StaticBody3D
-## Obstacle bas sur lequel un opérateur peut grimper (caisse…).
+## Obstacle sur lequel un opérateur peut se tenir : caisse, ou case du dessus
+## d'un mur (corniche, accessible seulement depuis un obstacle voisin).
 ## Une seule unité à la fois peut s'y tenir.
 
 ## Écart et dénivelé maximaux pour passer directement d'un objet à son voisin.
 const MAX_GAP := 0.35
 const MAX_STEP_HEIGHT := 0.3
+## Dénivelé maximal pour grimper (ou redescendre) d'un objet à son voisin.
+const MAX_CLIMB_HEIGHT := 1.3
+## Écart de hauteur toléré pour reconnaître le dessus d'un objet visé.
+const TOP_TOLERANCE := 0.15
 ## Ce qui arrête une caisse qu'on déplace : murs et autres caisses,
 ## opérateurs, ennemis debout ou assommés (pas le sol).
 const MASK_BLOCKERS := 0b11110
@@ -20,6 +25,11 @@ const SIDES: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vec
 ## Texture remplaçant celle de la scène (variante de caisse), en chemin
 ## relatif au dossier de textures externe (`TextureLibrary`), ou vide.
 @export var skin: String = ""
+## Faux pour un objet fixe (corniche) : ni poussé ni tiré.
+@export var movable: bool = true
+## Faux si l'on ne peut y monter que depuis un objet voisin (trop haut pour
+## grimper depuis le sol). On peut toujours en sauter, faute d'autre chemin.
+@export var climbable_from_ground: bool = true
 
 ## Unité actuellement dessus (ou en train d'y monter).
 var occupant: Commando
@@ -59,6 +69,37 @@ func is_adjacent_to(other: Climbable) -> bool:
 		return false
 	var distance := Vector2(top.x - other_top.x, top.z - other_top.z).length()
 	return distance <= half_extent + other.half_extent + MAX_GAP
+
+
+## Vrai si l'on peut passer de cet objet à `other` sans toucher le sol : à
+## pied s'ils sont voisins (`is_adjacent_to`), sinon en grimpant ou en
+## redescendant, s'ils se touchent par un côté et que le dénivelé le permet.
+func can_reach(other: Climbable) -> bool:
+	if other == null or other == self:
+		return false
+	var top := get_top_position()
+	var other_top := other.get_top_position()
+	if absf(top.y - other_top.y) > MAX_CLIMB_HEIGHT:
+		return false
+	var distance := Vector2(top.x - other_top.x, top.z - other_top.z).length()
+	return distance <= half_extent + other.half_extent + MAX_GAP
+
+
+## Vrai si `point` (dans le monde) est sur le dessus de l'objet.
+func has_top_point(point: Vector3) -> bool:
+	if absf(point.y - get_top_position().y) > TOP_TOLERANCE:
+		return false
+	var local := global_transform.affine_inverse() * point
+	return absf(local.x) <= half_extent and absf(local.z) <= half_extent
+
+
+## Objet du groupe `climbables` dont le dessus contient `point`, ou null.
+static func find_at(tree: SceneTree, point: Vector3) -> Climbable:
+	for node in tree.get_nodes_in_group(&"climbables"):
+		var climbable := node as Climbable
+		if climbable and climbable.has_top_point(point):
+			return climbable
+	return null
 
 
 ## Points au sol, un par côté, d'où l'on peut grimper ou redescendre.

@@ -79,6 +79,8 @@ var _attack_target: Enemy
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
 var _climb_target: Climbable
+## Suite à donner une fois monté sur `_climb_target`.
+var _climb_then: Callable
 var _melee_target: Enemy
 var _melee_kind: MeleeKind = MeleeKind.KNIFE
 ## Caisse à saisir (approche), côté choisi (direction du centre vers
@@ -292,7 +294,9 @@ func attack(enemy: Enemy, run: bool) -> void:
 
 
 ## Ordonne de grimper sur `target`. Renvoie faux si c'est impossible
-## (déjà occupé, inaccessible, unité morte).
+## (déjà occupé, inaccessible, unité morte). Une corniche, trop haute depuis
+## le sol, se gagne par un objet voisin (caisse) : l'unité monte d'abord
+## dessus, puis grimpe jusqu'à la corniche.
 func climb(target: Climbable, run: bool) -> bool:
 	if is_dead or _hopping or target == null:
 		return false
@@ -311,6 +315,13 @@ func climb(target: Climbable, run: bool) -> bool:
 		if not _descend(target.global_position, climb.bind(target, run)):
 			return false
 		return true
+	var then := Callable()
+	if not target.climbable_from_ground:
+		var entry := _nearest_entry(target)
+		if entry == null:
+			return false
+		then = _continue_across.bind(target)
+		target = entry
 	var access := target.get_nearest_access(global_position)
 	if not access["found"]:
 		return false
@@ -320,6 +331,7 @@ func climb(target: Climbable, run: bool) -> bool:
 	_throw_target = null
 	_running = run
 	_climb_target = target
+	_climb_then = then
 	_climb_point = access["point"]
 	_agent.target_position = _climb_point
 	return true
@@ -415,7 +427,7 @@ func stop() -> void:
 ## Ensuite, un ordre de déplacement fait glisser la caisse dans l'axe de ce
 ## côté. Renvoie faux si c'est impossible (caisse occupée, aucun côté libre).
 func handle_crate(crate: Climbable, near: Vector3) -> bool:
-	if is_dead or _hopping or crate == null or crate.occupant != null:
+	if is_dead or _hopping or crate == null or not crate.movable or crate.occupant != null:
 		return false
 	if crate.handler != null and crate.handler != self:
 		return false
@@ -581,7 +593,12 @@ func _approach_climb() -> Vector3:
 		var target := _climb_target
 		_climb_target = null
 		target.occupant = self
-		_hop(target.get_top_position(), func() -> void: perched_on = target)
+		var then := _climb_then
+		_climb_then = Callable()
+		_hop(target.get_top_position(), func() -> void:
+			perched_on = target
+			if then.is_valid():
+				then.call())
 		return Vector3.ZERO
 	if arrived:
 		_climb_target = null
@@ -594,8 +611,15 @@ func _approach_climb() -> Vector3:
 
 
 ## Redescend de l'obstacle du côté le plus proche de `toward`, puis appelle
-## `then`. Renvoie faux s'il n'y a aucun côté praticable.
+## `then`. Renvoie faux s'il n'y a aucun côté praticable. D'une corniche, on
+## repasse par un objet accessible depuis le sol s'il y en a un ; sinon, on
+## saute.
 func _descend(toward: Vector3, then: Callable) -> bool:
+	if not perched_on.climbable_from_ground:
+		var route := _route_to_ground(toward)
+		if not route.is_empty():
+			_walk_across(route, _descend.bind(toward, then))
+			return true
 	var access := perched_on.get_nearest_access(toward)
 	if not access["found"]:
 		return false
@@ -607,48 +631,124 @@ func _descend(toward: Vector3, then: Callable) -> bool:
 	return true
 
 
-## Suite d'obstacles voisins et libres menant de `from` à `to` sans toucher
-## le sol (`from` exclu, `to` inclus) ; vide s'il n'y en a pas.
-func _route_across(from: Climbable, to: Climbable) -> Array[Climbable]:
+## Obstacles qu'on peut atteindre depuis `from` sans toucher le sol, en
+## passant par des obstacles libres : {obstacle: obstacle précédent}.
+func _perch_graph(from: Climbable) -> Dictionary:
 	var previous: Dictionary = {from: null}
 	var queue: Array[Climbable] = [from]
+	var all := get_tree().get_nodes_in_group(&"climbables")
 	while not queue.is_empty():
 		var current: Climbable = queue.pop_front()
-		if current == to:
-			var route: Array[Climbable] = []
-			while current != from:
-				route.push_front(current)
-				current = previous[current]
-			return route
-		for node in get_tree().get_nodes_in_group(&"climbables"):
+		for node in all:
 			var next := node as Climbable
-			if next == null or previous.has(next) or not current.is_adjacent_to(next):
+			if next == null or previous.has(next) or not current.can_reach(next):
 				continue
-			if next.occupant != null and next.occupant != self:
+			if (next.occupant != null and next.occupant != self) or next.handler != null:
 				continue
 			previous[next] = current
 			queue.append(next)
-	return []
+	return previous
 
 
-## Passe à pied de l'obstacle occupé aux obstacles voisins de `route`, l'un
-## après l'autre, sans redescendre.
-func _walk_across(route: Array[Climbable]) -> void:
+## Chemin de `from` (exclu) à `to` (inclus) dans un graphe de `_perch_graph`.
+static func _path_in(previous: Dictionary, from: Climbable, to: Climbable) -> Array[Climbable]:
+	var route: Array[Climbable] = []
+	var current := to
+	while current != from:
+		route.push_front(current)
+		current = previous[current]
+	return route
+
+
+## Suite d'obstacles libres menant de `from` à `to` sans toucher le sol
+## (`from` exclu, `to` inclus) ; vide s'il n'y en a pas.
+func _route_across(from: Climbable, to: Climbable) -> Array[Climbable]:
+	var previous := _perch_graph(from)
+	if not previous.has(to) or to == from:
+		return []
+	return _path_in(previous, from, to)
+
+
+## Depuis l'obstacle occupé, chemin vers l'obstacle accessible depuis le sol
+## dont la descente est la plus proche de `toward` ; vide s'il n'y en a pas.
+func _route_to_ground(toward: Vector3) -> Array[Climbable]:
+	var previous := _perch_graph(perched_on)
+	var best: Climbable = null
+	var best_distance := INF
+	for node: Climbable in previous:
+		if node == perched_on or not node.climbable_from_ground:
+			continue
+		var access := node.get_nearest_access(toward)
+		if not access["found"]:
+			continue
+		var distance := (access["point"] as Vector3).distance_squared_to(toward)
+		if distance < best_distance:
+			best_distance = distance
+			best = node
+	return [] as Array[Climbable] if best == null else _path_in(previous, perched_on, best)
+
+
+## Obstacle accessible depuis le sol, le plus proche de l'unité, d'où l'on
+## peut rejoindre `target` sans toucher le sol ; null s'il n'y en a pas.
+func _nearest_entry(target: Climbable) -> Climbable:
+	var best: Climbable = null
+	var best_distance := INF
+	for node: Climbable in _perch_graph(target):
+		if node == target or not node.climbable_from_ground or node.occupant != null or node.handler != null:
+			continue
+		var access := node.get_nearest_access(global_position)
+		if not access["found"]:
+			continue
+		var distance := (access["point"] as Vector3).distance_squared_to(global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = node
+	return best
+
+
+## Suite d'une escalade en deux temps : de l'obstacle atteint jusqu'à `target`.
+func _continue_across(target: Climbable) -> void:
+	if perched_on == null or is_dead:
+		return
+	var route := _route_across(perched_on, target)
+	if not route.is_empty():
+		_walk_across(route)
+
+
+## Passe de l'obstacle occupé aux obstacles de `route`, l'un après l'autre,
+## sans toucher le sol : à pied entre voisins de même hauteur, en grimpant ou
+## en redescendant sinon. Appelle `then` au bout du chemin.
+func _walk_across(route: Array[Climbable], then: Callable = Callable()) -> void:
 	var target: Climbable = route[0]
-	_hopping = true
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
-	velocity = Vector3.ZERO
 	var origin := perched_on
+	perched_on = null
+	target.occupant = self
+	var arrived := func() -> void:
+		origin.occupant = null
+		if is_dead:
+			return
+		perched_on = target
+		# Étape suivante, si elle est toujours libre.
+		var rest := route.slice(1)
+		if rest.is_empty():
+			if then.is_valid():
+				then.call()
+		elif rest[0].occupant == null or rest[0].occupant == self:
+			_walk_across(rest, then)
+	if not origin.is_adjacent_to(target):
+		_hop(target.get_top_position(), arrived)
+		return
+	_hopping = true
+	velocity = Vector3.ZERO
 	var from := global_position
 	var to := target.get_top_position()
 	var flat := to - from
 	flat.y = 0.0
 	if flat.length_squared() > 0.0001:
 		rotation.y = atan2(-flat.x, -flat.z)
-	perched_on = null
-	target.occupant = self
 	_running = false
 	# Pas prudents sur les caisses : plus lent qu'au sol, à cadence de marche.
 	var speed := _current_speed() * CRATE_WALK_RATIO
@@ -661,14 +761,7 @@ func _walk_across(route: Array[Climbable]) -> void:
 	tween.tween_callback(func() -> void:
 		_hopping = false
 		_model.move_ratio = 0.0
-		origin.occupant = null
-		if is_dead:
-			return
-		perched_on = target
-		# Étape suivante, si elle est toujours libre.
-		var rest := route.slice(1)
-		if not rest.is_empty() and (rest[0].occupant == null or rest[0].occupant == self):
-			_walk_across(rest))
+		arrived.call())
 
 
 ## Escalade scriptée (montée ou descente) : pendant sa durée, l'unité ne

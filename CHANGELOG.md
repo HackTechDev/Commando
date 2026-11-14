@@ -226,3 +226,8 @@
 - Les caisses en bois des cartes UFO:AI (cubes d'une case posés au sol, rien dessus) deviennent de vraies caisses du jeu : on peut y grimper, passer de l'une à sa voisine, les pousser et les tirer. Elles gardent leurs textures d'origine. Neuf caisses sur `training_a`.
 - Échelle des cartes ramenée à 32 unités = 1,2 m (au lieu de 1,28 m) pour que ces caisses aient la hauteur prévue par les animations d'escalade ; `training_a` mesure désormais 38,4 m de côté.
 - Les murs invisibles qui doublaient ces caisses disparaissent avec elles.
+
+## Escalade des murs depuis une caisse
+
+- Depuis le dessus d'une caisse, un opérateur peut grimper sur le mur voisin (murs pleins de 2,25 à 2,5 m sur les cartes UFO:AI) : clic droit sur le dessus du mur. Ordonné depuis le sol, il passe par la caisse la plus proche qui y mène.
+- Sur les murs, il marche de case en case et peut redescendre sur une autre caisse. Pour revenir au sol, il repasse par une caisse ; s'il n'y en a plus (caisse poussée ailleurs), il saute.

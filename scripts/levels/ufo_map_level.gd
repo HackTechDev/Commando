@@ -23,6 +23,12 @@ const DEFAULT_TEXTURE_SIZE := Vector2(256.0, 256.0)
 const CRATE_SIZE := 32.0
 const CRATE_TOLERANCE := 0.5
 const CRATE_SCENE: PackedScene = preload("res://scenes/props/crate.tscn")
+## Hauteur (m) du dessus d'un mur pour en faire des corniches : au-dessus de
+## ce qu'on escalade depuis le sol, à portée depuis le dessus d'une caisse.
+const LEDGE_MIN_HEIGHT := 1.5
+const LEDGE_MAX_HEIGHT := 1.2 + Climbable.MAX_CLIMB_HEIGHT
+## Place libre (m) au-dessus d'une corniche pour s'y tenir debout.
+const LEDGE_HEADROOM := 1.8
 const LAYER_GROUND := 1
 const LAYER_WALLS := 2
 ## Textures techniques (invisibles) d'UFO:AI.
@@ -50,6 +56,9 @@ const BASE_AXES: Array = [
 ## caisses escaladables et déplaçables.
 @export var movable_crates: bool = true
 @export var crate_textures: PackedStringArray = ["tex_misc/box", "tex_misc/crate"]
+## Découpe le dessus des murs bas (accessibles depuis une caisse) en
+## corniches où l'on peut se tenir.
+@export var ledges: bool = true
 ## Opérateurs à placer sur les points de départ (`info_player_start`).
 @export var units_parent: NodePath
 ## Ennemis créés sur les positions des aliens (`info_alien_start`).
@@ -77,6 +86,8 @@ func _ready() -> void:
 	var crates := _extract_crates(solids) if movable_crates else ([] as Array[Dictionary])
 	_build(solids)
 	_build_crates(crates)
+	if ledges:
+		_build_ledges(solids)
 	TextureLibrary.apply_to_tree(self)
 	_place_units(map)
 	_spawn_enemies(map)
@@ -489,7 +500,7 @@ func _is_crate(solid: Dictionary, box: AABB) -> bool:
 	if solid["kind"] != &"solid":
 		return false
 	var brush: UfoMap.Brush = solid["brush"]
-	if brush.faces.size() != 6:
+	if not _is_box(brush):
 		return false
 	var error := (box.size - Vector3.ONE * CRATE_SIZE).abs()
 	if error[error.max_axis_index()] > CRATE_TOLERANCE:
@@ -497,9 +508,6 @@ func _is_crate(solid: Dictionary, box: AABB) -> bool:
 	if absf(box.position.z - _offset.z) > CRATE_TOLERANCE:
 		return false
 	for face in brush.faces:
-		var n := face.plane.normal.abs()
-		if not is_equal_approx(n[n.max_axis_index()], 1.0):
-			return false
 		if _is_visible(face) and not _has_crate_texture(face.texture):
 			return false
 	return true
@@ -566,6 +574,90 @@ func _build_crates(crates: Array[Dictionary]) -> void:
 		collision.position = Vector3(0.0, size.y * 0.5, 0.0)
 		crate.position = base
 		add_child(crate)
+
+
+# --- Corniches --------------------------------------------------------------
+
+## Une corniche (`Climbable` fixe, sans collision propre : on se tient sur le
+## mur) par case de la grille (32 unités) entièrement comprise dans le dessus
+## plat d'un mur à portée d'escalade depuis une caisse, et dégagée au-dessus.
+func _build_ledges(solids: Array[Dictionary]) -> void:
+	var bounds: Array[AABB] = []
+	for solid in solids:
+		bounds.append(_bounds(solid["polygons"]))
+	var count := 0
+	for i in solids.size():
+		if solids[i]["kind"] != &"solid":
+			continue
+		var top_face := PackedVector3Array()
+		for polygon: Dictionary in solids[i]["polygons"]:
+			if (polygon["face"] as UfoMap.Face).plane.normal.is_equal_approx(Vector3(0, 0, 1)):
+				top_face = polygon["points"]
+		if top_face.is_empty():
+			continue
+		var z := top_face[0].z
+		var top := (z - _offset.z) / units_per_meter
+		if top < LEDGE_MIN_HEIGHT or top > LEDGE_MAX_HEIGHT:
+			continue
+		var box := bounds[i]
+		var start := (Vector2(box.position.x, box.position.y) / CRATE_SIZE).floor() * CRATE_SIZE
+		var x := start.x
+		while x < box.end.x - CRATE_TOLERANCE:
+			var y := start.y
+			while y < box.end.y - CRATE_TOLERANCE:
+				var corner := Vector3(x, y, z)
+				y += CRATE_SIZE
+				if not _square_inside(top_face, Vector2(corner.x, corner.y)):
+					continue
+				var above := AABB(corner + Vector3(1, 1, CRATE_TOLERANCE), Vector3(CRATE_SIZE - 2, CRATE_SIZE - 2, LEDGE_HEADROOM * units_per_meter))
+				if _is_blocked(above, i, solids, bounds):
+					continue
+				var center := corner + Vector3(CRATE_SIZE * 0.5, CRATE_SIZE * 0.5, 0.0)
+				var ledge := Climbable.new()
+				count += 1
+				ledge.name = "Ledge%d" % count
+				ledge.collision_layer = 0
+				ledge.collision_mask = 0
+				ledge.movable = false
+				ledge.climbable_from_ground = false
+				ledge.top_height = top
+				ledge.half_extent = CRATE_SIZE * 0.5 / units_per_meter
+				ledge.position = to_world(Vector3(center.x, center.y, _offset.z))
+				ledge.add_to_group(&"climbables")
+				add_child(ledge)
+			x += CRATE_SIZE
+
+
+## Vrai si la case de la grille de coin `corner` tient dans le polygone
+## convexe `polygon` (sens trigonométrique vu de dessus).
+static func _square_inside(polygon: PackedVector3Array, corner: Vector2) -> bool:
+	for offset: Vector2 in [Vector2.ZERO, Vector2(CRATE_SIZE, 0), Vector2(CRATE_SIZE, CRATE_SIZE), Vector2(0, CRATE_SIZE)]:
+		var point := corner + offset
+		for k in polygon.size():
+			var a := Vector2(polygon[k].x, polygon[k].y)
+			var b := Vector2(polygon[(k + 1) % polygon.size()].x, polygon[(k + 1) % polygon.size()].y)
+			if (b - a).cross(point - a) < -CRATE_TOLERANCE * (b - a).length():
+				return false
+	return true
+
+
+## Six faces alignées sur les axes.
+func _is_box(brush: UfoMap.Brush) -> bool:
+	if brush.faces.size() != 6:
+		return false
+	for face in brush.faces:
+		var n := face.plane.normal.abs()
+		if not is_equal_approx(n[n.max_axis_index()], 1.0):
+			return false
+	return true
+
+
+## Vrai si un brush bloquant (visible ou invisible) autre que `index` occupe `region`.
+func _is_blocked(region: AABB, index: int, solids: Array[Dictionary], bounds: Array[AABB]) -> bool:
+	for i in bounds.size():
+		if i != index and solids[i]["kind"] != &"passable" and bounds[i].intersects(region):
+			return true
+	return false
 
 
 # --- Unités -----------------------------------------------------------------

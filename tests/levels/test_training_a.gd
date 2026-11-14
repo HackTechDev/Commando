@@ -129,9 +129,79 @@ func test_push_and_pull_map_crate() -> void:
 	assert_almost_eq(crate.global_position, start, Vector3.ONE * 0.05, "ramenée en la tirant")
 
 
+func test_wall_tops_become_ledges() -> void:
+	if _skip_without_map():
+		return
+	var ledges := _ledges()
+	assert_gt(ledges.size(), 50, "dessus des murs découpés en cases")
+	for ledge in ledges:
+		assert_false(ledge.movable)
+		assert_false(ledge.climbable_from_ground, "trop haut depuis le sol")
+		assert_between(ledge.get_top_position().y, 2.2, 2.45, "mur bas : %s" % ledge.name)
+	var crate: Climbable = node("NavigationRegion3D/Map/MapCrate1")
+	var ledge := _ledge_next_to(crate)
+	assert_not_null(ledge, "mur contre la caisse")
+	assert_same(Climbable.find_at(get_tree(), ledge.get_top_position()), ledge, "désignée par un clic sur le mur")
+	var alpha: Commando = node("Units/Alpha")
+	assert_false(alpha.handle_crate(ledge, ledge.global_position), "un mur ne se pousse pas")
+
+
+func test_climb_from_crate_onto_wall_and_back_down() -> void:
+	if _skip_without_map():
+		return
+	var alpha: Commando = node("Units/Alpha")
+	var crate: Climbable = node("NavigationRegion3D/Map/MapCrate1")
+	var ledge := _ledge_next_to(crate)
+	assert_true(alpha.climb(crate, true))
+	assert_gt(await frames_until(func() -> bool: return alpha.perched_on == crate and not alpha._hopping, 1500), -1, "sur la caisse")
+	assert_true(alpha.climb(ledge, false))
+	assert_gt(await frames_until(func() -> bool: return alpha.perched_on == ledge and not alpha._hopping, 600), -1, "sur le mur")
+	assert_almost_eq(alpha.global_position.y, ledge.get_top_position().y, 0.05)
+	assert_null(crate.occupant, "caisse libérée")
+	# Redescente par la caisse, pas en sautant du mur.
+	var goal := crate.get_access_point(crate.get_side_toward(crate.global_position + Vector3.BACK * 3.0))
+	alpha.move_to(goal, false)
+	var via_crate := false
+	for i in 900:
+		await wait_physics_frames(1)
+		for other in _map_crates():
+			via_crate = via_crate or other.occupant == alpha
+		if alpha.perched_on == null and not alpha._hopping:
+			break
+	assert_true(via_crate, "repassé par une caisse")
+	assert_null(alpha.perched_on)
+	assert_lt(alpha.global_position.y, 0.1, "au sol")
+	assert_null(ledge.occupant)
+
+
+func test_ledge_ordered_from_the_ground_goes_through_a_crate() -> void:
+	if _skip_without_map():
+		return
+	var alpha: Commando = node("Units/Alpha")
+	var ledge := _ledge_next_to(node("NavigationRegion3D/Map/MapCrate1"))
+	assert_true(alpha.climb(ledge, true))
+	assert_gt(await frames_until(func() -> bool: return alpha.perched_on == ledge and not alpha._hopping, 2000), -1, "sur le mur")
+
+
 func _map_crates() -> Array[Climbable]:
 	var crates: Array[Climbable] = []
 	for node_ in node("NavigationRegion3D/Map").get_children():
-		if node_ is Climbable:
+		if node_ is Climbable and node_.movable:
 			crates.append(node_)
 	return crates
+
+
+func _ledges() -> Array[Climbable]:
+	var ledges: Array[Climbable] = []
+	for node_ in node("NavigationRegion3D/Map").get_children():
+		if node_ is Climbable and not node_.movable:
+			ledges.append(node_)
+	return ledges
+
+
+## Corniche qu'on atteint en grimpant depuis le dessus de `crate`.
+func _ledge_next_to(crate: Climbable) -> Climbable:
+	for ledge in _ledges():
+		if crate.can_reach(ledge):
+			return ledge
+	return null

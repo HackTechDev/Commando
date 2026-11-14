@@ -175,8 +175,11 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
 		return
-	if hit["collider"] is Climbable:
-		var climbable := hit["collider"] as Climbable
+	# Caisse, ou dessus d'un mur où l'on peut se tenir (corniche).
+	var climbable := hit["collider"] as Climbable
+	if climbable == null and (hit["normal"] as Vector3).y > 0.7:
+		climbable = Climbable.find_at(get_tree(), hit["position"])
+	if climbable:
 		SelectionManager.order_climb(climbable, run)
 		_spawn_marker(climbable.get_top_position(), marker_run_color if run else marker_color)
 		return
