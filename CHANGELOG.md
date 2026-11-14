@@ -245,3 +245,10 @@
 
 - Les boutons « Quitter » du menu et du jeu ouvrent une petite fenêtre « Quitter le jeu ? » (Quitter / Annuler). « Annuler » est sélectionné par défaut et Échap annule ; le jeu est en pause tant que la fenêtre est ouverte.
 - Le bouton « Menu » en jeu demande aussi confirmation : « Revenir au menu ? La partie en cours sera perdue. » (Menu / Annuler).
+
+## Deux nouveaux niveaux
+
+- **Entraînement B** (`training_b`) : grande carte UFO:AI de 100 × 62 m, bunkers, tranchées et murets.
+- **Gare du désert** (`fighter_crash`) : 56 × 58 m, hameau en ruine, voie ferrée et wagons sur un relief en terrasses. L'épave du vaisseau, faite de modèles 3D absents, n'apparaît pas.
+- Douze sentinelles sur chacune, réparties sur toute la carte (au lieu des douze premières positions du fichier, toutes du même côté).
+- Déplacements plus sûrs sur terrain inégal (opérateurs et ennemis) : une marche basse (jusqu'à 35 cm) est franchie d'elle-même, et un point de chemin bloqué (coéquipier immobile dessus, décalage en hauteur sur une pente) est sauté au lieu de faire tourner l'unité en rond.

@@ -743,9 +743,7 @@ func _spawn_enemies(map: UfoMap) -> void:
 	if parent == null or enemy_scene == null:
 		return
 	var count := 0
-	for start in map.find_entities("info_alien_start"):
-		if max_enemies >= 0 and count >= max_enemies:
-			break
+	for start in _spread_starts(map.find_entities("info_alien_start"), map.find_entities("info_player_start")):
 		var enemy := enemy_scene.instantiate() as Enemy
 		enemy.name = "Sentry%d" % (count + 1)
 		enemy.stationary = true
@@ -753,6 +751,28 @@ func _spawn_enemies(map: UfoMap) -> void:
 		enemy.rotation.y = yaw_to_world(start.angle())
 		parent.add_child(enemy)
 		count += 1
+
+
+## Au plus `max_enemies` points de départ, répartis sur toute la carte : le
+## plus éloigné des opérateurs d'abord, puis à chaque fois celui qui est le
+## plus loin des points déjà retenus. Tous, dans l'ordre, sans limite.
+func _spread_starts(starts: Array[UfoMap.Entity], players: Array[UfoMap.Entity]) -> Array[UfoMap.Entity]:
+	if max_enemies < 0 or starts.size() <= max_enemies:
+		return starts
+	var chosen: Array[UfoMap.Entity] = []
+	var player := players[0].origin() if not players.is_empty() else Vector3.ZERO
+	var nearest: Array[float] = []
+	for start in starts:
+		nearest.append(start.origin().distance_to(player))
+	while chosen.size() < max_enemies:
+		var best := 0
+		for i in starts.size():
+			if nearest[i] > nearest[best]:
+				best = i
+		chosen.append(starts[best])
+		for i in starts.size():
+			nearest[i] = minf(nearest[i], starts[i].origin().distance_to(starts[best].origin()))
+	return chosen
 
 
 func _feet(entity: UfoMap.Entity) -> Vector3:

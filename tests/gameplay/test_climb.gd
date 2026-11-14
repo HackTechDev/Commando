@@ -73,3 +73,43 @@ func test_jump_trajectory_rises_then_falls_to_the_ground() -> void:
 		previous = progress
 	assert_lt(highest, 0.0, "impulsion vers le haut")
 	assert_eq(Commando._jump_progress(Commando.JUMP_LANDING), Vector2.ONE, "au sol à la réception")
+
+
+func test_operator_steps_over_a_low_ledge() -> void:
+	# Marche de 20 cm posée en travers du chemin (la navigation, déjà
+	# générée, l'ignore) : l'opérateur la monte sans s'arrêter.
+	var alpha: Commando = node("Units/Alpha")
+	var start := alpha.global_position
+	var step := StaticBody3D.new()
+	step.collision_layer = 1
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.0, 0.2, 6.0)
+	shape.shape = box
+	step.add_child(shape)
+	level.add_child(step)
+	step.global_position = start + Vector3(2.0, 0.1, 0.0)
+	await frames(2)
+	var goal := start + Vector3(2.0, 0.0, 0.0)
+	alpha.move_to(goal, false)
+	var on_step := func() -> bool: return alpha.global_position.y > 0.15 and flat_distance(alpha.global_position, goal) < 0.6
+	assert_gt(await frames_until(on_step, 300), -1, "monté sur la marche")
+	assert_lt(alpha.global_position.y, 0.3, "pas plus haut que la marche")
+
+
+func test_too_high_ledge_still_blocks() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var start := alpha.global_position
+	var wall := StaticBody3D.new()
+	wall.collision_layer = 1
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.0, 0.6, 6.0)
+	shape.shape = box
+	wall.add_child(shape)
+	level.add_child(wall)
+	wall.global_position = start + Vector3(2.0, 0.3, 0.0)
+	await frames(2)
+	alpha.move_to(start + Vector3(2.0, 0.0, 0.0), false)
+	await frames(180)
+	assert_lt(alpha.global_position.y, 0.05, "60 cm : on ne l'enjambe pas")

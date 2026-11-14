@@ -146,6 +146,8 @@ var _desired_velocity: Vector3
 var _stuck_time: float = 0.0
 var _best_goal_distance: float = INF
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+## Suivi de chemin sur terrain inégal (points bloqués, marches basses).
+var _walker := PathWalker.new()
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
@@ -242,7 +244,13 @@ func _apply_velocity(horizontal: Vector3) -> void:
 		# Freiné presque à l'arrêt par une unité pile en face : pas de côté.
 		horizontal += _desired_velocity.cross(Vector3.UP) * SIDESTEP_RATIO
 	velocity = Vector3(horizontal.x, _vertical_velocity, horizontal.z)
+	var before := global_position
 	move_and_slide()
+	# Bloqué net (moins de la moitié du pas voulu) : peut-être une marche basse.
+	var wanted := horizontal * get_physics_process_delta_time()
+	var moved := global_position - before
+	if Vector2(moved.x, moved.z).length() < 0.5 * Vector2(wanted.x, wanted.z).length():
+		PathWalker.step_up(self, wanted)
 	_model.posture = posture
 	_model.move_ratio = Vector2(velocity.x, velocity.z).length() / stats.walk_speed
 
@@ -614,7 +622,7 @@ func _approach_climb() -> Vector3:
 	if arrived:
 		_climb_target = null
 		return Vector3.ZERO
-	var to_next := _agent.get_next_path_position() - global_position
+	var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
 	to_next.y = 0.0
 	if to_next.length_squared() < 0.0001:
 		return Vector3.ZERO
@@ -1148,7 +1156,7 @@ func _update_reload(delta: float) -> void:
 
 
 func _follow_path(delta: float) -> Vector3:
-	var to_next := _agent.get_next_path_position() - global_position
+	var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
 	to_next.y = 0.0
 	if to_next.length_squared() < 0.0001:
 		return Vector3.ZERO

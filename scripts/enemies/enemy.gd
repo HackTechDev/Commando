@@ -68,6 +68,8 @@ var _vertical_velocity: float = 0.0
 var _wants_to_move: bool = false
 var _desired_velocity: Vector3
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+## Suivi de chemin sur terrain inégal (points bloqués, marches basses).
+var _walker := PathWalker.new()
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
@@ -151,7 +153,13 @@ func _apply_velocity(horizontal: Vector3) -> void:
 		# Freiné presque à l'arrêt par une unité pile en face : pas de côté.
 		horizontal += _desired_velocity.cross(Vector3.UP) * SIDESTEP_RATIO
 	velocity = Vector3(horizontal.x, _vertical_velocity, horizontal.z)
+	var before := global_position
 	move_and_slide()
+	# Bloqué net (moins de la moitié du pas voulu) : peut-être une marche basse.
+	var wanted := horizontal * get_physics_process_delta_time()
+	var moved := global_position - before
+	if Vector2(moved.x, moved.z).length() < 0.5 * Vector2(wanted.x, wanted.z).length():
+		PathWalker.step_up(self, wanted)
 	var speed := Vector2(velocity.x, velocity.z).length()
 	_model.move_ratio = 2.0 * speed / stats.chase_speed if state == State.ALERT else 0.6 * speed / stats.patrol_speed
 	_update_feedback()
@@ -470,7 +478,7 @@ func _patrol(delta: float) -> Vector3:
 	if _agent.is_navigation_finished():
 		_pause_left = maxf(stats.patrol_pause, 0.01)
 		return Vector3.ZERO
-	var to_next := _agent.get_next_path_position() - global_position
+	var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
 	to_next.y = 0.0
 	if to_next.length_squared() < 0.0001:
 		return Vector3.ZERO
@@ -498,7 +506,7 @@ func _alert(delta: float) -> Vector3:
 	if _agent.is_navigation_finished():
 		_chase_arrived = _target == null
 		return Vector3.ZERO
-	var to_next := _agent.get_next_path_position() - global_position
+	var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
 	to_next.y = 0.0
 	if to_next.length_squared() < 0.0001:
 		return Vector3.ZERO

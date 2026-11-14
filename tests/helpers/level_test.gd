@@ -5,6 +5,8 @@ extends GutTest
 
 const SANDBOX := "res://scenes/levels/sandbox/sandbox.tscn"
 const TRAINING_A := "res://scenes/levels/training_a/training_a.tscn"
+const TRAINING_B := "res://scenes/levels/training_b/training_b.tscn"
+const FIGHTER_CRASH := "res://scenes/levels/fighter_crash/fighter_crash.tscn"
 ## Endroit du sandbox où ranger un ennemi inutile au test.
 const FAR_AWAY := Vector3(25, 0, -25)
 

@@ -67,7 +67,7 @@ Le script renvoie un code non nul si un test échoue. Dans l'éditeur, le pannea
 
 - `tests/unit/` : logique pure, sans scène (cône de vision, points de vie, lecture des cartes UFO:AI, textures et dossiers externes, sons).
 - `tests/gameplay/` : parties jouées dans le terrain d'essai (escalade, fusillade, postures, corps à corps, prises par derrière, lutte, parade, lancer de couteau, caisses, sons).
-- `tests/levels/` : carte `training_a` (ignorée si le fichier de carte est absent) et menu de démarrage.
+- `tests/levels/` : cartes `training_a`, `training_b` et `fighter_crash` (ignorées si le fichier de carte est absent) et menu de démarrage.
 - `tests/helpers/level_test.gd` : classe de base `LevelTest` (chargement d'un niveau, attente en images de physique, mise à l'écart des ennemis).
 
 Les tests de jeu tournent en temps réel simulé : ils sont lents (quelques secondes chacun) mais vérifient le comportement réel. Les tirages au sort sont rendus reproductibles par `seed()` ; un test qui dépend d'une probabilité la fixe sur une copie des réglages de l'unité (`own_stats`).

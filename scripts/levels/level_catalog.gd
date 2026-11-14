@@ -20,6 +20,18 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
 		"map": "training_a.map",
 	},
+	{
+		"title": "Entraînement B",
+		"scene": "res://scenes/levels/training_b/training_b.tscn",
+		"description": "Grande carte UFO:AI de 100 × 62 m : bunkers, tranchées et murets, douze sentinelles réparties sur tout le terrain.",
+		"map": "training_b.map",
+	},
+	{
+		"title": "Gare du désert",
+		"scene": "res://scenes/levels/fighter_crash/fighter_crash.tscn",
+		"description": "Carte UFO:AI de 56 × 58 m : hameau en ruine, voie ferrée et wagons sur un relief en terrasses, douze sentinelles. (L'épave du vaisseau, un modèle 3D absent, n'apparaît pas.)",
+		"map": "fighter_crash.map",
+	},
 ]
 
 
