@@ -220,3 +220,9 @@
 - Framework de tests GUT 9.7.1 installé (`addons/gut`), lancé par `./run_tests.sh` ou depuis le panneau GUT de l'éditeur.
 - 63 tests permanents remplacent les scripts de vérification jetables perdus : logique pure (cône de vision, points de vie, cartes UFO:AI, textures et dossiers externes, sons) et parties jouées (escalade, fusillade, postures, coups pour assommer, coup de crosse, prises par derrière, lutte, parade, esquive, contre, lancer de couteau, caisses, sons, carte `training_a`, menu).
 - GUT et les tests sont exclus de l'export Web.
+
+## Caisses des cartes UFO:AI
+
+- Les caisses en bois des cartes UFO:AI (cubes d'une case posés au sol, rien dessus) deviennent de vraies caisses du jeu : on peut y grimper, passer de l'une à sa voisine, les pousser et les tirer. Elles gardent leurs textures d'origine. Neuf caisses sur `training_a`.
+- Échelle des cartes ramenée à 32 unités = 1,2 m (au lieu de 1,28 m) pour que ces caisses aient la hauteur prévue par les animations d'escalade ; `training_a` mesure désormais 38,4 m de côté.
+- Les murs invisibles qui doublaient ces caisses disparaissent avec elles.

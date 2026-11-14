@@ -2,8 +2,8 @@ class_name UfoMapLevel
 extends Node3D
 ## Construit un niveau à partir d'une carte source UFO:AI (`UfoMap`) lue à la
 ## volée dans le dossier des cartes (`AssetPaths.maps_dir`) : maillage
-## texturé, collisions, opérateurs placés sur les points de départ, ennemis en
-## faction sur les positions des aliens.
+## texturé, collisions, caisses escaladables et déplaçables, opérateurs placés
+## sur les points de départ, ennemis en faction sur les positions des aliens.
 ##
 ## À placer sous le `NavigationRegion3D` du niveau : son `_ready` s'exécute
 ## avant celui de `LevelRoot`, qui génère ensuite la navigation à partir des
@@ -18,6 +18,11 @@ const PHONG_MAX_ANGLE := deg_to_rad(60.0)
 const EPSILON := 0.01
 const BASE_WINDING_SIZE := 16384.0
 const DEFAULT_TEXTURE_SIZE := Vector2(256.0, 256.0)
+## Caisse convertie en `Climbable` : cube de cette taille (unités UFO:AI),
+## posé au sol, rien dessus.
+const CRATE_SIZE := 32.0
+const CRATE_TOLERANCE := 0.5
+const CRATE_SCENE: PackedScene = preload("res://scenes/props/crate.tscn")
 const LAYER_GROUND := 1
 const LAYER_WALLS := 2
 ## Textures techniques (invisibles) d'UFO:AI.
@@ -36,9 +41,15 @@ const BASE_AXES: Array = [
 
 ## Fichier de la carte, relatif au dossier des cartes.
 @export var map_file: String = "training_a.map"
-## Échelle : unités UFO:AI par mètre (25 : une case de 32 unités fait
-## 1,28 m, un étage de 64 unités 2,56 m).
-@export var units_per_meter: float = 25.0
+## Échelle : unités UFO:AI par mètre. Par défaut, une case de 32 unités fait
+## 1,2 m, comme les caisses du jeu (animations d'escalade) ; un étage de
+## 64 unités fait 2,4 m.
+@export var units_per_meter: float = 32.0 / 1.2
+## Les caisses de la carte (cubes d'une case posés au sol, rien dessus, dont
+## toutes les textures commencent par l'un de ces préfixes) deviennent des
+## caisses escaladables et déplaçables.
+@export var movable_crates: bool = true
+@export var crate_textures: PackedStringArray = ["tex_misc/box", "tex_misc/crate"]
 ## Opérateurs à placer sur les points de départ (`info_player_start`).
 @export var units_parent: NodePath
 ## Ennemis créés sur les positions des aliens (`info_alien_start`).
@@ -62,7 +73,11 @@ func _ready() -> void:
 		return
 	var solids := _collect_brushes(map)
 	_compute_offset(map, solids)
+	_load_textures(solids)
+	var crates := _extract_crates(solids) if movable_crates else ([] as Array[Dictionary])
 	_build(solids)
+	_build_crates(crates)
+	TextureLibrary.apply_to_tree(self)
 	_place_units(map)
 	_spawn_enemies(map)
 	_setup_camera()
@@ -209,7 +224,6 @@ func _compute_offset(map: UfoMap, solids: Array[Dictionary]) -> void:
 # --- Construction -----------------------------------------------------------
 
 func _build(solids: Array[Dictionary]) -> void:
-	_load_textures(solids)
 	var tools: Dictionary = {}
 	var bodies: Dictionary = {}
 	for solid in solids:
@@ -230,7 +244,6 @@ func _build(solids: Array[Dictionary]) -> void:
 	geometry.name = "Geometry"
 	geometry.mesh = mesh
 	add_child(geometry)
-	TextureLibrary.apply_to_tree(self)
 
 
 func _load_textures(solids: Array[Dictionary]) -> void:
@@ -261,7 +274,9 @@ func _height(polygons: Array) -> float:
 	return high - low
 
 
-func _add_faces(polygons: Array, tools: Dictionary) -> void:
+## Ajoute les faces visibles aux outils de maillage (un par matériau), en
+## coordonnées du monde relatives à `origin`.
+func _add_faces(polygons: Array, tools: Dictionary, origin: Vector3 = Vector3.ZERO) -> void:
 	for polygon: Dictionary in polygons:
 		var face: UfoMap.Face = polygon["face"]
 		if not _is_visible(face):
@@ -280,7 +295,7 @@ func _add_faces(polygons: Array, tools: Dictionary) -> void:
 		var world_points := PackedVector3Array()
 		var world_normals := PackedVector3Array()
 		for i in points.size():
-			world_points.append(to_world(points[i]))
+			world_points.append(to_world(points[i]) - origin)
 			var n := normals[i]
 			world_normals.append(Vector3(n.x, n.z, -n.y))
 		# Godot : faces avant dans le sens horaire vu de face.
@@ -408,6 +423,149 @@ func _add_collision(polygons: Array, body: StaticBody3D) -> void:
 	var collision := CollisionShape3D.new()
 	collision.shape = shape
 	body.add_child(collision)
+
+
+# --- Caisses -----------------------------------------------------------------
+
+## Retire de `solids` les caisses à convertir et les renvoie (avec leur
+## emprise, en unités UFO:AI).
+##
+## Les cartes doublent souvent les caisses d'un mur invisible (`actorclip`),
+## parfois un seul pour plusieurs caisses collées. Un mur invisible
+## entièrement recouvert par des caisses convertibles disparaît avec elles ;
+## une caisse touchée par un mur invisible qui déborde (il bloque aussi autre
+## chose) reste fixe.
+func _extract_crates(solids: Array[Dictionary]) -> Array[Dictionary]:
+	var bounds: Array[AABB] = []
+	for solid in solids:
+		bounds.append(_bounds(solid["polygons"]))
+	var candidates: Array[int] = []
+	for i in solids.size():
+		if _is_crate(solids[i], bounds[i]) and not _is_covered(i, solids, bounds):
+			candidates.append(i)
+	var removed := {}
+	var rejected := {}
+	for i in solids.size():
+		if solids[i]["kind"] != &"clip":
+			continue
+		var touched: Array[int] = []
+		var covered_area := 0.0
+		var clip := _footprint(bounds[i])
+		for c in candidates:
+			var crate := _footprint(bounds[c])
+			if clip.grow(-1.0).intersects(crate):
+				touched.append(c)
+				covered_area += clip.intersection(crate).get_area()
+		if touched.is_empty():
+			continue
+		if covered_area >= clip.get_area() - CRATE_SIZE:
+			removed[i] = true
+		else:
+			for c in touched:
+				rejected[c] = true
+	var crates: Array[Dictionary] = []
+	for c in candidates:
+		if rejected.has(c):
+			continue
+		solids[c]["bounds"] = bounds[c]
+		crates.append(solids[c])
+		removed[c] = true
+	var kept: Array[Dictionary] = []
+	for i in solids.size():
+		if not removed.has(i):
+			kept.append(solids[i])
+	solids.assign(kept)
+	return crates
+
+
+## Emprise au sol (x, y d'UFO:AI).
+static func _footprint(box: AABB) -> Rect2:
+	return Rect2(box.position.x, box.position.y, box.size.x, box.size.y)
+
+
+## Cube d'une case, aux faces alignées sur les axes, posé au sol (niveau des
+## points de départ), habillé uniquement de textures de caisse.
+func _is_crate(solid: Dictionary, box: AABB) -> bool:
+	if solid["kind"] != &"solid":
+		return false
+	var brush: UfoMap.Brush = solid["brush"]
+	if brush.faces.size() != 6:
+		return false
+	var error := (box.size - Vector3.ONE * CRATE_SIZE).abs()
+	if error[error.max_axis_index()] > CRATE_TOLERANCE:
+		return false
+	if absf(box.position.z - _offset.z) > CRATE_TOLERANCE:
+		return false
+	for face in brush.faces:
+		var n := face.plane.normal.abs()
+		if not is_equal_approx(n[n.max_axis_index()], 1.0):
+			return false
+		if _is_visible(face) and not _has_crate_texture(face.texture):
+			return false
+	return true
+
+
+func _has_crate_texture(texture: String) -> bool:
+	for prefix in crate_textures:
+		if texture.begins_with(prefix):
+			return true
+	return false
+
+
+## Vrai si un autre brush visible repose sur le dessus de la caisse `index`
+## (pile). Les murs invisibles, qui couvrent souvent toute une zone, ne
+## comptent pas.
+func _is_covered(index: int, solids: Array[Dictionary], bounds: Array[AABB]) -> bool:
+	var box := bounds[index]
+	var above := AABB(box.position + Vector3(1, 1, box.size.z - CRATE_TOLERANCE), Vector3(box.size.x - 2, box.size.y - 2, 8))
+	for i in bounds.size():
+		if i != index and solids[i]["kind"] != &"clip" and bounds[i].intersects(above):
+			return true
+	return false
+
+
+func _bounds(polygons: Array) -> AABB:
+	var box := AABB()
+	var first := true
+	for polygon: Dictionary in polygons:
+		for point: Vector3 in polygon["points"]:
+			if first:
+				box = AABB(point, Vector3.ZERO)
+				first = false
+			else:
+				box = box.expand(point)
+	return box
+
+
+## Crée une caisse `Climbable` (scène des caisses du jeu) par caisse de la
+## carte, habillée de ses propres textures.
+func _build_crates(crates: Array[Dictionary]) -> void:
+	for i in crates.size():
+		var box: AABB = crates[i]["bounds"]
+		var base := to_world(Vector3(box.get_center().x, box.get_center().y, box.position.z))
+		var size := Vector3(box.size.x, box.size.z, box.size.y) / units_per_meter
+		var tools: Dictionary = {}
+		_add_faces(crates[i]["polygons"], tools, base)
+		var mesh := ArrayMesh.new()
+		for key: String in tools:
+			var tool: SurfaceTool = tools[key]
+			tool.generate_tangents()
+			tool.commit(mesh)
+		var crate := CRATE_SCENE.instantiate() as Climbable
+		crate.name = "MapCrate%d" % (i + 1)
+		crate.top_height = size.y
+		crate.half_extent = maxf(size.x, size.z) * 0.5
+		var view := crate.get_node("MeshInstance3D") as MeshInstance3D
+		view.mesh = mesh
+		view.transform = Transform3D.IDENTITY
+		# Forme propre à la caisse (la ressource de la scène est partagée).
+		var collision := crate.get_node("CollisionShape3D") as CollisionShape3D
+		var shape := BoxShape3D.new()
+		shape.size = size
+		collision.shape = shape
+		collision.position = Vector3(0.0, size.y * 0.5, 0.0)
+		crate.position = base
+		add_child(crate)
 
 
 # --- Unités -----------------------------------------------------------------
