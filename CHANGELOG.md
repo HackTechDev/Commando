@@ -257,3 +257,7 @@
 
 - Les niveaux se préparent derrière un écran de chargement (nom du niveau, étape en cours, points animés) au lieu de figer l'affichage : la carte UFO:AI est lue sur un fil de travail, le décor construit par tranches entre deux images, et la navigation générée en arrière-plan. Le jeu reste en pause jusqu'à la fin ; un ordre donné entre-temps s'exécute ensuite.
 - Correction : quitter un niveau pendant sa préparation ne laisse pas le jeu en pause.
+
+## Bâtiments et escaliers d'Entraînement B
+
+- Les petits escaliers (0,9 m de large) entre le terrain et les tranchées se montent et se descendent : la navigation de `training_b` les prend en compte, et le modèle de l'opérateur suit les marches en douceur au lieu de sauter d'un coup.

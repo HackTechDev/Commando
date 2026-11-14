@@ -158,8 +158,10 @@ func _apply_velocity(horizontal: Vector3) -> void:
 	# Bloqué net (moins de la moitié du pas voulu) : peut-être une marche basse.
 	var wanted := horizontal * get_physics_process_delta_time()
 	var moved := global_position - before
+	var climbed := 0.0
 	if Vector2(moved.x, moved.z).length() < 0.5 * Vector2(wanted.x, wanted.z).length():
-		PathWalker.step_up(self, wanted)
+		climbed = PathWalker.step_up(self, wanted)
+	PathWalker.smooth_model(_model, climbed, get_physics_process_delta_time())
 	var speed := Vector2(velocity.x, velocity.z).length()
 	_model.move_ratio = 2.0 * speed / stats.chase_speed if state == State.ALERT else 0.6 * speed / stats.patrol_speed
 	_update_feedback()

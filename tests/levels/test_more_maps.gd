@@ -76,3 +76,30 @@ func test_operator_reaches_the_farthest_sentry_post() -> void:
 		alpha.move_to(goal, true)
 		var arrived := func() -> bool: return flat_distance(alpha.global_position, goal) < 1.2 and alpha.velocity.length() < 0.1
 		assert_gt(await frames_until(arrived, 3000), -1, "%s : arrivé en %s" % [map_name, goal])
+
+
+func test_operator_climbs_and_descends_narrow_stairs() -> void:
+	# Escaliers de 0,9 m de large (marches de 15 cm) entre les tranchées et
+	# le terrain de training_b.
+	if not await _load("training_b.map"):
+		return
+	for enemy in node("Enemies").get_children():
+		enemy.free()
+	var alpha: Commando = node("Units/Alpha")
+	var trips := [
+		# Du fond d'une tranchée (-2,4 m) jusqu'en haut des marches.
+		[Vector3(-28.4, -2.4, 25.8), Vector3(-33.8, -0.5, 25.8)],
+		# Du terrain (0 m) jusqu'au palier en contrebas (-1,2 m).
+		[Vector3(-46.2, 0.0, -17.5), Vector3(-46.2, -1.2, -23.0)],
+	]
+	for trip: Array in trips:
+		alpha.global_position = trip[0]
+		alpha.velocity = Vector3.ZERO
+		await frames(5)
+		var goal: Vector3 = trip[1]
+		alpha.move_to(goal, false)
+		var arrived := func() -> bool: return flat_distance(alpha.global_position, goal) < 0.8 and absf(alpha.global_position.y - goal.y) < 0.3
+		assert_gt(await frames_until(arrived, 900), -1, "escalier pris : %s → %s (arrivé en %s)" % [trip[0], goal, alpha.global_position])
+		await frames(30)
+		assert_almost_eq(alpha._model.position.y, 0.0, 0.01, "modèle recalé sur le corps à l'arrêt")
+

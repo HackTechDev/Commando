@@ -19,6 +19,8 @@ const SKIP_RANGE := 1.5
 const MAX_STEP := 0.35
 ## Avancée maximale (m) pour poser le pied à plat sur la marche.
 const STEP_REACH := 0.3
+## Temps (s) pour que le modèle affiché rattrape le corps après une marche.
+const STEP_SMOOTH_TIME := 0.15
 
 var _point: Vector3 = Vector3.INF
 var _best: float = INF
@@ -53,14 +55,15 @@ func next_point(agent: NavigationAgent3D, body: Node3D, delta: float) -> Vector3
 
 ## Après un `move_and_slide` qui n'a pas avancé comme voulu (`wanted` :
 ## déplacement horizontal visé pendant l'image), monte `body` sur la marche
-## devant lui si elle fait au plus `MAX_STEP`. Renvoie vrai s'il l'a montée.
-static func step_up(body: CharacterBody3D, wanted: Vector3) -> bool:
+## devant lui si elle fait au plus `MAX_STEP`. Renvoie la hauteur montée (0 si
+## aucune), pour lisser l'affichage (`smooth_model`).
+static func step_up(body: CharacterBody3D, wanted: Vector3) -> float:
 	wanted.y = 0.0
 	if wanted.length_squared() < 0.000001 or not body.is_on_floor():
-		return false
+		return 0.0
 	var start := body.global_transform
 	if body.test_move(start, Vector3.UP * MAX_STEP):
-		return false
+		return 0.0
 	var raised := start.translated(Vector3.UP * MAX_STEP)
 	# On avance pas à pas au-dessus de la marche jusqu'à un appui plat : au
 	# premier pas, l'arrondi de la capsule ne touche que l'arête et glisserait.
@@ -68,15 +71,25 @@ static func step_up(body: CharacterBody3D, wanted: Vector3) -> bool:
 	for distance in [wanted.length(), STEP_REACH * 0.5, STEP_REACH]:
 		var motion: Vector3 = direction * maxf(distance, wanted.length())
 		if body.test_move(raised, motion):
-			return false
+			return 0.0
 		var ahead := raised.translated(motion)
 		var landing := KinematicCollision3D.new()
 		if not body.test_move(ahead, Vector3.DOWN * (MAX_STEP + 0.05), landing):
-			return false
+			return 0.0
 		var landed := ahead.translated(landing.get_travel())
 		if landed.origin.y - start.origin.y < 0.02:
-			return false
+			return 0.0
 		if landing.get_normal().y >= cos(body.floor_max_angle):
 			body.global_transform = landed
-			return true
-	return false
+			return landed.origin.y - start.origin.y
+	return 0.0
+
+
+## Le corps monte une marche d'un coup ; le modèle affiché, lui, la rattrape
+## en douceur : décalé vers le bas de la hauteur montée, il revient à sa
+## place en `STEP_SMOOTH_TIME` environ.
+static func smooth_model(model: Node3D, climbed: float, delta: float) -> void:
+	model.position.y = minf(model.position.y - climbed, 0.0)
+	model.position.y *= exp(-delta / STEP_SMOOTH_TIME * 3.0)
+	if model.position.y > -0.001:
+		model.position.y = 0.0
