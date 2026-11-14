@@ -235,3 +235,8 @@
 ## Saut du haut d'un mur
 
 - Descendre d'un mur sans caisse à côté se fait désormais par un vrai saut : l'opérateur s'accroupit au bord, prend son impulsion, tombe jambes groupées (chute accélérée), se réceptionne accroupi puis se relève (1,7 s). La réception fait du bruit (son sourd, bruit signalé dans un rayon de 4 m).
+
+## Bidons déplaçables
+
+- Les 22 bidons de `training_a` se poussent et se tirent comme les caisses (même ordre : action caisse, puis clic de destination). On ne monte pas dessus : un clic droit sur un bidon envoie à côté. Ils gardent leurs textures et ont une collision cylindrique.
+- Les murs invisibles partagés entre un objet déplaçable et du décor fixe sont désormais découpés au lieu de figer l'objet : seule l'emprise de l'objet est retirée.

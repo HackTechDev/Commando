@@ -56,6 +56,10 @@ const BASE_AXES: Array = [
 ## caisses escaladables et déplaçables.
 @export var movable_crates: bool = true
 @export var crate_textures: PackedStringArray = ["tex_misc/box", "tex_misc/crate"]
+## Convertit les bidons d'une case posés au sol en bidons qu'on pousse et
+## qu'on tire (sans monter dessus).
+@export var movable_barrels: bool = true
+@export var barrel_textures: PackedStringArray = ["tex_misc/barrel"]
 ## Découpe le dessus des murs bas (accessibles depuis une caisse) en
 ## corniches où l'on peut se tenir.
 @export var ledges: bool = true
@@ -83,7 +87,7 @@ func _ready() -> void:
 	var solids := _collect_brushes(map)
 	_compute_offset(map, solids)
 	_load_textures(solids)
-	var crates := _extract_crates(solids) if movable_crates else ([] as Array[Dictionary])
+	var crates := _extract_crates(solids)
 	_build(solids)
 	_build_crates(crates)
 	if ledges:
@@ -441,39 +445,48 @@ func _add_collision(polygons: Array, body: StaticBody3D) -> void:
 ## Retire de `solids` les caisses à convertir et les renvoie (avec leur
 ## emprise, en unités UFO:AI).
 ##
-## Les cartes doublent souvent les caisses d'un mur invisible (`actorclip`),
-## parfois un seul pour plusieurs caisses collées. Un mur invisible
-## entièrement recouvert par des caisses convertibles disparaît avec elles ;
-## une caisse touchée par un mur invisible qui déborde (il bloque aussi autre
-## chose) reste fixe.
+## Les cartes doublent souvent les objets d'un mur invisible (`actorclip`),
+## parfois un seul pour plusieurs objets voisins, déplaçables ou non. Ce mur
+## est découpé : l'emprise des objets convertis en est retirée, le reste
+## (qui bloque le décor voisin) est conservé en pavés. Un objet touché par un
+## mur invisible qui n'est pas un pavé (découpe impossible) reste fixe.
 func _extract_crates(solids: Array[Dictionary]) -> Array[Dictionary]:
 	var bounds: Array[AABB] = []
 	for solid in solids:
 		bounds.append(_bounds(solid["polygons"]))
 	var candidates: Array[int] = []
 	for i in solids.size():
-		if _is_crate(solids[i], bounds[i]) and not _is_covered(i, solids, bounds):
+		var prop := _prop_kind(solids[i], bounds[i])
+		if prop != &"" and not _is_covered(i, solids, bounds):
+			solids[i]["prop"] = prop
 			candidates.append(i)
 	var removed := {}
 	var rejected := {}
+	var cut: Dictionary = {}
 	for i in solids.size():
 		if solids[i]["kind"] != &"clip":
 			continue
 		var touched: Array[int] = []
-		var covered_area := 0.0
 		var clip := _footprint(bounds[i])
 		for c in candidates:
-			var crate := _footprint(bounds[c])
-			if clip.grow(-1.0).intersects(crate):
+			if clip.grow(-1.0).intersects(_footprint(bounds[c])):
 				touched.append(c)
-				covered_area += clip.intersection(crate).get_area()
 		if touched.is_empty():
 			continue
-		if covered_area >= clip.get_area() - CRATE_SIZE:
-			removed[i] = true
+		if _is_box(solids[i]["brush"]):
+			cut[i] = touched
 		else:
 			for c in touched:
 				rejected[c] = true
+	var added: Array[Dictionary] = []
+	for i: int in cut:
+		removed[i] = true
+		var pieces: Array[Rect2] = [_footprint(bounds[i])]
+		for c: int in cut[i]:
+			if not rejected.has(c):
+				pieces = _subtract(pieces, _footprint(bounds[c]))
+		for piece in pieces:
+			added.append(_clip_block(piece, bounds[i].position.z, bounds[i].end.z))
 	var crates: Array[Dictionary] = []
 	for c in candidates:
 		if rejected.has(c):
@@ -485,39 +498,77 @@ func _extract_crates(solids: Array[Dictionary]) -> Array[Dictionary]:
 	for i in solids.size():
 		if not removed.has(i):
 			kept.append(solids[i])
+	kept.append_array(added)
 	solids.assign(kept)
 	return crates
 
+
+## `rects` privés de `hole` : chaque rectangle entamé est remplacé par les
+## bandes qui restent autour (sans les bandes de moins d'une unité).
+static func _subtract(rects: Array[Rect2], hole: Rect2) -> Array[Rect2]:
+	var result: Array[Rect2] = []
+	for rect in rects:
+		var inter := rect.intersection(hole)
+		if inter.size.x < 1.0 or inter.size.y < 1.0:
+			result.append(rect)
+			continue
+		var pieces: Array[Rect2] = [
+			Rect2(rect.position.x, rect.position.y, inter.position.x - rect.position.x, rect.size.y),
+			Rect2(inter.end.x, rect.position.y, rect.end.x - inter.end.x, rect.size.y),
+			Rect2(inter.position.x, rect.position.y, inter.size.x, inter.position.y - rect.position.y),
+			Rect2(inter.position.x, inter.end.y, inter.size.x, rect.end.y - inter.end.y),
+		]
+		for piece in pieces:
+			if piece.size.x >= 1.0 and piece.size.y >= 1.0:
+				result.append(piece)
+	return result
+
+
+## Mur invisible en pavé (même forme que `_collect_brushes`, sans faces).
+static func _clip_block(rect: Rect2, bottom: float, top: float) -> Dictionary:
+	var points := PackedVector3Array()
+	for z in [bottom, top]:
+		for corner in [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]:
+			points.append(Vector3(corner.x, corner.y, z))
+	return {"brush": null, "polygons": [{"points": points}], "kind": &"clip"}
 
 ## Emprise au sol (x, y d'UFO:AI).
 static func _footprint(box: AABB) -> Rect2:
 	return Rect2(box.position.x, box.position.y, box.size.x, box.size.y)
 
 
-## Cube d'une case, aux faces alignées sur les axes, posé au sol (niveau des
-## points de départ), habillé uniquement de textures de caisse.
-func _is_crate(solid: Dictionary, box: AABB) -> bool:
+## Objet déplaçable : &"crate" (cube d'une case aux faces alignées sur les
+## axes, textures de caisse), &"barrel" (une case de haut et de large,
+## textures de bidon), ou &"" (décor). Dans les deux cas, posé au sol (niveau
+## des points de départ).
+func _prop_kind(solid: Dictionary, box: AABB) -> StringName:
 	if solid["kind"] != &"solid":
-		return false
-	var brush: UfoMap.Brush = solid["brush"]
-	if not _is_box(brush):
-		return false
+		return &""
 	var error := (box.size - Vector3.ONE * CRATE_SIZE).abs()
 	if error[error.max_axis_index()] > CRATE_TOLERANCE:
-		return false
+		return &""
 	if absf(box.position.z - _offset.z) > CRATE_TOLERANCE:
-		return false
+		return &""
+	var brush: UfoMap.Brush = solid["brush"]
+	if movable_crates and _is_box(brush) and _textured_with(brush, crate_textures):
+		return &"crate"
+	if movable_barrels and _textured_with(brush, barrel_textures):
+		return &"barrel"
+	return &""
+
+
+## Vrai si toutes les faces visibles du brush portent une texture commençant
+## par l'un des `prefixes`.
+func _textured_with(brush: UfoMap.Brush, prefixes: PackedStringArray) -> bool:
 	for face in brush.faces:
-		if _is_visible(face) and not _has_crate_texture(face.texture):
+		if not _is_visible(face):
+			continue
+		var known := false
+		for prefix in prefixes:
+			known = known or face.texture.begins_with(prefix)
+		if not known:
 			return false
 	return true
-
-
-func _has_crate_texture(texture: String) -> bool:
-	for prefix in crate_textures:
-		if texture.begins_with(prefix):
-			return true
-	return false
 
 
 ## Vrai si un autre brush visible repose sur le dessus de la caisse `index`
@@ -545,10 +596,13 @@ func _bounds(polygons: Array) -> AABB:
 	return box
 
 
-## Crée une caisse `Climbable` (scène des caisses du jeu) par caisse de la
-## carte, habillée de ses propres textures.
+## Crée un `Climbable` (scène des caisses du jeu) par caisse ou bidon de la
+## carte, habillé de ses propres textures : MapCrateN, MapBarrelN.
 func _build_crates(crates: Array[Dictionary]) -> void:
+	var counts := {&"crate": 0, &"barrel": 0}
 	for i in crates.size():
+		var prop: StringName = crates[i]["prop"]
+		counts[prop] += 1
 		var box: AABB = crates[i]["bounds"]
 		var base := to_world(Vector3(box.get_center().x, box.get_center().y, box.position.z))
 		var size := Vector3(box.size.x, box.size.z, box.size.y) / units_per_meter
@@ -560,7 +614,8 @@ func _build_crates(crates: Array[Dictionary]) -> void:
 			tool.generate_tangents()
 			tool.commit(mesh)
 		var crate := CRATE_SCENE.instantiate() as Climbable
-		crate.name = "MapCrate%d" % (i + 1)
+		crate.name = ("MapBarrel%d" if prop == &"barrel" else "MapCrate%d") % counts[prop]
+		crate.can_stand_on = prop != &"barrel"
 		crate.top_height = size.y
 		crate.half_extent = maxf(size.x, size.z) * 0.5
 		var view := crate.get_node("MeshInstance3D") as MeshInstance3D
@@ -568,9 +623,15 @@ func _build_crates(crates: Array[Dictionary]) -> void:
 		view.transform = Transform3D.IDENTITY
 		# Forme propre à la caisse (la ressource de la scène est partagée).
 		var collision := crate.get_node("CollisionShape3D") as CollisionShape3D
-		var shape := BoxShape3D.new()
-		shape.size = size
-		collision.shape = shape
+		if prop == &"barrel":
+			var cylinder := CylinderShape3D.new()
+			cylinder.radius = crate.half_extent
+			cylinder.height = size.y
+			collision.shape = cylinder
+		else:
+			var shape := BoxShape3D.new()
+			shape.size = size
+			collision.shape = shape
 		collision.position = Vector3(0.0, size.y * 0.5, 0.0)
 		crate.position = base
 		add_child(crate)

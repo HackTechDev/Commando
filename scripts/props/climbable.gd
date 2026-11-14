@@ -2,7 +2,8 @@ class_name Climbable
 extends StaticBody3D
 ## Obstacle sur lequel un opérateur peut se tenir : caisse, ou case du dessus
 ## d'un mur (corniche, accessible seulement depuis un obstacle voisin).
-## Une seule unité à la fois peut s'y tenir.
+## Une seule unité à la fois peut s'y tenir. Sert aussi aux objets qu'on
+## déplace sans monter dessus (bidons : `can_stand_on` faux).
 
 ## Écart et dénivelé maximaux pour passer directement d'un objet à son voisin.
 const MAX_GAP := 0.35
@@ -25,6 +26,8 @@ const SIDES: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vec
 ## Texture remplaçant celle de la scène (variante de caisse), en chemin
 ## relatif au dossier de textures externe (`TextureLibrary`), ou vide.
 @export var skin: String = ""
+## Faux si l'on ne peut pas monter dessus (bidon : on le pousse, on le tire).
+@export var can_stand_on: bool = true
 ## Faux pour un objet fixe (corniche) : ni poussé ni tiré.
 @export var movable: bool = true
 ## Faux si l'on ne peut y monter que depuis un objet voisin (trop haut pour
@@ -61,7 +64,7 @@ func get_top_position() -> Vector3:
 ## Vrai si `other` touche cet objet par un côté et que leurs dessus sont à
 ## peu près à la même hauteur : on peut alors passer de l'un à l'autre à pied.
 func is_adjacent_to(other: Climbable) -> bool:
-	if other == null or other == self:
+	if other == null or other == self or not can_stand_on or not other.can_stand_on:
 		return false
 	var top := get_top_position()
 	var other_top := other.get_top_position()
@@ -75,7 +78,7 @@ func is_adjacent_to(other: Climbable) -> bool:
 ## pied s'ils sont voisins (`is_adjacent_to`), sinon en grimpant ou en
 ## redescendant, s'ils se touchent par un côté et que le dénivelé le permet.
 func can_reach(other: Climbable) -> bool:
-	if other == null or other == self:
+	if other == null or other == self or not can_stand_on or not other.can_stand_on:
 		return false
 	var top := get_top_position()
 	var other_top := other.get_top_position()
@@ -97,7 +100,7 @@ func has_top_point(point: Vector3) -> bool:
 static func find_at(tree: SceneTree, point: Vector3) -> Climbable:
 	for node in tree.get_nodes_in_group(&"climbables"):
 		var climbable := node as Climbable
-		if climbable and climbable.has_top_point(point):
+		if climbable and climbable.can_stand_on and climbable.has_top_point(point):
 			return climbable
 	return null
 

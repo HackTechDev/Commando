@@ -129,6 +129,59 @@ func test_push_and_pull_map_crate() -> void:
 	assert_almost_eq(crate.global_position, start, Vector3.ONE * 0.05, "ramenée en la tirant")
 
 
+func test_map_barrels_are_movable_props() -> void:
+	if _skip_without_map():
+		return
+	var barrels := _map_barrels()
+	assert_eq(barrels.size(), 22, "tous les bidons de la carte")
+	var alpha: Commando = node("Units/Alpha")
+	var space := alpha.get_world_3d().direct_space_state
+	for barrel in barrels:
+		assert_true(barrel.movable)
+		assert_false(barrel.can_stand_on, "%s : on ne monte pas dessus" % barrel.name)
+		assert_almost_eq(barrel.top_height, 1.2, 0.001)
+		assert_almost_eq(barrel.global_position.y, 0.0, 0.01, "posé au sol")
+		assert_is((barrel.get_node("CollisionShape3D") as CollisionShape3D).shape, CylinderShape3D)
+		var mesh := (barrel.get_node("MeshInstance3D") as MeshInstance3D).mesh
+		assert_not_null((mesh.surface_get_material(0) as StandardMaterial3D).albedo_texture, "textures de la carte")
+		assert_null(Climbable.find_at(get_tree(), barrel.get_top_position()), "un clic sur le dessus ne fait pas grimper")
+		# Plus de mur invisible sous le bidon (découpé s'il couvrait aussi du décor).
+		var query := PhysicsShapeQueryParameters3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(1.0, 1.0, 1.0)
+		query.shape = box
+		query.transform = Transform3D(Basis(), barrel.global_position + Vector3.UP * 0.6)
+		query.collision_mask = 1
+		query.exclude = [barrel.get_rid()]
+		assert_eq(space.intersect_shape(query, 1).size(), 0, "%s : mur invisible retiré" % barrel.name)
+	assert_false(alpha.climb(barrels[0], false), "on ne grimpe pas sur un bidon")
+
+
+func test_push_and_pull_map_barrel() -> void:
+	if _skip_without_map():
+		return
+	for enemy in node("Enemies").get_children():
+		enemy.process_mode = Node.PROCESS_MODE_DISABLED
+	var alpha: Commando = node("Units/Alpha")
+	# Bidon dégagé sur ses quatre côtés.
+	var barrel: Climbable = null
+	for candidate in _map_barrels():
+		if candidate.get_access_points().size() == 4:
+			barrel = candidate
+			break
+	assert_not_null(barrel)
+	var start := barrel.global_position
+	var side := barrel.get_side_toward(alpha.global_position)
+	assert_true(alpha.handle_crate(barrel, barrel.get_access_point(side)))
+	assert_gt(await frames_until(alpha.is_handling_crate, 2000), -1, "bidon saisi")
+	alpha.move_to(start - side, false)
+	await frames(200)
+	assert_almost_eq(barrel.global_position, start - side, Vector3.ONE * 0.05, "poussé d'1 m")
+	alpha.move_to(start, false)
+	await frames(200)
+	assert_almost_eq(barrel.global_position, start, Vector3.ONE * 0.05, "ramené en le tirant")
+
+
 func test_wall_tops_become_ledges() -> void:
 	if _skip_without_map():
 		return
@@ -221,9 +274,17 @@ func test_jump_down_from_wall_without_crate() -> void:
 func _map_crates() -> Array[Climbable]:
 	var crates: Array[Climbable] = []
 	for node_ in node("NavigationRegion3D/Map").get_children():
-		if node_ is Climbable and node_.movable:
+		if node_ is Climbable and node_.name.begins_with("MapCrate"):
 			crates.append(node_)
 	return crates
+
+
+func _map_barrels() -> Array[Climbable]:
+	var barrels: Array[Climbable] = []
+	for node_ in node("NavigationRegion3D/Map").get_children():
+		if node_ is Climbable and node_.name.begins_with("MapBarrel"):
+			barrels.append(node_)
+	return barrels
 
 
 func _ledges() -> Array[Climbable]:

@@ -309,7 +309,7 @@ func attack(enemy: Enemy, run: bool) -> void:
 ## le sol, se gagne par un objet voisin (caisse) : l'unité monte d'abord
 ## dessus, puis grimpe jusqu'à la corniche.
 func climb(target: Climbable, run: bool) -> bool:
-	if is_dead or _hopping or target == null:
+	if is_dead or _hopping or target == null or not target.can_stand_on:
 		return false
 	if perched_on == target:
 		return true

@@ -88,3 +88,15 @@ func test_world_conversion() -> void:
 	# Lacet 90° (vers +Y d'UFO:AI) → regard vers -Z de Godot (rotation nulle).
 	assert_almost_eq(UfoMapLevel.yaw_to_world(90.0), 0.0, 0.0001)
 	assert_almost_eq(UfoMapLevel.yaw_to_world(-90.0), -PI, 0.0001)
+
+
+func test_subtract_keeps_what_surrounds_the_hole() -> void:
+	# Mur invisible de 3 × 2 cases, bidon dans la case du milieu en bas.
+	var pieces := UfoMapLevel._subtract([Rect2(0, 0, 96, 64)] as Array[Rect2], Rect2(32, 0, 32, 32))
+	var area := 0.0
+	for piece in pieces:
+		area += piece.get_area()
+		assert_false(piece.intersects(Rect2(32, 0, 32, 32)), "rien sous le bidon : %s" % piece)
+	assert_almost_eq(area, 96.0 * 64.0 - 32.0 * 32.0, 0.01, "le reste est conservé")
+	assert_eq(UfoMapLevel._subtract([Rect2(0, 0, 32, 32)] as Array[Rect2], Rect2(0, 0, 32, 32)).size(), 0, "entièrement couvert : supprimé")
+	assert_eq(UfoMapLevel._subtract([Rect2(0, 0, 32, 32)] as Array[Rect2], Rect2(64, 0, 32, 32)).size(), 1, "hors du trou : intact")

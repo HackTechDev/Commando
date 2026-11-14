@@ -175,8 +175,11 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
 		return
-	# Caisse, ou dessus d'un mur où l'on peut se tenir (corniche).
+	# Caisse, ou dessus d'un mur où l'on peut se tenir (corniche). Un bidon
+	# ne se gravit pas : on va à côté.
 	var climbable := hit["collider"] as Climbable
+	if climbable and not climbable.can_stand_on:
+		climbable = null
 	if climbable == null and (hit["normal"] as Vector3).y > 0.7:
 		climbable = Climbable.find_at(get_tree(), hit["position"])
 	if climbable:

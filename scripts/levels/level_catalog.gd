@@ -17,7 +17,7 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
-		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs, de caisses (neuf à escalader ou déplacer) et de tonneaux, gardé par huit sentinelles fixes.",
+		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
 		"map": "training_a.map",
 	},
 ]
