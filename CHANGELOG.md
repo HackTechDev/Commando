@@ -269,3 +269,15 @@
 - Bâtiments à étage : au rez-de-chaussée, l'étage et son toit s'effacent aussi ; à l'étage, seul le toit.
 - Les deux pans d'un toit en pente s'effacent ensemble.
 - Sur Entraînement B, les tranchées couvertes laissent aussi voir l'intérieur.
+
+## Personnalisation des opérateurs
+
+- Nouvelle entrée « Opérateurs » au menu principal : un écran pour personnaliser les trois opérateurs de l'équipe, choisis par des portraits cliquables (indicatif et nom).
+- Identité : nom, indicatif (affiché dans le HUD, nom complet en info-bulle), teinte du visage, barbe, coupe et couleur des cheveux.
+- Tenue : couleurs du haut, du pantalon, du gilet et du couvre-chef (palette de 16 teintes), ou camouflage woodland, désert, urbain, neige ou nuit.
+- Accessoires : couvre-chef (casque balistique, casquette, chapeau de brousse, bonnet, aucun), cagoule, jumelles de vision nocturne, casque audio, gilet tactique, sac à dos, radio, genouillères.
+- Armement : carabine silencieuse, pistolet-mitrailleur silencieux, fusil de précision ou fusil de combat, chacun avec ses réglages de tir en mission (portée, dégâts, cadence, chargeur, bruit) ; arme secondaire ; couteaux de lancer (0 à 2), grenades, charges explosives et trousse de soins (pour l'instant seulement visibles sur l'opérateur).
+- Aperçu 3D en temps réel : l'opérateur tourne sur un socle, on le fait pivoter en glissant et on zoome à la molette ; animations repos, marche, course, accroupi, couché et visée.
+- Bouton pour remettre un opérateur dans sa tenue par défaut (avec confirmation).
+- Les choix sont sauvegardés aussitôt et s'appliquent automatiquement en mission.
+

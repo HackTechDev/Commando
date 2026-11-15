@@ -1,11 +1,12 @@
 class_name MainMenu
 extends Control
 ## Menu de démarrage : choix de la carte (`LevelCatalog`), chargement en
-## arrière-plan puis lancement du niveau.
+## arrière-plan puis lancement du niveau ; accès à l'écran « Opérateurs ».
 
 @onready var _levels: VBoxContainer = %Levels
 @onready var _status: Label = %Status
 @onready var _quit: Button = %Quit
+@onready var _operators: Button = %Operators
 
 ## Scène en cours de chargement, ou vide.
 var _loading: String = ""
@@ -20,6 +21,7 @@ func _ready() -> void:
 	quit_dialog = ConfirmDialog.for_quit(self)
 	add_child(quit_dialog)
 	_quit.pressed.connect(quit_dialog.ask)
+	_operators.pressed.connect(open_operators)
 	var first: Button = null
 	for level in LevelCatalog.LEVELS:
 		var button := _add_level(level)
@@ -65,6 +67,12 @@ func _add_level(level: Dictionary) -> Button:
 		warning.add_theme_font_size_override(&"font_size", 13)
 		texts.add_child(warning)
 	return button
+
+
+## Ouvre l'écran de personnalisation des opérateurs.
+func open_operators() -> void:
+	if _loading.is_empty():
+		get_tree().change_scene_to_file(OperatorScreen.SCENE)
 
 
 func _start(level: Dictionary) -> void:

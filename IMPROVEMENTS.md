@@ -70,6 +70,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 ## 4. Interface
 
 - **Portraits avec image** : rendre le modèle 3D dans un `SubViewport` pour chaque opérateur.
+- **Opérateurs, suite** : rendre utilisables l'arme secondaire (changement d'arme, à sec ou au choix), les grenades, les charges explosives et la trousse de soins ; vrais visages (texture ou modèle) et plus de coupes ; couleurs libres (sélecteur) en plus de la palette ; motifs de camouflage propres à chaque vêtement ; spécialités d'opérateur (tireur, éclaireur, sapeur) qui influent sur les réglages ; plusieurs tenues enregistrées par opérateur ; portrait 3D dans le HUD.
 - **Menu, suite** : confirmation avant d'abandonner une partie, menu pause sur Échap, aperçu de chaque carte, mémoriser la dernière carte jouée, proposer automatiquement les autres cartes UFO:AI du dossier.
 - **Écran de fin et redémarrage** : après « ÉCHEC — opérateur tué », la partie continue ; proposer de recommencer.
 - **Journal d'objectifs, minimap, menus principal et pause, options** (§6).
