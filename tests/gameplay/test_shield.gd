@@ -38,8 +38,8 @@ func test_shield_draws_the_sidearm_and_slows_down() -> void:
 	assert_lt(alpha._current_speed(), walk, "plus lent")
 	alpha.move_to(Vector3(0, 0, -2), true)
 	assert_almost_eq(alpha._current_speed(), alpha.stats.walk_speed * Commando.SHIELD_SPEED, 0.01, "pas de course")
-	await frames(40)
-	assert_true(alpha._model.is_shield_up(), "levé devant lui")
+	# Carabine à la bretelle, puis bouclier devant lui.
+	assert_gt(await frames_until(func() -> bool: return alpha._model.is_shield_up(), 150), -1, "levé devant lui")
 	alpha.toggle_posture(SoldierModel.Posture.PRONE)
 	assert_false(alpha.shield_raised, "baissé pour ramper")
 	alpha.toggle_posture(SoldierModel.Posture.PRONE)

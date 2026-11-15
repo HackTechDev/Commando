@@ -400,3 +400,12 @@
 - La bouche est posée sur le visage (ou sur la barbe) au lieu de flotter devant, pour les deux morphologies.
 - Nouveau nez modelé : arête partant d'entre les yeux, bout arrondi, ailes et narines, ancré dans la peau. Il est plus petit pour une opératrice.
 - Barbe courte et barbe fournie : elles épousent désormais la mâchoire sous le nez et remontent en favoris jusqu'aux oreilles. La barbe fournie s'épaissit vers le menton et garde sa moustache. Auparavant, c'était un ellipsoïde qui flottait à plusieurs centimètres du visage et cachait le nez.
+
+## Changement d'arme animé, bretelle 3 points
+
+- Corrigé : avec l'arme de poing en main (bouclier levé, ou touche H), l'arme principale apparaissait mal placée, en travers du dos et dépassant sur le côté.
+- Le changement d'arme est maintenant un mouvement continu :
+  - l'arme principale descend des mains et pend à sa bretelle 3 points, sur le flanc droit, canon vers le bas ;
+  - le pistolet sort de l'étui de cuisse jusqu'à la main ;
+  - pour revenir, le pistolet rentre dans l'étui, puis l'arme principale remonte de la bretelle.
+- Avec le bouclier, celui-ci ne passe du dos à l'avant qu'une fois le fusil lâché. Le tout prend environ 1,2 s, pendant lequel l'opérateur ne tire pas.

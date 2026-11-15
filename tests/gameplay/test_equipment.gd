@@ -42,14 +42,14 @@ func test_secondary_weapon_takes_over_when_primary_is_dry() -> void:
 	assert_true(alpha.using_secondary, "pistolet dégainé, l'arme principale à sec")
 	assert_eq(alpha.stats.magazine_size, 8, "réglages du pistolet")
 	assert_eq(alpha.ammo_in_magazine, 8)
-	assert_not_null(alpha.find_child("SlungPrimary", true, false), "carabine dans le dos")
 	assert_gt(await frames_until(func() -> bool: return alpha.ammo_in_magazine < 8, 300), -1, "tire au pistolet")
+	assert_not_null(alpha.find_child("SlungPrimary", true, false), "carabine pendue à la bretelle")
 	alpha.stop()
 	assert_true(alpha.switch_weapon(), "retour à l'arme principale")
 	assert_false(alpha.using_secondary)
 	assert_eq(alpha.ammo_in_magazine, 0, "l'arme principale est toujours vide")
 	assert_eq(alpha.stats.magazine_size, 10)
-	assert_null(alpha.find_child("SlungPrimary", true, false))
+	assert_gt(await frames_until(func() -> bool: return alpha.find_child("SlungPrimary", true, false) == null, 120), -1, "pistolet rengainé, carabine reprise")
 
 
 func test_grenade_kills_and_is_heard() -> void:

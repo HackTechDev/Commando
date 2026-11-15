@@ -205,3 +205,34 @@ func test_mouth_and_nose_sit_on_the_face() -> void:
 			var box := nose.get_aabb()
 			assert_lt(box.position.z, SoldierModel.face_depth(0.0, 0.148, female) - 0.015, "%s : nez saillant" % body)
 			assert_gt(box.end.z, SoldierModel.face_depth(0.0, 0.17, female), "%s : nez ancré dans le visage" % body)
+
+
+func test_switch_to_sidearm_slings_the_rifle_then_draws_the_pistol() -> void:
+	var outfit := OperatorProfile.defaults(0)
+	outfit.shield = 1
+	model.outfit = outfit
+	_run(0.5)
+	assert_true(model.is_weapon_ready())
+	model.sidearm_drawn = true
+	model.shield_raised = true
+	_run(0.3)
+	assert_false(model.is_weapon_ready(), "pas de tir pendant le changement")
+	assert_null(model.find_child("SlungPrimary", true, false), "le fusil descend d'abord à la bretelle")
+	assert_false(model.is_shield_up(), "le bouclier attend que le fusil ait quitté les mains")
+	_run(0.6)
+	var slung: Node3D = model.find_child("SlungPrimary", true, false)
+	assert_not_null(slung, "fusil pendu à la bretelle")
+	assert_true(slung.transform.is_equal_approx(model._rifle_slung), "sur le flanc, là où la bretelle l'a laissé")
+	assert_lt(model._draw, 1.0, "le pistolet sort de l'étui")
+	_run(1.0)
+	assert_true(model.is_weapon_ready(), "pistolet en main")
+	assert_true(model.is_shield_up())
+	model.sidearm_drawn = false
+	model.shield_raised = false
+	_run(0.3)
+	assert_not_null(model.find_child("SlungPrimary", true, false), "le pistolet rentre d'abord dans l'étui")
+	_run(0.4)
+	assert_null(model.find_child("SlungPrimary", true, false))
+	assert_false(model.is_weapon_ready(), "le fusil remonte de la bretelle")
+	_run(1.0)
+	assert_true(model.is_weapon_ready(), "fusil en main")

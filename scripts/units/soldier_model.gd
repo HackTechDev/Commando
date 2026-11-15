@@ -255,6 +255,10 @@ const GUARD_RIGHT := Vector3(0.14, 0.58, -0.22)
 
 ## Durée (s) pour passer l'arme à la bretelle, ou pour la reprendre en main.
 const SLING_TIME := 0.7
+## Durée pour sortir le pistolet de l'étui (ou l'y remettre).
+const DRAW_TIME := 0.45
+## Pistolet dans son étui de cuisse (repère du torse), canon vers le bas.
+const HOLSTER := Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), Vector3(0.2, -0.04, 0.03))
 ## Bouclier balistique : taille du panneau (m), poignée (repère du
 ## bouclier, derrière le panneau), temps pour le lever ou le passer dans le
 ## dos, et décalage de l'arme de poing (repère du torse), tenue à droite du
@@ -375,14 +379,15 @@ var crate_pull: bool = false
 var throw_progress: float = -1.0
 ## Le lancer est celui d'une grenade (au lieu d'un couteau).
 var throw_grenade: bool = false
-## Arme secondaire en main (l'arme principale passe dans le dos).
+## Arme secondaire en main ; l'arme principale pend alors à sa bretelle
+## 3 points, sur le flanc droit. Le changement est animé (`_update_weapon_switch`) :
+## l'arme principale descend à la bretelle, puis le pistolet sort de l'étui
+## (et l'inverse pour le rengainer).
 var sidearm_drawn: bool = false:
 	set(value):
-		if value == sidearm_drawn:
-			return
 		sidearm_drawn = value
-		if _body:
-			_rebuild()
+		if _body == null:
+			_sidearm_built = value
 ## Porte un bouclier balistique (dans le dos, ou levé : `shield_raised`).
 var carries_shield: bool = false:
 	set(value):
@@ -428,6 +433,11 @@ var _rifle_sling_mid: Transform3D
 var _butt_keys: Array[Transform3D] = []
 ## 0 = arme en main, 1 = arme à la bretelle.
 var _sling: float = 0.0
+## Arme en main telle que construite (peut retarder sur `sidearm_drawn`
+## pendant le changement d'arme), et sortie du pistolet (0 : dans l'étui,
+## 1 : en main).
+var _sidearm_built: bool = false
+var _draw: float = 1.0
 ## Bouclier (null sans bouclier), sa position dans le dos (repère du torse) et
 ## sa levée (0 : dans le dos, 1 : devant).
 var _shield: Node3D
@@ -633,6 +643,7 @@ func _build() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	_shot_time += delta
+	_update_weapon_switch(delta)
 	_hit_time += delta
 	_pickup_time += delta
 	_aim_hold = maxf(_aim_hold - delta, 0.0)
@@ -656,7 +667,54 @@ func _process(delta: float) -> void:
 
 ## Vrai si l'arme est en main, prête à tirer.
 func is_weapon_ready() -> bool:
-	return is_armed and _sling <= 0.0
+	return is_armed and _sling <= 0.0 and not is_switching_weapon()
+
+
+## Vrai pendant un changement d'arme (principale ↔ secondaire).
+func is_switching_weapon() -> bool:
+	return sidearm_drawn != _sidearm_built or (_sidearm_built and _draw < 1.0)
+
+
+## Position de la bretelle visée : un changement d'arme vers le pistolet
+## laisse d'abord pendre l'arme principale.
+func _sling_goal() -> float:
+	if not is_armed:
+		return 0.0
+	if sidearm_drawn and not _sidearm_built:
+		return 1.0
+	return 1.0 if weapon_slung else 0.0
+
+
+## Enchaîne le changement d'arme : l'arme principale descend à la bretelle,
+## le modèle passe au pistolet (l'arme principale reste pendue au même
+## endroit), qui sort de l'étui ; à l'inverse, le pistolet rentre dans l'étui
+## puis l'arme principale remonte de la bretelle.
+func _update_weapon_switch(delta: float) -> void:
+	if is_dead:
+		return
+	if sidearm_drawn == _sidearm_built:
+		if _sidearm_built:
+			_draw = move_toward(_draw, 1.0, delta / DRAW_TIME)
+		return
+	if sidearm_drawn:
+		if _sling < 1.0 and is_armed:
+			return
+		_sidearm_built = true
+		_rebuild()
+		_draw = 0.0
+		_sling = 1.0 if weapon_slung else 0.0
+		_rifle_base = HOLSTER
+		_rifle.transform = HOLSTER
+		return
+	_draw = move_toward(_draw, 0.0, delta / DRAW_TIME)
+	if _draw > 0.0:
+		return
+	_sidearm_built = false
+	_rebuild()
+	_draw = 1.0
+	_sling = 1.0
+	_rifle_base = _rifle_slung
+	_rifle.transform = _rifle_slung
 
 
 ## Vrai si les mains sont libres (arme à la bretelle, ou pas d'arme).
@@ -843,7 +901,7 @@ func _animate_alive(delta: float) -> void:
 	var s := sin(_phase)
 	var c := cos(_phase)
 	var swing := 0.55 * moving + 0.25 * maxf(walk - 1.0, 0.0)
-	_sling = move_toward(_sling, 1.0 if weapon_slung and is_armed else 0.0, delta / SLING_TIME)
+	_sling = move_toward(_sling, _sling_goal(), delta / SLING_TIME)
 	# Attaque au corps à corps : élan vers l'avant, puis retour.
 	# Prise par derrière (étranglement, égorgement).
 	var grapple := strike_progress >= 0.0 and (strike_move == StrikeMove.CHOKE or strike_move == StrikeMove.THROAT_CUT)
@@ -1131,6 +1189,11 @@ func _animate_alive(delta: float) -> void:
 	var shield := _update_shield(delta, prone)
 	# Bouclier levé : l'arme de poing passe à droite du bouclier.
 	rifle_target.origin += SHIELD_PISTOL_OFFSET * shield
+	# Pistolet qui sort de l'étui (ou y rentre).
+	var draw := smoothstep(0.0, 1.0, _draw) if _sidearm_built else 1.0
+	if draw < 1.0:
+		rifle_target = HOLSTER.interpolate_with(rifle_target, draw)
+		_rifle_base = rifle_target
 	if prone:
 		# Arme portée par la main droite, qui avance avec le coude droit.
 		rifle_target.origin += Vector3(0.0, -0.1 * s, -0.04) * crawl
@@ -1170,6 +1233,9 @@ func _animate_alive(delta: float) -> void:
 		# le flanc.
 		left = left.lerp(_free_hand(-1.0, prone, s, c, moving, crawl), smoothstep(0.35, 0.75, _sling))
 		right = right.lerp(_free_hand(1.0, prone, s, c, moving, crawl), smoothstep(0.65, 1.0, _sling))
+		# La main gauche ne vient sur le pistolet qu'une fois sorti de l'étui.
+		if draw < 1.0:
+			left = left.lerp(_free_hand(-1.0, prone, s, c, moving, crawl), 1.0 - smoothstep(0.6, 1.0, draw))
 		if shield > 0.0:
 			left = left.lerp(_shield.transform * SHIELD_HANDLE, shield)
 		target = _solve_arms(left, right, PRONE_ELBOW_POLE if prone else ARM_POLE)
@@ -1576,7 +1642,7 @@ func _animate_climb(delta: float) -> void:
 	_lean = _torso.rotation.x
 	_torso_yaw = 0.0
 	_head.rotation = Vector3(-0.5 * _torso.rotation.x, 0.0, 0.0)
-	_sling = move_toward(_sling, 1.0 if weapon_slung and is_armed else 0.0, delta / SLING_TIME)
+	_sling = move_toward(_sling, _sling_goal(), delta / SLING_TIME)
 	var sling := maxf(_sling, sample_keys(CLIMB_DOWN_SLING if down else CLIMB_UP_SLING, t))
 	_rifle.transform = _sling_transform(_rifle_hold, sling)
 	_rifle_base = _rifle.transform
@@ -1603,7 +1669,7 @@ func _animate_jump(delta: float, t: float) -> void:
 	_lean = _torso.rotation.x
 	_torso_yaw = 0.0
 	_head.rotation = Vector3(-0.6 * _torso.rotation.x, 0.0, 0.0)
-	_sling = move_toward(_sling, 1.0 if weapon_slung and is_armed else 0.0, delta / SLING_TIME)
+	_sling = move_toward(_sling, _sling_goal(), delta / SLING_TIME)
 	var sling := maxf(_sling, sample_keys(JUMP_SLING, t))
 	_rifle.transform = _sling_transform(_rifle_hold, sling)
 	_rifle_base = _rifle.transform
@@ -1798,7 +1864,9 @@ func _build_shield() -> void:
 func _update_shield(delta: float, prone: bool) -> float:
 	if _shield == null:
 		return 0.0
-	_shield_up = move_toward(_shield_up, 1.0 if shield_raised and not prone and not is_dead else 0.0, delta / SHIELD_TIME)
+	# Le bouclier attend que l'arme principale ait quitté les mains.
+	var hands_free := _sidearm_built or _sling >= 0.95 or not is_armed
+	_shield_up = move_toward(_shield_up, 1.0 if shield_raised and not prone and not is_dead and hands_free else 0.0, delta / SHIELD_TIME)
 	var up := smoothstep(0.0, 1.0, _shield_up)
 	var to_torso := (_body.transform * _hips.transform * _torso.transform).affine_inverse()
 	var front := to_torso * Transform3D(Basis.IDENTITY, Vector3(-0.04, _hips.position.y + 0.36, -0.44))
@@ -1966,7 +2034,7 @@ func _build_sidearm(leg: Node3D) -> void:
 	if kind == &"none":
 		return
 	var holster := _pivot(leg, Vector3.ZERO, "Sidearm")
-	if sidearm_drawn:
+	if _sidearm_built:
 		# Arme en main : holster vide.
 		_box(holster, Vector3(0.05, 0.20, 0.12), Vector3(0.115, -0.20, 0.0), _m_gear)
 		return
@@ -2707,13 +2775,14 @@ func _build_rifle_and_arms() -> void:
 	_rifle_block = Transform3D(Basis.from_euler(Vector3(0.15, PI / 2.0, 0.0)), Vector3(0.16, 0.66, -0.34))
 	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
 	var primary := (&"carbine" if _guard_look.is_empty() else &"rifle") if outfit == null else outfit.primary
-	var drawn := sidearm_drawn and outfit != null and outfit.secondary != &"none"
+	var drawn := _sidearm_built and outfit != null and outfit.secondary != &"none"
 	var muzzle := _build_weapon(rifle, outfit.secondary if drawn else primary)
 	_left_grip = PISTOL_LEFT_GRIP if drawn else LEFT_GRIP
 	if drawn:
-		# Arme principale en travers du dos, canon vers le bas à gauche.
-		var back := _pivot(_torso, Vector3(0.0, 0.3, 0.2), "SlungPrimary")
-		back.rotation = Vector3(0.0, PI, deg_to_rad(-55.0))
+		# Arme principale pendue à sa bretelle 3 points, sur le flanc droit,
+		# canon vers le bas : là où l'a laissée le geste de la bretelle.
+		var back := _pivot(_torso, Vector3.ZERO, "SlungPrimary")
+		back.transform = _rifle_slung
 		var magazine := _rifle_mag
 		_build_weapon(back, primary)
 		back.name = "SlungPrimary"
