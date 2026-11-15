@@ -334,3 +334,9 @@
   - éclaireur : jumelles sur la poitrine, poche à eau sans sac ;
   - sapeur : pied-de-biche d'effraction en travers du dos, bobine de cordeau détonant ;
   - infirmier : brassards à croix rouge et grand sac de soins à la hanche.
+- Ennemis reconnaissables d'un coup d'œil :
+  - casque ancien à bord évasé sous couvre-casque, casquette ou béret ;
+  - visage découvert, avec peau, cheveux et barbe tirés au hasard (toujours les mêmes pour un même soldat) ;
+  - gilet à quatre porte-chargeurs et bretelles croisées, radio pour certains ;
+  - fusil d'assaut à crosse en bois et chargeur courbe ;
+  - ni JVN, ni cagoule, ni sac.

@@ -131,7 +131,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **c)** ~~expressions (effort, douleur)~~ (fait) ;
   - **d)** ~~plis et coutures sur les vêtements (texture)~~ (fait) ;
   - **e)** ~~silhouette propre à chaque spécialité~~ (fait).
-- **6.2 Silhouette des ennemis** : ils ont désormais le même corps que les opérateurs (membres galbés, mains gantées, visage), mais toujours l'ancien casque générique. Leur donner un équipement propre (casquette, casque plus ancien, gilet différent), pour les reconnaître d'un coup d'œil.
+- **6.2 ~~Silhouette des ennemis~~** (fait) : casque ancien, casquette ou béret, visage découvert et varié, gilet à chargeurs, fusil d'assaut à crosse en bois.
 - **6.3 Pas pendant les déplacements subis** : après une poussée ou une esquive, le corps glisse avec une marche approximative. Ajouter un vrai pas en arrière et un pas chassé.
 - **6.4 Geste de ramassage** : le couteau de lancer est ramassé sans se baisser.
 - **6.5 Réaction des ennemis désarmés** : sans arme, un ennemi en alerte garde les bras le long du corps entre deux coups. Lui donner une garde.

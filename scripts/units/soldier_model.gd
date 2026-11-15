@@ -279,8 +279,9 @@ const MOUTH_REST := Vector3(1.5, 0.32, 0.5)
 @export var skin_color := Color(0.80, 0.62, 0.50)
 ## Couleur d'identification de l'équipe (écussons d'épaule, marqueur de casque).
 @export var team_color := Color(0.15, 0.45, 0.95)
-## Casque d'opérateur (balistique, rails, protection auditive) ; sinon,
-## casque simple des soldats ennemis.
+## Équipement d'opérateur (casque balistique, rails, cagoule, gilet
+## porte-plaques) ; sinon, tenue des soldats ennemis (`_guard_look`) :
+## casque ancien, casquette ou béret, visage découvert, gilet à chargeurs.
 @export var operator_helmet := true
 @export var helmet_color := Color(0.25, 0.27, 0.2)
 
@@ -447,6 +448,9 @@ var _arm_joints: Array[Node3D] = []
 var _arm_poses: Array = []
 ## Phalanges de chaque main (gauche, droite) : 4 doigts × 2, puis le pouce.
 var _fingers: Array = []
+## Apparence d'un soldat ennemi, tirée au hasard (graine : chemin du nœud) ;
+## vide pour un opérateur.
+var _guard_look: Dictionary = {}
 ## Visage animé (absent sous un casque fermé : listes vides).
 var _irises: Array[Node3D] = []
 var _lids: Array[Node3D] = []
@@ -534,6 +538,11 @@ func _build() -> void:
 		_m_helmet = _mat(outfit.headwear_color, 0.75)
 		_m_skin = _mat(GearCatalog.SKINS[outfit.skin], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[outfit.hair_color], 0.9)
+	_guard_look = _pick_guard_look() if outfit == null and not operator_helmet else {}
+	if not _guard_look.is_empty():
+		_m_skin = _mat(GearCatalog.SKINS[_guard_look["skin"]], 0.8)
+		_m_hair = _mat(GearCatalog.HAIR_COLORS[_guard_look["hair_color"]], 0.9)
+		_m_helmet = _cloth((uniform_color as Color).darkened(0.1)) if _guard_look["headwear"] == &"helmet" else _mat(_guard_look["headwear_color"], 0.85)
 	_m_dark = _mat(Color(0.05, 0.05, 0.05), 0.4)
 	_m_glove = _mat(Color(0.13, 0.13, 0.12), 0.8)
 	_m_sole = _mat(Color(0.06, 0.06, 0.06), 0.9)
@@ -1534,7 +1543,10 @@ func _build_torso() -> void:
 	shoulders.scale = Vector3(1.0, 1.0, 0.95)
 	_tapered(_torso, 0.068, 0.08, 0.04, Vector3(0.0, 0.565, 0.005), _m_top)
 	var front := -0.12
-	if _wears(&"vest"):
+	if _wears(&"vest") and not _guard_look.is_empty():
+		front = -0.16
+		_build_chest_rig()
+	elif _wears(&"vest"):
 		front = -0.155
 		var vest := _pivot(_torso, Vector3.ZERO, "Vest")
 		# Porte-plaques : ceinture élastique, plaques avant et arrière, bretelles.
@@ -1574,6 +1586,23 @@ func _build_torso() -> void:
 		_cylinder(radio, 0.006, 0.38, Vector3(-0.12, 0.72, back), _m_weapon)
 	_build_equipment(front)
 	_build_specialty(front, back)
+
+
+## Apparence d'un soldat ennemi : visage, cheveux, barbe et couvre-chef,
+## toujours la même pour un même nœud.
+func _pick_guard_look() -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(get_path())) if is_inside_tree() else 0
+	var headwear: StringName = [&"helmet", &"helmet", &"cap", &"beret"][rng.randi() % 4]
+	return {
+		"skin": rng.randi() % GearCatalog.SKINS.size(),
+		"hair_color": rng.randi() % GearCatalog.HAIR_COLORS.size(),
+		"hair_style": [&"short", &"short", &"shaved"][rng.randi() % 3],
+		"beard": [&"none", &"stubble", &"full"][rng.randi() % 3],
+		"headwear": headwear,
+		"headwear_color": [Color(0.42, 0.1, 0.1), Color(0.15, 0.15, 0.13), Color(0.3, 0.32, 0.2)][rng.randi() % 3],
+		"radio": rng.randf() < 0.4,
+	}
 
 
 ## Équipement qui distingue la spécialité au premier coup d'œil.
@@ -1627,6 +1656,22 @@ func _build_specialty(front: float, back: float) -> void:
 			_box(bag, Vector3(0.006, 0.018, 0.06), Vector3(0.048, 0.0, 0.0), _m_red)
 
 
+## Gilet des ennemis : panneau ventral de quatre porte-chargeurs ouverts,
+## bretelles croisées dans le dos, pas de plaques.
+func _build_chest_rig() -> void:
+	var rig := _pivot(_torso, Vector3.ZERO, "Vest")
+	_box(rig, Vector3(0.3, 0.17, 0.03), Vector3(0.0, 0.3, -0.135), _m_gear)
+	for i in 4:
+		var x := (float(i) - 1.5) * 0.072
+		_box(rig, Vector3(0.062, 0.12, 0.045), Vector3(x, 0.29, -0.165), _m_gear)
+		_box(rig, Vector3(0.04, 0.05, 0.03), Vector3(x, 0.36, -0.163), _m_weapon)
+	_tapered(rig, 0.2, 0.2, 0.05, Vector3(0.0, 0.24, 0.0), _m_gear).scale.z = 0.66
+	for side: float in [-1.0, 1.0]:
+		_box(rig, Vector3(0.05, 0.02, 0.28), Vector3(0.1 * side, 0.556, 0.0), _m_gear)
+		_strap(Vector3(0.12 * side, 0.54, 0.125), Vector3(-0.12 * side, 0.26, 0.125), 0.045, 0.012, _m_gear, rig)
+		_strap(Vector3(0.1 * side, 0.54, -0.13), Vector3(0.11 * side, 0.36, -0.15), 0.045, 0.012, _m_gear, rig)
+
+
 ## Équipement visible : grenades et charges au ceinturon, trousse de soins
 ## dans le dos, fourreaux des couteaux de lancer sur la poitrine (`front` :
 ## devant du buste).
@@ -1674,6 +1719,8 @@ func _build_sidearm(leg: Node3D) -> void:
 
 ## Vrai si l'opérateur porte l'accessoire `accessory` (toujours, sans profil).
 func _wears(accessory: StringName) -> bool:
+	if not _guard_look.is_empty():
+		return accessory == &"vest" or (accessory == &"radio" and _guard_look["radio"])
 	return outfit == null or bool(outfit.get(accessory))
 
 
@@ -1764,30 +1811,32 @@ func _build_head() -> void:
 				if outfit.headset:
 					_build_ear_cups(0.12)
 		return
-	if operator_helmet:
+	if _guard_look.is_empty():
 		_build_operator_helmet(true, true)
 		return
-	# Casque balistique « high cut ».
+	match _guard_look["headwear"]:
+		&"helmet":
+			_build_guard_helmet()
+		var kind:
+			_build_soft_headwear(kind)
+
+
+## Casque ancien des soldats ennemis : bombe arrondie sous un couvre-casque
+## en toile, bord évasé tout autour, bande élastique et jugulaire.
+func _build_guard_helmet() -> void:
 	var dome := SphereMesh.new()
-	dome.radius = 0.138
-	dome.height = 0.138
+	dome.radius = 0.142
+	dome.height = 0.142
 	dome.is_hemisphere = true
-	var helmet := _mesh(_head, dome, Vector3(0.0, 0.195, 0.005), _m_uniform)
-	helmet.scale = Vector3(1.0, 1.0, 1.12)
-	_box(_head, Vector3(0.27, 0.035, 0.30), Vector3(0.0, 0.20, 0.005), _m_uniform)
+	var helmet := _mesh(_head, dome, Vector3(0.0, 0.18, 0.008), _m_helmet)
+	helmet.name = "Helmet"
+	helmet.scale = Vector3(1.0, 1.02, 1.1)
+	var rim := _tapered(_head, 0.142, 0.158, 0.028, Vector3(0.0, 0.17, 0.008), _m_helmet)
+	rim.scale.z = 1.1
+	var band := _tapered(_head, 0.137, 0.14, 0.02, Vector3(0.0, 0.225, 0.008), _m_dark)
+	band.scale.z = 1.1
 	for side: float in [-1.0, 1.0]:
-		# Rails latéraux et coques du casque radio.
-		_box(_head, Vector3(0.015, 0.03, 0.13), Vector3(0.137 * side, 0.225, 0.0), _m_weapon)
-		_box(_head, Vector3(0.04, 0.09, 0.075), Vector3(0.125 * side, 0.15, 0.01), _m_gear)
-		# Tubes des jumelles de vision nocturne, relevées.
-		var tube := _cylinder(_head, 0.022, 0.10, Vector3(0.032 * side, 0.335, -0.135), _m_weapon)
-		tube.rotation.x = deg_to_rad(-65.0)
-		var lens := _cylinder(_head, 0.018, 0.012, Vector3(0.032 * side, 0.358, -0.183), _m_lens)
-		lens.rotation.x = deg_to_rad(-65.0)
-	# Support JVN, micro, marqueur d'identification.
-	_box(_head, Vector3(0.05, 0.05, 0.035), Vector3(0.0, 0.285, -0.14), _m_weapon)
-	_box(_head, Vector3(0.012, 0.012, 0.10), Vector3(-0.115, 0.115, -0.06), _m_weapon)
-	_box(_head, Vector3(0.05, 0.012, 0.05), Vector3(0.0, 0.337, 0.06), _m_team)
+		_strap(Vector3(0.135 * side, 0.17, 0.02), Vector3(0.07 * side, 0.06, -0.06), 0.012, 0.004, _m_dark)
 
 
 ## Visage découvert : tête, yeux, sourcils, nez, cheveux et barbe d'`outfit`.
@@ -1801,17 +1850,17 @@ func _build_face() -> void:
 	var bridge := _box(_head, Vector3(0.02, 0.048, 0.022), Vector3(0.0, 0.168, -0.1), _m_skin)
 	bridge.rotation.x = -0.3
 	_ellipsoid(_head, 0.014, Vector3(1.25, 0.9, 1.0), Vector3(0.0, 0.147, -0.111), _m_skin)
-	var beard := &"none" if outfit == null else outfit.beard
+	var beard: StringName = _guard_look.get("beard", &"none") if outfit == null else outfit.beard
 	var lips_depth := {&"none": -0.108, &"stubble": -0.116, &"full": -0.131}[beard] as float
 	_mouth = _ellipsoid(_head, 0.02, MOUTH_REST, Vector3(0.0, 0.119, lips_depth), _m_lip)
 	_mouth.name = "Mouth"
 	# Intérieur de la bouche, visible quand elle s'ouvre (douleur).
 	_mouth_inner = _ellipsoid(_head, 0.016, Vector3(1.2, 0.01, 0.4), Vector3(0.0, 0.118, lips_depth - 0.004), _m_dark)
 	_mouth_inner.visible = false
-	var style := &"short" if outfit == null else outfit.hair_style
+	var style: StringName = _guard_look.get("hair_style", &"short") if outfit == null else outfit.hair_style
 	# Sous un couvre-chef, seuls l'arrière du crâne et la queue de cheval
 	# dépassent.
-	var covered := outfit != null and outfit.headwear != &"none"
+	var covered := (outfit != null and outfit.headwear != &"none") or not _guard_look.is_empty()
 	if style != &"shaved":
 		# Arrière et côtés du crâne.
 		_ellipsoid(_head, 0.1, Vector3(0.96, 0.72, 0.92), Vector3(0.0, 0.2, 0.042), _m_hair)
@@ -1986,6 +2035,13 @@ func _build_soft_headwear(kind: StringName) -> void:
 		&"boonie":
 			hat.scale = Vector3(1.03, 1.05, 1.08)
 			_cylinder(_head, 0.2, 0.01, Vector3(0.0, 0.205, 0.005), _m_helmet)
+		&"beret":
+			# Béret penché sur le côté droit.
+			hat.scale = Vector3(1.12, 0.55, 1.08)
+			hat.position = Vector3(-0.012, 0.255, 0.0)
+			hat.rotation.z = -0.25
+			_tapered(_head, 0.112, 0.114, 0.022, Vector3(0.0, 0.25, 0.006), _m_dark).scale.z = 1.08
+			_box(_head, Vector3(0.025, 0.03, 0.006), Vector3(0.05, 0.27, -0.118), _m_steel)
 		&"beanie":
 			hat.scale = Vector3(1.02, 1.2, 1.07)
 			hat.position.y = 0.19
@@ -2189,8 +2245,8 @@ func _shell_band(theta: float, from: float, to: float, width: float, thickness: 
 
 
 ## Sangle plate de `from` à `to` (repère de la tête).
-func _strap(from: Vector3, to: Vector3, width: float, thickness: float, material: Material) -> MeshInstance3D:
-	var strap := _box(_head, Vector3(width, thickness, from.distance_to(to)), Vector3.ZERO, material)
+func _strap(from: Vector3, to: Vector3, width: float, thickness: float, material: Material, parent: Node3D = null) -> MeshInstance3D:
+	var strap := _box(parent if parent else _head, Vector3(width, thickness, from.distance_to(to)), Vector3.ZERO, material)
 	var direction := (to - from).normalized()
 	var up := Vector3.UP if absf(direction.dot(Vector3.UP)) < 0.95 else Vector3.FORWARD
 	strap.transform = Transform3D(Basis.looking_at(direction, up), (from + to) * 0.5)
@@ -2215,7 +2271,7 @@ func _build_rifle_and_arms() -> void:
 	_rifle_shove_push = Transform3D(Basis.from_euler(Vector3(0.3, PI / 2.0, 0.0)), Vector3(0.14, 0.48, -0.5))
 	_rifle_block = Transform3D(Basis.from_euler(Vector3(0.15, PI / 2.0, 0.0)), Vector3(0.16, 0.66, -0.34))
 	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
-	var primary := &"carbine" if outfit == null else outfit.primary
+	var primary := (&"carbine" if _guard_look.is_empty() else &"rifle") if outfit == null else outfit.primary
 	var drawn := sidearm_drawn and outfit != null and outfit.secondary != &"none"
 	var muzzle := _build_weapon(rifle, outfit.secondary if drawn else primary)
 	_left_grip = PISTOL_LEFT_GRIP if drawn else LEFT_GRIP
@@ -2337,6 +2393,27 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 			_box(rifle, Vector3(0.012, 0.02, 0.012), Vector3(0.0, 0.085, -0.58), _m_weapon)
 			_box(rifle, Vector3(0.03, 0.025, 0.015), Vector3(0.0, 0.1, 0.0), _m_weapon)
 			return -0.61
+	if kind == &"rifle":
+		# Fusil d'assaut des ennemis : crosse et garde-main en bois, chargeur
+		# courbe, frein de bouche, sans optique.
+		var wood := _mat(Color(0.36, 0.2, 0.1), 0.7)
+		_box(rifle, Vector3(0.045, 0.075, 0.3), Vector3(0.0, 0.04, -0.05), _m_weapon)
+		var stock := _box(rifle, Vector3(0.038, 0.08, 0.24), Vector3(0.0, 0.0, 0.2), wood)
+		stock.rotation.x = deg_to_rad(-6.0)
+		_box(rifle, Vector3(0.05, 0.065, 0.24), Vector3(0.0, 0.035, -0.33), wood)
+		var curved := _pivot(rifle, Vector3(0.0, -0.01, -0.09), "Magazine")
+		for i in 3:
+			var piece := _box(curved, Vector3(0.028, 0.065, 0.055), Vector3(0.0, -0.03 - 0.055 * i, -0.012 * i * i), _m_weapon)
+			piece.rotation.x = -0.2 * i
+		_rifle_mag = curved
+		var gas := _cylinder(rifle, 0.012, 0.22, Vector3(0.0, 0.075, -0.36), _m_weapon)
+		gas.rotation.x = PI / 2.0
+		var muzzle := _cylinder(rifle, 0.012, 0.22, Vector3(0.0, 0.04, -0.56), _m_weapon)
+		muzzle.rotation.x = PI / 2.0
+		var brake := _cylinder(rifle, 0.017, 0.05, Vector3(0.0, 0.04, -0.68), _m_weapon)
+		brake.rotation.x = PI / 2.0
+		_box(rifle, Vector3(0.01, 0.04, 0.012), Vector3(0.0, 0.07, -0.64), _m_weapon)
+		return -0.71
 	# Carabine à silencieux.
 	_box(rifle, Vector3(0.045, 0.08, 0.30), Vector3(0.0, 0.04, -0.05), _m_weapon)      # boîtier
 	_box(rifle, Vector3(0.04, 0.065, 0.20), Vector3(0.0, 0.035, 0.19), _m_weapon)     # crosse

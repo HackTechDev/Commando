@@ -81,3 +81,15 @@ func test_specialty_changes_the_silhouette() -> void:
 	model._rebuild()
 	assert_not_null(model.find_child("Specialty", true, false), "sac de soins")
 	assert_eq(model.find_children("Armband", "", true, false).size(), 2, "brassards aux deux bras")
+
+
+func test_enemies_have_their_own_kit() -> void:
+	var guard := SoldierModel.new()
+	guard.operator_helmet = false
+	guard.name = "Guard"
+	add_child_autofree(guard)
+	assert_null(guard.find_child("Balaclava", true, false), "visage découvert")
+	assert_not_null(guard.find_child("Face", true, false))
+	assert_null(guard.find_child("NvgTube*", true, false), "pas de JVN")
+	assert_null(guard.find_child("Backpack", true, false))
+	assert_not_null(guard.find_child("Magazine", true, false), "fusil à chargeur courbe")
