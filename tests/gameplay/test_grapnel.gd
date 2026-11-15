@@ -32,6 +32,10 @@ func test_route_needs_a_wall_within_reach() -> void:
 	assert_true(alpha.grapple_route(ROOF)["ok"], "il ira au pied du mur")
 	assert_false(alpha.grapple_route(Vector3(-4, 3, -8))["ok"], "dessus d'un mur : inaccessible")
 	assert_false(alpha.grapple(ROOF), "sans grappin")
+	assert_eq(alpha.current_hint(), Commando.Hint.NO_GRAPNEL, "il dit qu'il n'en a pas")
+	alpha.grapnels = 1
+	assert_false(alpha.grapple(Vector3(20, 0, 20)), "pas de hauteur")
+	assert_eq(alpha.hint_text(), "Grappin : pas assez haut", "raison du refus affichée")
 
 
 func test_operator_throws_the_grapnel_and_climbs_to_the_roof() -> void:

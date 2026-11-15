@@ -527,3 +527,9 @@
 - Modèle : long canon, magasin tubulaire, garde-main mobile ; après chaque tir, la main gauche manœuvre la pompe (avec son bruit). Le rechargement se fait cartouche par cartouche, sans chargeur qui tombe.
 - `UnitStats.fire_damage_far` et `damage_at(distance)` : dégâts selon la distance, pour toute arme qui le souhaite. La comparaison des armes affiche « 95 → 20 ».
 
+## Grappin : raison des refus
+
+- Touche du grappin sans opérateur équipé : « Pas de grappin (à équiper : écran Opérateurs) » s'affiche sous l'indicatif, au lieu d'un curseur interdit partout. Le grappin s'ajoute dans l'onglet Armement de l'écran Opérateurs.
+- Lancer refusé : la raison s'affiche (« Grappin : pas assez haut », « trop loin », « relief trop accidenté »…).
+- Les tests n'utilisent plus la dernière carte jouée du joueur ni son cache des toits (`UfoMapLevel.roof_cache_dir`).
+

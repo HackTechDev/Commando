@@ -25,13 +25,16 @@ const CALLSIGN_HEIGHTS: Array[float] = [2.05, 1.55, 0.85]
 ## Raison pour laquelle l'opérateur ne tire pas ou ne lance pas, affichée
 ## sous son indicatif (`report_hint` pendant un ordre, `flash_hint` pour un
 ## ordre refusé).
-enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE }
+enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE, NO_GRAPNEL, MESSAGE }
 const HINT_TEXTS: Dictionary = {
 	Hint.OUT_OF_RANGE: "Hors de portée",
 	Hint.OBSTACLE: "Obstacle : pas de ligne de tir",
 	Hint.NO_AMMO: "À sec",
 	Hint.NO_KNIFE: "Plus de couteau",
 	Hint.NO_GRENADE: "Plus de grenade",
+	Hint.NO_GRAPNEL: "Pas de grappin (à équiper : écran Opérateurs)",
+	# Texte libre (`flash_message`).
+	Hint.MESSAGE: "",
 }
 const HINT_COLOR := Color(1.0, 0.62, 0.3)
 ## Durée d'affichage d'un refus.
@@ -151,6 +154,7 @@ var _traversal: LinkTraversal
 var _hint: Hint = Hint.NONE
 var _hint_frame: int = -100
 var _flash: Hint = Hint.NONE
+var _flash_text: String = ""
 var _flash_left: float = 0.0
 var _hint_label: Label3D
 
@@ -577,10 +581,13 @@ func _in_grenade_range(target: Vector3) -> bool:
 ## monter à la corde. Renvoie faux si c'est impossible (pas de grappin,
 ## point hors de portée, pas de paroi à gravir : voir `grapple_route`).
 func grapple(target: Vector3, run: bool = false) -> bool:
+	if not is_dead and grapnels <= 0:
+		flash_hint(Hint.NO_GRAPNEL)
 	if is_dead or _hopping or grapnels <= 0 or perched_on:
 		return false
 	var route := grapple_route(target)
 	if not route["ok"]:
+		flash_message("Grappin : %s" % route["reason"])
 		return false
 	_set_order(GrappleOrder.new(self, route, run))
 	return true
@@ -1253,6 +1260,20 @@ func flash_hint(hint: Hint) -> void:
 	_flash_left = FLASH_TIME
 
 
+## Affiche un instant un message libre (raison d'un refus détaillée).
+func flash_message(text: String) -> void:
+	flash_hint(Hint.MESSAGE)
+	_flash_text = text
+
+
+## Texte affiché en ce moment sous l'indicatif (vide si aucun).
+func hint_text() -> String:
+	var hint := current_hint()
+	if hint == Hint.MESSAGE:
+		return _flash_text
+	return HINT_TEXTS[hint] if hint != Hint.NONE else ""
+
+
 ## Raison affichée en ce moment (`Hint.NONE` si aucune).
 func current_hint() -> Hint:
 	if _hint != Hint.NONE and Engine.get_physics_frames() - _hint_frame <= 2:
@@ -1267,4 +1288,4 @@ func _process(delta: float) -> void:
 	var hint := Hint.NONE if is_dead else current_hint()
 	_hint_label.visible = hint != Hint.NONE
 	if hint != Hint.NONE:
-		_hint_label.text = HINT_TEXTS[hint]
+		_hint_label.text = hint_text()

@@ -39,6 +39,9 @@ const SLICE_USEC := 25000
 ## Cache du repérage des toits, une entrée par carte. Changer
 ## `ROOF_CACHE_VERSION` dès que le repérage change.
 const ROOF_CACHE_DIR := "user://roof_cache"
+## Dossier du cache utilisé (les tests prennent le leur, pour ne pas vider
+## celui du joueur).
+static var roof_cache_dir: String = ROOF_CACHE_DIR
 const ROOF_CACHE_VERSION := 1
 ## Caisse convertie en `Climbable` : cube de cette taille (unités UFO:AI),
 ## posé au sol, rien dessus.
@@ -116,7 +119,7 @@ signal built
 
 ## Vrai une fois le niveau construit.
 var is_built: bool = false
-## Vrai si les toits ont été lus dans le cache (`ROOF_CACHE_DIR`).
+## Vrai si les toits ont été lus dans le cache (`roof_cache_dir`).
 var roofs_from_cache: bool = false
 ## Étape en cours, pour l'écran de chargement.
 var build_stage: String = ""
@@ -1284,7 +1287,7 @@ static func _roof_cache_key(path: String, solid_count: int) -> String:
 
 
 static func _roof_cache_file(key: String) -> String:
-	return ROOF_CACHE_DIR.path_join("%s.bin" % key.md5_text())
+	return roof_cache_dir.path_join("%s.bin" % key.md5_text())
 
 
 ## Relit le repérage des toits en cache. Faux s'il n'y est pas.
@@ -1314,7 +1317,7 @@ func _load_roof_cache(key: String, solids: Array[Dictionary]) -> bool:
 
 
 func _save_roof_cache(key: String, solids: Array[Dictionary]) -> void:
-	DirAccess.make_dir_recursive_absolute(ROOF_CACHE_DIR)
+	DirAccess.make_dir_recursive_absolute(roof_cache_dir)
 	var file := FileAccess.open(_roof_cache_file(key), FileAccess.WRITE)
 	if file == null:
 		return

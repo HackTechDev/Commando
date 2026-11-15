@@ -3,9 +3,14 @@ extends GutTest
 ## « Opérateurs » et accès depuis le menu.
 
 const SAVE := "user://test_operators_ui.json"
+## Réglages propres au test : la dernière carte jouée du joueur passerait
+## sinon en tête du menu.
+const SETTINGS_FILE := "user://test_operators_settings.cfg"
 
 
 func before_each() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_FILE))
+	Settings.use_file(SETTINGS_FILE)
 	OperatorRoster.save_path = SAVE
 	OperatorRoster.use(OperatorRoster.new())
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE))
@@ -17,6 +22,8 @@ func after_each() -> void:
 		get_tree().root.remove_child(scene)
 		scene.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE))
+	Settings.use_file(Settings.PATH)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_FILE))
 	OperatorRoster.save_path = "user://test_operators.json"
 	OperatorRoster.use(OperatorRoster.new())
 

@@ -6,6 +6,12 @@ const LEVELS := {
 	"training_b.map": LevelTest.TRAINING_B,
 	"fighter_crash.map": LevelTest.FIGHTER_CRASH,
 }
+const TEST_ROOF_CACHE := "user://test_roof_cache"
+
+
+func after_each() -> void:
+	super()
+	UfoMapLevel.roof_cache_dir = UfoMapLevel.ROOF_CACHE_DIR
 
 
 func _map_path(map_name: String) -> String:
@@ -302,8 +308,9 @@ func test_scenery_fades_around_operators() -> void:
 func test_roof_detection_is_cached_per_map() -> void:
 	if not await _load("training_b.map"):
 		return
-	for file in DirAccess.get_files_at(UfoMapLevel.ROOF_CACHE_DIR):
-		DirAccess.remove_absolute(UfoMapLevel.ROOF_CACHE_DIR.path_join(file))
+	# Cache propre au test : celui du joueur reste intact.
+	UfoMapLevel.roof_cache_dir = TEST_ROOF_CACHE
+	_clear_test_cache()
 	await _load("training_b.map")
 	var map: UfoMapLevel = node("NavigationRegion3D/Map")
 	assert_false(map.roofs_from_cache, "premier chargement : repérage")
@@ -312,3 +319,11 @@ func test_roof_detection_is_cached_per_map() -> void:
 	map = node("NavigationRegion3D/Map")
 	assert_true(map.roofs_from_cache, "ensuite : lu dans le cache")
 	assert_eq(level.find_children("Roof*", "Roof", true, false).size(), first)
+	_clear_test_cache()
+
+
+func _clear_test_cache() -> void:
+	if not DirAccess.dir_exists_absolute(TEST_ROOF_CACHE):
+		return
+	for file in DirAccess.get_files_at(TEST_ROOF_CACHE):
+		DirAccess.remove_absolute(TEST_ROOF_CACHE.path_join(file))

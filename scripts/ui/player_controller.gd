@@ -262,6 +262,11 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 	return GameCursor.Kind.THROW if pending_action == ACTION_THROW else GameCursor.Kind.MELEE
 
 
+## Vrai si un opérateur sélectionné, vivant, porte un grappin.
+func _has_grapnel() -> bool:
+	return SelectionManager.selected.any(func(unit: Commando) -> bool: return not unit.is_dead and unit.grapnels > 0)
+
+
 ## Grappin : crochet si un opérateur sélectionné peut y monter, sens
 ## interdit sinon.
 func _grapple_cursor(screen_position: Vector2) -> GameCursor.Kind:
@@ -388,7 +393,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"action_grenade"):
 		toggle_pending_action(ACTION_GRENADE)
 	elif event.is_action_pressed(&"action_grapple"):
-		toggle_pending_action(ACTION_GRAPPLE)
+		if pending_action == ACTION_GRAPPLE or _has_grapnel():
+			toggle_pending_action(ACTION_GRAPPLE)
+		else:
+			# Personne n'en porte : on le dit, plutôt qu'un curseur interdit partout.
+			for unit in SelectionManager.selected:
+				unit.flash_hint(Commando.Hint.NO_GRAPNEL)
+			_feedback(false)
 	elif event.is_action_pressed(&"action_plant"):
 		_feedback(SelectionManager.plant_explosive())
 	elif event.is_action_pressed(&"action_detonate"):
