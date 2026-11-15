@@ -92,7 +92,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **4.4 ~~Pause tactique et ordres simultanés~~** (fait) : Espace met le jeu en pause sans bloquer les ordres ; Tab prépare un ordre par unité (affiché à l'écran), Entrée les lance ensemble.
 - **4.5 Annulation propre pendant l'escalade** : l'opérateur n'accepte aucun ordre pendant 1 à 1,4 s. Il faudrait mettre l'ordre en file d'attente plutôt que de l'ignorer.
 - **4.6 Groupes de contrôle** (Ctrl + chiffre), et double appui sur un chiffre pour centrer la caméra.
-- **4.7 Retour visuel des tirs** : le modèle a désormais un recul et un flash de bouche. Il manque l'impact sur la cible ou l'obstacle, et un marqueur de dégâts.
+- **4.7 ~~Retour visuel des tirs~~** (fait) : impact des balles manquées sur le premier obstacle (gerbe de poussière), gerbe rouge et chiffre de dégâts sur la cible touchée, étincelles sur un bouclier.
 - **4.8 Lignes de vue bloquées** : indiquer pourquoi un opérateur ne tire pas ou ne lance pas (hors de portée, obstacle, à sec, sans couteau).
 - **4.9 Portée des lancers** : quand T ou N est armé, afficher au sol autour de l'opérateur concerné :
   - **a)** pour le couteau, les cercles de 7 m et de 4 m (où le lancer porte toujours), et la trajectoire au survol d'un ennemi ;

@@ -1072,10 +1072,14 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	var aim := enemy.global_position + Vector3.UP * 1.2
 	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / stats.fire_range, 0.0, 1.0))
 	var hit := randf() < chance
+	var scene := get_tree().current_scene as Node3D
 	if not hit:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
-		aim += side + (aim - muzzle).normalized() * 4.0
-	Tracer.spawn(get_tree().current_scene, muzzle, aim, Color(0.6, 0.9, 1.0))
+		# La balle manquée file jusqu'au premier obstacle derrière la cible.
+		aim = ShotImpact.land(scene, muzzle, aim + side, [get_rid(), enemy.get_rid()] as Array[RID])
+	else:
+		ShotImpact.hit(scene, enemy, aim, muzzle, stats.fire_damage, false)
+	Tracer.spawn(scene, muzzle, aim, Color(0.6, 0.9, 1.0))
 	_model.play_shot()
 	if stats.suppressed:
 		Sfx.play_at(&"shot_suppressed", muzzle, -4.0)

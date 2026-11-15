@@ -578,19 +578,22 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 	var muzzle := global_position + Vector3.UP * 1.3 + forward * 0.7
 	var aim := _target.global_position + Vector3.UP * (0.3 if _target.posture == SoldierModel.Posture.PRONE else 1.0)
 	var hit := randf() < chance
+	var scene := get_tree().current_scene as Node3D
 	if not hit:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
-		aim += side + (aim - muzzle).normalized() * 4.0
+		aim = ShotImpact.land(scene, muzzle, aim + side, [get_rid(), _target.get_rid()] as Array[RID])
 	# Un bouclier levé sur la trajectoire arrête la balle.
 	var stop := Commando.shield_in_the_way(get_tree(), muzzle, aim)
-	Tracer.spawn(get_tree().current_scene, muzzle, aim if stop == Vector3.INF else stop)
+	Tracer.spawn(scene, muzzle, aim if stop == Vector3.INF else stop)
 	_model.play_shot()
 	Sfx.play_at(&"shot", muzzle)
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if stop != Vector3.INF:
 		Sfx.play_at(&"ricochet", stop, -2.0)
+		ShotImpact.spark(scene, stop, muzzle)
 		shots_blocked += 1
 	elif hit:
+		ShotImpact.hit(scene, _target, aim, muzzle, stats.fire_damage, true)
 		_target.health.take_damage(stats.fire_damage)
 
 

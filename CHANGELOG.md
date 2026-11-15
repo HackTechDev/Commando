@@ -452,3 +452,9 @@
 - Tab : préparation d'ordres simultanés. Chaque unité garde le dernier ordre reçu (déplacement, tir, couteau, lancer, grenade, grappin, caisse, escalade) sans l'exécuter ; un trait pointillé numéroté montre sa destination ou sa cible. Entrée lance tous les ordres en même temps ; Tab à nouveau les abandonne.
 - Les deux se combinent : en pause, préparer les ordres de chaque unité, les lancer, puis reprendre.
 - Les sons d'interface jouent aussi pendant la pause.
+
+## Retour visuel des tirs
+
+- Une balle manquée ne traverse plus les murs : elle s'arrête sur le premier obstacle derrière la cible (mur, caisse, sol), dans une petite gerbe de poussière.
+- Une balle qui touche fait jaillir une gerbe rouge sur la cible, et le chiffre des dégâts (« -25 ») s'élève au-dessus d'elle avant de s'effacer : jaune sur un ennemi, rouge sur un opérateur ou le VIP.
+- Une balle arrêtée par un bouclier fait des étincelles.
