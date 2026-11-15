@@ -477,3 +477,9 @@
 - Un toit ne s'efface plus d'un bloc : seule sa partie au-dessus de l'intérieur couvert disparaît, avec 50 cm de marge pour les murs. Une dalle de terrain qui couvre une tranchée, ou un surplomb au-dessus d'un passage, ne s'efface plus qu'au-dessus du passage ; les clics ne la traversent que là.
 - Garder la souris sur un toit (0,8 s) l'efface : on voit l'intérieur sans y entrer.
 - Le repérage des toits est mis en cache par carte (`user://roof_cache`) : les chargements suivants sautent ce calcul (2 s sur Entraînement B).
+
+## Page d'aide
+
+- H ouvre une page d'aide qui liste toutes les commandes par rubrique (sélection, combat, équipement, tactique, caméra), avec les touches lues dans l'InputMap selon la disposition du clavier. Le jeu est en pause tant qu'elle est ouverte ; H, Échap ou un clic la referment. Elle s'ouvre aussi pendant la pause tactique, qui reste active à la fermeture.
+- Les longues lignes de commandes en haut de l'écran sont remplacées par un rappel « H : aide ».
+- Le changement d'arme passe de H à Y.

@@ -28,6 +28,8 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 ## Confirmations avant de quitter et de revenir au menu.
 var quit_dialog: ConfirmDialog
 var menu_dialog: ConfirmDialog
+## Page d'aide (touche H), ouverte par le contrôleur.
+var help: HelpOverlay
 
 
 func _ready() -> void:
@@ -72,6 +74,10 @@ func _ready() -> void:
 	add_child(quit_dialog)
 	_quit.pressed.connect(quit_dialog.ask)
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
+	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
+	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")
+	help = HelpOverlay.new()
+	add_child(help)
 	_refresh_actions()
 
 

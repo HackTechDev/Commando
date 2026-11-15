@@ -120,7 +120,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **5.6 Écran de fin et redémarrage** : après « ÉCHEC — opérateur tué », la partie continue. Proposer de recommencer.
 - **5.7 Journal d'objectifs, minimap, menu pause, options** (§6).
 - **5.8 Traduction** : passer tous les textes par `tr()` (français et anglais, M10).
-- **5.9 Aide repliable** : les lignes de contrôles en haut de l'écran sont de plus en plus longues (V, B, T, N, K…) et devraient se masquer avec une touche.
+- **5.9 ~~Aide repliable~~** (fait : page d'aide sur H) : les lignes de contrôles en haut de l'écran sont de plus en plus longues (V, B, T, N, K…) et devraient se masquer avec une touche.
 - **5.10 Rendre les touches affichées dynamiques** : les boutons affichent « [C] » ou « [R] » en dur au lieu de lire l'InputMap.
 
 ## 6. Modèle et animation

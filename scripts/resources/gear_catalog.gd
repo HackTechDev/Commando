@@ -195,7 +195,7 @@ const PRIMARY: Dictionary = {
 
 ## Armes secondaires (portées à la cuisse) : nom, description et réglages de
 ## tir. L'opérateur la dégaine quand l'arme principale est à sec, ou sur
-## ordre (H).
+## ordre (Y).
 const SECONDARY: Dictionary = {
 	&"pistol": {
 		"name": "Pistolet silencieux",

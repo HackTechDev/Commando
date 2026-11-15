@@ -297,6 +297,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	# aide) : aucun ordre.
 	if get_tree().paused and not tactical_paused:
 		return
+	if event.is_action_pressed(&"toggle_help"):
+		var help := get_node_or_null(^"../HelpOverlay") as HelpOverlay
+		if help:
+			help.open()
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed(&"tactical_pause"):
 		set_tactical_pause(not tactical_paused)
 		get_viewport().set_input_as_handled()
