@@ -36,6 +36,8 @@ var _listener: AudioListener3D
 
 
 func _ready() -> void:
+	# La caméra se déplace aussi pendant la pause tactique.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_target_position = position
 	_target_size = start_size
 	rotation.y = _target_yaw

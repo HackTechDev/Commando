@@ -31,6 +31,8 @@ var menu_dialog: ConfirmDialog
 
 
 func _ready() -> void:
+	# Pendant la pause tactique, l'interface reste active : on donne des ordres.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	var units: Array[Commando] = []
 	for node in get_tree().get_nodes_in_group(&"commandos"):
 		if node is Commando:

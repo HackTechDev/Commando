@@ -445,3 +445,10 @@
 - Portée : le point visé doit être à 10 m au plus du pied de la paroi et de 1 à 9 m plus haut. Le curseur montre un grappin vert quand c'est possible, un sens interdit sinon.
 - La corde reste en place : coéquipiers, VIP et ennemis peuvent l'emprunter, dans les deux sens.
 - Terrain d'essai : des terrasses en gradins à l'est, à côté du bunker.
+
+## Pause tactique et ordres simultanés
+
+- Espace : pause tactique. Le jeu s'arrête, mais on peut toujours sélectionner, déplacer la caméra et donner des ordres ; ils partent à la reprise. Un bandeau le rappelle en haut de l'écran.
+- Tab : préparation d'ordres simultanés. Chaque unité garde le dernier ordre reçu (déplacement, tir, couteau, lancer, grenade, grappin, caisse, escalade) sans l'exécuter ; un trait pointillé numéroté montre sa destination ou sa cible. Entrée lance tous les ordres en même temps ; Tab à nouveau les abandonne.
+- Les deux se combinent : en pause, préparer les ordres de chaque unité, les lancer, puis reprendre.
+- Les sons d'interface jouent aussi pendant la pause.

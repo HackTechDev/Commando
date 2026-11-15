@@ -1,12 +1,26 @@
 extends Node
 ## Unités sélectionnées et transmission des ordres.
+##
+## Ordres simultanés : en mode préparation (`planning`), les ordres donnés
+## (déplacement, attaque, couteau, lancer, grenade, grappin, caisse,
+## escalade) ne partent pas : chaque unité garde le dernier reçu, et
+## `execute_plans` les lance tous ensemble. Les gestes immédiats (posture,
+## rechargement, arrêt…) ne se préparent pas.
 
 signal selection_changed(units: Array[Commando])
+## Ordres préparés modifiés (ajout, exécution, abandon).
+signal plans_changed
+## Mode préparation activé ou désactivé.
+signal planning_changed(active: bool)
 
 ## Écart entre unités lorsqu'un ordre de déplacement vise plusieurs unités.
 const FORMATION_SPACING := 1.1
 
 var selected: Array[Commando] = []
+## Mode préparation des ordres simultanés.
+var planning: bool = false
+## Ordres préparés : {Commando: {"call": Callable, "point": Vector3, "kind": StringName}}.
+var _plans: Dictionary = {}
 
 
 ## Remplace (ou complète si `additive`) la sélection courante.
@@ -36,6 +50,54 @@ func clear() -> void:
 	select([] as Array[Commando])
 
 
+## Active ou désactive le mode préparation. Le quitter sans exécuter
+## abandonne les ordres préparés.
+func set_planning(active: bool) -> void:
+	if active == planning:
+		return
+	planning = active
+	if not active and not _plans.is_empty():
+		_plans.clear()
+		plans_changed.emit()
+	planning_changed.emit(planning)
+
+
+## Ordres préparés (voir `_plans`), unités mortes ou retirées exclues.
+func planned_orders() -> Dictionary:
+	for unit: Commando in _plans.keys():
+		if not is_instance_valid(unit) or unit.is_dead:
+			_plans.erase(unit)
+	return _plans
+
+
+## Lance tous les ordres préparés en même temps et quitte le mode
+## préparation. Renvoie le nombre d'ordres acceptés.
+func execute_plans() -> int:
+	var accepted := 0
+	var plans := planned_orders().duplicate()
+	_plans.clear()
+	planning = false
+	for unit: Commando in plans:
+		var result: Variant = (plans[unit]["call"] as Callable).call()
+		if not (result is bool) or result:
+			accepted += 1
+	plans_changed.emit()
+	planning_changed.emit(false)
+	return accepted
+
+
+## Donne l'ordre `call` à `unit`, ou le garde pour plus tard en mode
+## préparation (`point` : où il mène, pour l'afficher). Renvoie le résultat de
+## l'ordre (vrai en préparation).
+func _issue(unit: Commando, call: Callable, point: Vector3, kind: StringName) -> bool:
+	if planning:
+		_plans[unit] = {"call": call, "point": point, "kind": kind}
+		plans_changed.emit()
+		return true
+	var result: Variant = call.call()
+	return result if result is bool else true
+
+
 ## Ordonne aux unités sélectionnées de rejoindre `target` (en formation).
 func order_move(target: Vector3, run: bool) -> void:
 	var count := selected.size()
@@ -45,13 +107,14 @@ func order_move(target: Vector3, run: bool) -> void:
 			var angle := TAU * float(i) / float(count)
 			offset = Vector3(cos(angle), 0.0, sin(angle)) * FORMATION_SPACING
 		# Une unité qui tient une caisse la déplace vers le point visé.
-		selected[i].move_to(target if selected[i].is_handling_crate() else target + offset, run)
+		var point := target if selected[i].is_handling_crate() else target + offset
+		_issue(selected[i], selected[i].move_to.bind(point, run), point, &"move")
 
 
 ## Ordonne aux unités sélectionnées d'attaquer `enemy`.
 func order_attack(enemy: Enemy, run: bool) -> void:
 	for unit in selected:
-		unit.attack(enemy, run)
+		_issue(unit, unit.attack.bind(enemy, run), enemy.global_position, &"attack")
 
 
 ## Confie l'élimination au corps à corps de `enemy` à l'unité sélectionnée
@@ -61,7 +124,10 @@ func order_melee(enemy: Enemy, kind: Commando.MeleeKind, run: bool = false) -> b
 	candidates.sort_custom(func(a: Commando, b: Commando) -> bool:
 		return a.global_position.distance_squared_to(enemy.global_position) < b.global_position.distance_squared_to(enemy.global_position))
 	for unit in candidates:
-		if unit.melee(enemy, kind, run):
+		if planning:
+			if not unit.is_dead:
+				return _issue(unit, unit.melee.bind(enemy, kind, run), enemy.global_position, &"melee")
+		elif unit.melee(enemy, kind, run):
 			return true
 	return false
 
@@ -73,7 +139,10 @@ func order_throw(enemy: Enemy, run: bool = false) -> bool:
 	candidates.sort_custom(func(a: Commando, b: Commando) -> bool:
 		return a.global_position.distance_squared_to(enemy.global_position) < b.global_position.distance_squared_to(enemy.global_position))
 	for unit in candidates:
-		if unit.throw_knife(enemy, run):
+		if planning:
+			if not unit.is_dead and unit.throwing_knives > 0:
+				return _issue(unit, unit.throw_knife.bind(enemy, run), enemy.global_position, &"melee")
+		elif unit.throw_knife(enemy, run):
 			return true
 	return false
 
@@ -96,7 +165,10 @@ func order_crate(crate: Climbable, near: Vector3) -> bool:
 	candidates.sort_custom(func(a: Commando, b: Commando) -> bool:
 		return a.global_position.distance_squared_to(near) < b.global_position.distance_squared_to(near))
 	for unit in candidates:
-		if unit.handle_crate(crate, near):
+		if planning:
+			if not unit.is_dead:
+				return _issue(unit, unit.handle_crate.bind(crate, near), crate.global_position, &"move")
+		elif unit.handle_crate(crate, near):
 			return true
 	return false
 
@@ -107,12 +179,15 @@ func order_climb(target: Climbable, run: bool) -> void:
 	var climber_found := false
 	var others := 0
 	for unit in selected:
-		if not climber_found and unit.climb(target, run):
+		if not climber_found and planning and not unit.is_dead:
+			climber_found = _issue(unit, unit.climb.bind(target, run), target.get_top_position(), &"move")
+		elif not climber_found and not planning and unit.climb(target, run):
 			climber_found = true
 		elif unit.perched_on == null:
 			# Une unité déjà perchée qui ne peut pas y aller reste où elle est.
 			var angle := TAU * float(others) / float(maxi(selected.size() - 1, 1))
-			unit.move_to(target.global_position + Vector3(cos(angle), 0.0, sin(angle)) * (target.half_extent + FORMATION_SPACING), run)
+			var point := target.global_position + Vector3(cos(angle), 0.0, sin(angle)) * (target.half_extent + FORMATION_SPACING)
+			_issue(unit, unit.move_to.bind(point, run), point, &"move")
 			others += 1
 
 
@@ -146,7 +221,10 @@ func toggle_posture(posture: SoldierModel.Posture) -> void:
 ## proche qui en a encore. Renvoie faux si aucune ne le peut.
 func order_grenade(target: Vector3, run: bool = false) -> bool:
 	for unit in _nearest_first(target):
-		if unit.throw_grenade(target, run):
+		if planning:
+			if not unit.is_dead and unit.grenades > 0:
+				return _issue(unit, unit.throw_grenade.bind(target, run), target, &"attack")
+		elif unit.throw_grenade(target, run):
 			return true
 	return false
 
@@ -155,7 +233,10 @@ func order_grenade(target: Vector3, run: bool = false) -> bool:
 ## proche qui peut y monter. Renvoie faux si aucune ne le peut.
 func order_grapple(target: Vector3, run: bool = false) -> bool:
 	for unit in _nearest_first(target):
-		if unit.grapple(target, run):
+		if planning:
+			if not unit.is_dead and unit.grapnels > 0 and unit.grapple_route(target)["ok"]:
+				return _issue(unit, unit.grapple.bind(target, run), target, &"move")
+		elif unit.grapple(target, run):
 			return true
 	return false
 

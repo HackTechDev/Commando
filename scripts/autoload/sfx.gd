@@ -74,6 +74,8 @@ func play_ui(sound: StringName, volume_db: float = 0.0) -> void:
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
 	player.bus = &"UI"
+	# Les sons d'interface jouent aussi en pause (pause tactique, menus).
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
 	player.volume_db = volume_db
 	add_child(player)
 	player.finished.connect(player.queue_free)

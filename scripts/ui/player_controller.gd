@@ -14,6 +14,11 @@ extends Control
 ## Le curseur change selon ce qu'il survole (`GameCursor`) : ennemi à
 ## abattre, cible de l'action armée, caisse ou corniche où grimper, VIP,
 ## endroit inaccessible.
+##
+## Pause tactique (Espace) : le jeu s'arrête, mais les ordres restent
+## possibles. Ordres simultanés : Tab passe en préparation (chaque unité
+## garde son dernier ordre, affiché à l'écran), Entrée les lance tous
+## ensemble, Tab à nouveau les abandonne (voir `SelectionManager`).
 
 signal pending_action_changed(action: StringName)
 
@@ -61,9 +66,30 @@ var _middle_start: Vector2 = Vector2.INF
 var _radial: RadialMenu
 var _menu_vip: Vip
 var _cursor_left: float = 0.0
+## Pause tactique en cours (le jeu est en pause, les ordres restent possibles).
+var tactical_paused: bool = false
+## Bandeau d'état (pause tactique, ordres simultanés).
+var _banner: Label
 
 
 func _ready() -> void:
+	_banner = Label.new()
+	_banner.name = "Banner"
+	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.add_theme_font_size_override(&"font_size", 22)
+	_banner.add_theme_color_override(&"font_color", Color(1.0, 0.85, 0.4))
+	_banner.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.9))
+	_banner.add_theme_constant_override(&"outline_size", 6)
+	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_banner.offset_top = 96.0
+	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_banner.visible = false
+	add_child(_banner)
+	SelectionManager.plans_changed.connect(_update_banner)
+	SelectionManager.planning_changed.connect(func(_active: bool) -> void:
+		_update_banner()
+		queue_redraw())
 	_radial = RadialMenu.new()
 	_radial.name = "RadialMenu"
 	add_child(_radial)
@@ -97,6 +123,8 @@ func cancel_pending_action() -> void:
 
 
 func _process(delta: float) -> void:
+	if SelectionManager.planning or not SelectionManager.planned_orders().is_empty():
+		queue_redraw()
 	_cursor_left -= delta
 	if _cursor_left > 0.0:
 		return
@@ -111,6 +139,45 @@ func _process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	GameCursor.apply(GameCursor.Kind.DEFAULT)
+	SelectionManager.set_planning(false)
+	if tactical_paused and is_inside_tree():
+		get_tree().paused = false
+
+
+## Met le jeu en pause tactique (ou le relance). Sans effet si le jeu est
+## déjà en pause pour une autre raison (chargement, dialogue).
+func set_tactical_pause(active: bool) -> void:
+	if active == tactical_paused or (active and get_tree().paused):
+		return
+	tactical_paused = active
+	get_tree().paused = active
+	Sfx.play_ui(&"arm" if active else &"select")
+	_update_banner()
+
+
+## Passe en préparation d'ordres simultanés, ou l'abandonne.
+func toggle_planning() -> void:
+	SelectionManager.set_planning(not SelectionManager.planning)
+	Sfx.play_ui(&"arm" if SelectionManager.planning else &"denied")
+
+
+## Lance les ordres préparés.
+func execute_plans() -> void:
+	if not SelectionManager.planning:
+		return
+	var accepted := SelectionManager.execute_plans()
+	Sfx.play_ui(&"order" if accepted > 0 else &"denied")
+
+
+func _update_banner() -> void:
+	var lines: PackedStringArray = []
+	if tactical_paused:
+		lines.append("PAUSE TACTIQUE — %s : reprendre" % KeyNames.label(&"tactical_pause"))
+	if SelectionManager.planning:
+		lines.append("ORDRES SIMULTANÉS (%d) — %s : exécuter, %s : annuler" % [
+			SelectionManager.planned_orders().size(), KeyNames.label(&"execute_orders"), KeyNames.label(&"plan_orders")])
+	_banner.text = "\n".join(lines)
+	_banner.visible = not lines.is_empty()
 
 
 ## Curseur à afficher au point `screen_position` de l'écran.
@@ -183,6 +250,22 @@ func _is_reachable(point: Vector3) -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# En pause pour autre chose qu'une pause tactique (chargement, dialogue,
+	# aide) : aucun ordre.
+	if get_tree().paused and not tactical_paused:
+		return
+	if event.is_action_pressed(&"tactical_pause"):
+		set_tactical_pause(not tactical_paused)
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"plan_orders"):
+		toggle_planning()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"execute_orders"):
+		execute_plans()
+		get_viewport().set_input_as_handled()
+		return
 	if pending_action != ACTION_NONE and event is InputEventMouseButton:
 		if event.is_action_pressed(&"select"):
 			_use_pending_action((event as InputEventMouseButton).position)
@@ -265,6 +348,35 @@ func _draw() -> void:
 		var rect := Rect2(_drag_start, _drag_end - _drag_start).abs()
 		draw_rect(rect, box_fill)
 		draw_rect(rect, box_border, false, 1.5)
+	_draw_plans()
+
+
+## Ordres préparés : trait pointillé de l'unité à sa destination (ou sa
+## cible), cercle et numéro de l'unité.
+func _draw_plans() -> void:
+	var plans := SelectionManager.planned_orders()
+	var camera := get_viewport().get_camera_3d()
+	if plans.is_empty() or camera == null:
+		return
+	var font := get_theme_default_font()
+	for unit: Commando in plans:
+		var plan: Dictionary = plans[unit]
+		var color := marker_color
+		match plan["kind"]:
+			&"attack":
+				color = marker_attack_color
+			&"melee":
+				color = marker_melee_color
+		var point: Vector3 = plan["point"]
+		if camera.is_position_behind(point) or camera.is_position_behind(unit.global_position):
+			continue
+		var from := camera.unproject_position(unit.global_position + Vector3.UP * 0.1)
+		var to := camera.unproject_position(point + Vector3.UP * 0.05)
+		draw_dashed_line(from, to, Color(color, 0.85), 2.0, 8.0)
+		draw_arc(to, 10.0, 0.0, TAU, 24, color, 2.5, true)
+		var label := str(unit.unit_index)
+		draw_string_outline(font, to + Vector2(12, -8), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Color(0, 0, 0, 0.85))
+		draw_string(font, to + Vector2(12, -8), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, color)
 
 
 func _commandos() -> Array[Commando]:
