@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/ladder.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/props/low_wall.tscn" id="9"]
 
 [sub_resource type="Curve3D" id="patrol_a"]
 _data = {
@@ -62,6 +64,22 @@ size = Vector2(1.6, 4.4)
 [sub_resource type="BoxMesh" id="ground_mesh"]
 material = SubResource("ground_mat")
 size = Vector3(60, 1, 60)
+
+[sub_resource type="BoxShape3D" id="bunker_shape"]
+size = Vector3(5, 3, 5)
+
+[sub_resource type="StandardMaterial3D" id="bunker_mat"]
+albedo_color = Color(0.8, 0.78, 0.72, 1)
+roughness = 0.95
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_ctp1/concrete_g_1.jpg"
+
+[sub_resource type="BoxMesh" id="bunker_mesh"]
+material = SubResource("bunker_mat")
+size = Vector3(5, 3, 5)
 
 [node name="Sandbox" type="Node3D"]
 script = ExtResource("1")
@@ -148,6 +166,26 @@ skin = "tex_base/ecrate_dunno.jpg"
 
 [node name="Crate6" parent="NavigationRegion3D" instance=ExtResource("5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -5)
+
+[node name="Bunker" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 10)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Bunker"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("bunker_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Bunker"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("bunker_mesh")
+
+[node name="BunkerLadder" parent="NavigationRegion3D" instance=ExtResource("8")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 17.5, 0, 10)
+
+[node name="LowWall" parent="NavigationRegion3D" instance=ExtResource("9")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 2)
+length = 6.0
 
 [node name="Units" type="Node3D" parent="."]
 

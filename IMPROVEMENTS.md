@@ -141,7 +141,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 
 - **7.1 Maillage de navigation** : il est généré 0,5 m au-dessus du sol, et un réglage sur chaque agent compense ce décalage. Il faudrait trouver la cause (taille des cellules) plutôt que compenser.
 - **7.2 Îlots de navigation sur les caisses** : le dessus des caisses collées reçoit un bout de maillage inutile. L'exclure à la génération.
-- **7.3 Escalade généralisée** : murets, échelles, toits (`NavigationLink3D`). Les ennemis devraient pouvoir grimper, ou au moins tirer sur un opérateur perché sans rester bloqués.
+- **7.3 ~~Escalade généralisée~~** (fait) : échelles (`Ladder`) jusqu'aux toits plats, murets à enjamber (`LowWall`), par des liens de navigation (`TraversalLink`) qu'empruntent aussi les ennemis et le VIP. Un ennemi armé tire d'en bas sur un opérateur perché. Reste : placer échelles et murets sur les cartes UFO:AI.
 - **7.4 Coût du cône de vision** : 49 lancers de rayon par ennemi et par image. Ne le recalculer que si l'ennemi a bougé, ou réduire le nombre de segments loin de la caméra.
 - **7.5 Occlusion** (M8) : rendre transparents les murs entre la caméra et l'unité sélectionnée. Aujourd'hui, un opérateur derrière un mur est invisible.
 - **7.6 Structure de niveau** (§7) : `LevelRoot` avec `SpawnPoints`, `Objectives`, `CameraBounds` et `ExtractionZone`, et un premier objectif simple pour avoir une boucle de jeu complète.

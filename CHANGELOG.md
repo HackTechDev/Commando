@@ -418,3 +418,11 @@
   - « Attendre ici » : il quitte son guide et reste sur place.
 - Survol pour mettre une option en évidence, clic gauche pour la choisir ; clic droit, clic du milieu, Échap ou clic hors de la couronne pour fermer.
 - Au-dessus du VIP, une étiquette indique « Suit <opérateur> » ou « Attend ». Son guide mort, il attend sur place.
+
+## Escalade généralisée : échelles, murets, toits
+
+- Échelle (`Ladder`) contre un bâtiment à toit plat : un clic droit sur le toit y conduit l'opérateur. Il passe son arme à la bretelle, gravit les barreaux (mains et pieds en alternance), puis se rétablit sur le toit. Il redescend face à l'échelle.
+- Muret (`LowWall`, 1 m) : il arrête la marche, mais le chemin peut passer par-dessus. L'opérateur l'enjambe (escalade, puis descente de l'autre côté).
+- Ces passages sont des liens de navigation : les ennemis et le VIP les empruntent aussi, par exemple pour rejoindre un opérateur réfugié sur un toit.
+- Un ennemi armé tire d'en bas sur un opérateur perché (caisse, mur, toit), sans chercher à passer dessous ; il ne tente plus de le frapper au corps à corps.
+- Terrain d'essai : un bunker avec son échelle et un muret, à l'est.

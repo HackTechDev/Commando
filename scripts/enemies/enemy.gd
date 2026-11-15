@@ -20,6 +20,9 @@ enum State { PATROL, SUSPICIOUS, ALERT, STUNNED, GRABBED }
 
 signal state_changed(state: State)
 
+## Dénivelé (m) au-delà duquel une cible est hors d'atteinte au corps à corps.
+const MELEE_MAX_HEIGHT := 0.8
+
 @export var stats: EnemyStats
 ## Chemin de patrouille (points de la courbe), parcouru en boucle.
 @export var patrol_path: Path3D
@@ -72,6 +75,8 @@ var _desired_velocity: Vector3
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 ## Suivi de chemin sur terrain inégal (points bloqués, marches basses).
 var _walker := PathWalker.new()
+## Franchissement d'échelle ou de muret en cours.
+var _traversal: LinkTraversal
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
@@ -88,6 +93,8 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	_model.set_armed(armed)
 	_agent.velocity_computed.connect(_apply_velocity)
+	_traversal = LinkTraversal.new(self, _model)
+	_agent.link_reached.connect(_on_link_reached)
 	if patrol_path and patrol_path.curve:
 		for i in patrol_path.curve.point_count:
 			_waypoints.append(patrol_path.to_global(patrol_path.curve.get_point_position(i)))
@@ -109,6 +116,9 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_detection(delta)
 	_update_state()
+	if _traversal.update(delta):
+		_model.aiming = false
+		return
 	_model.aiming = armed and state == State.ALERT and _target != null
 	# Sans arme, en alerte : en garde entre deux coups.
 	_model.guard_up = not armed and state == State.ALERT
@@ -153,9 +163,21 @@ func _physics_process(delta: float) -> void:
 		_apply_velocity(horizontal)
 
 
+## Entrée d'un lien de navigation : échelle ou muret à franchir.
+func _on_link_reached(details: Dictionary) -> void:
+	var link := details.get("owner") as TraversalLink
+	if link and not is_dead:
+		_traversal.begin(link, details["link_entry_position"], details["link_exit_position"])
+
+
+## Vrai pendant le franchissement d'une échelle ou d'un muret.
+func is_traversing() -> bool:
+	return _traversal != null and _traversal.active
+
+
 ## Applique la vitesse horizontale (éventuellement corrigée par l'évitement).
 func _apply_velocity(horizontal: Vector3) -> void:
-	if is_dead:
+	if is_dead or is_traversing():
 		return
 	# Une unité à l'arrêt ne se laisse pas pousser par l'évitement.
 	if not _wants_to_move:
@@ -311,6 +333,7 @@ func startle(at: Vector3) -> void:
 
 ## Saisi par derrière : immobile, aveugle, il se débat (animation).
 func grab() -> void:
+	_traversal.cancel()
 	if is_dead or state == State.STUNNED or state == State.GRABBED:
 		return
 	_cancel_melee()
@@ -356,6 +379,7 @@ func kill_silently(fall_forward: bool = false) -> void:
 ## Assomme l'ennemi : il tombe et reste inconscient `stun_duration` secondes.
 ## Assommer un ennemi déjà inconscient prolonge sa perte de connaissance.
 func knock_out(fall_forward: bool = false) -> void:
+	_traversal.cancel()
 	if is_dead:
 		return
 	_stun_left = stats.stun_duration
@@ -397,6 +421,7 @@ func _wake_up() -> void:
 
 func _on_died() -> void:
 	is_dead = true
+	_traversal.cancel()
 	Sfx.play_at(&"fall", global_position, -2.0)
 	_cancel_melee()
 	state = State.PATROL
@@ -503,13 +528,19 @@ func _alert(delta: float) -> Vector3:
 	if _target:
 		_chase_arrived = false
 		_face(to_target, delta)
-		if to_target.length() <= stats.melee_range:
+		# Cible perchée (caisse, mur, toit) : hors d'atteinte des coups.
+		var perched := absf(_last_seen.y - global_position.y) > MELEE_MAX_HEIGHT
+		if to_target.length() <= stats.melee_range and not perched:
 			# Au contact : il frappe au lieu de tirer.
 			_try_melee(to_target)
 			return Vector3.ZERO
 		_try_fire(delta, to_target)
-		# Sans arme, il vient au contact.
-		if to_target.length() <= (stats.hold_range if armed else stats.melee_range * 0.8):
+		# Sans arme, il vient au contact. Armé, face à une cible perchée, il
+		# tire d'où il est plutôt que de chercher à passer dessous.
+		var hold := stats.hold_range if armed else stats.melee_range * 0.8
+		if armed and perched:
+			hold = maxf(hold, stats.fire_range * 0.9)
+		if to_target.length() <= hold:
 			return Vector3.ZERO
 	if _agent.target_position.distance_to(_last_seen) > 0.5:
 		_agent.target_position = _last_seen

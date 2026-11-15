@@ -49,6 +49,8 @@ var _wants_to_move: bool = false
 var _desired_velocity: Vector3
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _walker := PathWalker.new()
+## Franchissement d'échelle ou de muret en cours.
+var _traversal: LinkTraversal
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 
@@ -61,6 +63,8 @@ func _ready() -> void:
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
 	_agent.velocity_computed.connect(_apply_velocity)
+	_traversal = LinkTraversal.new(self, _model)
+	_agent.link_reached.connect(_on_link_reached)
 	_update_status()
 
 
@@ -83,6 +87,8 @@ func civilian_outfit() -> OperatorProfile:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		return
+	if _traversal.update(delta):
 		return
 	var horizontal := Vector3.ZERO
 	if is_evacuated:
@@ -186,6 +192,18 @@ func _go_to(target: Vector3, run: bool, delta: float) -> Vector3:
 	return to_next.normalized() * _current_speed()
 
 
+## Entrée d'un lien de navigation : échelle ou muret à franchir.
+func _on_link_reached(details: Dictionary) -> void:
+	var link := details.get("owner") as TraversalLink
+	if link and not is_dead:
+		_traversal.begin(link, details["link_entry_position"], details["link_exit_position"])
+
+
+## Vrai pendant le franchissement d'une échelle ou d'un muret.
+func is_traversing() -> bool:
+	return _traversal != null and _traversal.active
+
+
 ## Entre dans la zone d'extraction : il s'abrite en `shelter` et n'en bouge plus.
 func evacuate(shelter: Vector3) -> void:
 	if is_dead or is_evacuated:
@@ -200,7 +218,7 @@ func evacuate(shelter: Vector3) -> void:
 
 
 func _apply_velocity(horizontal: Vector3) -> void:
-	if is_dead:
+	if is_dead or is_traversing():
 		return
 	if not _wants_to_move:
 		horizontal = Vector3.ZERO
@@ -245,6 +263,7 @@ func _on_health_changed(current: float, _maximum: float) -> void:
 
 func _on_died() -> void:
 	is_dead = true
+	_traversal.cancel()
 	Sfx.play_at(&"fall", global_position, -2.0)
 	_set_leader(null)
 	remove_from_group(&"vips")

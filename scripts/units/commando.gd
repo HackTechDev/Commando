@@ -119,6 +119,8 @@ var _desired_velocity: Vector3
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 ## Suivi de chemin sur terrain inégal (points bloqués, marches basses).
 var _walker := PathWalker.new()
+## Franchissement d'échelle ou de muret en cours.
+var _traversal: LinkTraversal
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _ring: MeshInstance3D = $SelectionRing
@@ -142,6 +144,20 @@ func _ready() -> void:
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
 	_agent.velocity_computed.connect(_apply_velocity)
+	_traversal = LinkTraversal.new(self, _model)
+	_agent.link_reached.connect(_on_link_reached)
+
+
+## Entrée d'un lien de navigation : échelle ou muret à franchir.
+func _on_link_reached(details: Dictionary) -> void:
+	var link := details.get("owner") as TraversalLink
+	if link and not is_dead:
+		_traversal.begin(link, details["link_entry_position"], details["link_exit_position"])
+
+
+## Vrai pendant le franchissement d'une échelle ou d'un muret.
+func is_traversing() -> bool:
+	return _traversal != null and _traversal.active
 
 
 ## Indicatif, réglages des armes, équipement, charge portée, spécialité et
@@ -180,11 +196,13 @@ func _physics_process(delta: float) -> void:
 	# soigner ou tenir une caisse : arme à la bretelle. Pour assommer, l'arme
 	# reste comme le joueur l'a choisie (crosse ou mains nues).
 	var hands_free := (_order != null and _order.hands_free()) or (_gesture != null and _gesture.hands_free())
-	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or hands_free)
+	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or hands_free or is_traversing())
 	_update_reload(delta)
 	_model.aiming = not is_dead and _order is AttackOrder and (_order as AttackOrder).is_aiming()
 	_model.look_target = _look_point()
 	_model.shield_raised = is_shield_up()
+	if not is_dead and _traversal.update(delta):
+		return
 	if _hopping:
 		return
 	if is_handling_crate() and not is_dead:
@@ -278,7 +296,7 @@ func _apply_velocity(horizontal: Vector3) -> void:
 	# Pendant une escalade, une traversée de caisses ou le déplacement d'une
 	# caisse, le déplacement et l'animation sont scriptés : la physique (et
 	# l'évitement, qui rappelle cette fonction) ne doit pas s'en mêler.
-	if _hopping or is_handling_crate():
+	if _hopping or is_handling_crate() or is_traversing():
 		return
 	# Une unité à l'arrêt ne se laisse pas pousser par l'évitement.
 	if not _wants_to_move:
@@ -1045,6 +1063,7 @@ func _on_health_changed(current: float, _maximum: float) -> void:
 
 func _on_died() -> void:
 	is_dead = true
+	_traversal.cancel()
 	Sfx.play_at(&"fall", global_position, -2.0)
 	_cancel_actions()
 	_reload_left = 0.0

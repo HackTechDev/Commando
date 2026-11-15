@@ -28,6 +28,8 @@ var _was_paused: bool = false
 
 
 func _ready() -> void:
+	# Nouvelle partie : l'alerte du niveau précédent ne compte plus.
+	GameState.alert_level = GameState.AlertLevel.CALM
 	# La carte de navigation doit avoir la même résolution que le maillage
 	# (plus fine sur les cartes aux couloirs étroits).
 	var map := get_world_3d().navigation_map

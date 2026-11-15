@@ -363,6 +363,10 @@ var climb_progress: float = -1.0
 var climb_descending: bool = false
 ## Vrai si la descente est un saut (du haut d'un mur).
 var climb_jump: bool = false
+## Montée ou descente d'une échelle : avancement du cycle de barreaux (une
+## unité par paire de barreaux, croissant en montant), piloté par l'unité ;
+## négatif hors échelle.
+var ladder_phase: float = -1.0
 ## Vrai si le modèle porte sa carabine ; sans arme, les bras pendent le long du corps.
 var is_armed: bool = true
 ## Avancement d'une attaque au corps à corps (0 à 1) ; négatif hors attaque.
@@ -651,6 +655,9 @@ func _process(delta: float) -> void:
 	_flash.visible = _shot_time < FLASH_DURATION and is_armed and not is_dead
 	if climb_progress >= 0.0 and not is_dead:
 		_animate_climb(delta)
+		return
+	if ladder_phase >= 0.0 and not is_dead:
+		_animate_ladder(delta)
 		return
 	if is_dead:
 		_transition_duration = 0.0
@@ -1675,6 +1682,37 @@ func _animate_jump(delta: float, t: float) -> void:
 	_rifle_base = _rifle.transform
 	_apply_arm_keys(JUMP_ARMS, t)
 	_animate_fingers(_climb_curl(JUMP_ARMS, t), delta)
+
+
+## Pose sur une échelle, face aux barreaux : mains sur les montants, qui
+## montent l'une après l'autre ; chaque genou se lève avec la main opposée.
+func _animate_ladder(delta: float) -> void:
+	_transition_duration = 0.0
+	var cycle := sin(fposmod(ladder_phase, 1.0) * TAU)
+	var blend := 1.0 - exp(-25.0 * delta)
+	_body.rotation.x = lerp_angle(_body.rotation.x, 0.0, blend)
+	_body.rotation.z = lerp_angle(_body.rotation.z, 0.0, blend)
+	_body.position = _body.position.lerp(Vector3.ZERO, blend)
+	_hips.rotation.y = 0.0
+	_hips.position.y = HIP_HEIGHT - 0.03
+	_leg_l.rotation = Vector3(0.55 + 0.45 * cycle, 0.0, 0.0)
+	_knee_l.rotation.x = -(0.85 + 0.75 * cycle)
+	_leg_r.rotation = Vector3(0.55 - 0.45 * cycle, 0.0, 0.0)
+	_knee_r.rotation.x = -(0.85 - 0.75 * cycle)
+	_level_feet()
+	_torso.rotation = Vector3(-0.1, 0.0, 0.0)
+	_lean = _torso.rotation.x
+	_torso_yaw = 0.0
+	_head.rotation = Vector3(0.25, 0.0, 0.0)
+	_sling = move_toward(_sling, 1.0 if is_armed else 0.0, delta / SLING_TIME)
+	_rifle.transform = _sling_transform(_rifle_hold, _sling)
+	_rifle_base = _rifle.transform
+	var pose := _solve_arms(Vector3(-0.2, 0.52 - 0.16 * cycle, -0.3), Vector3(0.2, 0.52 + 0.16 * cycle, -0.3))
+	for i in _arm_joints.size():
+		_arm_joints[i].quaternion = pose[i]
+	effort = 0.6
+	pain = 0.0
+	_animate_fingers(Vector2(0.9, 0.95), delta)
 
 
 ## Doigts pendant l'escalade : ouverts pour attraper et prendre appui,

@@ -16,6 +16,7 @@ var level: Node
 func before_each() -> void:
 	# Tirages (parade, coups, précision) reproductibles d'un test à l'autre.
 	seed(1234)
+	GameState.alert_level = GameState.AlertLevel.CALM
 
 
 func after_each() -> void:
