@@ -16,7 +16,7 @@ Piliers :
 3. **Planification** : observer, planifier, exécuter, recharger la sauvegarde rapide, recommencer.
 4. **Punition juste** : se faire repérer est toujours explicable.
 
-Univers : fictif, inspiré de la Seconde Guerre mondiale. **Aucun nom, personnage, logo ou asset repris de Commandos** (propriété intellectuelle) : archétypes génériques uniquement.
+Univers : fictif, **militaire contemporain**. Le joueur dirige des opérateurs des forces spéciales modernes (casque à rails, gilet porte-plaques, carabine, vision nocturne, radio). Leurs adversaires sont des soldats d'une armée irrégulière, à l'équipement plus ancien et dépareillé. Les cartes d'essai reprennent des cartes libres d'UFO:AI. **Aucun nom, personnage, logo ou asset repris de Commandos** (propriété intellectuelle) : archétypes génériques uniquement.
 
 ---
 
@@ -93,7 +93,7 @@ res://
 - Rig : `Node3D` pivot → `Camera3D` orthographique.
 - Déplacement : bord d'écran, touches ZQSD/flèches, clic molette maintenu (drag).
 - Zoom : molette, en jouant sur `size` (bornes min/max).
-- **Rotation par pas de 90°** (touches dédiées), interpolée.
+- **Rotation libre** autour du point visé, tant que les touches dédiées (A / E) sont maintenues, avec un lissage. L'inclinaison reste fixe (≈ -35°).
 - Suivi de l'unité sélectionnée (double-clic sur portrait ou touche dédiée).
 - Limites de déplacement définies par niveau (`AABB`).
 - **Occlusion** : les toits/étages d'un bâtiment deviennent transparents ou masqués quand une unité est à l'intérieur ; les murs entre caméra et unité sélectionnée passent en transparence (shader de dithering).
@@ -215,7 +215,7 @@ Chaque jalon doit être **jouable**, testé, et faire l'objet d'un commit.
 | # | Jalon | Critères d'acceptation |
 |---|---|---|
 | **M0** | Squelette du projet | Arborescence, autoloads vides, InputMap, framework de tests installé, scène sandbox qui se lance |
-| **M1** | Caméra iso | Pan, zoom, rotation 90° interpolée, limites |
+| **M1** | Caméra iso | Pan, zoom, rotation libre lissée, limites |
 | **M2** | Unité contrôlable | Sélection (clic, rectangle, touches), déplacement NavigationAgent3D, marche/course, postures |
 | **M3** | Ennemi + vision | Patrouille sur Path3D, cône de vision affiché et occlus par les murs, deux zones, jauge de détection, état Alert |
 | **M4** | IA complète | Tous les états de 5.3, ouïe, bruit, découverte de corps, alarme globale |
@@ -270,7 +270,7 @@ Chaque jalon doit être **jouable**, testé, et faire l'objet d'un commit.
 | Sélection directe | 1 à 6 |
 | Posture | C (accroupi), X (rampé) |
 | Afficher cône ennemi | Maj + clic gauche |
-| Caméra | ZQSD / flèches, molette, A/E (rotation) |
+| Caméra | ZQSD / flèches, bord d'écran, clic molette (glisser), molette (zoom), A/E maintenus (rotation libre) |
 | Centrer sur l'unité | Espace double-pression ou Origine |
 | Pause tactique | Espace |
 | Ordres simultanés | Tab (enregistrer), Entrée (exécuter) |
