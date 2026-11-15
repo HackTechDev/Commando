@@ -426,3 +426,13 @@
 - Ces passages sont des liens de navigation : les ennemis et le VIP les empruntent aussi, par exemple pour rejoindre un opérateur réfugié sur un toit.
 - Un ennemi armé tire d'en bas sur un opérateur perché (caisse, mur, toit), sans chercher à passer dessous ; il ne tente plus de le frapper au corps à corps.
 - Terrain d'essai : un bunker avec son échelle et un muret, à l'est.
+
+## Curseur contextuel
+
+- Le curseur indique ce que ferait un clic à l'endroit survolé, avec des curseurs dessinés pour le jeu :
+  - viseur rouge sur un ennemi (tirer) ;
+  - flèche verte sur une caisse ou une corniche (grimper) ;
+  - cercle bleu sur le VIP (ses ordres, clic du milieu) ;
+  - sens interdit sur un endroit inaccessible (dessus d'un mur, hors du terrain).
+- Une action armée montre sa cible : poignard (couteau, assommer), poignard lancé, cible de grenade, flèches de déplacement d'une caisse ; sens interdit hors d'une cible valable.
+- Au-dessus de l'interface, le curseur redevient la flèche habituelle.

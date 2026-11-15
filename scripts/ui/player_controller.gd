@@ -10,6 +10,10 @@ extends Control
 ##
 ## Clic du milieu (sans glisser, sinon c'est la caméra) sur un VIP : son menu
 ## circulaire d'ordres (« Suivre l'opérateur », « Attendre ici »).
+##
+## Le curseur change selon ce qu'il survole (`GameCursor`) : ennemi à
+## abattre, cible de l'action armée, caisse ou corniche où grimper, VIP,
+## endroit inaccessible.
 
 signal pending_action_changed(action: StringName)
 
@@ -27,6 +31,12 @@ const MASK_GROUND := 0b011
 const MASK_COMMANDOS := 0b100
 ## Ennemis actifs (couche 4) et assommés (couche 5).
 const MASK_ENEMIES := 0b11000
+## Intervalle (s) entre deux mises à jour du curseur.
+const CURSOR_INTERVAL := 0.08
+## Écart toléré entre un point visé et le maillage de navigation pour le
+## dire accessible (le maillage flotte jusqu'à 0,5 m au-dessus du sol).
+const REACH_TOLERANCE := 0.6
+const REACH_HEIGHT := 1.0
 
 @export var box_fill := Color(0.2, 0.6, 1.0, 0.15)
 @export var box_border := Color(0.3, 0.7, 1.0, 0.9)
@@ -48,6 +58,7 @@ var _middle_start: Vector2 = Vector2.INF
 ## Menu circulaire des ordres au VIP, et le VIP concerné.
 var _radial: RadialMenu
 var _menu_vip: Vip
+var _cursor_left: float = 0.0
 
 
 func _ready() -> void:
@@ -70,7 +81,7 @@ func toggle_pending_action(action: StringName) -> void:
 		return
 	pending_action = action
 	Sfx.play_ui(&"arm")
-	Input.set_default_cursor_shape(Input.CURSOR_CROSS)
+	_cursor_left = 0.0
 	pending_action_changed.emit(pending_action)
 
 
@@ -79,8 +90,80 @@ func cancel_pending_action() -> void:
 	if pending_action == ACTION_NONE:
 		return
 	pending_action = ACTION_NONE
-	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	_cursor_left = 0.0
 	pending_action_changed.emit(pending_action)
+
+
+func _process(delta: float) -> void:
+	_cursor_left -= delta
+	if _cursor_left > 0.0:
+		return
+	_cursor_left = CURSOR_INTERVAL
+	var viewport := get_viewport()
+	# Au-dessus de l'interface (boutons, portraits) : curseur normal.
+	if viewport.gui_get_hovered_control() != null:
+		GameCursor.apply(GameCursor.Kind.DEFAULT)
+		return
+	GameCursor.apply(cursor_kind_at(viewport.get_mouse_position()))
+
+
+func _exit_tree() -> void:
+	GameCursor.apply(GameCursor.Kind.DEFAULT)
+
+
+## Curseur à afficher au point `screen_position` de l'écran.
+func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
+	if _radial.is_open() or get_viewport().get_camera_3d() == null:
+		return GameCursor.Kind.DEFAULT
+	if pending_action != ACTION_NONE:
+		return _pending_cursor(screen_position)
+	var unit_hit := _raycast(screen_position, MASK_COMMANDOS)
+	var vip := unit_hit.get("collider") as Vip
+	if vip and vip.takes_orders():
+		return GameCursor.Kind.ORDERS
+	if SelectionManager.selected.is_empty():
+		return GameCursor.Kind.DEFAULT
+	var enemy := _raycast(screen_position, MASK_ENEMIES).get("collider") as Enemy
+	if enemy and not enemy.is_dead:
+		return GameCursor.Kind.ATTACK
+	var hit := _raycast(screen_position, MASK_GROUND)
+	if hit.is_empty():
+		return GameCursor.Kind.DEFAULT
+	if _climbable_at(hit):
+		return GameCursor.Kind.CLIMB
+	return GameCursor.Kind.DEFAULT if _is_reachable(hit["position"]) else GameCursor.Kind.FORBIDDEN
+
+
+## Curseur d'une action armée : sa cible, ou interdit hors d'une cible valable.
+func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
+	match pending_action:
+		ACTION_GRENADE:
+			return GameCursor.Kind.GRENADE
+		ACTION_CRATE:
+			var crate := _raycast(screen_position, MASK_GROUND).get("collider") as Climbable
+			return GameCursor.Kind.CRATE if crate and crate.movable else GameCursor.Kind.FORBIDDEN
+	var enemy := _raycast(screen_position, MASK_ENEMIES).get("collider") as Enemy
+	if enemy == null or enemy.is_dead:
+		return GameCursor.Kind.FORBIDDEN
+	return GameCursor.Kind.THROW if pending_action == ACTION_THROW else GameCursor.Kind.MELEE
+
+
+## Caisse ou corniche où l'on peut se tenir sous le point `hit` (sinon null).
+func _climbable_at(hit: Dictionary) -> Climbable:
+	var climbable := hit["collider"] as Climbable
+	if climbable and not climbable.can_stand_on:
+		climbable = null
+	if climbable == null and (hit["normal"] as Vector3).y > 0.7:
+		climbable = Climbable.find_at(get_tree(), hit["position"])
+	return climbable
+
+
+## Vrai si `point` est sur le maillage de navigation (ou tout près).
+func _is_reachable(point: Vector3) -> bool:
+	var map := get_viewport().get_camera_3d().get_world_3d().navigation_map
+	var closest := NavigationServer3D.map_get_closest_point(map, point)
+	return Vector2(closest.x - point.x, closest.z - point.z).length() < REACH_TOLERANCE \
+			and absf(closest.y - point.y) < REACH_HEIGHT
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -215,11 +298,7 @@ func _order(screen_position: Vector2, run: bool) -> void:
 		return
 	# Caisse, ou dessus d'un mur où l'on peut se tenir (corniche). Un bidon
 	# ne se gravit pas : on va à côté.
-	var climbable := hit["collider"] as Climbable
-	if climbable and not climbable.can_stand_on:
-		climbable = null
-	if climbable == null and (hit["normal"] as Vector3).y > 0.7:
-		climbable = Climbable.find_at(get_tree(), hit["position"])
+	var climbable := _climbable_at(hit)
 	if climbable:
 		SelectionManager.order_climb(climbable, run)
 		_spawn_marker(climbable.get_top_position(), marker_run_color if run else marker_color)

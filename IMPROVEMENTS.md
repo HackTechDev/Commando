@@ -86,7 +86,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 
 ## 4. Contrôles et lisibilité
 
-- **4.1 Curseur contextuel** (§5.1) : changer le curseur au survol d'un ennemi (tirer), d'une caisse (grimper) ou d'un endroit inaccessible.
+- **4.1 ~~Curseur contextuel~~** (fait) : viseur sur un ennemi, flèche d'escalade sur une caisse ou une corniche, ordres sur le VIP, cible de l'action armée (couteau, lancer, grenade, caisse), sens interdit sur un endroit inaccessible.
 - **4.2 Prévisualisation du chemin** (§5.1) : tracer l'itinéraire avant et pendant le déplacement.
 - **4.3 Cône à la demande** (§5.2) : n'afficher le cône qu'au survol ou avec Maj + clic, et montrer aussi la portée de tir des opérateurs.
 - **4.4 Pause tactique et ordres simultanés** (§5.1) : aucun des deux n'existe, alors que la planification est un pilier du jeu.
