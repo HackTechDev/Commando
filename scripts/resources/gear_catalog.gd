@@ -94,6 +94,7 @@ const ACCESSORIES: Dictionary = {
 ## La carabine reprend les réglages de base de l'opérateur.
 const PRIMARY: Dictionary = {
 	&"carbine": {
+		"short": "Carabine",
 		"name": "Carabine silencieuse",
 		"description": "Polyvalente : portée moyenne, discrète.",
 		"stats": {
@@ -103,6 +104,7 @@ const PRIMARY: Dictionary = {
 		},
 	},
 	&"smg": {
+		"short": "PM",
 		"name": "Pistolet-mitrailleur silencieux",
 		"description": "Très discret et rapide, mais courte portée et faibles dégâts.",
 		"stats": {
@@ -112,6 +114,7 @@ const PRIMARY: Dictionary = {
 		},
 	},
 	&"dmr": {
+		"short": "Précision",
 		"name": "Fusil de précision",
 		"description": "Longue portée et gros dégâts ; lent, peu de munitions, plus bruyant.",
 		"stats": {
@@ -121,6 +124,7 @@ const PRIMARY: Dictionary = {
 		},
 	},
 	&"shotgun": {
+		"short": "Combat",
 		"name": "Fusil de combat",
 		"description": "Dévastateur de près, inutile de loin ; sans silencieux, il s'entend de loin.",
 		"stats": {
@@ -131,11 +135,29 @@ const PRIMARY: Dictionary = {
 	},
 }
 
-## Armes secondaires (portées à la cuisse).
+## Armes secondaires (portées à la cuisse) : nom, description et réglages de
+## tir. L'opérateur la dégaine quand l'arme principale est à sec, ou sur
+## ordre (H).
 const SECONDARY: Dictionary = {
-	&"pistol": "Pistolet silencieux",
-	&"machine_pistol": "Pistolet automatique",
-	&"none": "Aucune",
+	&"pistol": {
+		"name": "Pistolet silencieux",
+		"description": "Arme de secours discrète : courte portée, chargeur de 8.",
+		"stats": {
+			"fire_range": 10.0, "aim_time": 0.3, "fire_interval": 0.45, "fire_damage": 28.0,
+			"hit_chance_near": 0.92, "hit_chance_far": 0.5, "magazine_size": 8, "reserve_ammo": 16,
+			"reload_time": 1.5, "gunshot_noise_radius": 5.0, "suppressed": true,
+		},
+	},
+	&"machine_pistol": {
+		"name": "Pistolet automatique",
+		"description": "Cadence élevée mais peu précis, et sans silencieux.",
+		"stats": {
+			"fire_range": 9.0, "aim_time": 0.25, "fire_interval": 0.2, "fire_damage": 18.0,
+			"hit_chance_near": 0.9, "hit_chance_far": 0.4, "magazine_size": 18, "reserve_ammo": 18,
+			"reload_time": 1.8, "gunshot_noise_radius": 14.0, "suppressed": false,
+		},
+	},
+	&"none": {"name": "Aucune", "description": "", "stats": {}},
 }
 
 ## Équipement : nom affiché et nombre maximal.
@@ -144,6 +166,68 @@ const EQUIPMENT: Dictionary = {
 	&"grenades": {"name": "Grenades", "max": 4},
 	&"explosives": {"name": "Charges explosives", "max": 2},
 	&"medkit": {"name": "Trousse de soins", "max": 1},
+}
+
+## Poids (kg) de ce que porte un opérateur : tenue de base, armes, accessoires
+## (casque compris) et équipement (à l'unité).
+const BASE_WEIGHT := 2.0
+const WEIGHTS: Dictionary = {
+	&"carbine": 3.5, &"smg": 2.8, &"dmr": 6.0, &"shotgun": 4.0,
+	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
+	&"helmet": 1.4, &"nvg": 0.6, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
+	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0,
+	&"throwing_knives": 0.3, &"grenades": 0.6, &"explosives": 2.0, &"medkit": 1.5,
+}
+## Paliers de charge : jusqu'à `limit` kg, vitesses multipliées par `speed` ;
+## le palier lourd fait du bruit en courant (`noise`, rayon en m). Au-delà de
+## `MAX_LOAD`, l'écran refuse d'ajouter du poids.
+const LOAD_TIERS: Array[Dictionary] = [
+	{"name": "Légère", "limit": 18.0, "speed": 1.0, "noise": 0.0},
+	{"name": "Moyenne", "limit": 23.0, "speed": 0.92, "noise": 0.0},
+	{"name": "Lourde", "limit": 28.0, "speed": 0.82, "noise": 3.0},
+]
+const MAX_LOAD := 28.0
+
+## Spécialités : nom, bonus (description), réglages modifiés (multiplicateur,
+## ou ajout pour les chances de toucher) et tenue conseillée (propriétés du
+## profil).
+const SPECIALTIES: Dictionary = {
+	&"none": {"name": "Polyvalent", "description": "Aucun bonus particulier.", "bonus": {}, "outfit": {}},
+	&"marksman": {
+		"name": "Tireur d'élite",
+		"description": "+15 % de portée de tir, +10 points de précision à longue distance.",
+		"bonus": {"fire_range": 1.15, "hit_chance_far": 0.1},
+		"outfit": {"primary": &"dmr", "secondary": &"pistol", "headwear": &"boonie", "backpack": false, "nvg": false, "grenades": 0, "explosives": 0},
+	},
+	&"scout": {
+		"name": "Éclaireur",
+		"description": "+10 % de vitesse dans toutes les postures.",
+		"bonus": {"walk_speed": 1.1, "run_speed": 1.1, "crouch_speed": 1.1, "crawl_speed": 1.1},
+		"outfit": {"primary": &"smg", "secondary": &"pistol", "headwear": &"cap", "backpack": false, "radio": true, "throwing_knives": 2, "explosives": 0},
+	},
+	&"sapper": {
+		"name": "Sapeur",
+		"description": "Explosions 30 % plus larges, charges posées deux fois plus vite.",
+		"bonus": {"grenade_radius": 1.3, "explosive_radius": 1.3, "plant_time": 0.5},
+		"outfit": {"primary": &"shotgun", "secondary": &"pistol", "headwear": &"helmet", "backpack": true, "explosives": 2, "grenades": 2},
+	},
+	&"medic": {
+		"name": "Infirmier",
+		"description": "Soins 60 % plus efficaces et deux fois plus rapides.",
+		"bonus": {"heal_amount": 1.6, "heal_time": 0.5},
+		"outfit": {"primary": &"carbine", "secondary": &"pistol", "headwear": &"helmet", "backpack": true, "medkit": 1, "explosives": 0},
+	},
+}
+
+## Décor de l'aperçu selon le camouflage : sol, ciel, lumière et éléments
+## de décor (`props`).
+const BACKDROPS: Dictionary = {
+	&"": {"ground": Color(0.24, 0.26, 0.25), "sky": Color(0.16, 0.18, 0.17), "sun": Color(1, 1, 1), "energy": 1.0, "ambient": Color(0.55, 0.58, 0.55), "props": &""},
+	&"woodland": {"ground": Color(0.22, 0.3, 0.15), "sky": Color(0.42, 0.55, 0.6), "sun": Color(1.0, 0.96, 0.85), "energy": 1.0, "ambient": Color(0.5, 0.58, 0.48), "props": &"trees"},
+	&"desert": {"ground": Color(0.72, 0.6, 0.42), "sky": Color(0.78, 0.7, 0.55), "sun": Color(1.0, 0.92, 0.78), "energy": 1.25, "ambient": Color(0.68, 0.6, 0.5), "props": &"rocks"},
+	&"urban": {"ground": Color(0.36, 0.36, 0.37), "sky": Color(0.5, 0.53, 0.57), "sun": Color(0.95, 0.96, 1.0), "energy": 0.9, "ambient": Color(0.55, 0.56, 0.58), "props": &"walls"},
+	&"snow": {"ground": Color(0.86, 0.89, 0.92), "sky": Color(0.7, 0.76, 0.82), "sun": Color(0.92, 0.96, 1.0), "energy": 0.9, "ambient": Color(0.7, 0.74, 0.8), "props": &"pines"},
+	&"night": {"ground": Color(0.07, 0.08, 0.1), "sky": Color(0.02, 0.03, 0.06), "sun": Color(0.55, 0.65, 1.0), "energy": 0.45, "ambient": Color(0.22, 0.26, 0.38), "props": &"rocks"},
 }
 
 ## Taille (pixels) des textures de camouflage.
@@ -160,6 +244,56 @@ static func apply_weapon(base: UnitStats, weapon: StringName) -> UnitStats:
 	for key: String in values:
 		stats.set(key, values[key])
 	return stats
+
+
+## Copie de `base` avec les réglages de tir de l'arme secondaire `weapon`
+## (null sans arme secondaire).
+static func secondary_stats(base: UnitStats, weapon: StringName) -> UnitStats:
+	var values: Dictionary = SECONDARY.get(weapon, SECONDARY[&"none"])["stats"]
+	if values.is_empty():
+		return null
+	var stats := base.duplicate() as UnitStats
+	for key: String in values:
+		stats.set(key, values[key])
+	return stats
+
+
+## Poids total (kg) porté par l'opérateur `profile`.
+static func load_of(profile: OperatorProfile) -> float:
+	var total := BASE_WEIGHT + float(WEIGHTS.get(profile.primary, 0.0)) + float(WEIGHTS.get(profile.secondary, 0.0))
+	if profile.headwear == &"helmet":
+		total += WEIGHTS[&"helmet"]
+	if profile.wears_nvg():
+		total += WEIGHTS[&"nvg"]
+	for key: StringName in [&"headset", &"vest", &"backpack", &"radio", &"knee_pads", &"balaclava"]:
+		if profile.get(key):
+			total += WEIGHTS[key]
+	for key: StringName in EQUIPMENT:
+		total += WEIGHTS[key] * int(profile.get(key))
+	return snappedf(total, 0.1)
+
+
+## Palier de charge (`LOAD_TIERS`) de `weight` kg.
+static func load_tier(weight: float) -> Dictionary:
+	for tier in LOAD_TIERS:
+		if weight <= float(tier["limit"]) + 0.001:
+			return tier
+	return LOAD_TIERS[LOAD_TIERS.size() - 1]
+
+
+## Applique à `stats` (modifié sur place) le palier de charge de `weight` kg
+## et les bonus de la spécialité `specialty`.
+static func apply_load_and_specialty(stats: UnitStats, weight: float, specialty: StringName) -> void:
+	var tier := load_tier(weight)
+	for key: String in ["walk_speed", "run_speed", "crouch_speed", "crawl_speed"]:
+		stats.set(key, float(stats.get(key)) * float(tier["speed"]))
+	stats.gear_noise_radius = tier["noise"]
+	var bonus: Dictionary = SPECIALTIES.get(specialty, SPECIALTIES[&"none"])["bonus"]
+	for key: String in bonus:
+		if key.begins_with("hit_chance"):
+			stats.set(key, minf(float(stats.get(key)) + float(bonus[key]), 1.0))
+		else:
+			stats.set(key, float(stats.get(key)) * float(bonus[key]))
 
 
 ## Texture (répétable) du camouflage `camo`, générée une fois : taches de bruit

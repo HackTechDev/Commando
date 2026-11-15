@@ -136,6 +136,13 @@ func _build_library() -> void:
 		_silence(0.35),
 		_noise(0.04, 0.001, 0.015, 0.9, 0.9),
 	]))
+	# Explosion : souffle grave et long, grondement.
+	_streams[&"explosion"] = _wav(_mix([
+		_noise(1.3, 0.002, 0.45, 0.45, 1.0),
+		_tone([95.0, 28.0], 1.0, 1.0, 0.002, 0.4),
+	]))
+	# Trousse de soins : bande qu'on déchire.
+	_streams[&"bandage"] = _wav(_sweep_noise(0.35, 0.3, 0.8, 0.35))
 	# Caisse qui frotte au sol.
 	_streams[&"scrape"] = _wav(_noise(0.5, 0.05, 0.35, 0.1, 0.6))
 	# Alerte : deux bips montants ; méfiance : un bip interrogatif.

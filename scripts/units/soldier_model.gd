@@ -74,6 +74,8 @@ const RELOAD_MAG_IN := 0.72
 const LEFT_GRIP := Vector3(0.0, -0.02, -0.33)
 const LEFT_GRIP_PRONE := Vector3(0.0, -0.06, -0.12)
 const RIGHT_GRIP := Vector3(0.0, -0.05, 0.05)
+## Main gauche sous la droite, autour de la poignée du pistolet.
+const PISTOL_LEFT_GRIP := Vector3(-0.03, -0.09, 0.02)
 const MAG_WELL := Vector3(0.0, -0.17, -0.1)
 const MAG_DROP := Vector3(0.0, -0.32, -0.08)
 const MAG_BELOW := Vector3(0.0, -0.28, -0.12)
@@ -345,6 +347,16 @@ var crate_grip: bool = false
 var crate_pull: bool = false
 ## Avancement (0 à 1) d'un lancer de couteau ; -1 hors lancer.
 var throw_progress: float = -1.0
+## Le lancer est celui d'une grenade (au lieu d'un couteau).
+var throw_grenade: bool = false
+## Arme secondaire en main (l'arme principale passe dans le dos).
+var sidearm_drawn: bool = false:
+	set(value):
+		if value == sidearm_drawn:
+			return
+		sidearm_drawn = value
+		if _body:
+			_rebuild()
 ## Avancement (0 à 1) d'une poussée pour repousser un assaillant ; -1 hors poussée.
 var shove_progress: float = -1.0
 ## Avancement (0 à 1) d'une défense (parade ou esquive) ; -1 hors défense.
@@ -385,6 +397,10 @@ var _rifle_mag: Node3D
 var _hand_mag: Node3D
 var _flash: Node3D
 var _knife: Node3D
+var _hand_grenade: Node3D
+## Prise de la main gauche dans le repère de l'arme (garde-main, ou poignée
+## du pistolet tenu à deux mains).
+var _left_grip: Vector3 = LEFT_GRIP
 var _lean: float = 0.0
 var _torso_yaw: float = 0.0
 var _aim_weight: float = 0.0
@@ -627,7 +643,7 @@ func _animate_transition(delta: float) -> void:
 	var left: Vector3
 	var right: Vector3
 	if is_armed:
-		left = _rifle.transform * LEFT_GRIP.lerp(LEFT_GRIP_PRONE, rifle_weight)
+		left = _rifle.transform * _left_grip.lerp(LEFT_GRIP_PRONE, rifle_weight)
 		right = _rifle.transform * RIGHT_GRIP
 	else:
 		left = _arm_poses_hand(-1.0)
@@ -640,6 +656,7 @@ func _animate_transition(delta: float) -> void:
 	for i in _arm_joints.size():
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(target[i], arm_blend)
 	_knife.visible = false
+	_hand_grenade.visible = false
 	_update_magazines()
 	if t >= 1.0:
 		_transition_duration = 0.0
@@ -959,7 +976,7 @@ func _animate_alive(delta: float) -> void:
 	# Bras : mains sur l'arme (IK), ou le long du corps sans arme.
 	var target: Array
 	if is_armed:
-		var left := _rifle.transform * (LEFT_GRIP_PRONE if prone else LEFT_GRIP)
+		var left := _rifle.transform * (LEFT_GRIP_PRONE if prone else _left_grip)
 		var right := _rifle.transform * RIGHT_GRIP
 		if reloading:
 			left = _reload_hand(reload_progress)
@@ -1025,7 +1042,8 @@ func _animate_alive(delta: float) -> void:
 		if strike > 0.0 and not unarmed_strike:
 			goal = goal.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
-	_knife.visible = (strike > 0.0 and strike_with_knife) or (throwing and throw_t < THROW_RELEASE) or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
+	_hand_grenade.visible = throwing and throw_grenade and throw_t < THROW_RELEASE
+	_knife.visible = (strike > 0.0 and strike_with_knife) or (throwing and not throw_grenade and throw_t < THROW_RELEASE) or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
 	_update_magazines()
 
 
@@ -1116,7 +1134,7 @@ func _hit_weight() -> float:
 ## Position de la main gauche pendant le rechargement (repère du torse).
 func _reload_hand(t: float) -> Vector3:
 	var rifle := _rifle.transform
-	var points: Array[Vector3] = [rifle * LEFT_GRIP, rifle * MAG_WELL, rifle * MAG_DROP, MAG_POUCH, rifle * MAG_BELOW, rifle * MAG_WELL, rifle * LEFT_GRIP]
+	var points: Array[Vector3] = [rifle * _left_grip, rifle * MAG_WELL, rifle * MAG_DROP, MAG_POUCH, rifle * MAG_BELOW, rifle * MAG_WELL, rifle * _left_grip]
 	for i in range(1, RELOAD_HAND_TIMES.size()):
 		if t <= RELOAD_HAND_TIMES[i]:
 			var from_t := RELOAD_HAND_TIMES[i - 1]
@@ -1233,6 +1251,7 @@ func _animate_death(delta: float) -> void:
 	_rifle_base = _rifle_base.interpolate_with(dropped, slow)
 	_rifle.transform = _rifle_base
 	_knife.visible = false
+	_hand_grenade.visible = false
 	_update_magazines()
 
 
@@ -1460,6 +1479,10 @@ func _build_sidearm(leg: Node3D) -> void:
 	if kind == &"none":
 		return
 	var holster := _pivot(leg, Vector3.ZERO, "Sidearm")
+	if sidearm_drawn:
+		# Arme en main : holster vide.
+		_box(holster, Vector3(0.05, 0.20, 0.12), Vector3(0.115, -0.20, 0.0), _m_gear)
+		return
 	if kind == &"machine_pistol":
 		_box(holster, Vector3(0.06, 0.24, 0.13), Vector3(0.12, -0.21, 0.0), _m_gear)
 		_box(holster, Vector3(0.04, 0.09, 0.13), Vector3(0.125, -0.06, 0.02), _m_weapon)
@@ -1681,7 +1704,18 @@ func _build_rifle_and_arms() -> void:
 	_rifle_shove_push = Transform3D(Basis.from_euler(Vector3(0.3, PI / 2.0, 0.0)), Vector3(0.14, 0.48, -0.5))
 	_rifle_block = Transform3D(Basis.from_euler(Vector3(0.15, PI / 2.0, 0.0)), Vector3(0.16, 0.66, -0.34))
 	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
-	var muzzle := _build_weapon(rifle, &"carbine" if outfit == null else outfit.primary)
+	var primary := &"carbine" if outfit == null else outfit.primary
+	var drawn := sidearm_drawn and outfit != null and outfit.secondary != &"none"
+	var muzzle := _build_weapon(rifle, outfit.secondary if drawn else primary)
+	_left_grip = PISTOL_LEFT_GRIP if drawn else LEFT_GRIP
+	if drawn:
+		# Arme principale en travers du dos, canon vers le bas à gauche.
+		var back := _pivot(_torso, Vector3(0.0, 0.3, 0.2), "SlungPrimary")
+		back.rotation = Vector3(0.0, PI, deg_to_rad(-55.0))
+		var magazine := _rifle_mag
+		_build_weapon(back, primary)
+		back.name = "SlungPrimary"
+		_rifle_mag = magazine
 	# Flash de bouche (discret : arme à silencieux).
 	var flash_material := StandardMaterial3D.new()
 	flash_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -1709,7 +1743,7 @@ func _build_rifle_and_arms() -> void:
 	# Poses des bras, résolues par IK deux os à partir de la position des mains
 	# (repère du torse) : [main gauche, main droite].
 	_arm_poses.resize(ArmPose.size())
-	_arm_poses[ArmPose.RIFLE] = _solve_arms(rifle.transform * Vector3(0.0, -0.02, -0.33), rifle.transform * Vector3(0.0, -0.05, 0.05))
+	_arm_poses[ArmPose.RIFLE] = _solve_arms(rifle.transform * _left_grip, rifle.transform * RIGHT_GRIP)
 	_arm_poses[ArmPose.REACH] = _solve_arms(Vector3(-0.2, 0.5, -0.42), Vector3(0.2, 0.5, -0.42))
 	_arm_poses[ArmPose.PUSH] = _solve_arms(Vector3(-0.22, 0.05, -0.25), Vector3(0.22, 0.05, -0.25))
 	# Main gauche qui saisit la cible, main droite qui frappe vers l'avant.
@@ -1731,6 +1765,17 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 	var grip := _box(rifle, Vector3(0.035, 0.10, 0.045), Vector3(0.0, -0.045, 0.04), _m_weapon)
 	grip.rotation.x = deg_to_rad(18.0)
 	match kind:
+		&"pistol", &"machine_pistol":
+			# Tenue à deux mains : la poignée sert de repère, comme pour les fusils.
+			var long := kind == &"machine_pistol"
+			_box(rifle, Vector3(0.032, 0.05, 0.2 if long else 0.17), Vector3(0.0, 0.03, -0.05), _m_weapon)
+			_rifle_mag = _box(rifle, Vector3(0.024, 0.2 if long else 0.08, 0.035), Vector3(0.0, -0.08 if long else -0.05, 0.04), _m_weapon)
+			_rifle_mag.rotation.x = deg_to_rad(18.0)
+			if long:
+				return -0.17
+			var can := _cylinder(rifle, 0.017, 0.14, Vector3(0.0, 0.035, -0.21), _m_weapon)
+			can.rotation.x = PI / 2.0
+			return -0.28
 		&"smg":
 			_box(rifle, Vector3(0.045, 0.085, 0.26), Vector3(0.0, 0.04, -0.04), _m_weapon)
 			for side: float in [-1.0, 1.0]:
@@ -1830,6 +1875,10 @@ func _build_arm(side: float) -> void:
 		_box(_knife, Vector3(0.028, 0.09, 0.032), Vector3.ZERO, _m_gear)
 		_box(_knife, Vector3(0.012, 0.19, 0.03), Vector3(0.0, -0.13, 0.0), _m_steel)
 		_knife.visible = false
+		# Grenade tenue pendant le lancer.
+		_hand_grenade = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.04, -0.02), "HandGrenade")
+		_sphere(_hand_grenade, 0.036, Vector3.ZERO, _m_grenade)
+		_hand_grenade.visible = false
 
 
 ## Rotations [épaule gauche, coude gauche, épaule droite, coude droit] qui

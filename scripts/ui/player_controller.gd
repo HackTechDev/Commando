@@ -15,6 +15,8 @@ const ACTION_KNIFE := &"knife"
 const ACTION_KNOCKOUT := &"knockout"
 const ACTION_THROW := &"throw"
 const ACTION_CRATE := &"crate"
+## Grenade : puis clic gauche au sol (ou sur un ennemi).
+const ACTION_GRENADE := &"grenade"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -106,6 +108,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_pending_action(ACTION_CRATE)
 	elif event.is_action_pressed(&"action_throw"):
 		toggle_pending_action(ACTION_THROW)
+	elif event.is_action_pressed(&"action_grenade"):
+		toggle_pending_action(ACTION_GRENADE)
+	elif event.is_action_pressed(&"action_plant"):
+		_feedback(SelectionManager.plant_explosive())
+	elif event.is_action_pressed(&"action_detonate"):
+		_feedback(SelectionManager.detonate_explosives() > 0)
+	elif event.is_action_pressed(&"action_medkit"):
+		_feedback(SelectionManager.use_medkit())
+	elif event.is_action_pressed(&"switch_weapon"):
+		SelectionManager.switch_weapons()
 	elif event.is_action_pressed(&"action_sling"):
 		SelectionManager.toggle_sling()
 	elif event.is_action_pressed(&"reload"):
@@ -192,7 +204,24 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	_spawn_marker(target, marker_run_color if run else marker_color)
 
 
+## Bip d'ordre reçu, ou de refus.
+func _feedback(accepted: bool) -> void:
+	if SelectionManager.selected.is_empty():
+		return
+	Sfx.play_ui(&"order" if accepted else &"denied")
+
+
 func _use_pending_action(screen_position: Vector2) -> void:
+	if pending_action == ACTION_GRENADE:
+		var ground := _raycast(screen_position, MASK_GROUND)
+		if not ground.is_empty():
+			var point: Vector3 = ground["position"]
+			if SelectionManager.order_grenade(point):
+				_spawn_marker(point, marker_attack_color)
+			else:
+				Sfx.play_ui(&"denied")
+		cancel_pending_action()
+		return
 	if pending_action == ACTION_CRATE:
 		var crate_hit := _raycast(screen_position, MASK_GROUND)
 		if crate_hit.has("collider") and crate_hit["collider"] is Climbable:

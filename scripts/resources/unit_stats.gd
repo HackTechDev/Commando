@@ -69,3 +69,29 @@ extends Resource
 @export var gunshot_noise_radius: float = 8.0
 ## Arme équipée d'un silencieux (son du tir).
 @export var suppressed: bool = true
+
+@export_group("Équipement")
+## Grenades, charges explosives et trousses de soins emportées.
+@export var grenades: int = 0
+@export var explosives: int = 0
+@export var medkits: int = 0
+## Portée du lancer de grenade (m), délai entre l'impact et l'explosion (s).
+@export var grenade_range: float = 12.0
+@export var grenade_fuse: float = 1.0
+## Dégâts au centre et rayon de l'explosion d'une grenade (décroissance linéaire).
+@export var grenade_damage: float = 150.0
+@export var grenade_radius: float = 4.0
+## Dégâts, rayon et durée de pose d'une charge explosive.
+@export var explosive_damage: float = 300.0
+@export var explosive_radius: float = 5.0
+@export var plant_time: float = 1.6
+## Rayon du bruit d'une explosion.
+@export var explosion_noise_radius: float = 30.0
+## Soins d'une trousse, durée et distance jusqu'au blessé.
+@export var heal_amount: float = 50.0
+@export var heal_time: float = 2.0
+@export var heal_range: float = 2.2
+## Bruit de l'équipement qui s'entrechoque en courant (rayon, 0 : aucun) et
+## intervalle entre deux bruits (charge lourde).
+@export var gear_noise_radius: float = 0.0
+@export var gear_noise_interval: float = 0.6

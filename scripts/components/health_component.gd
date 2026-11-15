@@ -34,3 +34,14 @@ func take_damage(amount: float) -> void:
 	health_changed.emit(health, max_health)
 	if health <= 0.0:
 		died.emit()
+
+
+## Rend des points de vie (sans dépasser le maximum) à une unité vivante.
+## Renvoie les points effectivement rendus.
+func heal(amount: float) -> float:
+	if not is_alive() or amount <= 0.0:
+		return 0.0
+	var before := health
+	health = minf(health + amount, max_health)
+	health_changed.emit(health, max_health)
+	return health - before

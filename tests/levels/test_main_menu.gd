@@ -29,6 +29,14 @@ func _play_buttons(menu: Node) -> Array:
 	return menu.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Jouer")
 
 
+## « Jouer » sur le niveau `index`, puis « Lancer la mission » dans la
+## préparation.
+func _launch(menu: MainMenu, index: int) -> void:
+	_play_buttons(menu)[index].pressed.emit()
+	assert_true(menu.briefing.visible, "préparation de la mission ouverte")
+	(menu.briefing.find_child("Launch", true, false) as Button).pressed.emit()
+
+
 ## Attend que la scène courante s'appelle `scene_name`.
 func _wait_scene(scene_name: String) -> bool:
 	for i in 600:
@@ -64,7 +72,7 @@ func test_missing_map_greys_out_its_level() -> void:
 
 func test_play_sandbox_then_back_to_menu() -> void:
 	var menu := await _open_menu()
-	_play_buttons(menu)[0].pressed.emit()
+	_launch(menu, 0)
 	assert_true(await _wait_scene("Sandbox"), "terrain d'essai lancé")
 	assert_eq(get_tree().get_nodes_in_group(&"commandos").size(), 3)
 	var menu_button: Button = get_tree().current_scene.find_children("Menu", "Button", true, false)[0]
@@ -112,7 +120,7 @@ func test_quit_from_menu_asks_confirmation() -> void:
 
 func test_quit_and_menu_from_game_ask_confirmation() -> void:
 	var menu := await _open_menu()
-	_play_buttons(menu)[0].pressed.emit()
+	_launch(menu, 0)
 	assert_true(await _wait_scene("Sandbox"), "terrain d'essai lancé")
 	var hud: Hud = get_tree().current_scene.find_children("*", "Hud", true, false)[0]
 	await _check_confirmation(hud, "Quit", hud.quit_dialog)

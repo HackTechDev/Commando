@@ -15,6 +15,11 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _sling: Button = %Sling
 @onready var _reload: Button = %Reload
 @onready var _stop: Button = %Stop
+@onready var _grenade: Button = %Grenade
+@onready var _plant: Button = %Plant
+@onready var _detonate: Button = %Detonate
+@onready var _medkit: Button = %Medkit
+@onready var _weapon: Button = %Weapon
 @onready var _menu: Button = %Menu
 @onready var _quit: Button = %Quit
 @onready var _controller: PlayerController = $PlayerController
@@ -35,6 +40,7 @@ func _ready() -> void:
 		portrait.setup(unit)
 		unit.posture_changed.connect(func(_posture: SoldierModel.Posture) -> void: _refresh_actions())
 		unit.sling_changed.connect(func(_slung: bool) -> void: _refresh_actions())
+		unit.weapon_changed.connect(func(_secondary: bool) -> void: _refresh_actions())
 
 	_crouch.pressed.connect(func() -> void: SelectionManager.toggle_posture(SoldierModel.Posture.CROUCHED))
 	_prone.pressed.connect(func() -> void: SelectionManager.toggle_posture(SoldierModel.Posture.PRONE))
@@ -46,6 +52,12 @@ func _ready() -> void:
 	_sling.pressed.connect(SelectionManager.toggle_sling)
 	_reload.pressed.connect(SelectionManager.reload)
 	_stop.pressed.connect(SelectionManager.stop)
+	_grenade.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_GRENADE))
+	_plant.pressed.connect(func() -> void: _controller._feedback(SelectionManager.plant_explosive()))
+	_detonate.pressed.connect(func() -> void: _controller._feedback(SelectionManager.detonate_explosives() > 0))
+	_medkit.pressed.connect(func() -> void: _controller._feedback(SelectionManager.use_medkit()))
+	_weapon.pressed.connect(SelectionManager.switch_weapons)
+	EventBus.unit_ammo_changed.connect(func(_unit: Node3D) -> void: _refresh_actions())
 	menu_dialog = ConfirmDialog.for_menu(self)
 	add_child(menu_dialog)
 	_menu.pressed.connect(menu_dialog.ask)
@@ -63,6 +75,14 @@ func _refresh_actions() -> void:
 	for button: Button in [_crouch, _prone, _knife, _knockout, _throw, _crate, _sling, _reload, _stop]:
 		button.disabled = empty
 	_action_bar.modulate.a = 0.5 if empty else 1.0
+	# Équipement : grisé si aucune unité sélectionnée n'en a.
+	_grenade.disabled = not selected.any(func(unit: Commando) -> bool: return unit.grenades > 0)
+	_plant.disabled = not selected.any(func(unit: Commando) -> bool: return unit.explosives > 0)
+	_detonate.disabled = not selected.any(func(unit: Commando) -> bool: return not ExplosiveCharge.planted_by(get_tree(), unit).is_empty())
+	_medkit.disabled = not selected.any(func(unit: Commando) -> bool: return unit.medkits > 0)
+	_weapon.disabled = not selected.any(func(unit: Commando) -> bool: return unit.has_secondary())
+	_grenade.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_GRENADE)
+	_weapon.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.using_secondary))
 	_crouch.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.posture == SoldierModel.Posture.CROUCHED))
 	_prone.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.posture == SoldierModel.Posture.PRONE))
 	_knife.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_KNIFE)

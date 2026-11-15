@@ -47,8 +47,28 @@ const DEFAULTS: Array[Dictionary] = [
 @export var explosives: int = 0
 @export var medkit: int = 0
 
+## Spécialité (`GearCatalog.SPECIALTIES`) : petit bonus en mission.
+@export var specialty: StringName = &"none"
+## Tenues enregistrées : [{"name": String, "outfit": Dictionary}] (voir
+## `outfit_dict`), au plus `MAX_SAVED_OUTFITS`.
+@export var saved_outfits: Array[Dictionary] = []
+
+const MAX_SAVED_OUTFITS := 6
+## Propriétés d'une tenue : apparence (hors visage) et armement.
+const OUTFIT_KEYS: Array[String] = [
+	"camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
+	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
+	"primary", "secondary", "throwing_knives", "grenades", "explosives", "medkit",
+]
+## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
+## couleurs, couvre-chef et accessoires, sans l'armement.
+const LOOK_KEYS: Array[String] = [
+	"camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
+	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
+]
+
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
-const _NAME_KEYS: Array[String] = ["camo", "hair_style", "beard", "headwear", "primary", "secondary"]
+const _NAME_KEYS: Array[String] = ["camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads"]
 const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "explosives", "medkit"]
 
@@ -80,6 +100,63 @@ func set_camo(id: StringName) -> void:
 	headwear_color = entry["headwear"]
 
 
+## Copie conforme du profil.
+func copy() -> OperatorProfile:
+	return from_dict(to_dict(), 0)
+
+
+## Tenue portée (propriétés `OUTFIT_KEYS`), au format JSON.
+func outfit_dict() -> Dictionary:
+	var data := to_dict()
+	var outfit := {}
+	for key in OUTFIT_KEYS:
+		outfit[key] = data[key]
+	return outfit
+
+
+## Revêt la tenue `outfit` (format de `outfit_dict`) ; ce qui manque ou n'est
+## pas valide est laissé tel quel.
+func wear_outfit(outfit: Dictionary) -> void:
+	var data := to_dict()
+	for key in OUTFIT_KEYS:
+		if outfit.has(key):
+			data[key] = outfit[key]
+	_assign(from_dict(data, 0), OUTFIT_KEYS)
+
+
+## Reprend l'apparence (`LOOK_KEYS`) de `other`.
+func copy_look_from(other: OperatorProfile) -> void:
+	_assign(other, LOOK_KEYS)
+
+
+## Enregistre la tenue portée sous le nom `title` (remplace celle du même nom).
+## Renvoie faux s'il y en a déjà `MAX_SAVED_OUTFITS`.
+func save_outfit(title: String) -> bool:
+	title = title.strip_edges().left(24)
+	if title.is_empty():
+		title = "Tenue %d" % (saved_outfits.size() + 1)
+	for entry in saved_outfits:
+		if entry["name"] == title:
+			entry["outfit"] = outfit_dict()
+			return true
+	if saved_outfits.size() >= MAX_SAVED_OUTFITS:
+		return false
+	saved_outfits.append({"name": title, "outfit": outfit_dict()})
+	return true
+
+
+## Applique les propriétés de la tenue conseillée pour la spécialité.
+func wear_specialty_outfit() -> void:
+	var outfit: Dictionary = GearCatalog.SPECIALTIES[specialty]["outfit"]
+	for key: String in outfit:
+		set(key, outfit[key])
+
+
+func _assign(source: OperatorProfile, keys: Array[String]) -> void:
+	for key in keys:
+		set(key, source.get(key))
+
+
 ## Données JSON (couleurs en « rrggbb »).
 func to_dict() -> Dictionary:
 	var data := {"name": name, "callsign": callsign}
@@ -89,6 +166,7 @@ func to_dict() -> Dictionary:
 		data[key] = String(get(key))
 	for key in _BOOL_KEYS + _INT_KEYS:
 		data[key] = get(key)
+	data["saved_outfits"] = saved_outfits.duplicate(true)
 	return data
 
 
@@ -105,6 +183,7 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 	var choices := {
 		"camo": GearCatalog.CAMOS, "hair_style": GearCatalog.HAIR_STYLES, "beard": GearCatalog.BEARDS,
 		"headwear": GearCatalog.HEADWEAR, "primary": GearCatalog.PRIMARY, "secondary": GearCatalog.SECONDARY,
+		"specialty": GearCatalog.SPECIALTIES,
 	}
 	for key in _NAME_KEYS:
 		var value := StringName(str(data.get(key, "")))
@@ -124,4 +203,10 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 			profile.set(key, clampi(int(value), 0, limits[key]))
 	if profile.callsign.is_empty():
 		profile.callsign = defaults(index).callsign
+	if data.get("saved_outfits") is Array:
+		for entry: Variant in data["saved_outfits"]:
+			if profile.saved_outfits.size() >= MAX_SAVED_OUTFITS:
+				break
+			if entry is Dictionary and entry.get("name") is String and entry.get("outfit") is Dictionary:
+				profile.saved_outfits.append({"name": (entry["name"] as String).left(24), "outfit": entry["outfit"]})
 	return profile

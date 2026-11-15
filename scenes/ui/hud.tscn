@@ -30,6 +30,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer  •  Clic droit sur une caisse : grimper
 V : couteau  •  B : assommer  •  T : lancer le couteau  (puis clic gauche sur un ennemi)  •  P : caisse  •  G : arme à la bretelle
+N : grenade (puis clic au sol)  •  K : poser une charge  •  L : mise à feu  •  J : soigner  •  H : arme secondaire
 ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"
 
 [node name="TopRight" type="HBoxContainer" parent="PlayerController"]
@@ -99,11 +100,57 @@ offset_bottom = -16.0
 grow_horizontal = 0
 grow_vertical = 0
 
-[node name="Buttons" type="HBoxContainer" parent="PlayerController/ActionBar"]
+[node name="Rows" type="VBoxContainer" parent="PlayerController/ActionBar"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Gear" type="HBoxContainer" parent="PlayerController/ActionBar/Rows"]
+layout_mode = 2
+size_flags_horizontal = 8
+theme_override_constants/separation = 8
+
+[node name="Grenade" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Grenade : puis clic gauche au sol. L'opérateur le plus proche qui en a une s'approche à 12 m et la lance ; elle explose 1 s après être retombée (dégâts jusqu'à 4 m, les murs protègent). Très bruyant : les ennemis proches deviennent méfiants."
+toggle_mode = true
+text = "Grenade  [N]"
+
+[node name="Plant" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Poser une charge explosive aux pieds de l'opérateur (il s'accroupit pour l'armer). Elle saute sur ordre (L), quand l'opérateur s'est éloigné."
+text = "Charge  [K]"
+
+[node name="Detonate" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Faire sauter les charges posées par les opérateurs sélectionnés (dégâts jusqu'à 5 m, opérateurs compris)."
+text = "Mise à feu  [L]"
+
+[node name="Medkit" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Trousse de soins : l'opérateur soigne le plus blessé à moins de 2 m (lui-même compris), +50 PV en 2 s."
+text = "Soigner  [J]"
+
+[node name="Weapon" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Changer d'arme : arme secondaire en main, arme principale dans le dos (et inversement). L'opérateur dégaine de lui-même son arme secondaire quand l'autre est à sec."
+toggle_mode = true
+text = "Arme secondaire  [H]"
+
+[node name="Buttons" type="HBoxContainer" parent="PlayerController/ActionBar/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Crouch" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Crouch" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -111,7 +158,7 @@ tooltip_text = "S'accroupir ou se relever : plus lent, invisible en zone lointai
 toggle_mode = true
 text = "Accroupi  [C]"
 
-[node name="Prone" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Prone" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -119,7 +166,7 @@ tooltip_text = "Ramper ou se relever : très lent, se cache derrière les obstac
 toggle_mode = true
 text = "Rampé  [X]"
 
-[node name="Knife" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Knife" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -127,7 +174,7 @@ tooltip_text = "Couteau : puis clic gauche sur un ennemi. L'opérateur le plus p
 toggle_mode = true
 text = "Couteau  [V]"
 
-[node name="Knockout" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Knockout" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -135,7 +182,7 @@ tooltip_text = "Assommer : puis clic gauche sur un ennemi. Par derrière : étra
 toggle_mode = true
 text = "Assommer  [B]"
 
-[node name="Throw" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Throw" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -143,7 +190,7 @@ tooltip_text = "Lancer le couteau : puis clic gauche sur un ennemi. L'opérateur
 toggle_mode = true
 text = "Lancer  [T]"
 
-[node name="Crate" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Crate" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -151,7 +198,7 @@ tooltip_text = "Caisse : puis clic gauche sur le côté d'une caisse. L'opérate
 toggle_mode = true
 text = "Caisse  [P]"
 
-[node name="Sling" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Sling" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
@@ -159,14 +206,14 @@ tooltip_text = "Arme à la bretelle : l'opérateur range son fusil sur le flanc 
 toggle_mode = true
 text = "Bretelle  [G]"
 
-[node name="Reload" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Reload" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
 tooltip_text = "Recharger l'arme avec les cartouches de réserve."
 text = "Recharger  [R]"
 
-[node name="Stop" type="Button" parent="PlayerController/ActionBar/Buttons"]
+[node name="Stop" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0

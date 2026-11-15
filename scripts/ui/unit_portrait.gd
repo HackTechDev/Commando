@@ -25,6 +25,8 @@ var _fill: StyleBoxFlat
 @onready var _status: Label = %Status
 @onready var _ammo: Label = %Ammo
 @onready var _no_knife: Label = %NoKnife
+## Équipement restant (grenades, charges, trousses), sous la vie.
+var _gear: Label
 
 
 ## Associe le portrait à une unité.
@@ -34,6 +36,12 @@ func setup(unit: Commando) -> void:
 	add_theme_stylebox_override(&"panel", _style)
 	_fill = (_health.get_theme_stylebox(&"fill") as StyleBoxFlat).duplicate()
 	_health.add_theme_stylebox_override(&"fill", _fill)
+	_gear = Label.new()
+	_gear.name = "Gear"
+	_gear.add_theme_font_size_override(&"font_size", 12)
+	_gear.modulate = Color(1, 1, 1, 0.75)
+	_gear.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$Rows.add_child(_gear)
 	_number.text = str(unit.unit_index)
 	_name.text = unit.display_name
 	if unit.profile and not unit.profile.name.is_empty():
@@ -74,6 +82,7 @@ func _refresh() -> void:
 	if _unit.is_dead:
 		_status.text = "Mort"
 		_ammo.text = ""
+		_gear.visible = false
 		_no_knife.visible = false
 		modulate = Color(1.0, 1.0, 1.0, 0.45)
 		return
@@ -83,7 +92,16 @@ func _refresh() -> void:
 	elif not _unit.has_ammo():
 		_ammo.text = "À sec"
 	else:
-		_ammo.text = "%d / %d" % [_unit.ammo_in_magazine, _unit.ammo_reserve]
+		_ammo.text = "%s%d / %d" % ["Sec. " if _unit.using_secondary else "", _unit.ammo_in_magazine, _unit.ammo_reserve]
+	var gear: Array[String] = []
+	if _unit.grenades > 0:
+		gear.append("Grenades %d" % _unit.grenades)
+	if _unit.explosives > 0:
+		gear.append("Charges %d" % _unit.explosives)
+	if _unit.medkits > 0:
+		gear.append("Trousse")
+	_gear.text = "  •  ".join(gear)
+	_gear.visible = not gear.is_empty()
 	# Couteau de lancer : rappel discret tant qu'il n'est pas ramassé.
 	_no_knife.visible = _unit.throwing_knives < _unit.stats.throwing_knives
 	_ammo.modulate = wounded_color if _unit.ammo_in_magazine == 0 else Color.WHITE

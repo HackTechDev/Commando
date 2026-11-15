@@ -5,6 +5,8 @@ extends CharacterBody3D
 signal selected_changed(is_selected: bool)
 signal posture_changed(posture: SoldierModel.Posture)
 signal sling_changed(slung: bool)
+## Arme en main changée (secondaire ou principale).
+signal weapon_changed(secondary: bool)
 
 enum MeleeKind { KNIFE, KNOCKOUT }
 
@@ -87,6 +89,12 @@ var ammo_in_magazine: int = 0
 var ammo_reserve: int = 0
 ## Couteaux de lancer en main (à ramasser après chaque lancer).
 var throwing_knives: int = 0
+## Grenades, charges explosives et trousses de soins restantes.
+var grenades: int = 0
+var explosives: int = 0
+var medkits: int = 0
+## Arme secondaire en main (`stats` est alors celui de l'arme secondaire).
+var using_secondary: bool = false
 ## Obstacle sur lequel l'unité se tient, le cas échéant.
 var perched_on: Climbable
 
@@ -112,6 +120,18 @@ var _crate_noise_left: float = 0.0
 var _throw_target: Enemy
 var _throw_left: float = 0.0
 var _throw_released: bool = false
+## Point visé par une grenade (INF : aucun lancer en cours).
+var _grenade_target: Vector3 = Vector3.INF
+var _throwing_grenade: bool = false
+## Pose d'une charge et soins en cours (temps restant).
+var _plant_left: float = 0.0
+var _heal_left: float = 0.0
+var _heal_target: Commando
+var _gear_noise_left: float = 0.0
+## Réglages des deux armes, et munitions (chargeur, réserve) de celle rangée.
+var _primary_stats: UnitStats
+var _secondary_stats: UnitStats
+var _holstered_ammo := Vector2i.ZERO
 var _strike_target: Enemy
 var _strike_kind: MeleeKind = MeleeKind.KNIFE
 var _strike_left: float = 0.0
@@ -169,21 +189,40 @@ func _ready() -> void:
 	ammo_in_magazine = stats.magazine_size
 	ammo_reserve = stats.reserve_ammo
 	throwing_knives = stats.throwing_knives
+	grenades = stats.grenades
+	explosives = stats.explosives
+	medkits = stats.medkits
+	_primary_stats = stats
+	if _secondary_stats:
+		_holstered_ammo = Vector2i(_secondary_stats.magazine_size, _secondary_stats.reserve_ammo)
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
 	_agent.velocity_computed.connect(_apply_velocity)
 
 
-## Indicatif, réglages de l'arme principale, couteaux de lancer et apparence
-## de `operator` (l'unité garde ses réglages si null).
+## Indicatif, réglages des armes, équipement, charge portée, spécialité et
+## apparence de `operator` (l'unité garde ses réglages si null).
 func _apply_profile(operator: OperatorProfile) -> void:
 	if operator == null:
 		return
 	profile = operator
 	display_name = operator.callsign
-	stats = GearCatalog.apply_weapon(stats, operator.primary)
-	stats.throwing_knives = operator.throwing_knives
+	var base := stats
+	stats = _equip(GearCatalog.apply_weapon(base, operator.primary), operator)
+	var sidearm := GearCatalog.secondary_stats(base, operator.secondary)
+	_secondary_stats = _equip(sidearm, operator) if sidearm else null
 	_model.outfit = operator
+
+
+## Complète les réglages d'une arme avec l'équipement, la charge et la
+## spécialité de `operator`.
+func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
+	weapon.throwing_knives = operator.throwing_knives
+	weapon.grenades = operator.grenades
+	weapon.explosives = operator.explosives
+	weapon.medkits = operator.medkit
+	GearCatalog.apply_load_and_specialty(weapon, GearCatalog.load_of(operator), operator.specialty)
+	return weapon
 
 
 func _exit_tree() -> void:
@@ -195,7 +234,7 @@ func _physics_process(delta: float) -> void:
 	# Mains libres pour grimper ou jouer du couteau : arme à la bretelle.
 	# Pour assommer, l'arme reste comme le joueur l'a choisie (crosse ou mains nues).
 	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and (_strike_kind == MeleeKind.KNIFE or _grapple)) \
-			or _throw_target != null
+			or _throw_target != null or _grenade_target != Vector3.INF or _plant_left > 0.0 or _heal_left > 0.0
 	var crate := _crate_target != null or _crate != null
 	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife or crate)
 	_update_reload(delta)
@@ -216,6 +255,10 @@ func _physics_process(delta: float) -> void:
 		_update_strike(delta)
 	elif _throw_left > 0.0:
 		_update_throw(delta)
+	elif _plant_left > 0.0:
+		_update_plant(delta)
+	elif _heal_left > 0.0:
+		_update_heal(delta)
 	elif _climb_target:
 		horizontal = _approach_climb()
 		if horizontal != Vector3.ZERO:
@@ -224,6 +267,8 @@ func _physics_process(delta: float) -> void:
 		horizontal = _approach_melee(delta)
 	elif _throw_target:
 		horizontal = _approach_throw(delta)
+	elif _grenade_target != Vector3.INF:
+		horizontal = _approach_grenade(delta)
 	elif _crate_target:
 		horizontal = _approach_crate(delta)
 	elif _attack_target:
@@ -241,6 +286,7 @@ func _physics_process(delta: float) -> void:
 	_update_stuck(delta, horizontal)
 	_wants_to_move = horizontal != Vector3.ZERO
 	_desired_velocity = horizontal
+	_update_gear_noise(delta)
 	# Une unité à l'arrêt est prioritaire : ce sont les autres qui la contournent.
 	_agent.avoidance_priority = 0.5 if _wants_to_move else 1.0
 	if _agent.avoidance_enabled:
@@ -307,6 +353,7 @@ func move_to(target: Vector3, run: bool) -> void:
 	_crate_target = null
 	_climb_target = null
 	_melee_target = null
+	_cancel_tasks()
 	if perched_on:
 		_descend(target, move_to.bind(target, run))
 		return
@@ -321,9 +368,10 @@ func move_to(target: Vector3, run: bool) -> void:
 ## Ordonne d'attaquer `enemy` : l'unité s'approche jusqu'à avoir une ligne de
 ## tir, puis tire jusqu'à ce que la cible soit neutralisée.
 func attack(enemy: Enemy, run: bool) -> void:
-	if is_dead or _hopping or enemy == null or enemy.is_dead or not has_ammo():
+	if is_dead or _hopping or enemy == null or enemy.is_dead or not _ready_to_fire():
 		return
 	_release_crate()
+	_cancel_tasks()
 	weapon_slung = false
 	_climb_target = null
 	_melee_target = null
@@ -348,6 +396,7 @@ func climb(target: Climbable, run: bool) -> bool:
 	if target.handler != null:
 		return false
 	_release_crate()
+	_cancel_tasks()
 	if perched_on:
 		var route := _route_across(perched_on, target)
 		if not route.is_empty():
@@ -410,6 +459,7 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 	if perched_on:
 		return _descend(enemy.global_position, melee.bind(enemy, kind, run))
 	_release_crate()
+	_cancel_tasks()
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
@@ -429,6 +479,7 @@ func throw_knife(enemy: Enemy, run: bool = false) -> bool:
 	if perched_on and not _can_throw_at(enemy):
 		return _descend(enemy.global_position, throw_knife.bind(enemy, run))
 	_release_crate()
+	_cancel_tasks()
 	_has_order = false
 	_attack_target = null
 	_climb_target = null
@@ -448,6 +499,226 @@ func pick_up_knife() -> bool:
 	return true
 
 
+## Vrai si l'unité a une arme secondaire.
+func has_secondary() -> bool:
+	return _secondary_stats != null
+
+
+## Change d'arme (principale ↔ secondaire). Un rechargement en cours est
+## interrompu. Renvoie faux sans arme secondaire.
+func switch_weapon() -> bool:
+	if is_dead or _secondary_stats == null:
+		return false
+	_reload_left = 0.0
+	_model.reload_progress = -1.0
+	var in_hand := Vector2i(ammo_in_magazine, ammo_reserve)
+	ammo_in_magazine = _holstered_ammo.x
+	ammo_reserve = _holstered_ammo.y
+	_holstered_ammo = in_hand
+	using_secondary = not using_secondary
+	stats = _secondary_stats if using_secondary else _primary_stats
+	_model.sidearm_drawn = using_secondary
+	_fire_cooldown = stats.aim_time
+	weapon_slung = false
+	Sfx.play_at(&"reload", global_position + Vector3.UP, -12.0)
+	EventBus.unit_ammo_changed.emit(self)
+	weapon_changed.emit(using_secondary)
+	return true
+
+
+## Vrai si l'unité peut tirer : munitions dans l'arme en main, sinon elle
+## dégaine l'autre arme s'il lui en reste.
+func _ready_to_fire() -> bool:
+	if has_ammo():
+		return true
+	if _secondary_stats and _holstered_ammo.x + _holstered_ammo.y > 0:
+		return switch_weapon()
+	return false
+
+
+## Ordonne de lancer une grenade vers `target` (au sol) : l'unité s'approche
+## à portée, puis lance. Renvoie faux sans grenade.
+func throw_grenade(target: Vector3, run: bool = false) -> bool:
+	if is_dead or _hopping or grenades <= 0:
+		return false
+	if perched_on and not _in_grenade_range(target):
+		return _descend(target, throw_grenade.bind(target, run))
+	_release_crate()
+	_cancel_tasks()
+	_has_order = false
+	_attack_target = null
+	_climb_target = null
+	_melee_target = null
+	_throw_target = null
+	_running = run
+	_grenade_target = target
+	return true
+
+
+func _in_grenade_range(target: Vector3) -> bool:
+	var offset := target - global_position
+	offset.y = 0.0
+	return offset.length() <= stats.grenade_range
+
+
+func _approach_grenade(delta: float) -> Vector3:
+	if grenades <= 0:
+		_grenade_target = Vector3.INF
+		return Vector3.ZERO
+	var to_target := _grenade_target - global_position
+	to_target.y = 0.0
+	if _in_grenade_range(_grenade_target):
+		if to_target.length() > 0.05:
+			_face(to_target, delta)
+		if posture == SoldierModel.Posture.PRONE:
+			posture = SoldierModel.Posture.CROUCHED
+		if _model.is_weapon_slung() and not _model.is_changing_posture() and (to_target.length() < 0.05 or (-global_basis.z).angle_to(to_target) < 0.2):
+			_throw_left = stats.throw_time
+			_throw_released = false
+			_throwing_grenade = true
+			_model.throw_grenade = true
+			_model.throw_progress = 0.0
+		return Vector3.ZERO
+	if _agent.target_position.distance_to(_grenade_target) > 0.3:
+		_agent.target_position = _grenade_target
+	if _agent.is_navigation_finished():
+		_grenade_target = Vector3.INF
+		return Vector3.ZERO
+	return _follow_path(delta)
+
+
+func _update_grenade_throw(delta: float, progress: float) -> void:
+	var to_target := _grenade_target - global_position
+	to_target.y = 0.0
+	if to_target.length() > 0.05:
+		_face(to_target, delta)
+	if not _throw_released and progress >= SoldierModel.THROW_RELEASE:
+		_throw_released = true
+		if grenades > 0:
+			grenades -= 1
+			EventBus.unit_ammo_changed.emit(self)
+			var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
+			Grenade.spawn(get_tree().current_scene, hand, _grenade_target + Vector3.UP * 0.05, stats)
+			Sfx.play_at(&"whoosh", hand, -8.0)
+	if _throw_left <= 0.0:
+		_model.throw_progress = -1.0
+		_model.throw_grenade = false
+		_throwing_grenade = false
+		_grenade_target = Vector3.INF
+
+
+## Pose une charge explosive aux pieds de l'unité (elle s'accroupit le temps
+## de l'armer). Renvoie faux s'il ne lui en reste pas ou qu'elle est occupée.
+func plant_explosive() -> bool:
+	if is_dead or _hopping or explosives <= 0 or _plant_left > 0.0 or _heal_left > 0.0 or _crate:
+		return false
+	stop()
+	if posture == SoldierModel.Posture.STANDING:
+		posture = SoldierModel.Posture.CROUCHED
+	_plant_left = stats.plant_time
+	return true
+
+
+## Vrai pendant la pose d'une charge.
+func is_planting() -> bool:
+	return _plant_left > 0.0
+
+
+func _update_plant(delta: float) -> void:
+	_plant_left -= delta
+	if _plant_left > 0.0:
+		return
+	_plant_left = 0.0
+	explosives -= 1
+	var at := global_position - global_basis.z * 0.45
+	ExplosiveCharge.plant(get_tree().current_scene, at, self)
+	Sfx.play_at(&"clink", at, -10.0)
+	EventBus.unit_ammo_changed.emit(self)
+
+
+## Fait sauter les charges posées par l'unité. Renvoie leur nombre.
+func detonate_explosives() -> int:
+	if is_dead:
+		return 0
+	var charges := ExplosiveCharge.planted_by(get_tree(), self)
+	for charge in charges:
+		charge.detonate()
+	if not charges.is_empty():
+		EventBus.unit_ammo_changed.emit(self)
+	return charges.size()
+
+
+## Soigne l'opérateur le plus blessé à portée (l'unité elle-même comprise)
+## avec une trousse. Renvoie faux sans trousse ou sans blessé à portée.
+func use_medkit() -> bool:
+	if is_dead or _hopping or medkits <= 0 or _plant_left > 0.0 or _heal_left > 0.0:
+		return false
+	var patient := _most_wounded_nearby()
+	if patient == null:
+		return false
+	stop()
+	_heal_target = patient
+	_heal_left = stats.heal_time
+	Sfx.play_at(&"bandage", global_position + Vector3.UP, -6.0)
+	return true
+
+
+## Vrai pendant des soins.
+func is_healing() -> bool:
+	return _heal_left > 0.0
+
+
+func _most_wounded_nearby() -> Commando:
+	var best: Commando = null
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit == null or unit.is_dead or unit.health.health >= unit.health.max_health:
+			continue
+		if unit.global_position.distance_to(global_position) > stats.heal_range:
+			continue
+		if best == null or unit.health.health < best.health.health:
+			best = unit
+	return best
+
+
+func _update_heal(delta: float) -> void:
+	var patient := _heal_target
+	if not is_instance_valid(patient) or patient.is_dead or patient.global_position.distance_to(global_position) > stats.heal_range + 0.5:
+		_heal_left = 0.0
+		_heal_target = null
+		return
+	if patient != self:
+		_face(patient.global_position - global_position, delta)
+	_heal_left -= delta
+	if _heal_left > 0.0:
+		return
+	_heal_left = 0.0
+	_heal_target = null
+	medkits -= 1
+	patient.health.heal(stats.heal_amount)
+	EventBus.unit_ammo_changed.emit(self)
+
+
+## Annule la pose d'une charge, des soins ou un lancer de grenade pas encore
+## commencé.
+func _cancel_tasks() -> void:
+	_plant_left = 0.0
+	_heal_left = 0.0
+	_heal_target = null
+	if not _throwing_grenade:
+		_grenade_target = Vector3.INF
+
+
+## Charge lourde : l'équipement s'entrechoque quand l'opérateur court.
+func _update_gear_noise(delta: float) -> void:
+	if stats.gear_noise_radius <= 0.0 or not _wants_to_move or not _running or posture != SoldierModel.Posture.STANDING:
+		return
+	_gear_noise_left -= delta
+	if _gear_noise_left <= 0.0:
+		_gear_noise_left = stats.gear_noise_interval
+		EventBus.noise_emitted.emit(global_position, stats.gear_noise_radius, &"gear")
+
+
 ## Vrai pendant une attaque au corps à corps (élan et coup).
 func is_striking() -> bool:
 	return _strike_left > 0.0
@@ -460,6 +731,7 @@ func stop() -> void:
 	_climb_target = null
 	_melee_target = null
 	_throw_target = null
+	_cancel_tasks()
 	_release_crate()
 
 
@@ -941,6 +1213,9 @@ func _update_throw(delta: float) -> void:
 	_throw_left = maxf(_throw_left - delta, 0.0)
 	var progress := 1.0 - _throw_left / stats.throw_time
 	_model.throw_progress = progress
+	if _throwing_grenade:
+		_update_grenade_throw(delta, progress)
+		return
 	var enemy := _throw_target
 	var valid := is_instance_valid(enemy) and not enemy.is_dead
 	if valid:
@@ -1195,7 +1470,7 @@ func _attack(delta: float) -> Vector3:
 	if not is_instance_valid(_attack_target) or _attack_target.is_dead:
 		_attack_target = null
 		return Vector3.ZERO
-	if not has_ammo():
+	if not _ready_to_fire():
 		_attack_target = null
 		return Vector3.ZERO
 	var to_target := _attack_target.global_position - global_position
@@ -1288,6 +1563,9 @@ func _on_died() -> void:
 	_throw_target = null
 	_throw_left = 0.0
 	_model.throw_progress = -1.0
+	_grenade_target = Vector3.INF
+	_throwing_grenade = false
+	_cancel_tasks()
 	_release_crate()
 	_strike_left = 0.0
 	_model.strike_progress = -1.0

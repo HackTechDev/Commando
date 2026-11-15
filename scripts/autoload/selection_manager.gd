@@ -140,3 +140,57 @@ func toggle_sling() -> void:
 func toggle_posture(posture: SoldierModel.Posture) -> void:
 	for unit in selected:
 		unit.toggle_posture(posture)
+
+
+## Confie un lancer de grenade vers `target` à l'unité sélectionnée la plus
+## proche qui en a encore. Renvoie faux si aucune ne le peut.
+func order_grenade(target: Vector3, run: bool = false) -> bool:
+	for unit in _nearest_first(target):
+		if unit.throw_grenade(target, run):
+			return true
+	return false
+
+
+## Fait poser une charge explosive à la première unité sélectionnée qui en a.
+func plant_explosive() -> bool:
+	for unit in _by_index():
+		if unit.plant_explosive():
+			return true
+	return false
+
+
+## Fait sauter les charges posées par les unités sélectionnées. Renvoie leur
+## nombre.
+func detonate_explosives() -> int:
+	var count := 0
+	for unit in selected:
+		count += unit.detonate_explosives()
+	return count
+
+
+## Fait soigner le blessé le plus proche par la première unité sélectionnée
+## qui a une trousse (et un blessé à portée).
+func use_medkit() -> bool:
+	for unit in _by_index():
+		if unit.use_medkit():
+			return true
+	return false
+
+
+## Fait changer d'arme (principale ↔ secondaire) aux unités sélectionnées.
+func switch_weapons() -> void:
+	for unit in selected:
+		unit.switch_weapon()
+
+
+func _nearest_first(point: Vector3) -> Array[Commando]:
+	var candidates: Array[Commando] = selected.duplicate()
+	candidates.sort_custom(func(a: Commando, b: Commando) -> bool:
+		return a.global_position.distance_squared_to(point) < b.global_position.distance_squared_to(point))
+	return candidates
+
+
+func _by_index() -> Array[Commando]:
+	var candidates: Array[Commando] = selected.duplicate()
+	candidates.sort_custom(func(a: Commando, b: Commando) -> bool: return a.unit_index < b.unit_index)
+	return candidates

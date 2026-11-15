@@ -281,3 +281,30 @@
 - Bouton pour remettre un opérateur dans sa tenue par défaut (avec confirmation).
 - Les choix sont sauvegardés aussitôt et s'appliquent automatiquement en mission.
 
+
+## Opérateurs : équipement utilisable, spécialités et préparation de mission
+
+- En mission, l'équipement sert enfin :
+  - **arme secondaire** : l'opérateur dégaine seul son pistolet quand l'arme principale est à sec, ou sur ordre (H). Le pistolet se tient à deux mains et l'arme principale passe dans le dos.
+  - **grenades** (N, puis clic au sol) : l'opérateur s'approche à 12 m et lance. La grenade vole en cloche puis explose 1 s après être retombée (dégâts jusqu'à 4 m, les murs protègent). L'explosion est très bruyante et rend méfiants les ennemis proches qu'elle épargne.
+  - **charges explosives** : K pose une charge aux pieds de l'opérateur (il s'accroupit pour l'armer), L fait sauter les charges posées.
+  - **trousse de soins** (J) : l'opérateur soigne le plus blessé à moins de 2 m, lui compris (+50 PV en 2 s).
+- Ces actions ont des boutons dans le HUD, sur une seconde rangée. Les portraits affichent l'équipement restant et l'arme secondaire en main.
+- Charge portée : chaque arme, accessoire et équipement a un poids. Jusqu'à 18 kg, aucune gêne. Jusqu'à 23 kg, l'opérateur est 8 % plus lent. Jusqu'à 28 kg, il est 18 % plus lent et son équipement s'entend quand il court. Au-delà, l'écran refuse d'ajouter du poids. La tenue par défaut (17,5 kg) ne change rien.
+- Spécialités, chacune avec un petit bonus et une tenue conseillée :
+  - tireur d'élite : +15 % de portée, meilleure précision de loin ;
+  - éclaireur : +10 % de vitesse ;
+  - sapeur : explosions plus larges, charges posées plus vite ;
+  - infirmier : soins plus forts et plus rapides.
+- Écran « Opérateurs » :
+  - annuler le dernier changement (bouton ou Ctrl+Z) ;
+  - « Même tenue pour l'équipe » ;
+  - raccourcis : 1 à 3 pour l'opérateur, Tab / Maj+Tab pour l'onglet ;
+  - visage en 3D dans les sélecteurs ;
+  - décor de l'aperçu assorti au camouflage (forêt, désert, ville, neige, nuit) ;
+  - la caméra cadre ce qu'on modifie (tête, buste, arme, jambes) ;
+  - nouvelles animations : rechargement, lancer de couteau, coup de couteau, escalade d'une caisse ;
+  - comparaison des armes principales en barres (portée, dégâts, cadence, chargeur, discrétion) ;
+  - jauge de charge ;
+  - jusqu'à 6 tenues enregistrées par opérateur (onglet « Tenues enregistrées »).
+- « Jouer » ouvre une préparation de mission : le camouflage conseillé pour la carte (un bouton pour toute l'équipe, un par opérateur), le choix d'une tenue enregistrée par opérateur, puis « Lancer la mission ».

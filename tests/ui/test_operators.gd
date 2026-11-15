@@ -161,3 +161,175 @@ func test_menu_opens_operator_screen_and_back() -> void:
 	(get_tree().current_scene.find_child("Back", true, false) as Button).pressed.emit()
 	await wait_process_frames(3)
 	assert_true(get_tree().current_scene is MainMenu, "retour au menu")
+
+
+func _open_screen() -> OperatorScreen:
+	var screen := (load(OperatorScreen.SCENE) as PackedScene).instantiate() as OperatorScreen
+	get_tree().root.add_child(screen)
+	get_tree().current_scene = screen
+	await wait_process_frames(3)
+	return screen
+
+
+func _choose(screen: OperatorScreen, key: String, id: StringName, choices: Dictionary) -> void:
+	var option := screen.find_child(key, true, false) as OptionButton
+	var index := choices.keys().find(id)
+	option.select(index)
+	option.item_selected.emit(index)
+
+
+func _key(keycode: Key, physical: Key = KEY_NONE, ctrl: bool = false, shift: bool = false) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.keycode = keycode
+	event.physical_keycode = physical if physical != KEY_NONE else keycode
+	event.ctrl_pressed = ctrl
+	event.shift_pressed = shift
+	event.pressed = true
+	return event
+
+
+func test_undo_and_shortcuts() -> void:
+	var screen := await _open_screen()
+	var roster := OperatorRoster.current()
+	assert_false(screen.can_undo(), "rien à annuler au départ")
+	_choose(screen, "primary", &"dmr", GearCatalog.PRIMARY)
+	assert_eq(roster.operators[0].primary, &"dmr")
+	assert_true(screen.undo(), "annulé")
+	assert_eq(roster.operators[0].primary, &"carbine", "retour à la carabine")
+	assert_eq(OperatorRoster.load_file(SAVE).operators[0].primary, &"carbine", "annulation sauvegardée")
+	var callsign := screen.find_child("Indicatif", true, false) as LineEdit
+	for text in ["R", "Re", "Ren"]:
+		callsign.text = text
+		callsign.text_changed.emit(text)
+	_choose(screen, "headwear", &"cap", GearCatalog.HEADWEAR)
+	screen._input(_key(KEY_Z, KEY_W, true))
+	assert_eq(roster.operators[0].headwear, &"helmet", "Ctrl+Z (touche logique Z) annule")
+	screen.undo()
+	assert_eq(roster.operators[0].callsign, "Alpha", "la saisie de l'indicatif s'annule d'un coup")
+	assert_false(screen.can_undo())
+	screen._input(_key(KEY_QUOTEDBL, KEY_2))
+	assert_eq(screen.current, 1, "touche 2 (rangée du haut) : Bravo")
+	screen._input(_key(KEY_KP_3))
+	assert_eq(screen.current, 2, "pavé numérique 3 : Charlie")
+	screen._input(_key(KEY_TAB))
+	assert_eq(screen._tabs.current_tab, 1, "Tab : onglet suivant")
+	screen._input(_key(KEY_TAB, KEY_TAB, false, true))
+	screen._input(_key(KEY_TAB, KEY_TAB, false, true))
+	assert_eq(screen._tabs.current_tab, screen._tabs.get_tab_count() - 1, "Maj+Tab : onglet précédent, en boucle")
+
+
+func test_copy_look_and_weight_limit() -> void:
+	var screen := await _open_screen()
+	var roster := OperatorRoster.current()
+	roster.operators[1].primary = &"smg"
+	roster.operators[0].set_camo(&"snow")
+	roster.operators[0].backpack = false
+	screen.copy_look_to_team()
+	for i in [1, 2]:
+		assert_eq(roster.operators[i].camo, &"snow", "camouflage copié")
+		assert_false(roster.operators[i].backpack, "accessoires copiés")
+	assert_eq(roster.operators[1].primary, &"smg", "armement inchangé")
+	assert_eq(roster.operators[2].callsign, "Charlie", "identité inchangée")
+	screen.undo()
+	assert_eq(roster.operators[1].camo, &"", "copie annulée d'un coup")
+	assert_true(roster.operators[2].backpack)
+	# Charge : au-delà du maximum, le changement est refusé.
+	_choose(screen, "primary", &"dmr", GearCatalog.PRIMARY)
+	for key: String in ["grenades", "explosives", "medkit"]:
+		var spin := screen.find_child(key, true, false) as SpinBox
+		spin.value = spin.max_value
+	assert_lt(GearCatalog.load_of(roster.operators[0]), GearCatalog.MAX_LOAD + 0.01, "encore permis")
+	_choose(screen, "secondary", &"machine_pistol", GearCatalog.SECONDARY)
+	assert_eq(roster.operators[0].secondary, &"pistol", "trop lourd : refusé")
+	assert_string_contains(screen._status.text, "Trop lourd")
+	assert_eq((screen.find_child("secondary", true, false) as OptionButton).selected, GearCatalog.SECONDARY.keys().find(&"pistol"), "liste remise")
+	assert_string_contains((screen.find_child("Load", true, false) as Label).text, "Lourde")
+
+
+func test_saved_outfits_and_specialty() -> void:
+	var screen := await _open_screen()
+	var roster := OperatorRoster.current()
+	roster.operators[0].set_camo(&"night")
+	roster.operators[0].primary = &"smg"
+	(screen.find_child("OutfitName", true, false) as LineEdit).text = "Nuit"
+	(screen.find_child("SaveOutfit", true, false) as Button).pressed.emit()
+	assert_eq(roster.operators[0].saved_outfits.size(), 1, "tenue enregistrée")
+	roster.operators[0].set_camo(&"desert")
+	roster.operators[0].primary = &"carbine"
+	(screen.find_child("Wear1", true, false) as Button).pressed.emit()
+	assert_eq(roster.operators[0].camo, &"night", "tenue remise")
+	assert_eq(roster.operators[0].primary, &"smg", "armement de la tenue")
+	var loaded := OperatorRoster.load_file(SAVE).operators[0]
+	assert_eq(loaded.saved_outfits.size(), 1, "tenues sauvegardées")
+	assert_eq(loaded.saved_outfits[0]["name"], "Nuit")
+	_choose(screen, "specialty", &"marksman", GearCatalog.SPECIALTIES)
+	(screen.find_child("SpecialtyOutfit", true, false) as Button).pressed.emit()
+	assert_eq(roster.operators[0].primary, &"dmr", "tenue conseillée du tireur d'élite")
+	assert_eq(roster.operators[0].headwear, &"boonie")
+	assert_eq(roster.operators[0].camo, &"night", "camouflage gardé")
+	assert_eq(OperatorRoster.load_file(SAVE).operators[0].specialty, &"marksman", "spécialité sauvegardée")
+	assert_string_contains(screen._selectors[0].text, "Tireur d'élite")
+	(screen.find_child("Delete1", true, false) as Button).pressed.emit()
+	assert_eq(roster.operators[0].saved_outfits.size(), 0, "tenue supprimée")
+
+
+func test_preview_follows_the_changes() -> void:
+	var screen := await _open_screen()
+	var roster := OperatorRoster.current()
+	assert_eq(screen.portraits.size(), 3, "un portrait 3D par opérateur")
+	assert_true(screen._selectors[0].icon is ViewportTexture)
+	assert_eq(screen.backdrop, &"", "décor neutre sans camouflage")
+	for button in screen.find_children("*", "Button", true, false):
+		if (button as Button).text == "Désert":
+			(button as Button).pressed.emit()
+	assert_eq(screen.backdrop, &"desert", "décor du désert")
+	assert_gt((screen.find_child("Backdrop", true, false) as Node3D).get_child_count(), 0, "éléments de décor")
+	assert_eq(screen.portraits[0].outfit, roster.operators[0], "portrait mis à jour")
+	_choose(screen, "headwear", &"beanie", GearCatalog.HEADWEAR)
+	assert_eq(screen.focus, &"head", "cadrage sur la tête")
+	_choose(screen, "primary", &"shotgun", GearCatalog.PRIMARY)
+	assert_eq(screen.focus, &"weapon", "cadrage sur l'arme")
+	(screen.find_child("knee_pads", true, false) as CheckBox).button_pressed = false
+	assert_eq(screen.focus, &"legs", "cadrage sur les jambes")
+	assert_not_null(screen.find_child("Comparison", true, false), "comparaison des armes")
+	for id: StringName in [&"reload", &"throw", &"stab"]:
+		screen.play(id)
+		await wait_process_frames(20)
+	screen.play(&"climb")
+	assert_true((screen.find_child("ClimbCrate", true, false) as Node3D).visible, "caisse d'escalade")
+	screen._anim_time = 1.2
+	await wait_process_frames(2)
+	assert_gt(screen.model.position.y, 0.5, "l'opérateur monte sur la caisse")
+	screen.play(&"idle")
+	assert_false((screen.find_child("ClimbCrate", true, false) as Node3D).visible)
+	assert_eq(screen.model.position, Vector3.ZERO)
+
+
+func test_briefing_suggests_the_map_camo() -> void:
+	var roster := OperatorRoster.current()
+	roster.operators[1].set_camo(&"snow")
+	roster.operators[1].save_outfit("Désert")
+	roster.operators[1].saved_outfits[0]["outfit"]["camo"] = "desert"
+	var menu := (load(LevelCatalog.MENU_SCENE) as PackedScene).instantiate() as MainMenu
+	get_tree().root.add_child(menu)
+	get_tree().current_scene = menu
+	await wait_process_frames(2)
+	var play: Button = menu.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Jouer")[0]
+	play.pressed.emit()
+	assert_true(menu.briefing.visible, "préparation ouverte")
+	assert_string_contains((menu.briefing.find_child("SuggestAll", true, false) as Button).text, "Woodland", "terrain d'essai : woodland conseillé")
+	var outfits := menu.briefing.find_child("Outfit2", true, false) as OptionButton
+	assert_eq(outfits.item_count, 2, "tenue actuelle et tenue enregistrée")
+	outfits.select(1)
+	outfits.item_selected.emit(1)
+	assert_eq(roster.operators[1].camo, &"desert", "tenue enregistrée revêtue")
+	(menu.briefing.find_child("Camo1", true, false) as Button).pressed.emit()
+	assert_eq(roster.operators[0].camo, &"woodland", "camouflage conseillé pour Alpha")
+	assert_eq(roster.operators[1].camo, &"desert", "les autres inchangés")
+	(menu.briefing.find_child("SuggestAll", true, false) as Button).pressed.emit()
+	for operator in roster.operators:
+		assert_eq(operator.camo, &"woodland")
+	assert_eq(OperatorRoster.load_file(SAVE).operators[2].camo, &"woodland", "sauvegardé")
+	(menu.briefing.find_child("CancelBriefing", true, false) as Button).pressed.emit()
+	assert_false(menu.briefing.visible, "annulé")
+	assert_false(play.disabled, "rien n'est lancé")
