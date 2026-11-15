@@ -28,7 +28,11 @@ func is_aiming() -> bool:
 
 
 func update(delta: float) -> Vector3:
-	if not is_aiming() or not unit._ready_to_fire():
+	if not is_aiming():
+		finish()
+		return Vector3.ZERO
+	if not unit._ready_to_fire():
+		unit.flash_hint(Commando.Hint.NO_AMMO)
 		finish()
 		return Vector3.ZERO
 	var to_target := enemy.global_position - unit.global_position
@@ -45,6 +49,7 @@ func update(delta: float) -> Vector3:
 			unit._fire(enemy, distance)
 		return Vector3.ZERO
 	# Pas de ligne de tir : s'approcher, puis viser de nouveau.
+	unit.report_hint(Commando.Hint.OUT_OF_RANGE if distance > unit.stats.fire_range else Commando.Hint.OBSTACLE)
 	unit._fire_cooldown = unit.stats.aim_time
 	if unit.perched_on:
 		unit._descend(enemy.global_position, func() -> void: pass)

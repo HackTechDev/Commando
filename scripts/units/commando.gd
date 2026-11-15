@@ -22,6 +22,20 @@ const MASK_OCCLUDERS := 0b10
 const CALLSIGN_COLOR := Color(0.85, 0.92, 1.0, 0.85)
 const CALLSIGN_SELECTED := Color(1.0, 0.85, 0.4, 1.0)
 const CALLSIGN_HEIGHTS: Array[float] = [2.05, 1.55, 0.85]
+## Raison pour laquelle l'opérateur ne tire pas ou ne lance pas, affichée
+## sous son indicatif (`report_hint` pendant un ordre, `flash_hint` pour un
+## ordre refusé).
+enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE }
+const HINT_TEXTS: Dictionary = {
+	Hint.OUT_OF_RANGE: "Hors de portée",
+	Hint.OBSTACLE: "Obstacle : pas de ligne de tir",
+	Hint.NO_AMMO: "À sec",
+	Hint.NO_KNIFE: "Plus de couteau",
+	Hint.NO_GRENADE: "Plus de grenade",
+}
+const HINT_COLOR := Color(1.0, 0.62, 0.3)
+## Durée d'affichage d'un refus.
+const FLASH_TIME := 1.6
 ## Distance (entre centres) à partir de laquelle une attaque au corps à corps est possible.
 const MELEE_RANGE := 1.3
 ## Instant de l'attaque (0 à 1) où le coup porte.
@@ -132,6 +146,13 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _walker := PathWalker.new()
 ## Franchissement d'échelle ou de muret en cours.
 var _traversal: LinkTraversal
+## Raison affichée : signalée à chaque image par l'ordre en cours, ou
+## brièvement après un refus.
+var _hint: Hint = Hint.NONE
+var _hint_frame: int = -100
+var _flash: Hint = Hint.NONE
+var _flash_left: float = 0.0
+var _hint_label: Label3D
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _ring: MeshInstance3D = $SelectionRing
@@ -180,9 +201,19 @@ func _build_callsign() -> void:
 	label.render_priority = 1
 	label.position.y = CALLSIGN_HEIGHTS[posture]
 	add_child(label)
+	_hint_label = label.duplicate() as Label3D
+	_hint_label.name = "Hint"
+	_hint_label.text = ""
+	_hint_label.modulate = HINT_COLOR
+	_hint_label.font_size = 24
+	# Sous l'indicatif, à l'écran (taille fixe) : décalé vers le bas de la vue.
+	_hint_label.offset = Vector2(0, -34)
+	_hint_label.visible = false
+	add_child(_hint_label)
 	posture_changed.connect(func(new_posture: SoldierModel.Posture) -> void:
-		var tween := label.create_tween()
-		tween.tween_property(label, "position:y", CALLSIGN_HEIGHTS[new_posture], 0.25))
+		var tween := label.create_tween().set_parallel(true)
+		tween.tween_property(label, "position:y", CALLSIGN_HEIGHTS[new_posture], 0.25)
+		tween.tween_property(_hint_label, "position:y", CALLSIGN_HEIGHTS[new_posture], 0.25))
 	selected_changed.connect(func(value: bool) -> void:
 		label.modulate = CALLSIGN_SELECTED if value else CALLSIGN_COLOR)
 
@@ -376,7 +407,10 @@ func move_to(target: Vector3, run: bool) -> void:
 ## Ordonne d'attaquer `enemy` : l'unité s'approche jusqu'à avoir une ligne de
 ## tir, puis tire jusqu'à ce que la cible soit neutralisée.
 func attack(enemy: Enemy, run: bool) -> void:
-	if is_dead or _hopping or enemy == null or enemy.is_dead or not _ready_to_fire():
+	if is_dead or _hopping or enemy == null or enemy.is_dead:
+		return
+	if not _ready_to_fire():
+		flash_hint(Hint.NO_AMMO)
 		return
 	weapon_slung = false
 	_set_order(AttackOrder.new(self, enemy, run))
@@ -457,6 +491,8 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 ## avec une ligne de vue dégagée, puis lance. Renvoie faux si c'est
 ## impossible (plus de couteau, cible morte…).
 func throw_knife(enemy: Enemy, run: bool = false) -> bool:
+	if not is_dead and throwing_knives <= 0:
+		flash_hint(Hint.NO_KNIFE)
 	if is_dead or _hopping or enemy == null or enemy.is_dead or throwing_knives <= 0:
 		return false
 	if perched_on and not _can_throw_at(enemy):
@@ -521,6 +557,8 @@ func _ready_to_fire() -> bool:
 ## Ordonne de lancer une grenade vers `target` (au sol) : l'unité s'approche
 ## à portée, puis lance. Renvoie faux sans grenade.
 func throw_grenade(target: Vector3, run: bool = false) -> bool:
+	if not is_dead and grenades <= 0:
+		flash_hint(Hint.NO_GRENADE)
 	if is_dead or _hopping or grenades <= 0:
 		return false
 	if perched_on and not _in_grenade_range(target):
@@ -1156,6 +1194,7 @@ func _on_died() -> void:
 	var callsign := get_node_or_null(^"Callsign") as Label3D
 	if callsign:
 		callsign.visible = false
+	_flash_left = 0.0
 	SelectionManager.remove(self)
 	EventBus.unit_died.emit(self)
 
@@ -1194,3 +1233,33 @@ func load_state(data: Dictionary) -> void:
 	weapon_slung = data.get("weapon_slung", weapon_slung)
 	set_shield(data.get("shield_raised", false))
 	EventBus.unit_ammo_changed.emit(self)
+
+
+## Signale, pendant un ordre, pourquoi l'opérateur ne tire pas ou ne lance
+## pas encore (à rappeler à chaque image tant que cela dure).
+func report_hint(hint: Hint) -> void:
+	_hint = hint
+	_hint_frame = Engine.get_physics_frames()
+
+
+## Affiche un instant pourquoi un ordre est refusé.
+func flash_hint(hint: Hint) -> void:
+	_flash = hint
+	_flash_left = FLASH_TIME
+
+
+## Raison affichée en ce moment (`Hint.NONE` si aucune).
+func current_hint() -> Hint:
+	if _hint != Hint.NONE and Engine.get_physics_frames() - _hint_frame <= 2:
+		return _hint
+	return _flash if _flash_left > 0.0 else Hint.NONE
+
+
+func _process(delta: float) -> void:
+	_flash_left = maxf(_flash_left - delta, 0.0)
+	if _hint_label == null:
+		return
+	var hint := Hint.NONE if is_dead else current_hint()
+	_hint_label.visible = hint != Hint.NONE
+	if hint != Hint.NONE:
+		_hint_label.text = HINT_TEXTS[hint]

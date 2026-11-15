@@ -40,6 +40,7 @@ func update(delta: float) -> Vector3:
 		if unit._model.is_weapon_slung() and not unit._model.is_changing_posture() and (-unit.global_basis.z).angle_to(to_enemy) < 0.2:
 			finish(ThrowGesture.new(unit, enemy, Vector3.INF))
 		return Vector3.ZERO
+	unit.report_hint(Commando.Hint.OUT_OF_RANGE if to_enemy.length() > unit.stats.throw_range else Commando.Hint.OBSTACLE)
 	if unit._agent.target_position.distance_to(enemy.global_position) > 0.3:
 		unit._agent.target_position = enemy.global_position
 	if unit._agent.is_navigation_finished():

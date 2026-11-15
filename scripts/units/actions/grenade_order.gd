@@ -40,6 +40,7 @@ func update(delta: float) -> Vector3:
 				and (to_target.length() < 0.05 or (-unit.global_basis.z).angle_to(to_target) < 0.2):
 			finish(ThrowGesture.new(unit, null, target))
 		return Vector3.ZERO
+	unit.report_hint(Commando.Hint.OUT_OF_RANGE)
 	if unit._agent.target_position.distance_to(target) > 0.3:
 		unit._agent.target_position = target
 	if unit._agent.is_navigation_finished():

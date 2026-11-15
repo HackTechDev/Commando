@@ -492,3 +492,8 @@
 
 - Opérateurs, VIP, ennemis, points de vie, caisses déplaçables et zone d'extraction savent donner et reprendre leur état (`save_state()` / `load_state()`) : place, orientation, posture, vie, munitions, équipement, arme en main, bouclier, état d'alerte ou perte de connaissance d'un ennemi, guide du VIP, VIP évacués.
 - `QuickSave` réunit ces états par chemin de nœud, avec le niveau d'alerte, les écrit dans un fichier et les rend à un niveau rechargé. Les touches de sauvegarde et de chargement viendront avec M7.
+
+## Pourquoi l'opérateur ne tire pas
+
+- Sous l'indicatif, un court message orangé dit pourquoi l'opérateur ne tire pas ou ne lance pas encore : « Hors de portée » ou « Obstacle : pas de ligne de tir » pendant qu'il s'approche, pour un tir, un couteau ou une grenade.
+- Un ordre refusé s'explique un instant : « À sec », « Plus de couteau », « Plus de grenade ».
