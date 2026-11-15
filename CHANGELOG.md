@@ -574,3 +574,10 @@
 - Menu de corps à corps → « Désarmer » : l'opérateur s'avance au contact, saisit l'arme à deux mains, la tord et l'arrache. Elle tombe au sol ; l'ennemi lève les mains et ne fait plus rien (ni tir, ni coup, ni poursuite, plus de cône de vision), sans être neutralisé : on peut encore l'assommer.
 - De face, il faut le prendre de court : pas encore en alerte, en alerte depuis moins de 1,5 s, ou déséquilibré par une parade. Sinon, il repousse l'opérateur comme pour un coup.
 - Un ennemi désarmé ne compte plus pour le niveau d'alerte ; l'état est conservé par la sauvegarde rapide.
+
+## Bouclier humain (3.6)
+
+- Menu de corps à corps → « Bouclier humain » : l'opérateur saisit l'ennemi par derrière (refusé de face, ou sans arme de poing), le bras gauche autour du cou, et dégaine son pistolet.
+- L'otage reste devant lui, tourné comme lui. L'opérateur avance à pas lents (45 % de la marche, même en courant), reste debout, tire au pistolet ; grenades, couteaux, escalade, caisses, soins, bouclier et autres corps à corps attendent qu'il lâche l'otage.
+- Les ennemis retiennent leur tir tant que l'otage couvre la ligne de tir.
+- Clic du milieu sur l'otage : « Relâcher » (il se dégage et donne l'alerte) ou « Assommer » (V sur l'otage fait de même). Si l'opérateur est tué, l'otage se libère.

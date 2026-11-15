@@ -567,6 +567,11 @@ func open_melee_menu(screen_position: Vector2) -> bool:
 
 ## Options du menu de corps à corps sur `enemy`.
 static func melee_options(enemy: Enemy) -> Array[Dictionary]:
+	if enemy.captor != null:
+		return [
+			{"id": &"release", "label": "Relâcher", "detail": "il donne l'alerte"},
+			{"id": &"knockout", "label": "Assommer", "detail": "coup sur la tempe"},
+		]
 	var standing := not enemy.is_stunned()
 	return [
 		{"id": &"knockout", "label": "Assommer", "detail": "coup ou prise par derrière", "enabled": standing},
@@ -574,6 +579,7 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 		{"id": &"sweep", "label": "Balayage", "detail": "il tombe, sonné peu de temps", "enabled": standing},
 		{"id": &"throw", "label": "Projection", "detail": "au sol, puis assommé", "enabled": standing},
 		{"id": &"disarm", "label": "Désarmer", "detail": "pris de court, il se rend", "enabled": enemy.can_be_disarmed()},
+		{"id": &"hostage", "label": "Bouclier humain", "detail": "par derrière, arme de poing", "enabled": standing},
 	]
 
 
@@ -586,9 +592,15 @@ func _on_radial_chosen(id: StringName) -> void:
 	_menu_enemy = null
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dead:
 		return
+	if enemy.captor != null:
+		# L'otage : seul celui qui le tient décide.
+		if id == &"release" or id == &"knockout":
+			enemy.captor.release_hostage(id == &"knockout")
+			Sfx.play_ui(&"order")
+		return
 	var kinds := {&"knockout": Commando.MeleeKind.KNOCKOUT, &"knife": Commando.MeleeKind.KNIFE,
 			&"sweep": Commando.MeleeKind.SWEEP, &"throw": Commando.MeleeKind.THROW,
-			&"disarm": Commando.MeleeKind.DISARM}
+			&"disarm": Commando.MeleeKind.DISARM, &"hostage": Commando.MeleeKind.HOSTAGE}
 	if not kinds.has(id):
 		return
 	var accepted := SelectionManager.order_melee(enemy, kinds[id])

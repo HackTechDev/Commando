@@ -8,6 +8,10 @@ extends CommandoAction
 ## Instants (0 à 1) où l'étranglement et l'égorgement neutralisent la victime.
 const CHOKE_HIT_TIME := 0.85
 const THROAT_CUT_HIT_TIME := 0.6
+## Saisie d'un bouclier humain : durée (s), et instant (0 à 1) où l'otage
+## est tenu.
+const HOSTAGE_GRAB_TIME := 0.7
+const HOSTAGE_HIT_TIME := 0.6
 ## Durée (s) du glissement de l'opérateur contre la victime d'une prise.
 const GRAB_SLIDE_TIME := 0.15
 ## Très courte portée (m) : en deçà, ou pour un contre, l'opérateur frappe du
@@ -91,7 +95,7 @@ func start() -> void:
 	var model := unit._model
 	model.strike_with_knife = kind == Commando.MeleeKind.KNIFE
 	# Un ennemi déjà au sol s'achève sans prise ; le balayage n'en est pas une.
-	grapple = kind in [Commando.MeleeKind.KNIFE, Commando.MeleeKind.KNOCKOUT] and not enemy.is_stunned() and enemy.is_behind(unit.global_position)
+	grapple = kind in [Commando.MeleeKind.KNIFE, Commando.MeleeKind.KNOCKOUT, Commando.MeleeKind.HOSTAGE] and not enemy.is_stunned() and enemy.is_behind(unit.global_position)
 	if grapple:
 		unit.posture = SoldierModel.Posture.STANDING
 		enemy.grab()
@@ -100,7 +104,11 @@ func start() -> void:
 		_grab_to = enemy.global_position + enemy.global_basis.z * SoldierModel.GRAB_DISTANCE
 		_grab_to.y = unit.global_position.y
 		unit.rotation.y = enemy.rotation.y
-		if kind == Commando.MeleeKind.KNIFE:
+		if kind == Commando.MeleeKind.HOSTAGE:
+			model.strike_move = SoldierModel.StrikeMove.CHOKE
+			_duration = HOSTAGE_GRAB_TIME
+			_hit_time = HOSTAGE_HIT_TIME
+		elif kind == Commando.MeleeKind.KNIFE:
 			model.strike_move = SoldierModel.StrikeMove.THROAT_CUT
 			_duration = unit.stats.throat_cut_time
 			_hit_time = THROAT_CUT_HIT_TIME
@@ -247,7 +255,9 @@ func cancel() -> void:
 		return
 	grapple = false
 	if is_instance_valid(enemy):
-		unit.remove_collision_exception_with(enemy)
+		# L'otage reste contre l'opérateur.
+		if kind != Commando.MeleeKind.HOSTAGE or not landed:
+			unit.remove_collision_exception_with(enemy)
 		if not landed:
 			enemy.release()
 
@@ -264,6 +274,8 @@ func _land() -> void:
 				Sfx.play_at(&"knife", enemy.global_position + Vector3.UP * 1.4, -12.0)
 			Commando.MeleeKind.KNOCKOUT:
 				enemy.knock_out(true)
+			Commando.MeleeKind.HOSTAGE:
+				unit.take_hostage(enemy)
 		return
 	if kind == Commando.MeleeKind.THROW:
 		# Au sol ; il le frappe aussitôt.

@@ -16,7 +16,7 @@ signal shield_changed(raised: bool)
 
 ## Corps à corps : couteau (tue), assommer, balayage (assomme moins
 ## longtemps), projection (au sol par-dessus la hanche, puis assommé).
-enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM }
+enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE }
 
 const MASK_OCCLUDERS := 0b10
 ## Indicatif affiché au-dessus de la tête : couleur, couleur une fois
@@ -75,6 +75,10 @@ const SHIELD_SPEED := 0.7
 ## Parade au choix du joueur (touche de parade) : un coup qui porte dans les
 ## `PARRY_WINDOW` secondes qui suivent l'appui est paré ; on ne peut
 ## rappuyer qu'après `PARRY_COOLDOWN` secondes (pas de parade permanente).
+## Bouclier humain : part de la vitesse de marche, et message quand une
+## action demande les deux mains.
+const HOSTAGE_SPEED := 0.45
+const HOSTAGE_BUSY := "Bouclier humain : relâchez d'abord l'otage"
 const PARRY_WINDOW := 0.45
 const PARRY_COOLDOWN := 0.9
 
@@ -129,6 +133,8 @@ var shield_raised: bool = false
 var using_secondary: bool = false
 ## Obstacle sur lequel l'unité se tient, le cas échéant.
 var perched_on: Climbable
+## Ennemi tenu en bouclier humain, devant l'opérateur.
+var hostage: Enemy
 
 var _running: bool = false
 var _fire_cooldown: float = 0.0
@@ -290,6 +296,7 @@ func _physics_process(delta: float) -> void:
 	_model.aiming = not is_dead and _order is AttackOrder and (_order as AttackOrder).is_aiming()
 	_model.look_target = _look_point()
 	_model.shield_raised = is_shield_up()
+	_model.hostage_hold = hostage != null
 	if not is_dead and _traversal.update(delta):
 		return
 	if _hopping:
@@ -312,6 +319,7 @@ func _physics_process(delta: float) -> void:
 	_wants_to_move = horizontal != Vector3.ZERO
 	_desired_velocity = horizontal
 	_update_gear_noise(delta)
+	_hold_hostage()
 	# Une unité à l'arrêt est prioritaire : ce sont les autres qui la contournent.
 	_agent.avoidance_priority = 0.5 if _wants_to_move else 1.0
 	if _agent.avoidance_enabled:
@@ -396,6 +404,7 @@ func _apply_velocity(horizontal: Vector3) -> void:
 	velocity = Vector3(horizontal.x, _vertical_velocity, horizontal.z)
 	var before := global_position
 	move_and_slide()
+	_hold_hostage()
 	# Bloqué net (moins de la moitié du pas voulu) : peut-être une marche basse.
 	var wanted := horizontal * get_physics_process_delta_time()
 	var moved := global_position - before
@@ -439,6 +448,8 @@ func attack(enemy: Enemy, run: bool) -> void:
 ## le sol, se gagne par un objet voisin (caisse) : l'unité monte d'abord
 ## dessus, puis grimpe jusqu'à la corniche.
 func climb(target: Climbable, run: bool) -> bool:
+	if _hostage_busy():
+		return false
 	if is_dead or _hopping or target == null or not target.can_stand_on:
 		return false
 	if perched_on == target:
@@ -497,6 +508,16 @@ func reload() -> void:
 func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 	if is_dead or _hopping or enemy == null or enemy.is_dead:
 		return false
+	if hostage:
+		# L'otage lui-même : on l'assomme sur place ; les autres attendront.
+		if enemy == hostage and kind == MeleeKind.KNOCKOUT:
+			release_hostage(true)
+			return true
+		_hostage_busy()
+		return false
+	if kind == MeleeKind.HOSTAGE and _secondary_stats == null:
+		flash_message("Bouclier humain : il faut une arme de poing")
+		return false
 	if kind != MeleeKind.KNIFE and enemy.is_stunned():
 		return false
 	if kind == MeleeKind.DISARM and not enemy.can_be_disarmed():
@@ -511,6 +532,8 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 ## avec une ligne de vue dégagée, puis lance. Renvoie faux si c'est
 ## impossible (plus de couteau, cible morte…).
 func throw_knife(enemy: Enemy, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
 	if not is_dead and throwing_knives <= 0:
 		flash_hint(Hint.NO_KNIFE)
 	if is_dead or _hopping or enemy == null or enemy.is_dead or throwing_knives <= 0:
@@ -523,6 +546,8 @@ func throw_knife(enemy: Enemy, run: bool = false) -> bool:
 
 ## Ramasse un couteau de lancer au sol. Renvoie faux s'il en a déjà son compte.
 func pick_up_knife() -> bool:
+	if _hostage_busy():
+		return false
 	if is_dead or throwing_knives >= stats.throwing_knives:
 		return false
 	throwing_knives += 1
@@ -577,6 +602,8 @@ func _ready_to_fire() -> bool:
 ## Ordonne de lancer une grenade vers `target` (au sol) : l'unité s'approche
 ## à portée, puis lance. Renvoie faux sans grenade.
 func throw_grenade(target: Vector3, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
 	if not is_dead and grenades <= 0:
 		flash_hint(Hint.NO_GRENADE)
 	if is_dead or _hopping or grenades <= 0:
@@ -597,6 +624,8 @@ func _in_grenade_range(target: Vector3) -> bool:
 ## monter à la corde. Renvoie faux si c'est impossible (pas de grappin,
 ## point hors de portée, pas de paroi à gravir : voir `grapple_route`).
 func grapple(target: Vector3, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
 	if not is_dead and grapnels <= 0:
 		flash_hint(Hint.NO_GRAPNEL)
 	if is_dead or _hopping or grapnels <= 0 or perched_on:
@@ -647,6 +676,8 @@ func _release_grenade(target: Vector3) -> void:
 ## Pose une charge explosive aux pieds de l'unité (elle s'accroupit le temps
 ## de l'armer). Renvoie faux s'il ne lui en reste pas ou qu'elle est occupée.
 func plant_explosive() -> bool:
+	if _hostage_busy():
+		return false
 	if is_dead or _hopping or explosives <= 0 or _gesture != null or is_handling_crate():
 		return false
 	stop()
@@ -674,6 +705,8 @@ func detonate_explosives() -> int:
 ## Soigne l'opérateur le plus blessé à portée (l'unité elle-même comprise)
 ## avec une trousse. Renvoie faux sans trousse ou sans blessé à portée.
 func use_medkit() -> bool:
+	if _hostage_busy():
+		return false
 	if is_dead or _hopping or medkits <= 0 or _gesture != null:
 		return false
 	var patient := _most_wounded_nearby()
@@ -737,6 +770,73 @@ func melee_target() -> Enemy:
 	return (_order as MeleeOrder).enemy if _order is MeleeOrder else null
 
 
+## Prend `enemy` en bouclier humain (fin de la saisie par derrière) : il
+## reste debout devant l'opérateur, qui dégaine son arme de poing.
+func take_hostage(enemy: Enemy) -> void:
+	if is_dead or enemy == null or enemy.is_dead:
+		return
+	enemy.grab()
+	hostage = enemy
+	enemy.captor = self
+	add_collision_exception_with(enemy)
+	posture = SoldierModel.Posture.STANDING
+	set_shield(false)
+	release_crate()
+	_running = false
+	if not using_secondary:
+		switch_weapon()
+	weapon_slung = false
+	_hold_hostage()
+
+
+## Lâche l'otage : il se dégage et donne l'alerte, sauf s'il est assommé
+## (`knock_out`, d'un coup de crosse sur la tempe).
+func release_hostage(knock_out: bool = false) -> void:
+	var enemy := hostage
+	if enemy == null:
+		return
+	_drop_hostage()
+	if not is_instance_valid(enemy) or enemy.is_dead:
+		return
+	if knock_out:
+		enemy.knock_out(true)
+		Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 1.5)
+		EventBus.noise_emitted.emit(global_position, stats.melee_noise_radius, &"melee")
+	else:
+		enemy.release()
+
+
+## Oublie l'otage, sans rien lui faire.
+func _drop_hostage() -> void:
+	var enemy := hostage
+	hostage = null
+	_model.hostage_hold = false
+	if is_instance_valid(enemy):
+		enemy.captor = null
+		remove_collision_exception_with(enemy)
+
+
+## Maintient l'otage devant soi, tourné comme l'opérateur.
+func _hold_hostage() -> void:
+	if hostage == null:
+		return
+	if not is_instance_valid(hostage) or hostage.is_dead or hostage.state != Enemy.State.GRABBED:
+		_drop_hostage()
+		return
+	var spot := global_position - global_basis.z * SoldierModel.GRAB_DISTANCE
+	hostage.global_position = Vector3(spot.x, hostage.global_position.y, spot.z)
+	hostage.rotation.y = rotation.y
+	hostage.velocity = Vector3.ZERO
+
+
+## Vrai (et l'opérateur le signale) si l'otage lui occupe les mains.
+func _hostage_busy() -> bool:
+	if hostage == null:
+		return false
+	flash_message(HOSTAGE_BUSY)
+	return true
+
+
 ## Arrête l'ordre en cours (déplacement, attaque, caisse…) et une pose de
 ## charge ou des soins ; un coup ou un lancer déjà commencé va à son terme.
 func stop() -> void:
@@ -748,6 +848,8 @@ func stop() -> void:
 ## Ensuite, un ordre de déplacement fait glisser la caisse dans l'axe de ce
 ## côté. Renvoie faux si c'est impossible (caisse occupée, aucun côté libre).
 func handle_crate(crate: Climbable, near: Vector3) -> bool:
+	if _hostage_busy():
+		return false
 	if is_dead or _hopping or crate == null or not crate.movable or crate.occupant != null:
 		return false
 	if crate.handler != null and crate.handler != self:
@@ -786,6 +888,10 @@ func toggle_sling() -> void:
 func toggle_posture(new_posture: SoldierModel.Posture) -> void:
 	if is_dead:
 		return
+	if hostage:
+		# Debout, l'otage devant soi.
+		_hostage_busy()
+		return
 	posture = SoldierModel.Posture.STANDING if posture == new_posture else new_posture
 	# On ne rampe pas derrière un bouclier.
 	if posture == SoldierModel.Posture.PRONE:
@@ -802,6 +908,8 @@ func toggle_posture(new_posture: SoldierModel.Posture) -> void:
 func set_shield(raised: bool) -> bool:
 	if raised == shield_raised:
 		return true
+	if raised and _hostage_busy():
+		return false
 	if raised:
 		if is_dead or shields <= 0 or _secondary_stats == null:
 			return false
@@ -1195,7 +1303,10 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	if not hit:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
 		# La balle manquée file jusqu'au premier obstacle derrière la cible.
-		aim = ShotImpact.land(scene, muzzle, aim + side, [get_rid(), enemy.get_rid()] as Array[RID])
+		var ignored: Array[RID] = [get_rid(), enemy.get_rid()]
+		if hostage:
+			ignored.append(hostage.get_rid())
+		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)
 	else:
 		ShotImpact.hit(scene, enemy, aim, muzzle, stats.damage_at(distance), false)
 	Tracer.spawn(scene, muzzle, aim, Color(0.6, 0.9, 1.0))
@@ -1215,6 +1326,8 @@ func _fire(enemy: Enemy, distance: float) -> void:
 
 
 func _current_speed() -> float:
+	if hostage:
+		return stats.walk_speed * HOSTAGE_SPEED
 	var shield := SHIELD_SPEED if shield_raised else 1.0
 	match posture:
 		SoldierModel.Posture.CROUCHED:
@@ -1239,6 +1352,7 @@ func _on_died() -> void:
 	_traversal.cancel()
 	Sfx.play_at(&"fall", global_position, -2.0)
 	_cancel_actions()
+	release_hostage()
 	_reload_left = 0.0
 	_model.reload_progress = -1.0
 	remove_from_group(&"commandos")
@@ -1269,6 +1383,8 @@ func save_state() -> Dictionary:
 func load_state(data: Dictionary) -> void:
 	stop()
 	release_crate()
+	# L'otage reprend l'état sauvegardé (le sien) : on le lâche sans plus.
+	_drop_hostage()
 	super(data)
 	if is_dead:
 		return

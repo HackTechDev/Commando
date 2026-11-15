@@ -43,6 +43,10 @@ func update(delta: float) -> Vector3:
 			# Il frappe le premier : on attend l'issue (parade, puis contre).
 			unit._face(to_enemy, delta)
 			return Vector3.ZERO
+		if kind == Commando.MeleeKind.HOSTAGE and not enemy.is_behind(unit.global_position):
+			unit.flash_message("Bouclier humain : le saisir par derrière")
+			finish()
+			return Vector3.ZERO
 		if kind == Commando.MeleeKind.DISARM and not enemy.can_be_disarmed():
 			finish()
 			return Vector3.ZERO

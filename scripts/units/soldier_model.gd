@@ -367,6 +367,8 @@ const DEATH_FWD_POS_Y: Array[float] = [0.0, 0.0, 0.35, 0.0, 0.85, 0.15, 1.1, 0.1
 const DEATH_FWD_POS_Z: Array[float] = [0.0, 0.0, 0.35, 0.0, 0.85, 0.6, 1.1, 0.9]
 
 ## Garde des poings pendant un coup de pied (repère du torse).
+## Main gauche autour du cou de l'otage, tenu à `GRAB_DISTANCE` devant.
+const HOSTAGE_LEFT := Vector3(0.06, 0.66, -0.36)
 const HANDS_UP_LEFT := Vector3(-0.24, 0.98, -0.08)
 const HANDS_UP_RIGHT := Vector3(0.24, 0.98, -0.08)
 const GUARD_LEFT := Vector3(-0.12, 0.62, -0.28)
@@ -490,6 +492,14 @@ var ladder_phase: float = -1.0
 var is_armed: bool = true
 ## Mains en l'air (désarmé, il se rend).
 var hands_up: bool = false
+## Bouclier humain : le bras gauche tient l'otage par le cou, l'arme de
+## poing dans la main droite.
+var hostage_hold: bool = false:
+	set(value):
+		# Au sortir de la saisie, le bras reste en place autour du cou.
+		if value and not hostage_hold and strike_progress >= 0.0:
+			_hostage = 1.0
+		hostage_hold = value
 ## Avancement d'une attaque au corps à corps (0 à 1) ; négatif hors attaque.
 var strike_progress: float = -1.0
 ## Vrai si l'attaque se fait au couteau (lame visible), faux pour un coup de poing.
@@ -579,6 +589,7 @@ var _shield: Node3D
 var _female: bool = false
 var _shield_back: Transform3D
 var _shield_up: float = 0.0
+var _hostage: float = 0.0
 var _rifle_aim: Transform3D
 var _rifle_prone: Transform3D
 var _rifle_dropped: Transform3D
@@ -1351,6 +1362,7 @@ func _animate_alive(delta: float) -> void:
 	# rechargement ; à la bretelle sur le flanc pour libérer les mains.
 	var rifle_target := _rifle_prone if prone else _rifle_hold.interpolate_with(_rifle_aim, aim)
 	var shield := _update_shield(delta, prone)
+	_hostage = move_toward(_hostage, 1.0 if hostage_hold and not is_dead else 0.0, delta / SHIELD_TIME)
 	# Bouclier levé : l'arme de poing passe à droite du bouclier.
 	rifle_target.origin += SHIELD_PISTOL_OFFSET * shield
 	# Pistolet qui sort de l'étui (ou y rentre).
@@ -1407,6 +1419,8 @@ func _animate_alive(delta: float) -> void:
 			left = left.lerp(_free_hand(-1.0, prone, s, c, moving, crawl), 1.0 - smoothstep(0.6, 1.0, draw))
 		if shield > 0.0:
 			left = left.lerp(_shield.transform * SHIELD_HANDLE, shield)
+		if _hostage > 0.0:
+			left = left.lerp(HOSTAGE_LEFT, smoothstep(0.0, 1.0, _hostage))
 		target = _solve_arms(left, right, PRONE_ELBOW_POLE if prone else ARM_POLE)
 	else:
 		target = _arm_poses[ArmPose.RIFLE]

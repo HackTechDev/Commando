@@ -55,6 +55,9 @@ const SURPRISE_TIME := 1.5
 ## Arme arrachée : posée au sol à cette distance (m) de l'ennemi, côté
 ## assaillant.
 const DROP_DISTANCE := 0.6
+## Un otage à moins de cette distance (m) de la ligne de tir la couvre :
+## l'ennemi retient son tir.
+const HOSTAGE_COVER_RADIUS := 0.45
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -64,6 +67,8 @@ var is_dead: bool = false
 var detection: float = 0.0
 ## Balles arrêtées par un bouclier.
 var shots_blocked: int = 0
+## Tirs retenus parce qu'un otage couvrait la cible.
+var hesitations: int = 0
 ## Cartouches restantes (négatif : sans limite).
 var ammo: int = -1
 ## Désarmé : mains en l'air, inoffensif.
@@ -72,6 +77,8 @@ var disarmed: bool = false
 var alert_age: float = 0.0
 ## Arme qu'on lui a arrachée, au sol.
 var dropped_weapon: Node3D
+## Opérateur qui le tient en bouclier humain.
+var captor: Commando
 ## Opérateur qui l'a désarmé (il le regarde).
 var _disarmer: Node3D
 
@@ -305,6 +312,20 @@ func resists(from: Vector3) -> bool:
 	if to.length_squared() < 0.0001:
 		return true
 	return rad_to_deg((-global_basis.z).angle_to(to)) < stats.resist_angle
+
+
+## Otage (ennemi tenu en bouclier humain) qui couvre la ligne de tir
+## `from` → `to`, ou null.
+static func hostage_in_the_way(tree: SceneTree, from: Vector3, to: Vector3) -> Enemy:
+	for node in tree.get_nodes_in_group(&"enemies"):
+		var enemy := node as Enemy
+		if enemy == null or enemy.captor == null or enemy.is_dead:
+			continue
+		var chest := enemy.global_position + Vector3.UP * 1.2
+		var closest := Geometry3D.get_closest_point_to_segment(chest, from, to)
+		if Vector2(closest.x - chest.x, closest.z - chest.z).length() < HOSTAGE_COVER_RADIUS:
+			return enemy
+	return null
 
 
 ## Vrai s'il est pris de court : pas encore en alerte, en alerte depuis
@@ -710,6 +731,10 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 			chance *= 0.6
 	var muzzle := global_position + Vector3.UP * 1.3 + forward * 0.7
 	var aim := _target.global_position + Vector3.UP * (0.3 if _target.posture == SoldierModel.Posture.PRONE else 1.0)
+	if hostage_in_the_way(get_tree(), muzzle, aim) != null:
+		# Un camarade en bouclier humain : il ne tire pas.
+		hesitations += 1
+		return
 	var hit := randf() < chance
 	var scene := get_tree().current_scene as Node3D
 	if not hit:
@@ -788,6 +813,7 @@ func load_state(data: Dictionary) -> void:
 	_waypoint_index = clampi(data.get("waypoint", _waypoint_index), 0, maxi(_waypoints.size() - 1, 0))
 	ammo = data.get("ammo", ammo)
 	_load_disarmed(data.get("disarmed", false))
+	captor = null
 	var saved: State = data.get("state", state)
 	if saved == State.STUNNED:
 		knock_out()
