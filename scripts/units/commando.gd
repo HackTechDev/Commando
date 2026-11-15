@@ -1158,3 +1158,39 @@ func _on_died() -> void:
 		callsign.visible = false
 	SelectionManager.remove(self)
 	EventBus.unit_died.emit(self)
+
+
+## Sauvegarde rapide (`QuickSave`) : en plus de l'état d'`Unit`, armes,
+## munitions, équipement et bouclier.
+func save_state() -> Dictionary:
+	var data := super()
+	data.merge({
+		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
+		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
+		"throwing_knives": throwing_knives, "grenades": grenades, "explosives": explosives,
+		"medkits": medkits, "shields": shields, "grapnels": grapnels,
+	})
+	return data
+
+
+func load_state(data: Dictionary) -> void:
+	stop()
+	release_crate()
+	super(data)
+	if is_dead:
+		return
+	if data.get("using_secondary", using_secondary) != using_secondary:
+		switch_weapon()
+	var ammo: Vector2i = data.get("ammo", Vector2i(ammo_in_magazine, ammo_reserve))
+	ammo_in_magazine = ammo.x
+	ammo_reserve = ammo.y
+	_holstered_ammo = data.get("holstered_ammo", _holstered_ammo)
+	throwing_knives = data.get("throwing_knives", throwing_knives)
+	grenades = data.get("grenades", grenades)
+	explosives = data.get("explosives", explosives)
+	medkits = data.get("medkits", medkits)
+	shields = data.get("shields", shields)
+	grapnels = data.get("grapnels", grapnels)
+	weapon_slung = data.get("weapon_slung", weapon_slung)
+	set_shield(data.get("shield_raised", false))
+	EventBus.unit_ammo_changed.emit(self)

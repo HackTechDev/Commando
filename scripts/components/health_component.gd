@@ -45,3 +45,19 @@ func heal(amount: float) -> float:
 	health = minf(health + amount, max_health)
 	health_changed.emit(health, max_health)
 	return health - before
+
+
+## Sauvegarde rapide (`QuickSave`) : points de vie. Ramenés à zéro, l'unité
+## meurt (signal `died`).
+func save_state() -> Dictionary:
+	return {"health": health, "max_health": max_health}
+
+
+func load_state(data: Dictionary) -> void:
+	max_health = data.get("max_health", max_health)
+	var saved: float = data.get("health", health)
+	if saved <= 0.0:
+		take_damage(health)
+		return
+	health = minf(saved, max_health)
+	health_changed.emit(health, max_health)

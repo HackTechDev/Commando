@@ -275,3 +275,27 @@ func _on_died() -> void:
 	$Marker.visible = false
 	_update_status()
 	killed.emit()
+
+
+## Sauvegarde rapide (`QuickSave`) : en plus de l'état d'`Unit`, guide
+## suivi et évacuation.
+func save_state() -> Dictionary:
+	var data := super()
+	data["leader"] = String(leader.get_path()) if leader and leader.is_inside_tree() else ""
+	data["evacuated"] = is_evacuated
+	data["shelter"] = _shelter
+	return data
+
+
+func load_state(data: Dictionary) -> void:
+	super(data)
+	if is_dead:
+		return
+	if data.get("evacuated", false):
+		evacuate(data.get("shelter", global_position))
+		return
+	var guide := get_node_or_null(NodePath(data.get("leader", ""))) as Commando if data.get("leader", "") != "" else null
+	if guide:
+		follow(guide)
+	else:
+		stay()

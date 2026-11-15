@@ -88,6 +88,10 @@ var _traversal: LinkTraversal
 @onready var health: HealthComponent = $HealthComponent
 
 
+func _enter_tree() -> void:
+	add_to_group(QuickSave.GROUP)
+
+
 func _ready() -> void:
 	health.reset(stats.max_health)
 	health.died.connect(_on_died)
@@ -629,3 +633,42 @@ func _update_feedback() -> void:
 	material.albedo_color = _vision.suspicious_color.lerp(_vision.alert_color, detection)
 	_mark.text = "!" if state == State.ALERT else "?"
 	_mark.modulate = color
+
+
+## Sauvegarde rapide (`QuickSave`) : place, état (patrouille, alerte,
+## inconscient…), détection, mémoire de la cible et vie.
+func save_state() -> Dictionary:
+	return {
+		"position": global_position, "rotation": rotation.y, "state": state,
+		"detection": detection, "waypoint": _waypoint_index, "stun_left": _stun_left,
+		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
+	}
+
+
+## Rend l'état `data` : l'ennemi est replacé immobile, sans action en cours.
+func load_state(data: Dictionary) -> void:
+	_traversal.cancel()
+	_cancel_melee()
+	velocity = Vector3.ZERO
+	global_position = data.get("position", global_position)
+	rotation.y = data.get("rotation", rotation.y)
+	health.load_state(data.get("health", {}))
+	if is_dead:
+		return
+	_waypoint_index = clampi(data.get("waypoint", _waypoint_index), 0, maxi(_waypoints.size() - 1, 0))
+	var saved: State = data.get("state", state)
+	if saved == State.STUNNED:
+		knock_out()
+		_stun_left = data.get("stun_left", _stun_left)
+		return
+	if saved == State.GRABBED:
+		saved = State.ALERT
+	if state == State.STUNNED:
+		_wake_up()
+	state = saved
+	_target = null
+	detection = data.get("detection", detection)
+	_last_seen = data.get("last_seen", _last_seen)
+	_memory_left = data.get("memory_left", _memory_left)
+	_update_feedback()
+	state_changed.emit(state)

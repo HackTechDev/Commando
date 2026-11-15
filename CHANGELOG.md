@@ -487,3 +487,8 @@
 ## Indicatifs des opérateurs
 
 - Un petit texte au-dessus de chaque opérateur affiche son indicatif (Alpha, Bravo…). Il reste lisible quel que soit le zoom, se voit même derrière un mur, passe au jaune quand l'opérateur est sélectionné, descend quand il s'accroupit ou rampe, et disparaît à sa mort.
+
+## Sauvegarde d'état (préparation de la sauvegarde rapide)
+
+- Opérateurs, VIP, ennemis, points de vie, caisses déplaçables et zone d'extraction savent donner et reprendre leur état (`save_state()` / `load_state()`) : place, orientation, posture, vie, munitions, équipement, arme en main, bouclier, état d'alerte ou perte de connaissance d'un ennemi, guide du VIP, VIP évacués.
+- `QuickSave` réunit ces états par chemin de nœud, avec le niveau d'alerte, les écrit dans un fichier et les rend à un niveau rechargé. Les touches de sauvegarde et de chargement viendront avec M7.

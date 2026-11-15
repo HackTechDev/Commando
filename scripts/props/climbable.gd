@@ -40,6 +40,11 @@ var occupant: Commando
 var handler: Commando
 
 
+func _enter_tree() -> void:
+	if movable:
+		add_to_group(QuickSave.GROUP)
+
+
 func _ready() -> void:
 	if skin.is_empty():
 		return
@@ -175,3 +180,17 @@ func get_nearest_access(near: Vector3) -> Dictionary:
 			best_distance = distance
 			best = {"found": true, "point": point}
 	return best
+
+
+## Sauvegarde rapide (`QuickSave`) : place et orientation (caisses
+## déplacées).
+func save_state() -> Dictionary:
+	return {"transform": global_transform}
+
+
+func load_state(data: Dictionary) -> void:
+	var saved: Transform3D = data.get("transform", global_transform)
+	if saved.is_equal_approx(global_transform):
+		return
+	global_transform = saved
+	EventBus.navigation_obstacle_moved.emit()

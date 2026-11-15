@@ -19,7 +19,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   Il deviendra ingérable avec les états `Investigate`, `Search` et `Return`.
 - **1.4 ~~Restructurer les actions de `Commando`~~** (fait) : un ordre en cours et un geste en cours (`CommandoAction`, dans `scripts/units/actions/`).
 - **1.5 Factoriser le code commun à `Commando` et `Enemy`** : déplacement par navigation, évitement, pas de côté, orientation et tir sont dupliqués. Extraire des composants (`MovementComponent`, `WeaponComponent`), comme le prévoit le §3.
-- **1.6 Préparer la sauvegarde rapide** (M7) : donner dès maintenant à chaque composant un couple `save_state()` / `load_state()`, sinon il faudra tout reprendre plus tard.
+- **1.6 ~~Préparer la sauvegarde rapide~~** (fait) (M7) : donner dès maintenant à chaque composant un couple `save_state()` / `load_state()`, sinon il faudra tout reprendre plus tard.
 - **1.7 ~~Mettre à jour le cahier des charges~~** (fait) : univers militaire contemporain (§1), rotation libre de la caméra (§4, §10, §13).
 - **1.8 ~~Créer `CLAUDE.md`~~** (fait) : documents de référence, chemin de Godot, commandes de vérification, conventions.
 

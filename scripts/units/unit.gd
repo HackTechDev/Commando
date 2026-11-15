@@ -19,6 +19,11 @@ var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING:
 			posture_changed.emit(posture)
 
 @onready var _model: SoldierModel = $SoldierModel
+
+
+func _enter_tree() -> void:
+	add_to_group(QuickSave.GROUP)
+
 @onready var health: HealthComponent = $HealthComponent
 
 
@@ -43,3 +48,21 @@ func defend_against(enemy: Enemy) -> bool:
 	if not is_dead:
 		_model.play_hit(enemy.global_position, PushGesture.HIT_STRENGTH)
 	return false
+
+
+## Sauvegarde rapide (`QuickSave`) : place, orientation, posture et vie.
+func save_state() -> Dictionary:
+	return {
+		"position": global_position, "rotation": rotation.y,
+		"posture": posture, "health": health.save_state(),
+	}
+
+
+## Rend l'état `data` : l'unité est replacée immobile.
+func load_state(data: Dictionary) -> void:
+	velocity = Vector3.ZERO
+	global_position = data.get("position", global_position)
+	rotation.y = data.get("rotation", rotation.y)
+	health.load_state(data.get("health", {}))
+	if not is_dead:
+		posture = data.get("posture", posture)

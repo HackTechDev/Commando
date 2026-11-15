@@ -15,6 +15,10 @@ var _vips: Array[Vip] = []
 var _arrived: Array[Vip] = []
 
 
+func _enter_tree() -> void:
+	add_to_group(QuickSave.GROUP)
+
+
 func _ready() -> void:
 	collision_layer = 0
 	# Couche des unités du joueur (opérateurs, VIP).
@@ -103,3 +107,20 @@ func _build_marking() -> void:
 	label.position = Vector3(0.0, 0.04, 0.0)
 	label.shaded = false
 	add_child(label)
+
+
+## Sauvegarde rapide (`QuickSave`) : VIP déjà évacués, mission terminée.
+func save_state() -> Dictionary:
+	var arrived: Array[String] = []
+	for vip in _arrived:
+		arrived.append(String(vip.get_path()))
+	return {"arrived": arrived, "is_over": is_over}
+
+
+func load_state(data: Dictionary) -> void:
+	_arrived.clear()
+	for path: String in data.get("arrived", []):
+		var vip := get_node_or_null(NodePath(path)) as Vip
+		if vip:
+			_arrived.append(vip)
+	is_over = is_over or data.get("is_over", false)
