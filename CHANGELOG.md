@@ -547,3 +547,7 @@
 - Un ennemi en alerte dont la cible est à moins de 2,2 m devant lui lève sa garde : arme en travers de la poitrine (poings levés sans arme), genoux fléchis. En garde, il ne tire plus : il avance pour frapper.
 - Un coup de face sur un ennemi en garde est repoussé ; l'opérateur affiche « En garde : parer son coup pour contrer, ou le prendre à revers ». Parer (touche I) le déséquilibre et ouvre le contre ; par derrière, la prise reste possible.
 
+## Riposte au corps à corps des ennemis à sec (3.10)
+
+- Les ennemis ont un nombre de cartouches (`EnemyStats.ammo`, 30 pour le soldat ; sauvegardé par la sauvegarde rapide). À sec (déclic à vide), un ennemi ne tire plus : il charge jusqu'au contact et frappe à coups de crosse.
+

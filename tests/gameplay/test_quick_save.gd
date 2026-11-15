@@ -29,6 +29,7 @@ func test_operators_enemies_and_crates_are_restored() -> void:
 	bravo.health.take_damage(1000.0)
 	dummy.knock_out()
 	soldier.detection = 0.4
+	soldier.ammo = 3
 	crate.global_position += Vector3(1.0, 0.0, 0.0)
 	await frames(5)
 	var saved := QuickSave.capture(level)
@@ -55,6 +56,7 @@ func test_operators_enemies_and_crates_are_restored() -> void:
 	assert_eq(dummy.state, Enemy.State.STUNNED, "mannequin inconscient")
 	assert_lt(soldier.global_position.distance_to(expected_soldier), 0.05)
 	assert_almost_eq(soldier.detection, 0.4, 0.001)
+	assert_eq(soldier.ammo, 3, "cartouches de l'ennemi")
 	assert_lt(crate.global_position.distance_to(expected_crate), 0.01, "caisse déplacée")
 
 

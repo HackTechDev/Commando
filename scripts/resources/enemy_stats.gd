@@ -25,6 +25,9 @@ extends Resource
 ## Intervalle entre deux tirs, en secondes.
 @export var fire_interval: float = 0.7
 @export var fire_damage: float = 25.0
+## Cartouches emportées (négatif : sans limite). À sec, il charge et frappe
+## au corps à corps.
+@export var ammo: int = 30
 ## Probabilité de toucher à bout portant et à portée maximale.
 @export_range(0.0, 1.0) var hit_chance_near: float = 0.85
 @export_range(0.0, 1.0) var hit_chance_far: float = 0.35

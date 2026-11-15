@@ -51,3 +51,23 @@ func test_knocked_out_enemy_falls_then_wakes_up_alert() -> void:
 	assert_false(dummy.is_stunned())
 	assert_eq(dummy.state, Enemy.State.ALERT, "se réveille en alerte")
 	assert_almost_eq(model._body.rotation.x, 0.0, 0.05, "debout")
+
+
+func test_enemy_out_of_ammo_charges_into_melee() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var enemy: Enemy = node("Enemies/Soldier1")
+	park(node("Enemies/TrainingDummy"), Vector3(25, 0, 25))
+	alpha.health.reset(100000.0)
+	hide_from_enemies(node("Units/Bravo"))
+	hide_from_enemies(node("Units/Charlie"))
+	assert_eq(enemy.ammo, enemy.stats.ammo, "cartouches au départ")
+	enemy.ammo = 2
+	alpha.global_position = enemy.global_position - enemy.global_basis.z * 7.0
+	assert_gt(await frames_until(func() -> bool: return enemy.ammo == 0, 900), -1, "deux tirs")
+	assert_true(enemy.is_out_of_ammo())
+	var health := alpha.health.health
+	# À sec, il ne tire plus : il vient au contact et frappe.
+	assert_gt(await frames_until(enemy.is_attacking, 600), -1, "il charge et frappe")
+	assert_lt(flat_distance(enemy.global_position, alpha.global_position), enemy.stats.melee_range + 0.3)
+	assert_gt(await frames_until(func() -> bool: return alpha.health.health < health, 120), -1, "coup de crosse")
+	assert_eq(enemy.ammo, 0)

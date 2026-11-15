@@ -12,7 +12,7 @@ extends CharacterBody3D
 ## - STUNNED : assommé, au sol, aveugle, pendant `stun_duration` secondes. Au
 ##   réveil, il passe en alerte sur place, puis reprend sa patrouille ;
 ##   au contact de sa cible, il frappe au lieu de tirer ; un coup paré ou
-##   esquivé le déséquilibre un instant ;
+##   esquivé le déséquilibre un instant ; à sec, il charge pour frapper ;
 ## - GRABBED : saisi par derrière (étranglement, égorgement), immobile et
 ##   sans réaction ; relâché, il passe en alerte.
 
@@ -55,6 +55,8 @@ var is_dead: bool = false
 var detection: float = 0.0
 ## Balles arrêtées par un bouclier.
 var shots_blocked: int = 0
+## Cartouches restantes (négatif : sans limite).
+var ammo: int = -1
 
 var _waypoints: Array[Vector3] = []
 var _waypoint_index: int = 0
@@ -98,6 +100,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	health.reset(stats.max_health)
+	ammo = stats.ammo
 	health.died.connect(_on_died)
 	_model.set_armed(armed)
 	_agent.velocity_computed.connect(_apply_velocity)
@@ -128,7 +131,7 @@ func _physics_process(delta: float) -> void:
 		_model.aiming = false
 		return
 	var guarding := is_guarding()
-	_model.aiming = armed and state == State.ALERT and _target != null and not guarding
+	_model.aiming = can_fire() and state == State.ALERT and _target != null and not guarding
 	# En alerte : en garde entre deux coups sans arme, ou face à une cible
 	# toute proche.
 	_model.guard_up = state == State.ALERT and (not armed or guarding)
@@ -240,6 +243,16 @@ func is_behind(world_position: Vector3) -> bool:
 	if to.length_squared() < 0.0001:
 		return false
 	return rad_to_deg((-global_basis.z).angle_to(to)) > BEHIND_ANGLE
+
+
+## Vrai s'il peut tirer : armé, avec des cartouches.
+func can_fire() -> bool:
+	return armed and ammo != 0
+
+
+## Vrai s'il est armé mais à sec.
+func is_out_of_ammo() -> bool:
+	return armed and ammo == 0
 
 
 ## Vrai s'il a la garde levée : en alerte, sa cible à moins de
@@ -563,8 +576,8 @@ func _alert(delta: float) -> Vector3:
 			_try_fire(delta, to_target)
 		# Sans arme (ou en garde), il vient au contact. Armé, face à une cible
 		# perchée, il tire d'où il est plutôt que de chercher à passer dessous.
-		var hold := stats.hold_range if armed and not guarding else stats.melee_range * 0.8
-		if armed and perched:
+		var hold := stats.hold_range if can_fire() and not guarding else stats.melee_range * 0.8
+		if can_fire() and perched:
 			hold = maxf(hold, stats.fire_range * 0.9)
 		if to_target.length() <= hold:
 			return Vector3.ZERO
@@ -583,7 +596,7 @@ func _alert(delta: float) -> Vector3:
 
 
 func _try_fire(delta: float, to_target: Vector3) -> void:
-	if not armed:
+	if not can_fire():
 		return
 	_fire_cooldown -= delta
 	var distance := to_target.length()
@@ -594,6 +607,13 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 	if distance > 0.01 and forward.angle_to(to_target) > 0.3:
 		return
 	_fire_cooldown = stats.fire_interval
+	if ammo > 0:
+		ammo -= 1
+		if ammo == 0:
+			# À sec : déclic à vide, puis il charge au corps à corps.
+			get_tree().create_timer(stats.fire_interval * 0.5, false).timeout.connect(func() -> void:
+				if is_instance_valid(self) and not is_dead:
+					Sfx.play_at(&"clink", global_position + Vector3.UP * 1.3, -6.0))
 
 	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / stats.fire_range, 0.0, 1.0))
 	match _target.posture:
@@ -662,7 +682,7 @@ func _update_feedback() -> void:
 func save_state() -> Dictionary:
 	return {
 		"position": global_position, "rotation": rotation.y, "state": state,
-		"detection": detection, "waypoint": _waypoint_index, "stun_left": _stun_left,
+		"detection": detection, "waypoint": _waypoint_index, "stun_left": _stun_left, "ammo": ammo,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 	}
 
@@ -678,6 +698,7 @@ func load_state(data: Dictionary) -> void:
 	if is_dead:
 		return
 	_waypoint_index = clampi(data.get("waypoint", _waypoint_index), 0, maxi(_waypoints.size() - 1, 0))
+	ammo = data.get("ammo", ammo)
 	var saved: State = data.get("state", state)
 	if saved == State.STUNNED:
 		knock_out()

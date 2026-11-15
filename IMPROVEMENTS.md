@@ -78,7 +78,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 
 - **3.8 Roulade** : plonger au sol pour sortir d'un cône de vision ou d'une ligne de tir, et finir couché.
 - **3.9 ~~Garde de l'ennemi~~** (fait) : un ennemi en alerte lève les bras, ce qui impose un contre ou une prise par derrière.
-- **3.10 Riposte au corps à corps** des ennemis à court de munitions (les ennemis frappent déjà au contact).
+- **3.10 ~~Riposte au corps à corps~~** (fait) des ennemis à court de munitions (les ennemis frappent déjà au contact).
 - **3.11 ~~Parade au choix du joueur~~** (fait) : une touche de défense, à presser au bon moment, au lieu du tirage au sort.
 - **3.12 Appel à l'aide** : un ennemi saisi mais pas encore neutralisé crie, et ce bruit attire les autres. Dépend de l'ouïe des ennemis (2.1).
 - **3.13 ~~Esquive contre les obstacles~~** (fait) : le pas de côté est tiré au hasard à gauche ou à droite, même si un mur ou une caisse se trouve de ce côté. Il faudrait choisir le côté libre.
