@@ -586,3 +586,7 @@
 
 - Un ennemi saisi crie à l'aide après 1,2 s, puis toutes les 2,5 s : à pleine voix (12 m) s'il est tenu en otage, étouffé (4 m) s'il est étranglé. Une victime égorgée n'a pas le temps de crier.
 - Première ouïe des ennemis : ceux qui entendent l'appel passent en alerte et courent vers le cri.
+
+## Couteau planté dans le corps (3.7 a)
+
+- Un couteau de lancer qui touche reste planté dans le torse de la cible, dans l'axe du lancer, et la suit dans sa chute. Le repère violet se place au sol sous lui ; on le ramasse en passant sur le corps.

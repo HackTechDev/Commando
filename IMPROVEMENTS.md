@@ -71,7 +71,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **3.5 ~~Désarmement~~** (fait) : arracher l'arme d'un ennemi en alerte pris de court. Il devient inoffensif sans être neutralisé.
 - **3.6 ~~Bouclier humain~~** (fait) : saisir un ennemi par derrière et s'en couvrir. L'opérateur se déplace lentement et ne tire qu'à l'arme secondaire ; les autres ennemis hésitent à tirer.
 - **3.7 Lancer de couteau, suite** :
-  - **a)** récupérer le couteau directement sur le corps (aujourd'hui, il tombe à côté) ;
+  - **a) ~~Couteau sur le corps~~** (fait) : récupérer le couteau directement sur le corps (aujourd'hui, il tombe à côté) ;
   - **b)** lancer un objet pour faire diversion (caillou, douille), une fois l'ouïe en place (2.1).
 
 ### Défense

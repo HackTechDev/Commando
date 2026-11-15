@@ -27,6 +27,13 @@ func test_throw_kills_from_seven_meters_then_knife_is_picked_up() -> void:
 	assert_between(throw_distance[0], 6.0, alpha.stats.throw_range, "lancé dès qu'à portée")
 	assert_eq(alpha.throwing_knives, 0)
 	assert_false(alpha.throw_knife(dummy), "plus de couteau à lancer")
+	var knife: ThrownKnife = _knives()[0]
+	assert_true(knife.is_planted(), "planté dans le corps")
+	await frames(90)
+	var model: SoldierModel = dummy.get_node("SoldierModel")
+	assert_true(model.is_ancestor_of(knife), "il suit le corps dans sa chute")
+	assert_lt(knife.global_position.y, 0.6, "sur le corps au sol")
+	assert_lt(flat_distance(knife.global_position, dummy.global_position), 1.6, "sur le corps, pas à côté")
 
 	alpha.move_to(_knives()[0].global_position, false)
 	assert_gt(await frames_until(func() -> bool: return alpha.throwing_knives > 0, 600), -1, "couteau ramassé")

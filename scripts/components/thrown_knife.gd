@@ -1,8 +1,9 @@
 class_name ThrownKnife
 extends Node3D
-## Couteau de lancer : vole en tournoyant vers sa cible, la tue sans bruit
-## s'il la touche, puis reste au sol, où un opérateur le ramasse en passant
-## dessus.
+## Couteau de lancer : vole en tournoyant vers sa cible et la tue sans bruit
+## s'il la touche. Il reste alors planté dans le corps (et le suit dans sa
+## chute) ; raté, il tombe au sol. Un opérateur le ramasse en passant tout
+## près.
 
 const SPEED := 14.0
 const SPIN_SPEED := 22.0
@@ -18,6 +19,8 @@ const MISS_SPREAD := 0.7
 ## Bruit de la lame qui tombe au sol après un raté.
 const MISS_NOISE_RADIUS := 4.0
 const MASK_GROUND := 0b011
+## Planté : la garde reste à cette distance (m) en avant du centre du torse.
+const PLANT_DEPTH := 0.2
 
 var _target: Enemy
 var _thrower_position: Vector3
@@ -26,6 +29,8 @@ var _from: Vector3
 var _miss_point: Vector3
 var _travel: float = 0.0
 var _on_ground: bool = false
+## Planté dans le corps de la cible.
+var _planted: bool = false
 var _spin: Node3D
 var _marker: MeshInstance3D
 
@@ -68,6 +73,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if _on_ground:
+		if _planted:
+			_follow_marker()
 		_check_pickup()
 		return
 	var goal := _goal()
@@ -99,9 +106,8 @@ func _arrive() -> void:
 			# Touché dans le dos, il s'effondre vers l'avant.
 			_target.kill_silently(_target.is_behind(_thrower_position))
 			Sfx.play_at(&"knife", global_position, -4.0)
-		# Le couteau tombe à côté du corps.
-		var side := (global_position - _thrower_position).normalized().cross(Vector3.UP)
-		rest = _target.global_position + side * 0.45
+		_plant(_target)
+		return
 	else:
 		if is_instance_valid(_target) and not _target.is_dead:
 			# La lame tombe près de lui : il l'entend et va voir.
@@ -112,17 +118,51 @@ func _arrive() -> void:
 	_land(rest)
 
 
+## Plante la lame dans le torse de `target`, dans l'axe du lancer : le
+## couteau suit le corps dans sa chute et se ramasse sur lui.
+func _plant(target: Enemy) -> void:
+	var forward := target.global_position + Vector3.UP * TARGET_HEIGHT - _from
+	forward.y *= 0.3
+	forward = forward.normalized()
+	var chest := target.global_position + Vector3.UP * TARGET_HEIGHT
+	global_position = chest - forward * PLANT_DEPTH
+	look_at(global_position + forward, Vector3.UP if absf(forward.y) < 0.99 else Vector3.FORWARD)
+	# Lame vers l'avant (-Z), enfoncée ; la garde dépasse.
+	_spin.rotation = Vector3(PI / 2.0, 0.0, 0.0)
+	var torso: Node3D = target._model._torso if target._model else null
+	if torso:
+		reparent(torso, true)
+	_on_ground = true
+	_planted = true
+	add_to_group(&"knife_pickups")
+	_add_marker()
+	_marker.top_level = true
+	_follow_marker()
+
+
+## Repère au sol, sous la garde du couteau planté.
+func _follow_marker() -> void:
+	_marker.global_transform = Transform3D(Basis.IDENTITY, Vector3(global_position.x, _ground_y(global_position) + 0.03, global_position.z))
+
+
+func _ground_y(at: Vector3) -> float:
+	var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 2.0, at + Vector3.DOWN * 3.0, MASK_GROUND)
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	return hit["position"].y if hit.has("position") else 0.0
+
+
 ## Pose le couteau à plat au sol (ou sur une caisse) et le rend ramassable.
 func _land(at: Vector3) -> void:
 	_on_ground = true
-	var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 2.0, at + Vector3.DOWN * 3.0, MASK_GROUND)
-	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	var ground_y: float = hit["position"].y if hit.has("position") else 0.0
-	global_position = Vector3(at.x, ground_y + 0.02, at.z)
+	global_position = Vector3(at.x, _ground_y(at) + 0.02, at.z)
 	rotation = Vector3(0.0, randf() * TAU, 0.0)
 	_spin.rotation = Vector3(PI / 2.0, 0.0, 0.0)
 	add_to_group(&"knife_pickups")
-	# Repère discret pour que le joueur retrouve le couteau.
+	_add_marker()
+
+
+## Repère discret pour que le joueur retrouve le couteau.
+func _add_marker() -> void:
 	var ring := TorusMesh.new()
 	ring.inner_radius = 0.16
 	ring.outer_radius = 0.2
@@ -151,9 +191,14 @@ func _check_pickup() -> void:
 			return
 
 
-## Vrai une fois le couteau au sol, prêt à être ramassé.
+## Vrai une fois le couteau au sol ou planté, prêt à être ramassé.
 func is_on_ground() -> bool:
 	return _on_ground
+
+
+## Vrai si le couteau est resté planté dans le corps de sa cible.
+func is_planted() -> bool:
+	return _planted
 
 
 func _material(color: Color, roughness: float, metallic: float) -> StandardMaterial3D:
