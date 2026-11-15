@@ -85,3 +85,46 @@ func test_counter_knocks_out_the_attacker() -> void:
 		alpha.melee(enemy, Commando.MeleeKind.KNOCKOUT)
 		assert_gt(await frames_until(enemy.is_stunned, 200), -1, "%s assommé par le contre" % enemy_path)
 		assert_eq(alpha.health.health, alpha.health.max_health, "sans avoir été touché")
+
+
+## Pose un mur (couche « Murs ») de 2 m de côté, centré en `at`.
+func _wall(at: Vector3) -> StaticBody3D:
+	var wall := StaticBody3D.new()
+	wall.collision_layer = 0b10
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(0.4, 2.0, 2.0)
+	shape.shape = box
+	wall.add_child(shape)
+	level.add_child(wall)
+	wall.global_position = at
+	return wall
+
+
+func test_dodge_goes_to_the_free_side() -> void:
+	var units := await _face_off("Enemies/TrainingDummy", 0.0, 1.0)
+	var alpha: Commando = units[0]
+	var enemy: Enemy = units[1]
+	# Mur à droite d'Alpha (vu face à l'ennemi), tout contre lui.
+	var to_enemy := enemy.global_position - alpha.global_position
+	to_enemy.y = 0.0
+	var right := to_enemy.normalized().cross(Vector3.UP)
+	var wall := _wall(alpha.global_position + right * 0.55 + Vector3.UP)
+	wall.look_at(wall.global_position + right, Vector3.UP)
+	wall.rotate_object_local(Vector3.UP, PI / 2.0)
+	await frames(2)
+	var sides: Array[float] = []
+	var was_defending := false
+	for i in 600:
+		await get_tree().physics_frame
+		if alpha.is_defending() and not was_defending:
+			sides.append(alpha.get_node("SoldierModel").defend_side)
+		was_defending = alpha.is_defending()
+	assert_gt(sides.size(), 2, "esquives")
+	for side in sides:
+		assert_eq(side, -1.0, "toujours du côté libre")
+	assert_eq(DefendGesture.free_side(alpha, enemy, right), -1.0)
+	var other := _wall(alpha.global_position - right * 0.55 + Vector3.UP)
+	other.global_transform.basis = wall.global_transform.basis
+	await frames(2)
+	assert_eq(DefendGesture.free_side(alpha, enemy, right), 0.0, "coincé : aucun côté")

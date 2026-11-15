@@ -533,3 +533,7 @@
 - Lancer refusé : la raison s'affiche (« Grappin : pas assez haut », « trop loin », « relief trop accidenté »…).
 - Les tests n'utilisent plus la dernière carte jouée du joueur ni son cache des toits (`UfoMapLevel.roof_cache_dir`).
 
+## Esquive du côté libre (3.13)
+
+- Le pas de côté part du côté dégagé (mur, caisse, autre unité testés sur le trajet) ; au hasard si les deux le sont. Coincé des deux côtés, l'opérateur pare au lieu d'esquiver.
+
