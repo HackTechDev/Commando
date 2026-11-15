@@ -133,7 +133,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **e)** ~~silhouette propre à chaque spécialité~~ (fait).
 - **6.2 ~~Silhouette des ennemis~~** (fait) : casque ancien, casquette ou béret, visage découvert et varié, gilet à chargeurs, fusil d'assaut à crosse en bois.
 - **6.3 ~~Pas pendant les déplacements subis~~** (fait) : marche à reculons, pas chassés sur le côté, pas en arrière quand il vacille.
-- **6.4 Geste de ramassage** : le couteau de lancer est ramassé sans se baisser.
+- **6.4 ~~Geste de ramassage~~** (fait).
 - **6.5 Réaction des ennemis désarmés** : sans arme, un ennemi en alerte garde les bras le long du corps entre deux coups. Lui donner une garde.
 - **6.6 Passer à des modèles et animations CC0** avec un `AnimationTree` (M10), quand le prototype sera stabilisé. `soldier_model.gd` dépasse 2 000 lignes de géométrie et d'images clés écrites à la main.
 

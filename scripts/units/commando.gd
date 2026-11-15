@@ -155,6 +155,8 @@ var _push_hit_from: Vector3 = Vector3.INF
 ## Parade ou esquive en cours face à `_defend_enemy`.
 var _defend_left: float = 0.0
 var _defend_enemy: Enemy
+## Temps restant du geste de ramassage (immobile).
+var _pickup_left: float = 0.0
 ## Choix du joueur : arme à la bretelle (mains libres) plutôt qu'en main.
 ## Un ordre d'attaque ou de rechargement la fait reprendre en main.
 var weapon_slung: bool = false:
@@ -252,6 +254,8 @@ func _physics_process(delta: float) -> void:
 		horizontal = _update_defend(delta)
 	elif _push_delay > 0.0 or _push_left > 0.0:
 		horizontal = _update_push(delta)
+	elif _pickup_left > 0.0:
+		_pickup_left = maxf(_pickup_left - delta, 0.0)
 	elif _strike_left > 0.0:
 		_update_strike(delta)
 	elif _throw_left > 0.0:
@@ -506,6 +510,9 @@ func pick_up_knife() -> bool:
 	throwing_knives += 1
 	EventBus.unit_ammo_changed.emit(self)
 	Sfx.play_at(&"clink", global_position, -12.0)
+	# Il s'arrête le temps de se baisser ; son ordre reprend ensuite.
+	_model.play_pickup()
+	_pickup_left = SoldierModel.PICKUP_DURATION
 	return true
 
 

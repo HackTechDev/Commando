@@ -115,3 +115,15 @@ func test_pushed_sideways_or_back_it_steps_instead_of_sliding() -> void:
 	_slide(Vector3(0.0, 0.0, 1.5), 0.6)
 	assert_gt(model._backward(), 0.9, "recul mesuré")
 	assert_lt(model._phase, phase, "foulée à reculons")
+
+
+func test_pickup_bends_down_then_stands_up() -> void:
+	_run(0.5)
+	var standing: float = model._hips.position.y
+	model.play_pickup()
+	_run(SoldierModel.PICKUP_DURATION * 0.5)
+	assert_true(model.is_picking_up())
+	assert_lt(model._hips.position.y, standing - 0.2, "accroupi pour ramasser")
+	_run(1.0)
+	assert_false(model.is_picking_up())
+	assert_almost_eq(model._hips.position.y, standing, 0.03, "relevé")

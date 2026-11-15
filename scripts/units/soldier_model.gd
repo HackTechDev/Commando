@@ -271,6 +271,10 @@ const IRIS_REST := Vector3(0.036, 0.192, -0.098)
 const LID_OPEN := 0.08
 const BLINK_DURATION := 0.16
 const MOUTH_REST := Vector3(1.5, 0.32, 0.5)
+## Durée du geste de ramassage (voir `play_pickup`).
+const PICKUP_DURATION := 0.7
+## Main au sol pendant le ramassage (repère du modèle, côté droit).
+const PICKUP_HAND := Vector3(0.2, 0.15, -0.45)
 
 @export var uniform_color := Color(0.30, 0.33, 0.24)
 @export var gear_color := Color(0.16, 0.17, 0.14)
@@ -455,6 +459,7 @@ var _guard_look: Dictionary = {}
 ## l'avant), lissé : sert à marcher à reculons ou en pas chassés.
 var _motion := Vector2.ZERO
 var _last_position := Vector3.INF
+var _pickup_time: float = 10.0
 ## Visage animé (absent sous un casque fermé : listes vides).
 var _irises: Array[Node3D] = []
 var _lids: Array[Node3D] = []
@@ -579,6 +584,7 @@ func _process(delta: float) -> void:
 	_time += delta
 	_shot_time += delta
 	_hit_time += delta
+	_pickup_time += delta
 	_aim_hold = maxf(_aim_hold - delta, 0.0)
 	_animate_face(delta)
 	_flash.visible = _shot_time < FLASH_DURATION and is_armed and not is_dead
@@ -735,6 +741,17 @@ func _arm_poses_hand(side: float) -> Vector3:
 	return Vector3(0.29 * side, 0.0, -0.03)
 
 
+## Ramassage d'un objet au sol : genoux fléchis, buste penché, une main
+## (la gauche si l'arme est en main) descend jusqu'au sol puis remonte.
+func play_pickup() -> void:
+	_pickup_time = 0.0
+
+
+## Vrai pendant le geste de ramassage.
+func is_picking_up() -> bool:
+	return _pickup_time < PICKUP_DURATION
+
+
 ## Tir : recul de l'arme, flash de bouche, arme épaulée quelques instants.
 func play_shot() -> void:
 	_shot_time = 0.0
@@ -848,6 +865,16 @@ func _animate_alive(delta: float) -> void:
 			chest_roll = 0.1 * s * crawl
 			chest_turn = 0.12 * s * crawl
 			hips_y = HIP_HEIGHT
+	# Ramassage : flexion des genoux et buste penché, au plus bas à mi-geste.
+	var pickup := 0.0
+	if is_picking_up() and not prone:
+		pickup = sin(PI * _pickup_time / PICKUP_DURATION)
+		var dip := (0.42 if posture == Posture.STANDING else 0.1) * pickup
+		hips_y -= dip
+		thigh += Vector2.ONE * _knee_bend(dip)
+		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
+		lean -= 0.85 * pickup
+		head_pitch += 0.35 * pickup
 	# Pas chassés quand il est déplacé de côté (esquive, poussée) : la jambe
 	# du côté du mouvement s'ouvre, l'autre la rejoint.
 	var strafe := _sideways()
@@ -1125,6 +1152,16 @@ func _animate_alive(delta: float) -> void:
 		# Poings en garde devant le visage pendant le coup de pied.
 		var guard := minf(punch_t / 0.2, 1.0) * minf((1.0 - punch_t) / 0.3, 1.0)
 		target = _solve_arms(_free_hand(-1.0, false, s, c, moving, 0.0).lerp(GUARD_LEFT, guard), _free_hand(1.0, false, s, c, moving, 0.0).lerp(GUARD_RIGHT, guard))
+	if pickup > 0.0:
+		var to_torso := (_body.transform * _hips.transform * _torso.transform).affine_inverse()
+		var left_hand := is_armed and _sling < 0.5
+		var ground := to_torso * Vector3(PICKUP_HAND.x * (-1.0 if left_hand else 1.0), PICKUP_HAND.y, PICKUP_HAND.z)
+		var reach := _solve_arms(ground, ground) if not left_hand else _solve_arms(ground, _rifle.transform * RIGHT_GRIP)
+		# Copie : `target` peut être une pose de référence partagée.
+		target = target.duplicate()
+		for i in target.size():
+			if (i < 2) == left_hand:
+				target[i] = (target[i] as Quaternion).slerp(reach[i], pickup)
 	# Un coup de poing est rapide : les bras suivent sans retard.
 	var arm_blend := 1.0 - exp(-(60.0 if unarmed_strike or grapple or shove or defend or throwing else 25.0) * delta)
 	for i in _arm_joints.size():
@@ -1158,6 +1195,13 @@ func _animate_alive(delta: float) -> void:
 		curl.y = 1.0
 	if reloading:
 		curl.x = 0.85
+	if pickup > 0.0:
+		# Main ouverte en descendant, refermée sur l'objet en remontant.
+		var grab := 0.1 if _pickup_time < PICKUP_DURATION * 0.5 else 0.9
+		if is_armed and _sling < 0.5:
+			curl.x = grab
+		else:
+			curl.y = grab
 	_animate_fingers(curl, delta)
 
 	effort = 1.0 if unarmed_strike or grapple or throwing or shove or strike > 0.0 or (grip > 0.0 and walk > 0.05) else 0.0

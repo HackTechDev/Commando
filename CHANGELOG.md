@@ -341,3 +341,4 @@
   - fusil d'assaut à crosse en bois et chargeur courbe ;
   - ni JVN, ni cagoule, ni sac.
 - Déplacements subis : l'opérateur repoussé recule pas à pas, l'esquive se fait en pas chassés, et un soldat déséquilibré recule d'un pied. Le corps ne glisse plus avec une marche en avant.
+- Ramassage du couteau de lancer : l'opérateur s'arrête un instant, s'accroupit en se penchant, ouvre la main vers le sol puis la referme. Il prend le couteau de la main gauche s'il tient son arme. Son ordre reprend ensuite.
