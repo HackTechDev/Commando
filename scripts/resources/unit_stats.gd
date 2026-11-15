@@ -77,6 +77,8 @@ extends Resource
 @export var medkits: int = 0
 ## Bouclier balistique (0 ou 1).
 @export var shields: int = 0
+## Grappin (0 ou 1) : lancé vers un point en hauteur, sa corde permet d'y monter.
+@export var grapnels: int = 0
 ## Portée du lancer de grenade (m), délai entre l'impact et l'explosion (s).
 @export var grenade_range: float = 12.0
 @export var grenade_fuse: float = 1.0

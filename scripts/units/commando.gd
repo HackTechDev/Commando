@@ -82,6 +82,12 @@ var shields: int = 0:
 		else:
 			remove_from_group(&"shield_bearers")
 			set_shield(false)
+## Grappin emporté (0 ou 1) ; consommé au lancer (la corde reste en place).
+var grapnels: int = 0:
+	set(value):
+		grapnels = value
+		if _model:
+			_model.carries_grapnel = value > 0
 ## Choix du joueur : bouclier levé (arme de poing en main). Il n'est
 ## effectivement tenu devant soi que pendant les déplacements et le tir
 ## (`is_shield_up`) ; les autres gestes le passent dans le dos un instant.
@@ -138,6 +144,7 @@ func _ready() -> void:
 	explosives = stats.explosives
 	medkits = stats.medkits
 	shields = stats.shields
+	grapnels = stats.grapnels
 	_primary_stats = stats
 	if _secondary_stats:
 		_holstered_ammo = Vector2i(_secondary_stats.magazine_size, _secondary_stats.reserve_ammo)
@@ -182,6 +189,7 @@ func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
 	weapon.shields = operator.shield
+	weapon.grapnels = operator.grapnel
 	GearCatalog.apply_load_and_specialty(weapon, GearCatalog.load_of(operator), operator.specialty)
 	return weapon
 
@@ -493,6 +501,43 @@ func _in_grenade_range(target: Vector3) -> bool:
 	var offset := target - global_position
 	offset.y = 0.0
 	return offset.length() <= stats.grenade_range
+
+
+## Ordonne de lancer le grappin vers `target` (un point en hauteur) puis d'y
+## monter à la corde. Renvoie faux si c'est impossible (pas de grappin,
+## point hors de portée, pas de paroi à gravir : voir `grapple_route`).
+func grapple(target: Vector3, run: bool = false) -> bool:
+	if is_dead or _hopping or grapnels <= 0 or perched_on:
+		return false
+	var route := grapple_route(target)
+	if not route["ok"]:
+		return false
+	_set_order(GrappleOrder.new(self, route, run))
+	return true
+
+
+## Trajet de la corde d'un grappin lancé vers `target` (`GrapnelRope.plan`).
+func grapple_route(target: Vector3) -> Dictionary:
+	return GrapnelRope.plan(get_world_3d(), global_position, target)
+
+
+## Lâche le grappin (instant du lancer de `ThrowGesture`) ; accroché, il
+## monte à la corde jusqu'au point visé, sauf si un autre ordre a été donné.
+func _release_grapnel(route: Dictionary) -> void:
+	if grapnels <= 0:
+		return
+	grapnels -= 1
+	EventBus.unit_ammo_changed.emit(self)
+	var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
+	var rope := GrapnelRope.launch(get_tree().current_scene, hand, route)
+	Sfx.play_at(&"whoosh", hand, -6.0)
+	await rope.anchored
+	# La corde rejoint la navigation à la synchronisation suivante.
+	for i in 3:
+		await get_tree().physics_frame
+	if is_dead or _order != null or _gesture != null:
+		return
+	move_to(route["anchor"], false)
 
 
 ## Lâche une grenade vers `target` (instant du lancer de `ThrowGesture`).

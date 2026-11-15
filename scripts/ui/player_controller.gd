@@ -24,6 +24,8 @@ const ACTION_THROW := &"throw"
 const ACTION_CRATE := &"crate"
 ## Grenade : puis clic gauche au sol (ou sur un ennemi).
 const ACTION_GRENADE := &"grenade"
+## Grappin : puis clic gauche sur un point en hauteur.
+const ACTION_GRAPPLE := &"grapple"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -139,6 +141,8 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 	match pending_action:
 		ACTION_GRENADE:
 			return GameCursor.Kind.GRENADE
+		ACTION_GRAPPLE:
+			return _grapple_cursor(screen_position)
 		ACTION_CRATE:
 			var crate := _raycast(screen_position, MASK_GROUND).get("collider") as Climbable
 			return GameCursor.Kind.CRATE if crate and crate.movable else GameCursor.Kind.FORBIDDEN
@@ -146,6 +150,18 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 	if enemy == null or enemy.is_dead:
 		return GameCursor.Kind.FORBIDDEN
 	return GameCursor.Kind.THROW if pending_action == ACTION_THROW else GameCursor.Kind.MELEE
+
+
+## Grappin : crochet si un opérateur sélectionné peut y monter, sens
+## interdit sinon.
+func _grapple_cursor(screen_position: Vector2) -> GameCursor.Kind:
+	var spot := _raycast(screen_position, MASK_GROUND)
+	if spot.is_empty():
+		return GameCursor.Kind.FORBIDDEN
+	for unit in SelectionManager.selected:
+		if unit.grapnels > 0 and not unit.is_dead and unit.grapple_route(spot["position"])["ok"]:
+			return GameCursor.Kind.GRAPPLE
+	return GameCursor.Kind.FORBIDDEN
 
 
 ## Caisse ou corniche où l'on peut se tenir sous le point `hit` (sinon null).
@@ -217,6 +233,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_pending_action(ACTION_THROW)
 	elif event.is_action_pressed(&"action_grenade"):
 		toggle_pending_action(ACTION_GRENADE)
+	elif event.is_action_pressed(&"action_grapple"):
+		toggle_pending_action(ACTION_GRAPPLE)
 	elif event.is_action_pressed(&"action_plant"):
 		_feedback(SelectionManager.plant_explosive())
 	elif event.is_action_pressed(&"action_detonate"):
@@ -372,6 +390,16 @@ func _feedback(accepted: bool) -> void:
 
 
 func _use_pending_action(screen_position: Vector2) -> void:
+	if pending_action == ACTION_GRAPPLE:
+		var spot := _raycast(screen_position, MASK_GROUND)
+		if not spot.is_empty():
+			var point: Vector3 = spot["position"]
+			if SelectionManager.order_grapple(point):
+				_spawn_marker(point, marker_color)
+			else:
+				Sfx.play_ui(&"denied")
+		cancel_pending_action()
+		return
 	if pending_action == ACTION_GRENADE:
 		var ground := _raycast(screen_position, MASK_GROUND)
 		if not ground.is_empty():

@@ -436,3 +436,12 @@
   - sens interdit sur un endroit inaccessible (dessus d'un mur, hors du terrain).
 - Une action armée montre sa cible : poignard (couteau, assommer), poignard lancé, cible de grenade, flèches de déplacement d'une caisse ; sens interdit hors d'une cible valable.
 - Au-dessus de l'interface, le curseur redevient la flèche habituelle.
+
+## Grappin
+
+- Nouvel équipement, le grappin (2,5 kg), à choisir dans l'écran « Opérateurs ». Il pend au flanc gauche de l'opérateur, en rouleau de corde.
+- W (ou le bouton « Grappin »), puis clic gauche sur un point en hauteur : l'opérateur sélectionné le plus proche qui en a un va au pied de la paroi, lance le grappin, puis monte à la corde jusqu'au point visé.
+- La corde épouse le relief : sur des terrasses en gradins, l'opérateur escalade les ressauts bas comme une caisse et gravit les parois hautes à la corde, en alternant les mains.
+- Portée : le point visé doit être à 10 m au plus du pied de la paroi et de 1 à 9 m plus haut. Le curseur montre un grappin vert quand c'est possible, un sens interdit sinon.
+- La corde reste en place : coéquipiers, VIP et ennemis peuvent l'emprunter, dans les deux sens.
+- Terrain d'essai : des terrasses en gradins à l'est, à côté du bunker.

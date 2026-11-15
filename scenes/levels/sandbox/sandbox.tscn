@@ -81,6 +81,29 @@ metadata/albedo_source = "tex_ctp1/concrete_g_1.jpg"
 material = SubResource("bunker_mat")
 size = Vector3(5, 3, 5)
 
+[sub_resource type="BoxShape3D" id="terrace_high_shape"]
+size = Vector3(4, 3.2, 4)
+
+[sub_resource type="BoxShape3D" id="terrace_low_shape"]
+size = Vector3(4, 1.2, 2.5)
+
+[sub_resource type="StandardMaterial3D" id="rock_mat"]
+albedo_color = Color(0.85, 0.75, 0.62, 1)
+roughness = 1.0
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_nature/pjrock16.png"
+
+[sub_resource type="BoxMesh" id="terrace_high_mesh"]
+material = SubResource("rock_mat")
+size = Vector3(4, 3.2, 4)
+
+[sub_resource type="BoxMesh" id="terrace_low_mesh"]
+material = SubResource("rock_mat")
+size = Vector3(4, 1.2, 2.5)
+
 [node name="Sandbox" type="Node3D"]
 script = ExtResource("1")
 
@@ -186,6 +209,32 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 17.5, 0, 10)
 [node name="LowWall" parent="NavigationRegion3D" instance=ExtResource("9")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 2)
 length = 6.0
+
+[node name="TerraceHigh" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, 10)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/TerraceHigh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+shape = SubResource("terrace_high_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/TerraceHigh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+mesh = SubResource("terrace_high_mesh")
+
+[node name="TerraceLow" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, 13.25)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/TerraceLow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("terrace_low_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/TerraceLow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("terrace_low_mesh")
 
 [node name="Units" type="Node3D" parent="."]
 

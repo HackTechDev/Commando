@@ -2,10 +2,11 @@ class_name GameCursor
 extends RefCounted
 ## Curseurs contextuels, dessinés par code (32 × 32, contour sombre) :
 ## tir sur un ennemi, attaque au corps à corps ou lancer, escalade d'une
-## caisse ou d'un toit, prise d'une caisse, ordres au VIP, lieu inaccessible.
+## caisse ou d'un toit, prise d'une caisse, ordres au VIP, grappin, lieu
+## inaccessible.
 ## `apply` remplace le curseur flèche du système (`Kind.DEFAULT` le rétablit).
 
-enum Kind { DEFAULT, ATTACK, MELEE, THROW, GRENADE, CLIMB, CRATE, ORDERS, FORBIDDEN }
+enum Kind { DEFAULT, ATTACK, MELEE, THROW, GRENADE, CLIMB, CRATE, ORDERS, FORBIDDEN, GRAPPLE }
 
 const SIZE := 32
 const CENTER := Vector2(16, 16)
@@ -20,6 +21,7 @@ const COLORS := {
 	Kind.CRATE: Color(1.0, 0.85, 0.3),
 	Kind.ORDERS: Color(0.45, 0.8, 1.0),
 	Kind.FORBIDDEN: Color(1.0, 0.25, 0.2),
+	Kind.GRAPPLE: Color(0.4, 0.95, 0.5),
 }
 
 static var _textures: Dictionary = {}
@@ -97,6 +99,15 @@ static func _shapes(kind: Kind) -> Dictionary:
 			rings.append([CENTER, 12.0])
 			for x: float in [-6.0, 0.0, 6.0]:
 				dots.append([CENTER + Vector2(x, 0), 1.2])
+		Kind.GRAPPLE:
+			# Grappin : hampe, anneau en haut, trois griffes recourbées en bas.
+			rings.append([Vector2(16, 5), 3.0])
+			segments.append([Vector2(16, 8), Vector2(16, 24)])
+			segments.append([Vector2(16, 24), Vector2(8, 18)])
+			segments.append([Vector2(16, 24), Vector2(24, 18)])
+			segments.append([Vector2(16, 24), Vector2(16, 29)])
+			segments.append([Vector2(8, 18), Vector2(8, 14)])
+			segments.append([Vector2(24, 18), Vector2(24, 14)])
 		Kind.FORBIDDEN:
 			rings.append([CENTER, 11.0])
 			segments.append([CENTER + Vector2(-7.5, 7.5), CENTER + Vector2(7.5, -7.5)])

@@ -225,6 +225,7 @@ const EQUIPMENT: Dictionary = {
 	&"explosives": {"name": "Charges explosives", "max": 2},
 	&"medkit": {"name": "Trousse de soins", "max": 1},
 	&"shield": {"name": "Bouclier balistique", "max": 1},
+	&"grapnel": {"name": "Grappin", "max": 1},
 }
 
 ## Poids (kg) de ce que porte un opérateur : tenue de base, armes, accessoires
@@ -237,7 +238,7 @@ const WEIGHTS: Dictionary = {
 	&"helmet": 1.4, &"nvg": 0.6, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0,
 	&"throwing_knives": 0.3, &"grenades": 0.6, &"explosives": 2.0, &"medkit": 1.5,
-	&"shield": 7.0,
+	&"shield": 7.0, &"grapnel": 2.5,
 }
 ## Paliers de charge : jusqu'à `limit` kg, vitesses multipliées par `speed` ;
 ## le palier lourd fait du bruit en courant (`noise`, rayon en m). Au-delà de

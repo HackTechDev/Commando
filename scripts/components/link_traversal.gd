@@ -9,6 +9,8 @@ extends RefCounted
 ##   courbes que les caisses).
 ## - Échelle, montée : pas jusqu'au pied, barreaux, puis rétablissement sur
 ##   le toit (escalade d'un rebord). Descente : l'inverse, face à l'échelle.
+## - Corde (grappin) : le relief se gravit face par face, chaque ressaut bas
+##   escaladé comme une caisse, chaque paroi haute à la corde.
 
 ## Vitesse sur les barreaux (m/s) et longueur d'un cycle de l'animation
 ## (deux barreaux).
@@ -21,6 +23,14 @@ const LADDER_STANCE := 0.4
 const MOUNT_HEIGHT := 1.2
 ## Durée des pas entre le pied de l'échelle et les barreaux.
 const STEP_TIME := 0.35
+## Ressaut escaladé d'un coup (comme une caisse) jusqu'à cette hauteur ;
+## au-delà, il faut des barreaux ou une corde.
+const SHORT_CLIMB := 1.4
+## Escalade d'un ressaut : départ avant la face, arrivée après son bord.
+const CLIMB_DISTANCE := 0.55
+const LAND_DISTANCE := 0.6
+## Vitesse de marche entre deux faces (m/s).
+const WALK_SPEED := 1.3
 ## Durées par défaut, si l'unité n'a pas de réglages d'escalade (`UnitStats`).
 const CLIMB_TIME := 1.4
 const DESCEND_TIME := 1.0
@@ -74,23 +84,24 @@ func begin(traversal: TraversalLink, entry: Vector3, exit_point: Vector3) -> boo
 		top.y = entry.y + traversal.height
 		_add(Phase.CLIMB_UP, start, top, climb)
 		_add(Phase.CLIMB_DOWN, top, exit_point, descend)
-	elif exit_point.y > entry.y:
-		# Montée : du pied au toit.
-		var rung := entry + direction * (traversal.face_distance - LADDER_STANCE)
-		var hang := Vector3(rung.x, exit_point.y - MOUNT_HEIGHT, rung.z)
-		_add(Phase.WALK, start, rung, STEP_TIME)
-		_add(Phase.RUNGS, rung, hang, (hang.y - rung.y) / LADDER_SPEED)
-		_add(Phase.CLIMB_UP, hang, exit_point, climb)
 	else:
-		# Descente : face au mur, donc dos au vide.
-		direction = -direction
-		var foot := exit_point
-		var rung := foot + direction * (traversal.face_distance - LADDER_STANCE)
-		var hang := Vector3(rung.x, entry.y - MOUNT_HEIGHT, rung.z)
-		_add(Phase.LOWER, start, hang, climb)
-		_add(Phase.RUNGS, hang, rung, (hang.y - rung.y) / LADDER_SPEED)
-		_add(Phase.WALK, rung, foot, STEP_TIME)
+		# Échelle (une seule face, le mur) ou corde (les faces du relief).
+		var faces: Array[Vector4] = traversal.faces.duplicate()
+		var going_up := exit_point.y > entry.y
+		var foot := entry if going_up else exit_point
+		var summit := exit_point if going_up else entry
+		var up := direction if going_up else -direction
+		if traversal.kind == TraversalLink.Kind.LADDER:
+			var wall := foot + up * traversal.face_distance
+			faces = [Vector4(wall.x, wall.z, foot.y, summit.y)]
+		if going_up:
+			_climb_faces(start, summit, faces, up, climb)
+		else:
+			_descend_faces(start, foot, faces, up, climb, descend)
+		direction = up if going_up else -up
 	_body.rotation.y = atan2(-direction.x, -direction.z)
+	if _phases.is_empty():
+		return false
 	_body.velocity = Vector3.ZERO
 	_body.set(&"posture", SoldierModel.Posture.STANDING)
 	_model.posture = SoldierModel.Posture.STANDING
@@ -108,6 +119,10 @@ func update(delta: float) -> bool:
 		return false
 	_model.weapon_slung = true
 	var phase := _phases[_index]
+	if _time == 0.0:
+		var facing: Vector3 = phase["facing"]
+		if facing != Vector3.ZERO:
+			_body.rotation.y = atan2(-facing.x, -facing.z)
 	_time += delta
 	var t := clampf(_time / maxf(phase["duration"], 0.001), 0.0, 1.0)
 	_apply(phase, t)
@@ -134,8 +149,68 @@ func _finish() -> void:
 	_model.move_ratio = 0.0
 
 
-func _add(kind: Phase, from: Vector3, to: Vector3, duration: float) -> void:
-	_phases.append({"kind": kind, "from": from, "to": to, "duration": duration})
+func _add(kind: Phase, from: Vector3, to: Vector3, duration: float, facing: Vector3 = Vector3.ZERO) -> void:
+	_phases.append({"kind": kind, "from": from, "to": to, "duration": duration, "facing": facing})
+
+
+## Marche de `from` à `to` (rien si les points sont confondus).
+func _walk(from: Vector3, to: Vector3, facing: Vector3) -> void:
+	var distance := from.distance_to(to)
+	if distance > 0.05:
+		_add(Phase.WALK, from, to, maxf(distance / WALK_SPEED, STEP_TIME * 0.5), facing)
+
+
+## Montée de `from` à `summit` par les faces `faces` (du bas vers le haut,
+## x et z de la face, sol bas, sol haut), dans la direction `up` : un ressaut
+## bas s'escalade comme une caisse ; une paroi haute se gravit (barreaux ou
+## corde) jusqu'à un rétablissement sur le rebord.
+func _climb_faces(from: Vector3, summit: Vector3, faces: Array[Vector4], up: Vector3, climb: float) -> void:
+	var position := from
+	for face in faces:
+		var at := Vector3(face.x, 0.0, face.y)
+		var land := at + up * LAND_DISTANCE
+		land.y = face.w
+		if face.w - face.z <= SHORT_CLIMB:
+			var base := at - up * CLIMB_DISTANCE
+			base.y = face.z
+			_walk(position, base, up)
+			_add(Phase.CLIMB_UP, base, land, climb, up)
+		else:
+			var rung := at - up * LADDER_STANCE
+			rung.y = face.z
+			var hang := Vector3(rung.x, face.w - MOUNT_HEIGHT, rung.z)
+			_walk(position, rung, up)
+			_add(Phase.RUNGS, rung, hang, (hang.y - rung.y) / LADDER_SPEED, up)
+			_add(Phase.CLIMB_UP, hang, land, climb, up)
+		position = land
+	_walk(position, summit, up)
+
+
+## Descente de `from` à `foot`, l'inverse de `_climb_faces` : un ressaut bas
+## se descend face au vide ; une paroi haute, face à elle, en s'accrochant
+## au rebord puis aux barreaux (ou à la corde).
+func _descend_faces(from: Vector3, foot: Vector3, faces: Array[Vector4], up: Vector3, climb: float, descend: float) -> void:
+	var position := from
+	var down := -up
+	for i in range(faces.size() - 1, -1, -1):
+		var face := faces[i]
+		var at := Vector3(face.x, 0.0, face.y)
+		var edge := at + up * LAND_DISTANCE
+		edge.y = face.w
+		_walk(position, edge, down)
+		if face.w - face.z <= SHORT_CLIMB:
+			var landing := at - up * CLIMB_DISTANCE
+			landing.y = face.z
+			_add(Phase.CLIMB_DOWN, edge, landing, descend, down)
+			position = landing
+		else:
+			var rung := at - up * LADDER_STANCE
+			rung.y = face.z
+			var hang := Vector3(rung.x, face.w - MOUNT_HEIGHT, rung.z)
+			_add(Phase.LOWER, edge, hang, climb, up)
+			_add(Phase.RUNGS, hang, rung, (hang.y - rung.y) / LADDER_SPEED, up)
+			position = rung
+	_walk(position, foot, down)
 
 
 func _apply(phase: Dictionary, t: float) -> void:

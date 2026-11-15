@@ -151,6 +151,15 @@ func order_grenade(target: Vector3, run: bool = false) -> bool:
 	return false
 
 
+## Confie le lancer du grappin vers `target` à l'unité sélectionnée la plus
+## proche qui peut y monter. Renvoie faux si aucune ne le peut.
+func order_grapple(target: Vector3, run: bool = false) -> bool:
+	for unit in _nearest_first(target):
+		if unit.grapple(target, run):
+			return true
+	return false
+
+
 ## Fait poser une charge explosive à la première unité sélectionnée qui en a.
 func plant_explosive() -> bool:
 	for unit in _by_index():

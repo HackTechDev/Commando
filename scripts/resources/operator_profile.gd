@@ -50,6 +50,8 @@ const DEFAULTS: Array[Dictionary] = [
 @export var medkit: int = 0
 ## Bouclier balistique (0 ou 1) : levé, il arrête les balles venant de face.
 @export var shield: int = 0
+## Grappin (0 ou 1) : lancé vers un point en hauteur, on y monte à la corde.
+@export var grapnel: int = 0
 
 ## Spécialité (`GearCatalog.SPECIALTIES`) : petit bonus en mission.
 @export var specialty: StringName = &"none"
@@ -62,7 +64,7 @@ const MAX_SAVED_OUTFITS := 6
 const OUTFIT_KEYS: Array[String] = [
 	"camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
-	"primary", "secondary", "throwing_knives", "grenades", "explosives", "medkit", "shield",
+	"primary", "secondary", "throwing_knives", "grenades", "explosives", "medkit", "shield", "grapnel",
 ]
 ## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
 ## couleurs, couvre-chef et accessoires, sans l'armement.
@@ -74,7 +76,7 @@ const LOOK_KEYS: Array[String] = [
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
 const _NAME_KEYS: Array[String] = ["body", "camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads"]
-const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "explosives", "medkit", "shield"]
+const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "explosives", "medkit", "shield", "grapnel"]
 
 
 ## Profil par défaut de l'opérateur numéro `index` (0 à 2).
@@ -200,7 +202,7 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 		"skin": GearCatalog.SKINS.size() - 1, "hair_color": GearCatalog.HAIR_COLORS.size() - 1,
 		"throwing_knives": GearCatalog.EQUIPMENT[&"throwing_knives"]["max"], "grenades": GearCatalog.EQUIPMENT[&"grenades"]["max"],
 		"explosives": GearCatalog.EQUIPMENT[&"explosives"]["max"], "medkit": GearCatalog.EQUIPMENT[&"medkit"]["max"],
-		"shield": GearCatalog.EQUIPMENT[&"shield"]["max"],
+		"shield": GearCatalog.EQUIPMENT[&"shield"]["max"], "grapnel": GearCatalog.EQUIPMENT[&"grapnel"]["max"],
 	}
 	for key in _INT_KEYS:
 		var value: Variant = data.get(key)

@@ -1,11 +1,13 @@
 class_name ThrowGesture
 extends CommandoAction
-## Lancer d'un couteau sur `enemy`, ou d'une grenade vers `point` (si
-## `enemy` est null). L'objet part à l'instant `SoldierModel.THROW_RELEASE`.
+## Lancer d'un couteau sur `enemy`, ou d'une grenade (ou d'un grappin,
+## `release`) vers `point` (si `enemy` est null). L'objet part à l'instant `SoldierModel.THROW_RELEASE`.
 
 var enemy: Enemy
 var point: Vector3
 var grenade: bool
+## Si valide, appelé à l'instant du lancer à la place de la grenade (grappin).
+var release: Callable
 var left: float = 0.0
 var _released: bool = false
 
@@ -50,7 +52,9 @@ func update(delta: float) -> Vector3:
 		unit._face(to_target, delta)
 	if not _released and progress >= SoldierModel.THROW_RELEASE:
 		_released = true
-		if grenade:
+		if release.is_valid():
+			release.call()
+		elif grenade:
 			unit._release_grenade(point)
 		elif valid and unit.throwing_knives > 0:
 			unit._release_knife(enemy)

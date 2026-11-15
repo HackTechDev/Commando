@@ -400,6 +400,14 @@ var carries_shield: bool = false:
 		carries_shield = value
 		if _body:
 			_rebuild()
+## Porte un grappin : corde lovée et grappin accrochés au flanc gauche.
+var carries_grapnel: bool = false:
+	set(value):
+		if value == carries_grapnel:
+			return
+		carries_grapnel = value
+		if _body:
+			_rebuild()
 ## Bouclier tenu devant soi, de la main gauche.
 var shield_raised: bool = false
 ## Avancement (0 à 1) d'une poussée pour repousser un assaillant ; -1 hors poussée.
@@ -642,6 +650,7 @@ func _build() -> void:
 	_build_head()
 	_build_rifle_and_arms()
 	_build_shield()
+	_build_grapnel()
 
 
 func _process(delta: float) -> void:
@@ -1864,6 +1873,27 @@ func _build_torso() -> void:
 		_cylinder(radio, 0.006, 0.38, Vector3(-0.12, 0.72, back), _m_weapon)
 	_build_equipment(front)
 	_build_specialty(front, back)
+
+
+## Grappin emporté : rouleau de corde au flanc gauche, griffes repliées
+## au-dessus.
+func _build_grapnel() -> void:
+	if not (carries_grapnel or (outfit != null and outfit.grapnel > 0)):
+		return
+	var kit := _pivot(_torso, Vector3.ZERO, "Grapnel")
+	var back := 0.14 if _wears(&"vest") else 0.11
+	var coil := MeshInstance3D.new()
+	coil.name = "Coil"
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.075
+	torus.outer_radius = 0.125
+	coil.mesh = torus
+	coil.material_override = _mat(Color(0.55, 0.47, 0.3), 1.0)
+	coil.position = Vector3(-0.2, 0.12, back)
+	coil.rotation = Vector3(0.0, 0.0, PI / 2.0)
+	kit.add_child(coil)
+	var steel := _mat(Color(0.3, 0.32, 0.34), 0.4, 0.8)
+	_cylinder(kit, 0.015, 0.16, Vector3(-0.2, 0.27, back), steel)
 
 
 ## Bouclier balistique : panneau, rebord, hublot de visée, bande
