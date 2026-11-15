@@ -458,3 +458,10 @@
 - Une balle manquée ne traverse plus les murs : elle s'arrête sur le premier obstacle derrière la cible (mur, caisse, sol), dans une petite gerbe de poussière.
 - Une balle qui touche fait jaillir une gerbe rouge sur la cible, et le chiffre des dégâts (« -25 ») s'élève au-dessus d'elle avant de s'effacer : jaune sur un ennemi, rouge sur un opérateur ou le VIP.
 - Une balle arrêtée par un bouclier fait des étincelles.
+
+## Cône de vision moins coûteux
+
+- Le cône affiché d'un ennemi (un rayon par segment) n'est plus recalculé à chaque image : seulement quand l'ennemi bouge ou tourne, quand une caisse est déplacée, et au plus tard une fois par seconde. Une sentinelle immobile ne coûte presque plus rien.
+- Hors de l'écran, le cône attend d'y revenir pour être recalculé.
+- Caméra très dézoomée, le cône a moins de segments (jusqu'à 16 au lieu de 48).
+- La détection des opérateurs, elle, ne change pas : un rayon par cible, à chaque image.

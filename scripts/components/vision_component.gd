@@ -5,11 +5,26 @@ extends Node3D
 ## Le cône regarde vers -Z du parent. Deux zones : proche (détection
 ## immédiate) et lointaine (cibles debout uniquement). La vue est occultée
 ## par les murs (couche 2).
+##
+## Le cône affiché coûte un rayon par segment : il n'est recalculé que si
+## l'ennemi a bougé ou tourné, si un obstacle a été déplacé
+## (`EventBus.navigation_obstacle_moved`), ou au plus tard toutes les
+## `REFRESH_INTERVAL` secondes (portes, objets détruits). Hors de l'écran, il
+## attend d'y revenir ; caméra très dézoomée, il a moins de segments.
 
 enum Zone { NONE, NEAR, FAR }
 
 const MASK_OCCLUDERS := 0b10
 const GROUND_OFFSET := 0.06
+## Déplacement (m) et rotation (rad) qui obligent à recalculer le cône.
+const MOVE_TOLERANCE := 0.03
+const TURN_TOLERANCE := 0.01
+## Recalcul de sécurité, en secondes.
+const REFRESH_INTERVAL := 1.0
+## Taille de vue (caméra orthographique, m) au-delà de laquelle le nombre de
+## segments diminue, et minimum de segments.
+const DETAIL_VIEW_SIZE := 22.0
+const MIN_SEGMENTS := 16
 
 @export var config: VisionConfig
 @export var calm_color := Color(0.25, 0.85, 0.35)
@@ -18,8 +33,15 @@ const GROUND_OFFSET := 0.06
 @export_range(0.0, 1.0) var near_alpha: float = 0.45
 @export_range(0.0, 1.0) var far_alpha: float = 0.2
 
+## Nombre de recalculs du cône (mesure du coût, tests).
+var rebuild_count: int = 0
+
 var _mesh := ImmediateMesh.new()
 var _material := StandardMaterial3D.new()
+var _built_transform := Transform3D()
+var _built_segments: int = 0
+var _dirty: bool = true
+var _since_build: float = 0.0
 
 
 func _ready() -> void:
@@ -33,10 +55,61 @@ func _ready() -> void:
 	instance.material_override = _material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	EventBus.navigation_obstacle_moved.connect(invalidate)
 
 
-func _physics_process(_delta: float) -> void:
-	_rebuild_cone()
+func _physics_process(delta: float) -> void:
+	_since_build += delta
+	var segments := _segments_for_view()
+	if not _needs_rebuild(segments):
+		return
+	if not _is_on_screen():
+		# Recalculé dès qu'il redeviendra visible.
+		_dirty = true
+		return
+	_rebuild_cone(segments)
+
+
+## Oblige à recalculer le cône à la prochaine image (obstacle déplacé).
+func invalidate() -> void:
+	_dirty = true
+
+
+func _needs_rebuild(segments: int) -> bool:
+	if _dirty or segments != _built_segments or _since_build >= REFRESH_INTERVAL:
+		return true
+	var current := global_transform
+	if current.origin.distance_to(_built_transform.origin) > MOVE_TOLERANCE:
+		return true
+	return (-current.basis.z).angle_to(-_built_transform.basis.z) > TURN_TOLERANCE
+
+
+## Segments du cône pour la vue actuelle : moins quand la caméra est très
+## dézoomée (le cône y fait peu de pixels).
+func _segments_for_view() -> int:
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if camera == null or camera.projection != Camera3D.PROJECTION_ORTHOGONAL or camera.size <= DETAIL_VIEW_SIZE:
+		return config.segments
+	return maxi(MIN_SEGMENTS, int(config.segments * DETAIL_VIEW_SIZE / camera.size))
+
+
+## Vrai si la boîte qui contient le cône est (au moins en partie) dans le
+## champ de la caméra.
+func _is_on_screen() -> bool:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return true
+	var reach := config.far_range
+	var box := AABB(global_position - Vector3(reach, 1.0, reach), Vector3(reach * 2.0, 3.0, reach * 2.0))
+	for plane in camera.get_frustum():
+		# Boîte entièrement du côté extérieur d'un plan : hors champ.
+		var corner := Vector3(
+			box.position.x if plane.normal.x > 0.0 else box.end.x,
+			box.position.y if plane.normal.y > 0.0 else box.end.y,
+			box.position.z if plane.normal.z > 0.0 else box.end.z)
+		if plane.distance_to(corner) > 0.0:
+			return false
+	return true
 
 
 ## Zone du cône dans laquelle `target` est visible, ou `Zone.NONE`.
@@ -87,15 +160,20 @@ func _target_height(posture: SoldierModel.Posture) -> float:
 	return 1.4
 
 
-func _rebuild_cone() -> void:
+func _rebuild_cone(segments: int) -> void:
+	rebuild_count += 1
+	_dirty = false
+	_since_build = 0.0
+	_built_transform = global_transform
+	_built_segments = segments
 	_mesh.clear_surfaces()
 	var space := get_world_3d().direct_space_state
 	var origin := global_position + Vector3.UP * config.cone_ray_height
 	var half_fov := deg_to_rad(config.fov_degrees) * 0.5
 	var directions: Array[Vector3] = []
 	var reaches: Array[float] = []
-	for i in config.segments + 1:
-		var angle := -half_fov + 2.0 * half_fov * float(i) / float(config.segments)
+	for i in segments + 1:
+		var angle := -half_fov + 2.0 * half_fov * float(i) / float(segments)
 		var direction := Vector3(sin(angle), 0.0, -cos(angle))
 		var world_direction := global_basis * direction
 		var query := PhysicsRayQueryParameters3D.create(origin, origin + world_direction * config.far_range, MASK_OCCLUDERS)
@@ -110,7 +188,7 @@ func _rebuild_cone() -> void:
 	var near_color := Color(1.0, 1.0, 1.0, near_alpha)
 	var far_color := Color(1.0, 1.0, 1.0, far_alpha)
 	_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in config.segments:
+	for i in segments:
 		var near_a := minf(reaches[i], config.near_range)
 		var near_b := minf(reaches[i + 1], config.near_range)
 		_mesh.surface_set_color(near_color)
