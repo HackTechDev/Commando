@@ -54,13 +54,16 @@ func play_at(sound: StringName, position: Vector3, volume_db: float = 0.0, pitch
 	scene.add_child(player)
 	player.global_position = position
 	player.finished.connect(_on_voice_finished.bind(player))
+	# Libérée avec sa scène (changement de niveau) : on l'oublie aussi.
+	player.tree_exiting.connect(_voices.erase.bind(player))
 	player.play()
 	played.emit(sound, position)
 	_voices.append(player)
 	if _voices.size() > MAX_VOICES:
-		var oldest: AudioStreamPlayer3D = _voices.pop_front()
+		# Variant : la voix a pu être libérée avec la scène précédente.
+		var oldest: Variant = _voices.pop_front()
 		if is_instance_valid(oldest):
-			oldest.queue_free()
+			(oldest as Node).queue_free()
 
 
 ## Joue un son d'interface (bips de sélection, d'ordre…), non spatialisé.

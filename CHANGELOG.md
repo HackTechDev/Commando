@@ -352,3 +352,4 @@
 - HK417 : fusil de tireur d'élite 7,62 mm à lunette, silencieux.
 - M249 : mitrailleuse légère, bande de 100 cartouches. Elle est lourde (8 kg), bruyante, peu précise de loin et longue à recharger.
 - Chaque arme a son modèle 3D, son poids et ses réglages de tir. La comparaison des armes de l'écran « Opérateurs » montre maintenant une ligne par arme.
+- Corrigé : une erreur pouvait survenir quand un son était joué juste après un changement de niveau (voix libérée avec l'ancienne scène).

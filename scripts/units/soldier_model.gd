@@ -474,6 +474,9 @@ var _gaze_idle := Vector2.ZERO
 var _gaze := Vector2.ZERO
 ## Yeux mi-clos (douleur), de 0 à 1.
 var _squint: float = 0.0
+## Hasard purement visuel (clignements, regard), séparé du générateur global
+## pour ne pas changer les tirages du jeu (parade, précision…).
+var _cosmetic := RandomNumberGenerator.new()
 var _mouth: MeshInstance3D
 var _mouth_inner: MeshInstance3D
 ## Expression : effort (frappe, lancer, escalade, caisse) et douleur (coup
@@ -2078,7 +2081,7 @@ func _animate_face(delta: float) -> void:
 		return
 	_blink_wait -= delta
 	if _blink_wait <= 0.0:
-		_blink_wait = randf_range(2.0, 5.0)
+		_blink_wait = _cosmetic.randf_range(2.0, 5.0)
 		_blink_time = 0.0
 	_blink_time += delta
 	var blink := 1.0 - absf(_blink_time / BLINK_DURATION * 2.0 - 1.0) if _blink_time < BLINK_DURATION else 0.0
@@ -2094,8 +2097,8 @@ func _animate_face(delta: float) -> void:
 	# Regard : vers la cible, ou petits mouvements au hasard.
 	_gaze_wait -= delta
 	if _gaze_wait <= 0.0:
-		_gaze_wait = randf_range(0.8, 2.5)
-		_gaze_idle = Vector2(randf_range(-1.0, 1.0), randf_range(-0.6, 0.4))
+		_gaze_wait = _cosmetic.randf_range(0.8, 2.5)
+		_gaze_idle = Vector2(_cosmetic.randf_range(-1.0, 1.0), _cosmetic.randf_range(-0.6, 0.4))
 	var gaze := _gaze_idle * 0.6
 	if look_target != Vector3.INF and is_inside_tree():
 		var local := _head.global_transform.affine_inverse() * look_target - HEAD_CENTER
