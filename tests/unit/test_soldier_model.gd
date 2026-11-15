@@ -127,3 +127,14 @@ func test_pickup_bends_down_then_stands_up() -> void:
 	_run(1.0)
 	assert_false(model.is_picking_up())
 	assert_almost_eq(model._hips.position.y, standing, 0.03, "relevé")
+
+
+func test_unarmed_guard_raises_the_fists() -> void:
+	model.set_armed(false)
+	_run(0.5)
+	var hand: Node3D = model.find_child("ShoulderR", true, false).find_child("Hand", true, false)
+	var low := hand.global_position.y
+	model.guard_up = true
+	_run(1.0)
+	assert_gt(hand.global_position.y, low + 0.4, "poings à hauteur du visage")
+	assert_gt(_finger_curl("ShoulderR"), 1.2, "poings serrés")

@@ -342,3 +342,4 @@
   - ni JVN, ni cagoule, ni sac.
 - Déplacements subis : l'opérateur repoussé recule pas à pas, l'esquive se fait en pas chassés, et un soldat déséquilibré recule d'un pied. Le corps ne glisse plus avec une marche en avant.
 - Ramassage du couteau de lancer : l'opérateur s'arrête un instant, s'accroupit en se penchant, ouvre la main vers le sol puis la referme. Il prend le couteau de la main gauche s'il tient son arme. Son ordre reprend ensuite.
+- Un ennemi sans arme en alerte se met en garde entre deux coups : poings serrés devant le visage, genoux souples, léger rebond.

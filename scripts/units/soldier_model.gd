@@ -379,6 +379,8 @@ var staggered: bool = false
 ## Point regardé (repère du monde) : la tête et les yeux s'y tournent.
 ## `Vector3.INF` : rien de particulier.
 var look_target: Vector3 = Vector3.INF
+## Garde de boxe (sans arme) : poings levés, genoux fléchis, entre deux coups.
+var guard_up: bool = false
 
 var _body: Node3D
 var _hips: Node3D
@@ -460,6 +462,7 @@ var _guard_look: Dictionary = {}
 var _motion := Vector2.ZERO
 var _last_position := Vector3.INF
 var _pickup_time: float = 10.0
+var _guard: float = 0.0
 ## Visage animé (absent sous un casque fermé : listes vides).
 var _irises: Array[Node3D] = []
 var _lids: Array[Node3D] = []
@@ -875,6 +878,16 @@ func _animate_alive(delta: float) -> void:
 		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
 		lean -= 0.85 * pickup
 		head_pitch += 0.35 * pickup
+	# Garde : poids sur l'avant des pieds, genoux souples, léger rebond.
+	_guard = move_toward(_guard, 1.0 if guard_up and not is_armed and not prone else 0.0, delta * 4.0)
+	var guard := smoothstep(0.0, 1.0, _guard)
+	if guard > 0.0:
+		var bounce := (0.05 + 0.015 * sin(_time * 6.0) * (1.0 - moving)) * guard
+		hips_y -= bounce
+		thigh += Vector2.ONE * _knee_bend(bounce)
+		knee -= Vector2.ONE * 2.0 * _knee_bend(bounce)
+		lean -= 0.12 * guard
+		head_pitch += 0.12 * guard
 	# Pas chassés quand il est déplacé de côté (esquive, poussée) : la jambe
 	# du côté du mouvement s'ouvre, l'autre la rejoint.
 	var strafe := _sideways()
@@ -1148,10 +1161,15 @@ func _animate_alive(delta: float) -> void:
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
 		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
 		target = _solve_arms(free_left.lerp(STAGGER_LEFT, stagger), free_right.lerp(STAGGER_RIGHT, stagger))
+	elif guard > 0.0 and not is_armed and strike_progress < 0.0:
+		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
+		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
+		var sway := Vector3(0.0, 0.015 * sin(_time * 6.0), 0.0)
+		target = _solve_arms(free_left.lerp(GUARD_LEFT + Vector3(0.0, 0.0, -0.06) + sway, guard), free_right.lerp(GUARD_RIGHT + sway, guard))
 	elif not kick.is_empty():
 		# Poings en garde devant le visage pendant le coup de pied.
-		var guard := minf(punch_t / 0.2, 1.0) * minf((1.0 - punch_t) / 0.3, 1.0)
-		target = _solve_arms(_free_hand(-1.0, false, s, c, moving, 0.0).lerp(GUARD_LEFT, guard), _free_hand(1.0, false, s, c, moving, 0.0).lerp(GUARD_RIGHT, guard))
+		var fists := minf(punch_t / 0.2, 1.0) * minf((1.0 - punch_t) / 0.3, 1.0)
+		target = _solve_arms(_free_hand(-1.0, false, s, c, moving, 0.0).lerp(GUARD_LEFT, fists), _free_hand(1.0, false, s, c, moving, 0.0).lerp(GUARD_RIGHT, fists))
 	if pickup > 0.0:
 		var to_torso := (_body.transform * _hips.transform * _torso.transform).affine_inverse()
 		var left_hand := is_armed and _sling < 0.5
@@ -1193,6 +1211,8 @@ func _animate_alive(delta: float) -> void:
 		curl = curl.lerp(Vector2(0.12, 0.12), maxf(grip, 1.0 if shove or parry else 0.0))
 	elif strike > 0.0:
 		curl.y = 1.0
+	elif guard > 0.0:
+		curl = curl.lerp(Vector2.ONE, guard)
 	if reloading:
 		curl.x = 0.85
 	if pickup > 0.0:

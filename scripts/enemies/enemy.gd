@@ -108,6 +108,8 @@ func _physics_process(delta: float) -> void:
 	_update_detection(delta)
 	_update_state()
 	_model.aiming = armed and state == State.ALERT and _target != null
+	# Sans arme, en alerte : en garde entre deux coups.
+	_model.guard_up = not armed and state == State.ALERT
 	# Il suit des yeux sa cible, ou regarde vers ce qui l'a intrigué.
 	if is_instance_valid(_target):
 		_model.look_target = _target.global_position + Vector3.UP * 1.4
