@@ -37,6 +37,7 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Tirer sur un ennemi | Clic droit sur l'ennemi |
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
+| Corps à corps au choix (assommer, couteau, balayage…) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
 | Parer un coup | I, juste avant que l'ennemi frappe (option du menu pause : parade automatique au hasard) |
 | Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le couteau pour le ramasser |
 | Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |

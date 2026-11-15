@@ -13,7 +13,7 @@ enum Posture { STANDING, CROUCHED, PRONE }
 ## Défense au corps à corps : parade (avant-bras ou arme levés) ou esquive
 ## (pas de côté, buste baissé).
 enum DefendMove { PARRY, DODGE }
-enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK }
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -191,6 +191,7 @@ const KICKS := {
 const ELBOW_TIMES: Array[float] = [0.0, 0.3, 0.45, 0.6, 1.0]
 const KNEE_TIMES: Array[float] = [0.0, 0.25, 0.45, 0.62, 1.0]
 const JAB_HOOK_TIMES: Array[float] = [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 1.0]
+const SWEEP_TIMES: Array[float] = [0.0, 0.25, 0.5, 0.7, 1.0]
 const MOVES := {
 	# Coup de coude horizontal du bras droit, en pivotant le buste.
 	StrikeMove.ELBOW: {
@@ -228,12 +229,27 @@ const MOVES := {
 		"dip": [0.0, 0.0, 0.3, 0.04, 0.6, 0.06, 0.75, 0.03, 1.0, 0.0],
 		"head": [0.0, 0.0, 0.15, 0.12, 0.9, 0.12, 1.0, 0.0],
 	},
+	# Balayage : accroupi d'un coup, main gauche au sol, la jambe droite
+	# tendue au ras du sol balaie en arc en pivotant sur l'appui.
+	StrikeMove.SWEEP: {
+		"times": SWEEP_TIMES,
+		"left": [Vector3.ZERO, Vector3(-0.3, 0.05, -0.32), Vector3(-0.32, -0.05, -0.28), Vector3(-0.3, 0.0, -0.3), Vector3.ZERO] as Array[Vector3],
+		"right": [Vector3.ZERO, Vector3(0.14, 0.5, -0.24), Vector3(0.2, 0.4, -0.2), Vector3(0.16, 0.45, -0.22), Vector3.ZERO] as Array[Vector3],
+		"dip": [0.0, 0.0, 0.25, 0.4, 0.5, 0.44, 0.7, 0.4, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.25, -0.35, 0.5, -0.45, 0.7, -0.35, 1.0, 0.0],
+		"hip_yaw": [0.0, 0.0, 0.25, 0.3, 0.5, 1.4, 0.7, 1.6, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.25, -0.25, 0.5, -1.0, 0.7, -1.1, 1.0, 0.0],
+		"thigh_r": [0.0, 0.0, 0.25, 0.7, 0.5, 0.35, 0.7, 0.45, 1.0, 0.0],
+		"knee_r": [0.0, 0.0, 0.25, -1.3, 0.5, -0.1, 0.7, -0.3, 1.0, 0.0],
+		"spread_r": [0.0, 0.0, 0.25, 0.4, 0.5, 1.2, 0.7, 1.0, 1.0, 0.0],
+		"head": [0.0, 0.0, 0.5, 0.2, 1.0, 0.0],
+	},
 }
 
 ## Instant (0 à 1) où porte le coup décisif des mouvements de `MOVES` qui ne
 ## frappent pas à `Commando.STRIKE_HIT_TIME`, et premier coup d'un
 ## enchaînement.
-const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75}
+const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75, StrikeMove.SWEEP: 0.5}
 const MOVE_FIRST_HIT := {StrikeMove.JAB_HOOK: 0.3}
 
 # Coup de crosse (arme en main) : l'arme recule sur la hanche droite, crosse

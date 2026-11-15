@@ -17,7 +17,10 @@ const CLOSE_RANGE := 0.95
 const CLOSE_DISTANCE := 0.7
 const CLOSE_STEP := 0.25
 ## Durée de chaque coup, rapportée à `melee_time`.
+## Balayage : la cible tombe, sonnée cette part seulement de `stun_duration`.
+const SWEEP_STUN_RATIO := 0.3
 const MOVE_DURATIONS := {
+	SoldierModel.StrikeMove.SWEEP: 1.3,
 	SoldierModel.StrikeMove.ELBOW: 0.9,
 	SoldierModel.StrikeMove.KNEE: 1.1,
 	SoldierModel.StrikeMove.JAB_HOOK: 1.6,
@@ -55,7 +58,7 @@ func _init(owner: Commando, target: Enemy, how: Commando.MeleeKind, close_quarte
 
 
 func hands_free() -> bool:
-	return kind == Commando.MeleeKind.KNIFE or grapple
+	return kind == Commando.MeleeKind.KNIFE or kind == Commando.MeleeKind.SWEEP or grapple
 
 
 func look_point() -> Vector3:
@@ -65,8 +68,8 @@ func look_point() -> Vector3:
 func start() -> void:
 	var model := unit._model
 	model.strike_with_knife = kind == Commando.MeleeKind.KNIFE
-	# Un ennemi déjà au sol s'achève sans prise.
-	grapple = not enemy.is_stunned() and enemy.is_behind(unit.global_position)
+	# Un ennemi déjà au sol s'achève sans prise ; le balayage n'en est pas une.
+	grapple = kind != Commando.MeleeKind.SWEEP and not enemy.is_stunned() and enemy.is_behind(unit.global_position)
 	if grapple:
 		unit.posture = SoldierModel.Posture.STANDING
 		enemy.grab()
@@ -91,7 +94,11 @@ func start() -> void:
 		var offset := enemy.global_position - unit.global_position
 		offset.y = 0.0
 		_close = _close or offset.length() < CLOSE_RANGE
-		if kind == Commando.MeleeKind.KNOCKOUT:
+		if kind == Commando.MeleeKind.SWEEP:
+			# Coup de pied bas, accroupi en pivotant : debout pour s'élancer.
+			unit.posture = SoldierModel.Posture.STANDING
+			forced_move = SoldierModel.StrikeMove.SWEEP
+		if kind != Commando.MeleeKind.KNIFE:
 			model.strike_move = _pick_move() if forced_move < 0 else forced_move as SoldierModel.StrikeMove
 			_duration *= MOVE_DURATIONS.get(model.strike_move, 1.0)
 			_hit_time = SoldierModel.MOVE_HIT_TIMES.get(model.strike_move, _hit_time)
@@ -198,4 +205,9 @@ func _land() -> void:
 		Commando.MeleeKind.KNOCKOUT:
 			enemy.knock_out()
 			Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 1.4)
+			EventBus.noise_emitted.emit(unit.global_position, stats.melee_noise_radius, &"melee")
+		Commando.MeleeKind.SWEEP:
+			# Jambes fauchées : il tombe à la renverse, sonné peu de temps.
+			enemy.knock_out(false, enemy.stats.stun_duration * SWEEP_STUN_RATIO)
+			Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 0.3, -4.0)
 			EventBus.noise_emitted.emit(unit.global_position, stats.melee_noise_radius, &"melee")

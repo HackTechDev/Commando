@@ -14,7 +14,9 @@ signal weapon_changed(secondary: bool)
 ## Bouclier levé ou baissé (choix du joueur).
 signal shield_changed(raised: bool)
 
-enum MeleeKind { KNIFE, KNOCKOUT }
+## Corps à corps : couteau (tue), assommer, balayage (assomme moins
+## longtemps).
+enum MeleeKind { KNIFE, KNOCKOUT, SWEEP }
 
 const MASK_OCCLUDERS := 0b10
 ## Indicatif affiché au-dessus de la tête : couleur, couleur une fois
@@ -495,7 +497,7 @@ func reload() -> void:
 func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 	if is_dead or _hopping or enemy == null or enemy.is_dead:
 		return false
-	if kind == MeleeKind.KNOCKOUT and enemy.is_stunned():
+	if kind != MeleeKind.KNIFE and enemy.is_stunned():
 		return false
 	if perched_on:
 		return _descend(enemy.global_position, melee.bind(enemy, kind, run))

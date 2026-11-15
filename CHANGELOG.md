@@ -560,3 +560,8 @@
 
 - Nouveau coup à mains nues dans le tirage : direct du gauche (la cible encaisse, reste debout), puis crochet du droit qui l'assomme. Le geste dure 1,6 fois un coup simple.
 
+## Balayage et menu de corps à corps (3.2)
+
+- Clic du milieu sur un ennemi (opérateur sélectionné) : menu circulaire de corps à corps (assommer, couteau, balayage).
+- Balayage : accroupi d'un coup, main au sol, l'opérateur fauche les jambes d'un coup de pied bas en pivotant. L'ennemi tombe à la renverse et reste sonné 30 % du temps d'un ennemi assommé.
+

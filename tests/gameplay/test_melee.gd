@@ -151,3 +151,43 @@ func test_jab_then_hook_knocks_out_on_the_second_blow() -> void:
 	# Le crochet assomme.
 	assert_gt(await frames_until(dummy.is_stunned, 60), -1, "crochet : assommé")
 	assert_gt(alpha._model.strike_progress, 0.7, "au second coup")
+
+
+func _middle_click(controller: PlayerController, at: Vector2) -> void:
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_MIDDLE
+	press.pressed = true
+	press.position = at
+	controller._unhandled_input(press)
+	var release := press.duplicate() as InputEventMouseButton
+	release.pressed = false
+	controller._unhandled_input(release)
+
+
+func test_sweep_from_the_melee_menu_floors_the_enemy_briefly() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var dummy: Enemy = node("Enemies/TrainingDummy")
+	var controller: PlayerController = node("HUD/PlayerController")
+	var menu := controller.radial_menu()
+	dummy.global_position = Vector3(-14, 0, -6)
+	dummy.rotation.y = PI / 2.0
+	alpha.global_position = dummy.global_position + Vector3(0, 0, 3)
+	await frames(10)
+	var camera := get_viewport().get_camera_3d()
+	var at := camera.unproject_position(dummy.global_position + Vector3.UP * 1.0)
+	SelectionManager.select([] as Array[Commando], false)
+	_middle_click(controller, at)
+	assert_false(menu.is_open(), "sans opérateur sélectionné : pas de menu")
+	SelectionManager.select([alpha] as Array[Commando], false)
+	_middle_click(controller, at)
+	assert_true(menu.is_open(), "menu de corps à corps sur l'ennemi")
+	assert_ne(menu.option_position(&"sweep"), Vector2.INF, "balayage proposé")
+	assert_true(menu.choose(&"sweep"))
+	var swept := [false]
+	var down := func() -> bool:
+		swept[0] = swept[0] or alpha._model.strike_move == Move.SWEEP and alpha._model.strike_progress >= 0.0
+		return dummy.is_stunned()
+	assert_gt(await frames_until(down, 400), -1, "jambes fauchées : au sol")
+	assert_true(swept[0], "coup de pied bas")
+	assert_almost_eq(dummy._stun_left, dummy.stats.stun_duration * StrikeGesture.SWEEP_STUN_RATIO, 0.2, "sonné moins longtemps")
+	assert_false(alpha.melee(dummy, Commando.MeleeKind.SWEEP), "on ne balaie pas un homme à terre")

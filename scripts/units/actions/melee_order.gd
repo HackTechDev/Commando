@@ -25,7 +25,7 @@ func start() -> void:
 
 
 func hands_free() -> bool:
-	return kind == Commando.MeleeKind.KNIFE
+	return kind == Commando.MeleeKind.KNIFE or kind == Commando.MeleeKind.SWEEP
 
 
 func look_point() -> Vector3:
@@ -33,7 +33,7 @@ func look_point() -> Vector3:
 
 
 func update(delta: float) -> Vector3:
-	if not is_instance_valid(enemy) or enemy.is_dead or (kind == Commando.MeleeKind.KNOCKOUT and enemy.is_stunned()):
+	if not is_instance_valid(enemy) or enemy.is_dead or (kind != Commando.MeleeKind.KNIFE and enemy.is_stunned()):
 		finish()
 		return Vector3.ZERO
 	var to_enemy := enemy.global_position - unit.global_position

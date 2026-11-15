@@ -412,13 +412,14 @@ func kill_silently(fall_forward: bool = false) -> void:
 	health.take_damage(health.health)
 
 
-## Assomme l'ennemi : il tombe et reste inconscient `stun_duration` secondes.
-## Assommer un ennemi déjà inconscient prolonge sa perte de connaissance.
-func knock_out(fall_forward: bool = false) -> void:
+## Assomme l'ennemi : il tombe et reste inconscient `duration` secondes
+## (`stun_duration` par défaut). Assommer un ennemi déjà inconscient
+## prolonge sa perte de connaissance.
+func knock_out(fall_forward: bool = false, duration: float = -1.0) -> void:
 	_traversal.cancel()
 	if is_dead:
 		return
-	_stun_left = stats.stun_duration
+	_stun_left = maxf(_stun_left if state == State.STUNNED else 0.0, stats.stun_duration if duration < 0.0 else duration)
 	if state == State.STUNNED:
 		return
 	_model.grabbed = false

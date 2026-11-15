@@ -65,6 +65,8 @@ var _middle_start: Vector2 = Vector2.INF
 ## Menu circulaire des ordres au VIP, et le VIP concerné.
 var _radial: RadialMenu
 var _menu_vip: Vip
+## Ennemi du menu de corps à corps ouvert (null : aucun).
+var _menu_enemy: Enemy
 var _cursor_left: float = 0.0
 ## Pause tactique en cours (le jeu est en pause, les ordres restent possibles).
 var tactical_paused: bool = false
@@ -93,8 +95,10 @@ func _ready() -> void:
 	_radial = RadialMenu.new()
 	_radial.name = "RadialMenu"
 	add_child(_radial)
-	_radial.chosen.connect(_on_vip_order)
-	_radial.closed.connect(func() -> void: _menu_vip = null)
+	_radial.chosen.connect(_on_radial_chosen)
+	_radial.closed.connect(func() -> void:
+		_menu_vip = null
+		_menu_enemy = null)
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
 			cancel_pending_action()
@@ -357,7 +361,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_middle_start = middle.position
 		elif _middle_start != Vector2.INF:
 			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
-				if open_vip_menu(middle.position):
+				if open_vip_menu(middle.position) or open_melee_menu(middle.position):
 					get_viewport().set_input_as_handled()
 			_middle_start = Vector2.INF
 		return
@@ -544,6 +548,49 @@ func open_vip_menu(screen_position: Vector2) -> bool:
 	_radial.open(screen_position, options, vip.display_name)
 	Sfx.play_ui(&"select")
 	return true
+
+
+## Ouvre le menu de corps à corps sur l'ennemi sous `screen_position` :
+## l'opérateur sélectionné le plus proche s'en charge. Renvoie faux sans
+## ennemi visé ou sans opérateur sélectionné.
+func open_melee_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_ENEMIES)
+	var enemy := hit.get("collider") as Enemy
+	if enemy == null or enemy.is_dead or SelectionManager.selected.is_empty():
+		return false
+	cancel_pending_action()
+	_menu_enemy = enemy
+	_radial.open(screen_position, melee_options(enemy), "Corps à corps")
+	Sfx.play_ui(&"select")
+	return true
+
+
+## Options du menu de corps à corps sur `enemy`.
+static func melee_options(enemy: Enemy) -> Array[Dictionary]:
+	var standing := not enemy.is_stunned()
+	return [
+		{"id": &"knockout", "label": "Assommer", "detail": "coup ou prise par derrière", "enabled": standing},
+		{"id": &"knife", "label": "Couteau", "detail": "silencieux par derrière"},
+		{"id": &"sweep", "label": "Balayage", "detail": "il tombe, sonné peu de temps", "enabled": standing},
+	]
+
+
+## Choix dans le menu circulaire ouvert (VIP ou corps à corps).
+func _on_radial_chosen(id: StringName) -> void:
+	if _menu_vip:
+		_on_vip_order(id)
+		return
+	var enemy := _menu_enemy
+	_menu_enemy = null
+	if enemy == null or not is_instance_valid(enemy) or enemy.is_dead:
+		return
+	var kinds := {&"knockout": Commando.MeleeKind.KNOCKOUT, &"knife": Commando.MeleeKind.KNIFE, &"sweep": Commando.MeleeKind.SWEEP}
+	if not kinds.has(id):
+		return
+	var accepted := SelectionManager.order_melee(enemy, kinds[id])
+	Sfx.play_ui(&"order" if accepted else &"denied")
+	if accepted:
+		_spawn_marker(enemy.global_position, marker_melee_color)
 
 
 ## Menu d'ordres du VIP (pour l'interface et les tests).
