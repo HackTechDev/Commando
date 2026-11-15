@@ -22,7 +22,7 @@ const SECTIONS: Array = [
 		[[&"action_knife"], "Couteau, puis clic gauche sur l'ennemi"],
 		[[&"action_knockout"], "Assommer, puis clic gauche sur l'ennemi"],
 		[["Clic milieu sur un ennemi"], "Corps à corps au choix (désarmer, otage…)"],
-		[[&"action_throw"], "Lancer le couteau, puis clic gauche"],
+		[[&"action_throw"], "Lancer : couteau (clic sur un ennemi), caillou (clic au sol)"],
 		[[&"parry"], "Parer : au moment où l'ennemi frappe"],
 		[[&"action_grenade"], "Grenade, puis clic au sol"],
 		[[&"reload"], "Recharger"],

@@ -54,3 +54,42 @@ func test_missed_throw_startles_the_target() -> void:
 	assert_false(dummy.is_dead, "raté")
 	assert_eq(dummy.state, Enemy.State.SUSPICIOUS, "la cible entend la lame et se méfie")
 	assert_lt(_knives()[0].global_position.distance_to(dummy.global_position), 3.0, "couteau tombé près de lui")
+
+
+func test_a_pebble_draws_an_enemy_to_look() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var dummy: Enemy = node("Enemies/TrainingDummy")
+	var soldier: Enemy = node("Enemies/Soldier1")
+	park(dummy, Vector3(25, 0, 25))
+	for unit in ["Units/Alpha", "Units/Bravo", "Units/Charlie"]:
+		hide_from_enemies(node(unit))
+	soldier.set_physics_process(true)
+	soldier.global_position = Vector3(-10, 0, 4)
+	# Le caillou tombe à 5 m de lui ; Alpha le lance de 8 m.
+	var spot := soldier.global_position + Vector3(0, 0, 5)
+	alpha.global_position = spot + Vector3(8, 0, 0)
+	await frames(5)
+	var knives := alpha.throwing_knives
+	assert_true(alpha.throw_pebble(spot), "ordre accepté")
+	assert_gt(await frames_until(func() -> bool: return soldier.investigating, 200), -1, "il entend le caillou")
+	assert_eq(alpha.throwing_knives, knives, "pas un couteau")
+	assert_eq(soldier.state, Enemy.State.SUSPICIOUS, "méfiant, pas en alerte")
+	assert_gt(await frames_until(func() -> bool: return flat_distance(soldier.global_position, spot) < 1.0, 600), -1, "il va voir")
+	assert_gt(await frames_until(func() -> bool: return soldier.state == Enemy.State.PATROL, 1200), -1, "puis reprend sa ronde")
+
+
+func test_throw_key_on_the_ground_throws_a_pebble() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var controller: PlayerController = node("HUD/PlayerController")
+	SelectionManager.select([alpha] as Array[Commando], false)
+	controller.toggle_pending_action(PlayerController.ACTION_THROW)
+	var spot := alpha.global_position + Vector3(4, 0, 0)
+	var at := get_viewport().get_camera_3d().unproject_position(spot)
+	controller._use_pending_action(at)
+	assert_true(alpha._order is GrenadeOrder and (alpha._order as GrenadeOrder).pebble, "caillou en route")
+	var landed := func() -> bool:
+		for node in level.get_children():
+			if node is Pebble and node.has_landed():
+				return true
+		return false
+	assert_gt(await frames_until(landed, 300), -1, "caillou tombé")

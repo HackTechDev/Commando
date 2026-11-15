@@ -79,6 +79,8 @@ const SHIELD_SPEED := 0.7
 ## action demande les deux mains.
 const HOSTAGE_SPEED := 0.45
 const HOSTAGE_BUSY := "Bouclier humain : relâchez d'abord l'otage"
+## Portée (m) d'un caillou lancé pour faire diversion.
+const PEBBLE_RANGE := 14.0
 const PARRY_WINDOW := 0.45
 const PARRY_COOLDOWN := 0.9
 
@@ -614,10 +616,24 @@ func throw_grenade(target: Vector3, run: bool = false) -> bool:
 	return true
 
 
-func _in_grenade_range(target: Vector3) -> bool:
+## Ordonne de lancer un caillou vers `target` pour faire diversion : les
+## ennemis qui l'entendent tomber vont voir. Sans limite de cailloux.
+func throw_pebble(target: Vector3, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
+	if is_dead or _hopping:
+		return false
+	if perched_on and not _in_grenade_range(target, PEBBLE_RANGE):
+		return _descend(target, throw_pebble.bind(target, run))
+	_set_order(GrenadeOrder.new(self, target, run, true))
+	return true
+
+
+## Vrai si `target` est à portée de lancer (`reach`, ou celle d'une grenade).
+func _in_grenade_range(target: Vector3, reach: float = -1.0) -> bool:
 	var offset := target - global_position
 	offset.y = 0.0
-	return offset.length() <= stats.grenade_range
+	return offset.length() <= (stats.grenade_range if reach < 0.0 else reach)
 
 
 ## Ordonne de lancer le grappin vers `target` (un point en hauteur) puis d'y
@@ -671,6 +687,12 @@ func _release_grenade(target: Vector3) -> void:
 	var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
 	Grenade.spawn(get_tree().current_scene, hand, target + Vector3.UP * 0.05, stats)
 	Sfx.play_at(&"whoosh", hand, -8.0)
+
+
+func _release_pebble(target: Vector3) -> void:
+	var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
+	Pebble.spawn(get_tree().current_scene, hand, target + Vector3.UP * 0.03)
+	Sfx.play_at(&"whoosh", hand, -12.0)
 
 
 ## Pose une charge explosive aux pieds de l'unité (elle s'accroupit le temps

@@ -39,7 +39,8 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Assommer | B, puis clic gauche sur l'ennemi |
 | Corps à corps au choix (assommer, couteau, balayage, projection, désarmer, bouclier humain ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
 | Parer un coup | I, juste avant que l'ennemi frappe (option du menu pause : parade automatique au hasard) |
-| Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le couteau pour le ramasser |
+| Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le corps pour le ramasser |
+| Caillou de diversion (jusqu'à 14 m) | T, puis clic gauche au sol : les ennemis à moins de 7 m vont voir |
 | Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
 | Grappin (équipement) | W, puis clic gauche sur un point en hauteur : l'opérateur lance le grappin et monte à la corde |

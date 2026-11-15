@@ -25,7 +25,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 ## 2. Gameplay d'infiltration
 
-- **2.1 Ouïe des ennemis** (§5.2) : beaucoup d'actions émettent déjà `noise_emitted`, mais personne n'écoute. C'est le cas des tirs, des coups, du cri d'une victime poignardée de face, du couteau raté, des explosions et de l'équipement d'un opérateur trop chargé qui court. *Amorcé avec 3.12 : `Enemy._on_noise` écoute le bus, mais ne réagit qu'à l'appel à l'aide (`&"help"`) ; les autres bruits restent à brancher.*
+- **2.1 Ouïe des ennemis** (§5.2) : beaucoup d'actions émettent déjà `noise_emitted`, mais personne n'écoute. C'est le cas des tirs, des coups, du cri d'une victime poignardée de face, du couteau raté, des explosions et de l'équipement d'un opérateur trop chargé qui court. *Amorcé avec 3.12 : `Enemy._on_noise` écoute le bus, mais ne réagit qu'à l'appel à l'aide (`&"help"`) et au caillou de diversion (`&"distraction"`, 3.7 b) ; les autres bruits restent à brancher.*
   - **a)** ajouter un `HearingComponent` et le bruit de la course ;
   - **b)** ajouter un état `Investigate`, qui envoie l'ennemi voir la source ;
   - **c)** remplacer `Enemy.startle` (couteau raté, ennemis épargnés par une explosion), qui n'est qu'un palliatif.
@@ -72,7 +72,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **3.6 ~~Bouclier humain~~** (fait) : saisir un ennemi par derrière et s'en couvrir. L'opérateur se déplace lentement et ne tire qu'à l'arme secondaire ; les autres ennemis hésitent à tirer.
 - **3.7 Lancer de couteau, suite** :
   - **a) ~~Couteau sur le corps~~** (fait) : récupérer le couteau directement sur le corps (aujourd'hui, il tombe à côté) ;
-  - **b)** lancer un objet pour faire diversion (caillou, douille), une fois l'ouïe en place (2.1).
+  - **b) ~~Diversion~~** (fait) : lancer un objet pour faire diversion (caillou, douille), une fois l'ouïe en place (2.1).
 
 ### Défense
 

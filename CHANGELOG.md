@@ -590,3 +590,8 @@
 ## Couteau planté dans le corps (3.7 a)
 
 - Un couteau de lancer qui touche reste planté dans le torse de la cible, dans l'axe du lancer, et la suit dans sa chute. Le repère violet se place au sol sous lui ; on le ramasse en passant sur le corps.
+
+## Caillou de diversion (3.7 b)
+
+- T, puis clic gauche au sol : l'opérateur le plus proche lance un caillou (jusqu'à 14 m, sans limite). Il tombe avec un bruit sec.
+- Les ennemis qui l'entendent (7 m) deviennent méfiants, vont voir au pas, balaient les alentours du regard trois secondes, puis reprennent leur ronde. Un ennemi en alerte n'en tient pas compte.

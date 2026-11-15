@@ -66,6 +66,8 @@ const HELP_DELAY := 1.2
 const HELP_INTERVAL := 2.5
 const HELP_RADIUS := 12.0
 const HELP_RADIUS_MUFFLED := 4.0
+## Bruit de diversion : il va voir, puis regarde autour de lui ce temps (s).
+const INVESTIGATE_LOOK_TIME := 3.0
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -78,6 +80,9 @@ var shots_blocked: int = 0
 ## Cris d'appel à l'aide poussés.
 var cries: int = 0
 var _help_left: float = 0.0
+## Va voir d'où vient un bruit (`_last_seen`), méfiant.
+var investigating: bool = false
+var _look_left: float = 0.0
 ## Tirs retenus parce qu'un otage couvrait la cible.
 var hesitations: int = 0
 ## Cartouches restantes (négatif : sans limite).
@@ -208,7 +213,7 @@ func _physics_process(delta: float) -> void:
 			State.PATROL:
 				horizontal = _patrol(delta)
 			State.SUSPICIOUS:
-				_face(_last_seen - global_position, delta)
+				horizontal = _suspicious(delta)
 			State.ALERT:
 				horizontal = _alert(delta)
 	if stationary:
@@ -504,6 +509,44 @@ func _on_noise(at: Vector3, radius: float, type: StringName) -> void:
 	match type:
 		&"help":
 			hear_alarm(at)
+		&"distraction":
+			investigate(at)
+
+
+## Bruit suspect en `at` (caillou) : méfiant, il va voir, regarde autour
+## de lui, puis reprend sa ronde. En alerte, il n'en tient pas compte.
+func investigate(at: Vector3) -> void:
+	if state == State.ALERT:
+		return
+	detection = maxf(detection, stats.suspicion_threshold + 0.15)
+	_last_seen = at
+	investigating = true
+	_look_left = INVESTIGATE_LOOK_TIME
+	_agent.target_position = at
+	_update_state()
+	_update_feedback()
+
+
+## Méfiant : il regarde vers ce qui l'a intrigué ; s'il enquête sur un
+## bruit, il s'y rend d'abord au pas.
+func _suspicious(delta: float) -> Vector3:
+	if not investigating:
+		_face(_last_seen - global_position, delta)
+		return Vector3.ZERO
+	if _agent.target_position.distance_to(_last_seen) > 0.3:
+		_agent.target_position = _last_seen
+	if not stationary and not _agent.is_navigation_finished():
+		var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
+		to_next.y = 0.0
+		if to_next.length_squared() > 0.0001:
+			_face(to_next, delta)
+			return to_next.normalized() * stats.patrol_speed
+	# Sur place : il balaie les alentours du regard.
+	_look_left -= delta
+	rotation.y += delta * 0.9 * sin(_look_left * 1.6)
+	if _look_left <= 0.0:
+		investigating = false
+	return Vector3.ZERO
 
 
 ## Alerte donnée par un bruit en `at` : il y court.
@@ -661,6 +704,9 @@ func _update_detection(delta: float) -> void:
 				detection = 0.0
 	else:
 		detection -= delta / stats.forget_time
+		# Tant qu'il enquête, il reste méfiant.
+		if investigating:
+			detection = maxf(detection, stats.suspicion_threshold)
 	detection = clampf(detection, 0.0, 1.0)
 
 
@@ -681,6 +727,8 @@ func _update_state() -> void:
 		Sfx.play_at(&"alert", global_position + Vector3.UP * 2.0)
 	elif state == State.SUSPICIOUS and previous == State.PATROL:
 		Sfx.play_at(&"suspicious", global_position + Vector3.UP * 2.0, -4.0)
+	if state != State.SUSPICIOUS:
+		investigating = false
 	if state == State.ALERT:
 		alert_age = 0.0
 		_fire_cooldown = stats.aim_time

@@ -229,6 +229,18 @@ func order_grenade(target: Vector3, run: bool = false) -> bool:
 	return false
 
 
+## Confie le lancer d'un caillou de diversion vers `target` à l'unité
+## sélectionnée la plus proche.
+func order_pebble(target: Vector3, run: bool = false) -> bool:
+	for unit in _nearest_first(target):
+		if planning:
+			if not unit.is_dead:
+				return _issue(unit, unit.throw_pebble.bind(target, run), target, &"move")
+		elif unit.throw_pebble(target, run):
+			return true
+	return false
+
+
 ## Confie le lancer du grappin vers `target` à l'unité sélectionnée la plus
 ## proche qui peut y monter. Renvoie faux si aucune ne le peut.
 func order_grapple(target: Vector3, run: bool = false) -> bool:

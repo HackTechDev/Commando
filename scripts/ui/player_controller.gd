@@ -682,6 +682,17 @@ func _use_pending_action(screen_position: Vector2) -> void:
 		cancel_pending_action()
 		return
 	var hit := _raycast(screen_position, MASK_ENEMIES)
+	if pending_action == ACTION_THROW and not (hit.has("collider") and hit["collider"] is Enemy):
+		# Au sol : un caillou pour faire diversion.
+		var ground := _raycast(screen_position, MASK_GROUND)
+		if not ground.is_empty():
+			var point: Vector3 = ground["position"]
+			if SelectionManager.order_pebble(point):
+				_spawn_marker(point, marker_color)
+			else:
+				Sfx.play_ui(&"denied")
+		cancel_pending_action()
+		return
 	if hit.has("collider") and hit["collider"] is Enemy:
 		var enemy := hit["collider"] as Enemy
 		if pending_action == ACTION_THROW:
