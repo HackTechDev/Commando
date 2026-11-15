@@ -15,8 +15,8 @@ signal weapon_changed(secondary: bool)
 signal shield_changed(raised: bool)
 
 ## Corps à corps : couteau (tue), assommer, balayage (assomme moins
-## longtemps).
-enum MeleeKind { KNIFE, KNOCKOUT, SWEEP }
+## longtemps), projection (au sol par-dessus la hanche, puis assommé).
+enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW }
 
 const MASK_OCCLUDERS := 0b10
 ## Indicatif affiché au-dessus de la tête : couleur, couleur une fois

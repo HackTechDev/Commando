@@ -25,7 +25,7 @@ func start() -> void:
 
 
 func hands_free() -> bool:
-	return kind == Commando.MeleeKind.KNIFE or kind == Commando.MeleeKind.SWEEP
+	return kind != Commando.MeleeKind.KNOCKOUT
 
 
 func look_point() -> Vector3:

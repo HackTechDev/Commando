@@ -565,3 +565,7 @@
 - Clic du milieu sur un ennemi (opérateur sélectionné) : menu circulaire de corps à corps (assommer, couteau, balayage).
 - Balayage : accroupi d'un coup, main au sol, l'opérateur fauche les jambes d'un coup de pied bas en pivotant. L'ennemi tombe à la renverse et reste sonné 30 % du temps d'un ennemi assommé.
 
+## Projection (3.4)
+
+- Menu de corps à corps → « Projection » : l'opérateur saisit l'ennemi au col et à la manche, pivote et le fait passer par-dessus sa hanche. L'ennemi bascule en l'air et retombe sur le dos devant lui, sonné un instant ; l'opérateur s'accroupit aussitôt à côté de sa poitrine et le frappe au sol, ce qui l'assomme pour de bon.
+

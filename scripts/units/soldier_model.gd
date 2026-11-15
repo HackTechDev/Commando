@@ -13,7 +13,7 @@ enum Posture { STANDING, CROUCHED, PRONE }
 ## Défense au corps à corps : parade (avant-bras ou arme levés) ou esquive
 ## (pas de côté, buste baissé).
 enum DefendMove { PARRY, DODGE }
-enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP }
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -192,6 +192,8 @@ const ELBOW_TIMES: Array[float] = [0.0, 0.3, 0.45, 0.6, 1.0]
 const KNEE_TIMES: Array[float] = [0.0, 0.25, 0.45, 0.62, 1.0]
 const JAB_HOOK_TIMES: Array[float] = [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 1.0]
 const SWEEP_TIMES: Array[float] = [0.0, 0.25, 0.5, 0.7, 1.0]
+const HIP_THROW_TIMES: Array[float] = [0.0, 0.2, 0.5, 0.65, 1.0]
+const GROUND_PUNCH_TIMES: Array[float] = [0.0, 0.3, 0.5, 0.7, 1.0]
 const MOVES := {
 	# Coup de coude horizontal du bras droit, en pivotant le buste.
 	StrikeMove.ELBOW: {
@@ -244,12 +246,38 @@ const MOVES := {
 		"spread_r": [0.0, 0.0, 0.25, 0.4, 0.5, 1.2, 0.7, 1.0, 1.0, 0.0],
 		"head": [0.0, 0.0, 0.5, 0.2, 1.0, 0.0],
 	},
+	# Projection : saisie au col et à la manche, pivot de la hanche sous la
+	# cible, buste penché en avant pour la faire basculer, mains tirées vers
+	# le bas.
+	StrikeMove.HIP_THROW: {
+		"times": HIP_THROW_TIMES,
+		"right": [Vector3.ZERO, Vector3(0.06, 0.6, -0.42), Vector3(0.24, 0.25, -0.3), Vector3(0.2, 0.2, -0.32), Vector3.ZERO] as Array[Vector3],
+		"left": [Vector3.ZERO, Vector3(-0.18, 0.46, -0.42), Vector3(0.05, 0.2, -0.35), Vector3(0.0, 0.2, -0.35), Vector3.ZERO] as Array[Vector3],
+		"open": true,
+		"dip": [0.0, 0.0, 0.2, 0.12, 0.5, 0.18, 0.65, 0.12, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.2, -0.1, 0.5, -0.6, 0.65, -0.5, 1.0, 0.0],
+		"hip_yaw": [0.0, 0.0, 0.2, 0.4, 0.5, 1.1, 0.65, 0.9, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.2, -0.2, 0.5, -0.5, 0.65, -0.4, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.2, -0.2, 0.5, -0.15, 1.0, 0.0],
+		"head": [0.0, 0.0, 0.5, 0.3, 1.0, 0.0],
+	},
+	# Frappe au sol : genoux fléchis au plus bas, main gauche sur la poitrine
+	# de l'homme à terre, poing droit vers le sol.
+	StrikeMove.GROUND_PUNCH: {
+		"times": GROUND_PUNCH_TIMES,
+		"left": [Vector3.ZERO, Vector3(-0.15, 0.05, -0.45), Vector3(-0.15, -0.05, -0.45), Vector3(-0.15, 0.0, -0.45), Vector3.ZERO] as Array[Vector3],
+		"right": [Vector3.ZERO, Vector3(0.22, 0.5, -0.12), Vector3(0.05, -0.12, -0.5), Vector3(0.06, 0.0, -0.45), Vector3.ZERO] as Array[Vector3],
+		"dip": [0.0, 0.0, 0.3, 0.45, 0.5, 0.5, 0.7, 0.45, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.3, -0.45, 0.5, -0.7, 0.7, -0.55, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.3, -0.35, 0.5, 0.3, 1.0, 0.0],
+		"head": [0.0, 0.0, 0.3, 0.3, 0.5, 0.45, 1.0, 0.0],
+	},
 }
 
 ## Instant (0 à 1) où porte le coup décisif des mouvements de `MOVES` qui ne
 ## frappent pas à `Commando.STRIKE_HIT_TIME`, et premier coup d'un
 ## enchaînement.
-const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75, StrikeMove.SWEEP: 0.5}
+const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75, StrikeMove.SWEEP: 0.5, StrikeMove.HIP_THROW: 0.5, StrikeMove.GROUND_PUNCH: 0.5}
 const MOVE_FIRST_HIT := {StrikeMove.JAB_HOOK: 0.3}
 
 # Coup de crosse (arme en main) : l'arme recule sur la hanche droite, crosse

@@ -572,6 +572,7 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 		{"id": &"knockout", "label": "Assommer", "detail": "coup ou prise par derrière", "enabled": standing},
 		{"id": &"knife", "label": "Couteau", "detail": "silencieux par derrière"},
 		{"id": &"sweep", "label": "Balayage", "detail": "il tombe, sonné peu de temps", "enabled": standing},
+		{"id": &"throw", "label": "Projection", "detail": "au sol, puis assommé", "enabled": standing},
 	]
 
 
@@ -584,7 +585,8 @@ func _on_radial_chosen(id: StringName) -> void:
 	_menu_enemy = null
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dead:
 		return
-	var kinds := {&"knockout": Commando.MeleeKind.KNOCKOUT, &"knife": Commando.MeleeKind.KNIFE, &"sweep": Commando.MeleeKind.SWEEP}
+	var kinds := {&"knockout": Commando.MeleeKind.KNOCKOUT, &"knife": Commando.MeleeKind.KNIFE,
+			&"sweep": Commando.MeleeKind.SWEEP, &"throw": Commando.MeleeKind.THROW}
 	if not kinds.has(id):
 		return
 	var accepted := SelectionManager.order_melee(enemy, kinds[id])

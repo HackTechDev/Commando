@@ -191,3 +191,31 @@ func test_sweep_from_the_melee_menu_floors_the_enemy_briefly() -> void:
 	assert_true(swept[0], "coup de pied bas")
 	assert_almost_eq(dummy._stun_left, dummy.stats.stun_duration * StrikeGesture.SWEEP_STUN_RATIO, 0.2, "sonné moins longtemps")
 	assert_false(alpha.melee(dummy, Commando.MeleeKind.SWEEP), "on ne balaie pas un homme à terre")
+
+
+func test_hip_throw_then_ground_punch() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var dummy: Enemy = node("Enemies/TrainingDummy")
+	dummy.global_position = Vector3(-14, 0, -6)
+	dummy.rotation.y = 0.0
+	# De face (le mannequin n'est pas en alerte : pas de garde).
+	alpha.global_position = dummy.global_position - dummy.global_basis.z * 3.0
+	await frames(5)
+	var start := dummy.global_position
+	assert_true(alpha.melee(dummy, Commando.MeleeKind.THROW))
+	assert_gt(await frames_until(dummy.is_stunned, 400), -1, "il bascule")
+	assert_eq(alpha._model.strike_move, Move.HIP_THROW)
+	assert_lt(dummy._stun_left, StrikeGesture.THROW_STUN + 0.1, "sonné un instant seulement")
+	var lifted := [0.0]
+	var landed := func() -> bool:
+		lifted[0] = maxf(lifted[0], dummy.global_position.y - start.y)
+		return alpha._model.strike_move == Move.GROUND_PUNCH
+	assert_gt(await frames_until(landed, 200), -1, "projeté au sol")
+	assert_gt(lifted[0], 0.2, "soulevé par-dessus la hanche")
+	assert_lt(dummy.global_position.y - start.y, 0.05, "retombé au sol")
+	# Il le frappe au sol : assommé pour de bon.
+	var punched := func() -> bool: return alpha._model.strike_move == Move.GROUND_PUNCH and dummy._stun_left > StrikeGesture.THROW_STUN + 1.0
+	assert_gt(await frames_until(punched, 200), -1, "frappe au sol")
+	assert_gt(dummy._stun_left, dummy.stats.stun_duration - 2.0, "assommé")
+	assert_gt(await frames_until(func() -> bool: return not alpha.is_striking(), 200), -1)
+	assert_true(dummy.is_stunned())
