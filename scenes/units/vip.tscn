@@ -1,0 +1,54 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/vip.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/units/soldier_model.gd" id="2"]
+[ext_resource type="Resource" path="res://data/units/vip.tres" id="3"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4"]
+
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.32
+height = 1.8
+
+[sub_resource type="TorusMesh" id="ring"]
+inner_radius = 0.5
+outer_radius = 0.56
+rings = 40
+ring_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="ring_mat"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.2, 1)
+
+[node name="Vip" type="CharacterBody3D" groups=["vips"]]
+collision_layer = 4
+collision_mask = 15
+script = ExtResource("1")
+stats = ExtResource("3")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("shape")
+
+[node name="SoldierModel" type="Node3D" parent="."]
+script = ExtResource("2")
+civilian = true
+
+[node name="Marker" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+cast_shadow = 0
+mesh = SubResource("ring")
+surface_material_override/0 = SubResource("ring_mat")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.4
+path_height_offset = 0.5
+target_desired_distance = 0.25
+avoidance_enabled = true
+radius = 0.45
+neighbor_distance = 6.0
+max_neighbors = 8
+time_horizon_agents = 0.8
+max_speed = 7.0
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("4")

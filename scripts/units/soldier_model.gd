@@ -288,6 +288,10 @@ const PICKUP_HAND := Vector3(0.2, 0.15, -0.45)
 ## casque ancien, casquette ou béret, visage découvert, gilet à chargeurs.
 @export var operator_helmet := true
 @export var helmet_color := Color(0.25, 0.27, 0.2)
+## Civil (VIP, otage) : costume, chemise et cravate, mains nues, chaussures de
+## ville, sans aucun équipement militaire (à combiner avec un `outfit` sans
+## accessoires et `set_armed(false)`).
+@export var civilian := false
 
 ## Personnalisation d'un opérateur (tenue, accessoires, visage, armes) ; null :
 ## apparence donnée par les réglages ci-dessus (ennemis). Changer de profil
@@ -553,13 +557,16 @@ func _build() -> void:
 		_m_helmet = _mat(outfit.headwear_color, 0.75)
 		_m_skin = _mat(GearCatalog.SKINS[outfit.skin], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[outfit.hair_color], 0.9)
-	_guard_look = _pick_guard_look() if outfit == null and not operator_helmet else {}
+	if civilian:
+		_m_gear = _mat(Color(0.09, 0.06, 0.04), 0.45)
+		_m_boot = _mat(Color(0.05, 0.04, 0.035), 0.35)
+	_guard_look = _pick_guard_look() if outfit == null and not operator_helmet and not civilian else {}
 	if not _guard_look.is_empty():
 		_m_skin = _mat(GearCatalog.SKINS[_guard_look["skin"]], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[_guard_look["hair_color"]], 0.9)
 		_m_helmet = _cloth((uniform_color as Color).darkened(0.1)) if _guard_look["headwear"] == &"helmet" else _mat(_guard_look["headwear_color"], 0.85)
 	_m_dark = _mat(Color(0.05, 0.05, 0.05), 0.4)
-	_m_glove = _mat(Color(0.13, 0.13, 0.12), 0.8)
+	_m_glove = _m_skin if civilian else _mat(Color(0.13, 0.13, 0.12), 0.8)
 	_m_sole = _mat(Color(0.06, 0.06, 0.06), 0.9)
 	_m_eye = _mat(Color(0.9, 0.9, 0.86), 0.3)
 	_m_iris = _mat(Color(0.12, 0.08, 0.05), 0.2)
@@ -575,6 +582,9 @@ func _build() -> void:
 	_m_team.emission_enabled = true
 	_m_team.emission = team_color
 	_m_team.emission_energy_multiplier = 0.4
+	if civilian:
+		# Pas d'écusson : il se fond dans l'étoffe.
+		_m_team = _m_top
 	_m_lens = _mat(Color(0.1, 0.5, 0.3), 0.15, 0.8)
 	_m_steel = _mat(Color(0.72, 0.74, 0.78), 0.25, 0.9)
 
@@ -1611,9 +1621,10 @@ func _build_legs() -> void:
 		# Haut de cuisse (fessier) et cuisse effilée vers le genou.
 		_ellipsoid(leg, 0.088, Vector3(1.0, 0.9, 1.08), Vector3(0.0, -0.03, 0.005), _m_pants)
 		_tapered(leg, 0.084, 0.063, THIGH_LENGTH, Vector3(0.0, -0.22, 0.0), _m_pants).scale.z = 1.08
-		# Poche cargo et son rabat.
-		_box(leg, Vector3(0.035, 0.13, 0.115), Vector3(0.078 * side, -0.25, 0.0), _m_pants)
-		_box(leg, Vector3(0.042, 0.03, 0.122), Vector3(0.08 * side, -0.175, 0.0), _m_pants)
+		if not civilian:
+			# Poche cargo et son rabat.
+			_box(leg, Vector3(0.035, 0.13, 0.115), Vector3(0.078 * side, -0.25, 0.0), _m_pants)
+			_box(leg, Vector3(0.042, 0.03, 0.122), Vector3(0.08 * side, -0.175, 0.0), _m_pants)
 		var knee := _pivot(leg, Vector3(0.0, -THIGH_LENGTH, 0.0), "Knee")
 		_sphere(knee, 0.064, Vector3.ZERO, _m_pants)
 		# Jambe et mollet, bas du pantalon bouffant sur la botte.
@@ -1649,7 +1660,8 @@ func _build_torso() -> void:
 	_ellipsoid(_torso, 0.19, Vector3(1.0, 0.55, 0.66), Vector3(0.0, 0.03, 0.0), _m_pants)
 	_tapered(_torso, 0.2, 0.2, 0.055, Vector3(0.0, 0.085, 0.0), _m_gear).scale.z = 0.68
 	_box(_torso, Vector3(0.06, 0.045, 0.02), Vector3(0.0, 0.085, -0.137), _m_weapon)
-	_box(_torso, Vector3(0.07, 0.09, 0.06), Vector3(-0.2, 0.05, 0.0), _m_gear)
+	if not civilian:
+		_box(_torso, Vector3(0.07, 0.09, 0.06), Vector3(-0.2, 0.05, 0.0), _m_gear)
 	# Buste : taille, poitrine plus large, épaules arrondies, col.
 	_tapered(_torso, 0.165, 0.172, 0.2, Vector3(0.0, 0.2, 0.0), _m_top).scale.z = 0.62
 	_tapered(_torso, 0.2, 0.168, 0.24, Vector3(0.0, 0.4, 0.0), _m_top).scale.z = 0.6
@@ -1679,6 +1691,8 @@ func _build_torso() -> void:
 		# Poche utilitaire et écusson de poitrine.
 		_box(vest, Vector3(0.14, 0.07, 0.03), Vector3(0.0, 0.46, -0.168), _m_gear)
 		_box(vest, Vector3(0.08, 0.035, 0.01), Vector3(0.0, 0.465, -0.186), _m_team)
+	elif civilian:
+		_build_suit()
 	else:
 		# Sans gilet : poche de poitrine et écusson sur la veste, chargeurs au
 		# ceinturon.
@@ -1701,6 +1715,25 @@ func _build_torso() -> void:
 		_cylinder(radio, 0.006, 0.38, Vector3(-0.12, 0.72, back), _m_weapon)
 	_build_equipment(front)
 	_build_specialty(front, back)
+
+
+## Costume d'un civil : plastron et col de chemise, cravate, revers de la
+## veste, boutons et pochette.
+func _build_suit() -> void:
+	var suit := _pivot(_torso, Vector3.ZERO, "Suit")
+	var lapel_material := _mat((_m_top.albedo_color as Color).darkened(0.25), 0.7)
+	var tie_material := _mat(Color(0.45, 0.08, 0.1), 0.5)
+	_box(suit, Vector3(0.1, 0.17, 0.012), Vector3(0.0, 0.47, -0.107), _m_white).rotation.x = -0.1
+	_tapered(suit, 0.074, 0.084, 0.035, Vector3(0.0, 0.555, 0.004), _m_white)
+	_box(suit, Vector3(0.034, 0.03, 0.02), Vector3(0.0, 0.535, -0.106), tie_material)
+	var tie := _box(suit, Vector3(0.036, 0.17, 0.01), Vector3(0.0, 0.44, -0.114), tie_material)
+	tie.rotation.x = -0.1
+	for side: float in [-1.0, 1.0]:
+		var lapel := _box(suit, Vector3(0.05, 0.19, 0.012), Vector3(0.062 * side, 0.45, -0.112), lapel_material)
+		lapel.rotation = Vector3(-0.1, 0.0, 0.32 * side)
+	for y: float in [0.33, 0.25]:
+		_sphere(suit, 0.009, Vector3(0.0, y, -0.108), _m_weapon)
+	_box(suit, Vector3(0.05, 0.018, 0.008), Vector3(-0.1, 0.43, -0.11), _m_white)
 
 
 ## Apparence d'un soldat ennemi : visage, cheveux, barbe et couvre-chef,

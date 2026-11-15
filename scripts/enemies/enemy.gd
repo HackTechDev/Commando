@@ -50,7 +50,7 @@ var detection: float = 0.0
 var _waypoints: Array[Vector3] = []
 var _waypoint_index: int = 0
 var _pause_left: float = 0.0
-var _target: Commando
+var _target: Unit
 var _last_seen: Vector3
 var _memory_left: float = 0.0
 var _chase_arrived: bool = false
@@ -60,7 +60,7 @@ var _shove_left: float = 0.0
 var _shove_target: Commando
 ## Coup au corps à corps en cours (temps restant, cible, impact joué).
 var _attack_left: float = 0.0
-var _attack_target: Commando
+var _attack_target: Unit
 var _attack_landed: bool = false
 var _melee_cooldown: float = 0.0
 var _off_balance_left: float = 0.0
@@ -416,18 +416,15 @@ func _update_detection(delta: float) -> void:
 	var best_zone := VisionComponent.Zone.NONE
 	var best_distance := INF
 	_target = null
-	for node in get_tree().get_nodes_in_group(&"commandos"):
-		var commando := node as Commando
-		if commando == null:
-			continue
-		var zone := _vision.check(commando, state == State.ALERT)
+	for unit in Unit.targets(get_tree()):
+		var zone := _vision.check(unit, state == State.ALERT)
 		if zone == VisionComponent.Zone.NONE:
 			continue
-		var distance := global_position.distance_to(commando.global_position)
+		var distance := global_position.distance_to(unit.global_position)
 		if distance < best_distance:
 			best_distance = distance
 			best_zone = zone
-			_target = commando
+			_target = unit
 
 	if _target:
 		_last_seen = _target.global_position

@@ -1,5 +1,5 @@
 class_name Commando
-extends CharacterBody3D
+extends Unit
 ## Unité contrôlable par le joueur : déplacement par navigation et postures.
 ## Ce qu'elle fait est décrit par deux actions (`CommandoAction`) : l'ordre
 ## en cours (`_order` : se déplacer, attaquer, s'approcher pour grimper,
@@ -8,7 +8,6 @@ extends CharacterBody3D
 ## avant l'ordre. Voir `scripts/units/actions/`.
 
 signal selected_changed(is_selected: bool)
-signal posture_changed(posture: SoldierModel.Posture)
 signal sling_changed(slung: bool)
 ## Arme en main changée (secondaire ou principale).
 signal weapon_changed(secondary: bool)
@@ -58,14 +57,6 @@ const JUMP_LIFT := 0.1
 var profile: OperatorProfile
 
 var is_selected: bool = false
-var is_dead: bool = false
-var posture: SoldierModel.Posture = SoldierModel.Posture.STANDING:
-	set(value):
-		if value != posture:
-			posture = value
-			if _model:
-				_model.posture = value
-			posture_changed.emit(posture)
 ## Cartouches dans le chargeur engagé.
 var ammo_in_magazine: int = 0
 ## Cartouches en réserve.
@@ -111,9 +102,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _walker := PathWalker.new()
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
-@onready var _model: SoldierModel = $SoldierModel
 @onready var _ring: MeshInstance3D = $SelectionRing
-@onready var health: HealthComponent = $HealthComponent
 
 
 func _ready() -> void:
@@ -887,11 +876,7 @@ func defend_against(enemy: Enemy) -> bool:
 			or is_handling_crate() or posture == SoldierModel.Posture.PRONE or _model.is_changing_posture()
 	var roll := randf()
 	if busy or roll >= stats.parry_chance + stats.dodge_chance:
-		Sfx.play_at(&"punch", global_position + Vector3.UP * 1.4)
-		health.take_damage(enemy.stats.melee_damage)
-		if not is_dead:
-			_model.play_hit(enemy.global_position, PushGesture.HIT_STRENGTH)
-		return false
+		return super(enemy)
 	_start(DefendGesture.new(self, enemy, roll >= stats.parry_chance))
 	return true
 

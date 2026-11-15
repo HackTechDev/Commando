@@ -9,6 +9,8 @@ signal unit_died(unit: Node3D)
 signal enemy_killed(enemy: Node3D)
 signal alarm_raised(position: Vector3)
 signal objective_completed(objective_id: StringName)
+## Fin de mission : objectif atteint (`success`) ou manqué, et message affiché.
+signal mission_ended(success: bool, message: String)
 signal noise_emitted(position: Vector3, radius: float, type: StringName)
 ## Un obstacle (caisse) a été déplacé : la navigation doit être recalculée.
 signal navigation_obstacle_moved

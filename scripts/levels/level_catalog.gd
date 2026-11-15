@@ -17,6 +17,12 @@ const LEVELS: Array[Dictionary] = [
 		"camo": "woodland",
 	},
 	{
+		"title": "Escorte",
+		"scene": "res://scenes/levels/escort/escort.tscn",
+		"description": "Carte d'essai : un VIP à ramener jusqu'à la zone d'extraction, au nord-est, à travers deux lignes de murs gardées par deux patrouilles et une sentinelle. Il suit l'opérateur le plus proche et imite sa posture ; s'il meurt, la mission échoue.",
+		"camo": "woodland",
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

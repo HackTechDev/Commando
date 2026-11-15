@@ -148,3 +148,18 @@ func test_every_primary_weapon_is_modelled() -> void:
 		assert_not_null(model._rifle_mag, "%s : chargeur" % id)
 		assert_lt(model._flash.position.z, -0.4, "%s : bouche du canon devant" % id)
 		assert_true(GearCatalog.WEIGHTS.has(id), "%s : poids" % id)
+
+
+func test_civilian_wears_a_suit_without_military_gear() -> void:
+	var civilian := SoldierModel.new()
+	civilian.civilian = true
+	var vip := Vip.new()
+	civilian.outfit = vip.civilian_outfit()
+	vip.free()
+	add_child_autofree(civilian)
+	civilian.set_armed(false)
+	assert_not_null(civilian.find_child("Suit", true, false), "costume et cravate")
+	for gear in ["Vest", "Backpack", "Radio", "Sidearm", "KneePad", "Balaclava"]:
+		assert_null(civilian.find_child(gear, true, false), "pas de %s" % gear)
+	assert_same(civilian._m_glove, civilian._m_skin, "mains nues")
+	assert_false(civilian._rifle.visible, "sans arme")

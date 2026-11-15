@@ -1,6 +1,6 @@
 class_name VisionComponent
 extends Node3D
-## Cône de vision d'un ennemi : détection des commandos et affichage au sol.
+## Cône de vision d'un ennemi : détection des opérateurs et des VIP, et affichage au sol.
 ##
 ## Le cône regarde vers -Z du parent. Deux zones : proche (détection
 ## immédiate) et lointaine (cibles debout uniquement). La vue est occultée
@@ -42,7 +42,7 @@ func _physics_process(_delta: float) -> void:
 ## Zone du cône dans laquelle `target` est visible, ou `Zone.NONE`.
 ## Avec `ignore_posture` (ennemi en alerte), la zone lointaine voit aussi
 ## les cibles accroupies ou rampées.
-func check(target: Commando, ignore_posture: bool = false) -> Zone:
+func check(target: Unit, ignore_posture: bool = false) -> Zone:
 	var offset := to_local(target.global_position)
 	offset.y = 0.0
 	var posture := SoldierModel.Posture.STANDING if ignore_posture else target.posture

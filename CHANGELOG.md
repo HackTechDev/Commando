@@ -361,3 +361,15 @@
   - un couteau de lancer déjà lancé part même si un nouvel ordre arrive pendant le geste ;
   - un opérateur occupé à lancer ou à ramasser encaisse les coups au lieu de parer ;
   - poser une charge ou soigner est abandonné pour parer ou esquiver.
+
+## Personnages non joueurs : VIP à escorter
+
+- Nouvelle carte d'essai « Escorte » : il faut ramener un VIP jusqu'à la zone d'extraction, au nord-est. Elle est gardée par deux lignes de murs, deux patrouilles et une sentinelle.
+- `Vip` : un personnage non joueur en costume, sans arme, repéré par un anneau doré. Le joueur ne lui donne pas d'ordres :
+  - il se rallie à l'opérateur en vue le plus proche (6 m) et le suit à 1,8 m ;
+  - il court quand son guide court ou s'il est distancé ;
+  - il prend la posture de son guide (accroupi, couché) ;
+  - si son guide s'éloigne à plus de 14 m, il l'attend sur place ; seul pendant l'alarme, il s'accroupit.
+- Les ennemis repèrent le VIP, lui tirent dessus et le frappent comme un opérateur. Les grenades le blessent aussi.
+- `ExtractionZone` : zone tracée au sol. Quand tous les VIP y sont entrés, la mission est réussie ; si l'un d'eux meurt, elle est manquée. Le résultat s'affiche à la place de l'indicateur d'alerte. Une fois à l'abri dans la zone, le VIP n'est plus pris pour cible.
+- `SoldierModel` a une tenue civile (`civilian`) : costume, chemise, cravate, mains nues et chaussures de ville, sans aucun équipement militaire.

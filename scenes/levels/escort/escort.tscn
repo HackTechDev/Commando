@@ -1,0 +1,184 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/units/commando.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/wall.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/units/vip.tscn" id="8"]
+[ext_resource type="Script" path="res://scripts/levels/extraction_zone.gd" id="9"]
+
+[sub_resource type="Curve3D" id="patrol_middle"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -14, 0, 1, 0, 0, 0, 0, 0, 0, 14, 0, 1),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[sub_resource type="Curve3D" id="patrol_north"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -4, 0, -12, 0, 0, 0, 0, 0, 0, 8, 0, -12, 0, 0, 0, 0, 0, 0, 8, 0, -19, 0, 0, 0, 0, 0, 0, -4, 0, -19),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.2, 0.24, 0.27, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.72, 0.78, 0.9, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 2
+ssao_enabled = true
+
+[sub_resource type="NavigationMesh" id="nav"]
+resource_local_to_scene = true
+geometry_parsed_geometry_type = 1
+geometry_collision_mask = 3
+agent_height = 1.75
+agent_radius = 0.5
+
+[sub_resource type="BoxShape3D" id="ground_shape"]
+size = Vector3(60, 1, 60)
+
+[sub_resource type="StandardMaterial3D" id="ground_mat"]
+albedo_color = Color(0.85, 0.85, 0.8, 1)
+roughness = 1.0
+uv1_scale = Vector3(0.33, 0.33, 0.33)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_nature/grass_mowed_green_a.jpg"
+
+[sub_resource type="BoxMesh" id="ground_mesh"]
+material = SubResource("ground_mat")
+size = Vector3(60, 1, 60)
+
+[node name="Escort" type="Node3D"]
+script = ExtResource("1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0.383, -0.3214, 0, 0.6428, 0.766, 0.5, -0.6634, 0.5567, 0, 10, 0)
+light_color = Color(1, 0.95, 0.85, 1)
+light_energy = 1.3
+shadow_enabled = true
+directional_shadow_max_distance = 120.0
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("nav")
+
+[node name="Ground" type="StaticBody3D" parent="NavigationRegion3D"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+shape = SubResource("ground_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+mesh = SubResource("ground_mesh")
+
+[node name="WallSouth1" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, 8)
+
+[node name="WallSouth2" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 8)
+
+[node name="WallSouth3" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 8)
+
+[node name="WallSouth4" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 8)
+
+[node name="WallNorth1" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+
+[node name="WallNorth2" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+
+[node name="WallNorth3" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -6)
+
+[node name="WallExtraction" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 13, 0, -17)
+
+[node name="WallYard" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -20, 0, -12)
+
+[node name="Crate1" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 4)
+
+[node name="Crate2" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 0, 4)
+skin = "tex_base/ecrate_drty-fmtl3.jpg"
+
+[node name="Crate3" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 1)
+
+[node name="Crate4" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, -2)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="Crate5" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, -9)
+
+[node name="Crate6" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -10)
+
+[node name="Crate7" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -15)
+
+[node name="Units" type="Node3D" parent="."]
+
+[node name="Alpha" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+unit_index = 1
+display_name = "Alpha"
+
+[node name="Bravo" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0, 21.2)
+unit_index = 2
+display_name = "Bravo"
+
+[node name="Charlie" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 21.2)
+unit_index = 3
+display_name = "Charlie"
+
+[node name="Vip" parent="Units" instance=ExtResource("8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 23)
+
+[node name="Extraction" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -21)
+script = ExtResource("9")
+
+[node name="CameraRig" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+
+[node name="PatrolPaths" type="Node3D" parent="."]
+
+[node name="PatrolMiddle" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_middle")
+
+[node name="PatrolNorth" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_north")
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Patrol1" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -14, 0, 1)
+patrol_path = NodePath("../../PatrolPaths/PatrolMiddle")
+
+[node name="Patrol2" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -4, 0, -12)
+patrol_path = NodePath("../../PatrolPaths/PatrolNorth")
+
+[node name="Sentry" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-0.7071, 0, -0.7071, 0, 1, 0, 0.7071, 0, -0.7071, 24, 0, -9)
+
+[node name="HUD" parent="." instance=ExtResource("6")]

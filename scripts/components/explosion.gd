@@ -38,10 +38,7 @@ func _blast(damage: float, noise_radius: float) -> void:
 			enemy.take_hit(damage_at(distance, radius, damage), global_position)
 		elif distance < radius * STARTLE_FACTOR:
 			enemy.startle(global_position)
-	for node in get_tree().get_nodes_in_group(&"commandos"):
-		var unit := node as Commando
-		if unit == null or unit.is_dead:
-			continue
+	for unit in Unit.targets(get_tree()):
 		var distance := unit.global_position.distance_to(global_position)
 		if distance < radius and _exposed(center, unit.global_position + Vector3.UP):
 			unit.health.take_damage(damage_at(distance, radius, damage))
