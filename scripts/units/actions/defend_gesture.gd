@@ -111,4 +111,5 @@ func _counter() -> CommandoAction:
 	if offset.length() > Commando.MELEE_RANGE + Commando.STRIKE_REACH_MARGIN:
 		return null
 	unit._set_order(null)
-	return StrikeGesture.new(unit, enemy, order.kind)
+	# Contre au contact : coude ou genou.
+	return StrikeGesture.new(unit, enemy, order.kind, true)

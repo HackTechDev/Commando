@@ -13,7 +13,7 @@ enum Posture { STANDING, CROUCHED, PRONE }
 ## Défense au corps à corps : parade (avant-bras ou arme levés) ou esquive
 ## (pas de côté, buste baissé).
 enum DefendMove { PARRY, DODGE }
-enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT }
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -181,6 +181,43 @@ const KICKS := {
 		"ankle": [0.0, 0.0, 0.3, 0.5, 0.45, 1.0, 0.6, 0.5, 1.0, 0.0],
 	},
 }
+# Coups à mains nues décrits par des pistes (instants 0..1 de la frappe) :
+# pistes du corps, toutes facultatives, comme pour les coups de pied
+# (`dip`, `lean`, `lunge`, `hip_yaw`, `side_lean`, `torso_yaw`, `head`
+# s'ajoutent à la pose ; `thigh_r`, `knee_r`, `spread_r` remplacent celle de la
+# jambe droite), et trajets des mains (`times`, `left`, `right`, repère du
+# torse ; la première et la dernière position sont remplacées par la main
+# au repos). `pole` oriente les coudes ; `open` : mains ouvertes (saisie).
+const ELBOW_TIMES: Array[float] = [0.0, 0.3, 0.45, 0.6, 1.0]
+const KNEE_TIMES: Array[float] = [0.0, 0.25, 0.45, 0.62, 1.0]
+const MOVES := {
+	# Coup de coude horizontal du bras droit, en pivotant le buste.
+	StrikeMove.ELBOW: {
+		"times": ELBOW_TIMES,
+		"right": [Vector3.ZERO, Vector3(0.3, 0.5, -0.1), Vector3(-0.14, 0.6, -0.3), Vector3(-0.12, 0.58, -0.28), Vector3.ZERO] as Array[Vector3],
+		"left": [Vector3.ZERO, Vector3(-0.12, 0.62, -0.28), Vector3(-0.2, 0.55, -0.15), Vector3(-0.12, 0.62, -0.28), Vector3.ZERO] as Array[Vector3],
+		"pole": Vector3(0.35, 0.15, -1.0),
+		"torso_yaw": [0.0, 0.0, 0.3, -0.55, 0.45, 0.6, 0.6, 0.55, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.3, -0.05, 0.45, -0.3, 0.6, -0.28, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.3, 0.06, 0.45, 0.04, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.45, -0.1, 1.0, 0.0],
+	},
+	# Saisie par la nuque, deux mains derrière la tête de la cible, puis
+	# genou droit remonté dans le ventre.
+	StrikeMove.KNEE: {
+		"times": KNEE_TIMES,
+		"left": [Vector3.ZERO, Vector3(-0.1, 0.64, -0.44), Vector3(-0.08, 0.5, -0.42), Vector3(-0.08, 0.54, -0.42), Vector3.ZERO] as Array[Vector3],
+		"right": [Vector3.ZERO, Vector3(0.1, 0.64, -0.44), Vector3(0.08, 0.5, -0.42), Vector3(0.08, 0.54, -0.42), Vector3.ZERO] as Array[Vector3],
+		"open": true,
+		"thigh_r": [0.0, 0.0, 0.25, 0.5, 0.45, 1.65, 0.62, 1.0, 1.0, 0.0],
+		"knee_r": [0.0, 0.0, 0.25, -1.3, 0.45, -1.9, 0.62, -1.5, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.25, -0.08, 0.45, 0.15, 0.62, 0.05, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.25, -0.12, 0.45, -0.3, 0.62, -0.25, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.45, 0.03, 1.0, 0.0],
+		"head": [0.0, 0.0, 0.45, 0.25, 1.0, 0.0],
+	},
+}
+
 # Coup de crosse (arme en main) : l'arme recule sur la hanche droite, crosse
 # en avant, puis la crosse est projetée vers le visage avec rotation du buste
 # et fente. Instants 0..1 de la frappe.
@@ -941,9 +978,11 @@ func _animate_alive(delta: float) -> void:
 	var unarmed_strike := strike_progress >= 0.0 and not strike_with_knife and not grapple
 	var butt := unarmed_strike and strike_move == StrikeMove.BUTT_STRIKE and is_armed
 	var kick: Dictionary = {}
+	var move: Dictionary = {}
 	if unarmed_strike and posture == Posture.STANDING:
 		kick = KICKS.get(strike_move, {})
-	var uppercut := unarmed_strike and kick.is_empty() and not butt
+		move = MOVES.get(strike_move, {})
+	var uppercut := unarmed_strike and kick.is_empty() and move.is_empty() and not butt
 	var throwing := throw_progress >= 0.0 and strike_progress < 0.0
 	var throw_t := clampf(throw_progress, 0.0, 1.0)
 	var punch_t := clampf(strike_progress, 0.0, 1.0)
@@ -1070,6 +1109,22 @@ func _animate_alive(delta: float) -> void:
 		hip_yaw = sample_keys(kick["hip_yaw"], punch_t)
 		side_lean = sample_keys(kick["side_lean"], punch_t)
 		kick_torso_yaw = sample_keys(kick["torso_yaw"], punch_t)
+	elif not move.is_empty():
+		var dip := _track(move, "dip", punch_t)
+		hips_y -= dip
+		thigh += Vector2.ONE * _knee_bend(dip)
+		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
+		if move.has("thigh_r"):
+			thigh.y = sample_keys(move["thigh_r"], punch_t)
+			knee.y = sample_keys(move["knee_r"], punch_t)
+		if move.has("spread_r"):
+			spread.y = sample_keys(move["spread_r"], punch_t)
+		lean += _track(move, "lean", punch_t)
+		head_pitch += _track(move, "head", punch_t)
+		body_pos.z += _track(move, "lunge", punch_t)
+		hip_yaw = _track(move, "hip_yaw", punch_t)
+		side_lean = _track(move, "side_lean", punch_t)
+		kick_torso_yaw = _track(move, "torso_yaw", punch_t)
 	elif grapple:
 		var choke := strike_move == StrikeMove.CHOKE
 		lean += sample_keys(CHOKE_LEAN if choke else CUT_LEAN, punch_t)
@@ -1200,7 +1255,7 @@ func _animate_alive(delta: float) -> void:
 	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
 	if prone:
 		head_yaw = head_yaw * 0.4 * (1.0 - crawl) - chest_roll
-	elif not kick.is_empty():
+	elif not kick.is_empty() or not move.is_empty():
 		# Les yeux restent sur la cible malgré la rotation du bassin.
 		head_yaw = -0.8 * (hip_yaw + kick_torso_yaw)
 	else:
@@ -1280,6 +1335,15 @@ func _animate_alive(delta: float) -> void:
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
 		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
 		target = _solve_arms(_sample_points(UPPERCUT_LEFT, free_left, punch_t), _sample_points(UPPERCUT_RIGHT, free_right, punch_t))
+	elif not move.is_empty():
+		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
+		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
+		if move.has("right"):
+			var times: Array[float] = move["times"]
+			target = _solve_arms(_path(times, move["left"], free_left, punch_t), _path(times, move["right"], free_right, punch_t), move.get("pole", ARM_POLE))
+		else:
+			var fists := minf(punch_t / 0.2, 1.0) * minf((1.0 - punch_t) / 0.3, 1.0)
+			target = _solve_arms(free_left.lerp(GUARD_LEFT, fists), free_right.lerp(GUARD_RIGHT, fists))
 	elif grapple:
 		var choke := strike_move == StrikeMove.CHOKE
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
@@ -1352,7 +1416,9 @@ func _animate_alive(delta: float) -> void:
 		curl = curl.lerp(Vector2(0.95, 1.0), held)
 		if prone:
 			curl.x = lerpf(curl.x, 0.15, crawl)
-	if uppercut or not kick.is_empty() or butt:
+	if not move.is_empty() and move.get("open", false):
+		curl = Vector2(0.55, 0.55)
+	elif uppercut or not kick.is_empty() or butt or not move.is_empty():
 		curl = Vector2(1.0, 1.0)
 	elif grapple:
 		curl = Vector2(0.55, 1.0 if strike_move == StrikeMove.THROAT_CUT else 0.6)
@@ -1640,6 +1706,11 @@ func set_armed(value: bool) -> void:
 
 ## Valeur interpolée (avec adoucissement) d'une piste d'images clés donnée
 ## par paires (instant, valeur).
+## Piste `name` du mouvement `move` à l'instant `t` (0 si elle manque).
+static func _track(move: Dictionary, name: String, t: float) -> float:
+	return sample_keys(move[name], t) if move.has(name) else 0.0
+
+
 static func sample_keys(keys: Array, t: float) -> float:
 	var count := keys.size() / 2
 	if t <= keys[0]:

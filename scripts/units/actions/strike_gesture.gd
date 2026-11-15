@@ -10,6 +10,17 @@ const CHOKE_HIT_TIME := 0.85
 const THROAT_CUT_HIT_TIME := 0.6
 ## Durée (s) du glissement de l'opérateur contre la victime d'une prise.
 const GRAB_SLIDE_TIME := 0.15
+## Très courte portée (m) : en deçà, ou pour un contre, l'opérateur frappe du
+## coude ou du genou (saisie par la nuque) en s'avançant à `CLOSE_DISTANCE`
+## de la cible pendant le premier quart du geste.
+const CLOSE_RANGE := 0.95
+const CLOSE_DISTANCE := 0.7
+const CLOSE_STEP := 0.25
+## Durée de chaque coup, rapportée à `melee_time`.
+const MOVE_DURATIONS := {
+	SoldierModel.StrikeMove.ELBOW: 0.9,
+	SoldierModel.StrikeMove.KNEE: 1.1,
+}
 
 var enemy: Enemy
 var kind: Commando.MeleeKind
@@ -21,14 +32,20 @@ var _duration: float = 1.0
 var _hit_time: float = Commando.STRIKE_HIT_TIME
 var _grab_from: Vector3
 var _grab_to: Vector3
+## Coup à très courte portée (coude, genou) : l'opérateur s'avance d'abord.
+var _close: bool = false
+var _step_from: Vector3
+var _step_to: Vector3
 
 
-func _init(owner: Commando, target: Enemy, how: Commando.MeleeKind) -> void:
+## `close_quarters` : contre sur un assaillant déséquilibré, au contact.
+func _init(owner: Commando, target: Enemy, how: Commando.MeleeKind, close_quarters: bool = false) -> void:
 	super(owner)
 	gesture = true
 	interruptible = false
 	enemy = target
 	kind = how
+	_close = close_quarters
 
 
 func hands_free() -> bool:
@@ -65,17 +82,31 @@ func start() -> void:
 		# On ne frappe pas allongé : l'opérateur se met à genoux.
 		if unit.posture == SoldierModel.Posture.PRONE:
 			unit.posture = SoldierModel.Posture.CROUCHED
+		var offset := enemy.global_position - unit.global_position
+		offset.y = 0.0
+		_close = _close or offset.length() < CLOSE_RANGE
 		if kind == Commando.MeleeKind.KNOCKOUT:
 			model.strike_move = _pick_move()
-		elif model.strike_move == SoldierModel.StrikeMove.CHOKE or model.strike_move == SoldierModel.StrikeMove.THROAT_CUT:
-			model.strike_move = SoldierModel.StrikeMove.UPPERCUT
+			_duration *= MOVE_DURATIONS.get(model.strike_move, 1.0)
+			if model.strike_move in [SoldierModel.StrikeMove.ELBOW, SoldierModel.StrikeMove.KNEE]:
+				_step_from = unit.global_position
+				_step_to = enemy.global_position - offset.normalized() * minf(CLOSE_DISTANCE, offset.length())
+				_step_to.y = unit.global_position.y
+			else:
+				_close = false
+		else:
+			# Au couteau : pas de pas en avant.
+			_close = false
+			if model.strike_move == SoldierModel.StrikeMove.CHOKE or model.strike_move == SoldierModel.StrikeMove.THROAT_CUT:
+				model.strike_move = SoldierModel.StrikeMove.UPPERCUT
 	left = _duration
 	model.strike_progress = 0.0
 
 
 ## Coup pour assommer : coup de crosse arme en main ; à mains nues (arme à
-## la bretelle), tiré au hasard, jamais deux fois de suite le même, et
-## uppercut seulement hors de la position debout.
+## la bretelle), tiré au hasard, jamais deux fois de suite le même :
+## coude ou genou à très courte portée, sinon poing ou pied ; uppercut
+## seulement hors de la position debout.
 func _pick_move() -> SoldierModel.StrikeMove:
 	if not unit.weapon_slung:
 		return SoldierModel.StrikeMove.BUTT_STRIKE
@@ -83,6 +114,8 @@ func _pick_move() -> SoldierModel.StrikeMove:
 		return SoldierModel.StrikeMove.UPPERCUT
 	var moves: Array = [SoldierModel.StrikeMove.UPPERCUT, SoldierModel.StrikeMove.FRONT_KICK,
 			SoldierModel.StrikeMove.ROUNDHOUSE, SoldierModel.StrikeMove.SIDE_KICK]
+	if _close:
+		moves = [SoldierModel.StrikeMove.ELBOW, SoldierModel.StrikeMove.KNEE]
 	moves.erase(unit._model.strike_move)
 	return moves.pick_random()
 
@@ -96,6 +129,11 @@ func update(delta: float) -> Vector3:
 		unit.global_position = _grab_from.lerp(_grab_to, slide)
 		unit.velocity = Vector3.ZERO
 	elif is_instance_valid(enemy):
+		if _close:
+			# Pas en avant, au contact de la cible.
+			var step := smoothstep(0.0, 1.0, minf(progress / CLOSE_STEP, 1.0))
+			unit.global_position = _step_from.lerp(_step_to, step)
+			unit.velocity = Vector3.ZERO
 		unit._face(enemy.global_position - unit.global_position, delta)
 	if not landed and progress >= _hit_time:
 		landed = true

@@ -101,3 +101,32 @@ func test_front_knife_makes_victim_scream() -> void:
 	assert_gt(await frames_until(func() -> bool: return dummy.is_dead, 400), -1)
 	EventBus.noise_emitted.disconnect(listener)
 	assert_has(noises, &"scream", "cri de la victime poignardée de face")
+
+
+func test_very_close_knockouts_are_elbow_or_knee() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var dummy: Enemy = node("Enemies/TrainingDummy")
+	alpha.weapon_slung = true
+	var moves: Array[int] = []
+	for i in 4:
+		if dummy.is_stunned():
+			dummy._stun_left = 0.01
+			await frames(30)
+		dummy.global_position = Vector3(-14, 0, -6)
+		dummy.rotation.y = PI / 2.0
+		# Au contact, sur son flanc.
+		alpha.global_position = dummy.global_position + Vector3(0, 0, 0.85)
+		await frames(5)
+		var start := alpha.global_position
+		alpha._start(StrikeGesture.new(alpha, dummy, Commando.MeleeKind.KNOCKOUT))
+		var closest := [10.0]
+		var done := func() -> bool:
+			closest[0] = minf(closest[0], flat_distance(alpha.global_position, dummy.global_position))
+			return dummy.is_stunned() and not alpha.is_striking()
+		assert_gt(await frames_until(done, 300), -1, "assommé")
+		moves.append(alpha.get_node("SoldierModel").strike_move)
+		assert_lt(closest[0], flat_distance(start, dummy.global_position) - 0.1, "il s'avance au contact")
+	for move in moves:
+		assert_true(move in [Move.ELBOW, Move.KNEE], "coude ou genou : %s" % [moves])
+	for i in range(1, moves.size()):
+		assert_ne(moves[i], moves[i - 1], "en alternance")

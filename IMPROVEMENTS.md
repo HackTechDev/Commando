@@ -64,7 +64,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 
 ### Attaque
 
-- **3.1 Coup de coude** et **coup de genou** (saisie par la nuque) : variantes à très courte portée.
+- **3.1 ~~Coup de coude~~** et **~~coup de genou~~** (saisie par la nuque) (fait) : variantes à très courte portée.
 - **3.2 Balayage** : coup de pied bas qui fauche les jambes. L'ennemi tombe et reste sonné moins longtemps.
 - **3.3 Enchaînement direct + crochet** : plus lisible qu'un coup unique.
 - **3.4 Projection** : saisir l'ennemi, le jeter au sol par-dessus la hanche, puis le frapper au sol.

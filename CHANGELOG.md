@@ -551,3 +551,8 @@
 
 - Les ennemis ont un nombre de cartouches (`EnemyStats.ammo`, 30 pour le soldat ; sauvegardé par la sauvegarde rapide). À sec (déclic à vide), un ennemi ne tire plus : il charge jusqu'au contact et frappe à coups de crosse.
 
+## Coup de coude et coup de genou (3.1)
+
+- À mains nues, au contact (moins de 0,95 m) ou pour un contre après une parade, l'opérateur s'avance et frappe du coude (horizontal, en pivotant le buste) ou du genou (mains derrière la nuque de la cible), en alternance.
+- `SoldierModel.MOVES` : coups décrits par des pistes (corps, jambe droite) et des trajets de mains, pour ajouter de nouveaux coups sans code d'animation.
+
