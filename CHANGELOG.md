@@ -556,3 +556,7 @@
 - À mains nues, au contact (moins de 0,95 m) ou pour un contre après une parade, l'opérateur s'avance et frappe du coude (horizontal, en pivotant le buste) ou du genou (mains derrière la nuque de la cible), en alternance.
 - `SoldierModel.MOVES` : coups décrits par des pistes (corps, jambe droite) et des trajets de mains, pour ajouter de nouveaux coups sans code d'animation.
 
+## Enchaînement direct + crochet (3.3)
+
+- Nouveau coup à mains nues dans le tirage : direct du gauche (la cible encaisse, reste debout), puis crochet du droit qui l'assomme. Le geste dure 1,6 fois un coup simple.
+

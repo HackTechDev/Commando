@@ -13,7 +13,7 @@ enum Posture { STANDING, CROUCHED, PRONE }
 ## Défense au corps à corps : parade (avant-bras ou arme levés) ou esquive
 ## (pas de côté, buste baissé).
 enum DefendMove { PARRY, DODGE }
-enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE }
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -190,6 +190,7 @@ const KICKS := {
 # au repos). `pole` oriente les coudes ; `open` : mains ouvertes (saisie).
 const ELBOW_TIMES: Array[float] = [0.0, 0.3, 0.45, 0.6, 1.0]
 const KNEE_TIMES: Array[float] = [0.0, 0.25, 0.45, 0.62, 1.0]
+const JAB_HOOK_TIMES: Array[float] = [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 1.0]
 const MOVES := {
 	# Coup de coude horizontal du bras droit, en pivotant le buste.
 	StrikeMove.ELBOW: {
@@ -216,7 +217,24 @@ const MOVES := {
 		"dip": [0.0, 0.0, 0.45, 0.03, 1.0, 0.0],
 		"head": [0.0, 0.0, 0.45, 0.25, 1.0, 0.0],
 	},
+	# Enchaînement : direct du gauche (0,3), puis crochet du droit (0,75).
+	StrikeMove.JAB_HOOK: {
+		"times": JAB_HOOK_TIMES,
+		"left": [Vector3.ZERO, GUARD_LEFT, Vector3(-0.05, 0.6, -0.62), GUARD_LEFT, GUARD_LEFT, Vector3(-0.14, 0.62, -0.26), Vector3.ZERO] as Array[Vector3],
+		"right": [Vector3.ZERO, GUARD_RIGHT, GUARD_RIGHT, GUARD_RIGHT, Vector3(0.36, 0.55, -0.16), Vector3(-0.04, 0.6, -0.48), Vector3.ZERO] as Array[Vector3],
+		"pole": Vector3(0.9, -0.3, 0.0),
+		"torso_yaw": [0.0, 0.0, 0.15, -0.1, 0.3, -0.35, 0.45, -0.1, 0.6, -0.4, 0.75, 0.6, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.3, -0.22, 0.45, -0.12, 0.75, -0.3, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.3, 0.04, 0.6, 0.06, 0.75, 0.03, 1.0, 0.0],
+		"head": [0.0, 0.0, 0.15, 0.12, 0.9, 0.12, 1.0, 0.0],
+	},
 }
+
+## Instant (0 à 1) où porte le coup décisif des mouvements de `MOVES` qui ne
+## frappent pas à `Commando.STRIKE_HIT_TIME`, et premier coup d'un
+## enchaînement.
+const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75}
+const MOVE_FIRST_HIT := {StrikeMove.JAB_HOOK: 0.3}
 
 # Coup de crosse (arme en main) : l'arme recule sur la hanche droite, crosse
 # en avant, puis la crosse est projetée vers le visage avec rotation du buste

@@ -37,7 +37,7 @@ func test_bare_hands_knockouts_vary_without_repeating() -> void:
 		moves.append(await _knock_out_from_side(alpha, dummy))
 	assert_false(moves.has(-1), "six coups, six ennemis assommés : %s" % [moves])
 	for move in moves:
-		assert_true(move in [Move.UPPERCUT, Move.FRONT_KICK, Move.ROUNDHOUSE, Move.SIDE_KICK], "coup à mains nues ou de pied")
+		assert_true(move in [Move.UPPERCUT, Move.FRONT_KICK, Move.ROUNDHOUSE, Move.SIDE_KICK, Move.JAB_HOOK], "coup à mains nues ou de pied")
 	for i in range(1, moves.size()):
 		assert_ne(moves[i], moves[i - 1], "jamais deux fois le même coup de suite")
 	await frames(40)
@@ -130,3 +130,24 @@ func test_very_close_knockouts_are_elbow_or_knee() -> void:
 		assert_true(move in [Move.ELBOW, Move.KNEE], "coude ou genou : %s" % [moves])
 	for i in range(1, moves.size()):
 		assert_ne(moves[i], moves[i - 1], "en alternance")
+
+
+func test_jab_then_hook_knocks_out_on_the_second_blow() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var dummy: Enemy = node("Enemies/TrainingDummy")
+	alpha.weapon_slung = true
+	dummy.global_position = Vector3(-14, 0, -6)
+	dummy.rotation.y = PI / 2.0
+	alpha.global_position = dummy.global_position + Vector3(0, 0, 1.2)
+	await frames(30)
+	var gesture := StrikeGesture.new(alpha, dummy, Commando.MeleeKind.KNOCKOUT)
+	gesture.forced_move = Move.JAB_HOOK
+	alpha._start(gesture)
+	var model: SoldierModel = dummy.get_node("SoldierModel")
+	# Le direct touche sans assommer.
+	assert_gt(await frames_until(func() -> bool: return model._hit_time < 0.05, 60), -1, "direct encaissé")
+	assert_false(dummy.is_stunned(), "debout après le direct")
+	assert_between(alpha._model.strike_progress, 0.25, 0.5, "au premier tiers de l'enchaînement")
+	# Le crochet assomme.
+	assert_gt(await frames_until(dummy.is_stunned, 60), -1, "crochet : assommé")
+	assert_gt(alpha._model.strike_progress, 0.7, "au second coup")

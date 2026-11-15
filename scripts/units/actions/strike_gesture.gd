@@ -20,6 +20,7 @@ const CLOSE_STEP := 0.25
 const MOVE_DURATIONS := {
 	SoldierModel.StrikeMove.ELBOW: 0.9,
 	SoldierModel.StrikeMove.KNEE: 1.1,
+	SoldierModel.StrikeMove.JAB_HOOK: 1.6,
 }
 
 var enemy: Enemy
@@ -28,10 +29,15 @@ var kind: Commando.MeleeKind
 var grapple: bool = false
 var left: float = 0.0
 var landed: bool = false
+## Premier coup d'un enchaînement (direct) porté.
+var _first_landed: bool = false
+var _first_hit_time: float = -1.0
 var _duration: float = 1.0
 var _hit_time: float = Commando.STRIKE_HIT_TIME
 var _grab_from: Vector3
 var _grab_to: Vector3
+## Coup imposé (`SoldierModel.StrikeMove`) au lieu du tirage ; -1 : tirage.
+var forced_move: int = -1
 ## Coup à très courte portée (coude, genou) : l'opérateur s'avance d'abord.
 var _close: bool = false
 var _step_from: Vector3
@@ -86,8 +92,10 @@ func start() -> void:
 		offset.y = 0.0
 		_close = _close or offset.length() < CLOSE_RANGE
 		if kind == Commando.MeleeKind.KNOCKOUT:
-			model.strike_move = _pick_move()
+			model.strike_move = _pick_move() if forced_move < 0 else forced_move as SoldierModel.StrikeMove
 			_duration *= MOVE_DURATIONS.get(model.strike_move, 1.0)
+			_hit_time = SoldierModel.MOVE_HIT_TIMES.get(model.strike_move, _hit_time)
+			_first_hit_time = SoldierModel.MOVE_FIRST_HIT.get(model.strike_move, -1.0)
 			if model.strike_move in [SoldierModel.StrikeMove.ELBOW, SoldierModel.StrikeMove.KNEE]:
 				_step_from = unit.global_position
 				_step_to = enemy.global_position - offset.normalized() * minf(CLOSE_DISTANCE, offset.length())
@@ -105,7 +113,8 @@ func start() -> void:
 
 ## Coup pour assommer : coup de crosse arme en main ; à mains nues (arme à
 ## la bretelle), tiré au hasard, jamais deux fois de suite le même :
-## coude ou genou à très courte portée, sinon poing ou pied ; uppercut
+## coude ou genou à très courte portée, sinon uppercut, enchaînement
+## direct + crochet ou coup de pied ; uppercut
 ## seulement hors de la position debout.
 func _pick_move() -> SoldierModel.StrikeMove:
 	if not unit.weapon_slung:
@@ -113,7 +122,7 @@ func _pick_move() -> SoldierModel.StrikeMove:
 	if unit.posture != SoldierModel.Posture.STANDING:
 		return SoldierModel.StrikeMove.UPPERCUT
 	var moves: Array = [SoldierModel.StrikeMove.UPPERCUT, SoldierModel.StrikeMove.FRONT_KICK,
-			SoldierModel.StrikeMove.ROUNDHOUSE, SoldierModel.StrikeMove.SIDE_KICK]
+			SoldierModel.StrikeMove.ROUNDHOUSE, SoldierModel.StrikeMove.SIDE_KICK, SoldierModel.StrikeMove.JAB_HOOK]
 	if _close:
 		moves = [SoldierModel.StrikeMove.ELBOW, SoldierModel.StrikeMove.KNEE]
 	moves.erase(unit._model.strike_move)
@@ -135,6 +144,12 @@ func update(delta: float) -> Vector3:
 			unit.global_position = _step_from.lerp(_step_to, step)
 			unit.velocity = Vector3.ZERO
 		unit._face(enemy.global_position - unit.global_position, delta)
+	if not _first_landed and _first_hit_time >= 0.0 and progress >= _first_hit_time:
+		# Direct : il touche, la cible encaisse, mais tient debout.
+		_first_landed = true
+		if is_instance_valid(enemy) and not enemy.is_dead:
+			Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 1.5, -6.0)
+			enemy._model.play_hit(unit.global_position, 0.6)
 	if not landed and progress >= _hit_time:
 		landed = true
 		_land()
