@@ -127,7 +127,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 
 - **6.1 Corps, suite** :
   - **a)** ~~doigts articulés autour des armes et des objets~~ (fait) ;
-  - **b)** clignement des yeux et regard qui suit la cible ;
+  - **b)** ~~clignement des yeux et regard qui suit la cible~~ (fait) ;
   - **c)** expressions (effort, douleur) ;
   - **d)** plis et coutures sur les vêtements (texture) ;
   - **e)** silhouette propre à chaque spécialité.

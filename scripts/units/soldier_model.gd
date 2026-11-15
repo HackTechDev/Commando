@@ -266,6 +266,10 @@ const SHIN_LENGTH := 0.40
 ## Débattement de la cheville (rad) : négatif = pointe vers le bas.
 const ANKLE_MIN := -0.9
 const ANKLE_MAX := 1.0
+const IRIS_REST := Vector3(0.036, 0.192, -0.098)
+## Échelle verticale de la paupière, œil ouvert (1 : fermé).
+const LID_OPEN := 0.08
+const BLINK_DURATION := 0.16
 
 @export var uniform_color := Color(0.30, 0.33, 0.24)
 @export var gear_color := Color(0.16, 0.17, 0.14)
@@ -366,6 +370,9 @@ var defend_move: DefendMove = DefendMove.PARRY
 var defend_side: float = 1.0
 ## Déséquilibré après une attaque parée ou esquivée.
 var staggered: bool = false
+## Point regardé (repère du monde) : la tête et les yeux s'y tournent.
+## `Vector3.INF` : rien de particulier.
+var look_target: Vector3 = Vector3.INF
 
 var _body: Node3D
 var _hips: Node3D
@@ -439,6 +446,17 @@ var _arm_joints: Array[Node3D] = []
 var _arm_poses: Array = []
 ## Phalanges de chaque main (gauche, droite) : 4 doigts × 2, puis le pouce.
 var _fingers: Array = []
+## Visage animé (absent sous un casque fermé : listes vides).
+var _irises: Array[Node3D] = []
+var _lids: Array[Node3D] = []
+var _brows: Array[Node3D] = []
+var _blink_wait: float = 2.0
+var _blink_time: float = 10.0
+var _gaze_wait: float = 0.0
+var _gaze_idle := Vector2.ZERO
+var _gaze := Vector2.ZERO
+## Yeux mi-clos (douleur), de 0 à 1.
+var _squint: float = 0.0
 var _curl := Vector2(0.4, 0.4)
 var _time: float = 0.0
 
@@ -478,6 +496,9 @@ func _rebuild() -> void:
 	_arm_joints.clear()
 	_arm_poses.clear()
 	_fingers.clear()
+	_irises.clear()
+	_lids.clear()
+	_brows.clear()
 	_butt_keys.clear()
 	_build()
 
@@ -530,6 +551,7 @@ func _process(delta: float) -> void:
 	_shot_time += delta
 	_hit_time += delta
 	_aim_hold = maxf(_aim_hold - delta, 0.0)
+	_animate_face(delta)
 	_flash.visible = _shot_time < FLASH_DURATION and is_armed and not is_dead
 	if climb_progress >= 0.0 and not is_dead:
 		_animate_climb(delta)
@@ -960,6 +982,11 @@ func _animate_alive(delta: float) -> void:
 	elif not kick.is_empty():
 		# Les yeux restent sur la cible malgré la rotation du bassin.
 		head_yaw = -0.8 * (hip_yaw + kick_torso_yaw)
+	else:
+		# La tête se tourne vers ce qu'il regarde (l'épaulement vise déjà).
+		var look := _look_yaw(1.0)
+		if not is_nan(look):
+			head_yaw = lerpf(look, head_yaw, aim)
 	_head.rotation.x = lerp_angle(_head.rotation.x, head_pitch, fast)
 	_head.rotation.y = lerp_angle(_head.rotation.y, head_yaw, blend)
 	# La tête reste tournée vers l'avant malgré le balancement des épaules.
@@ -1735,12 +1762,65 @@ static func _head_mesh() -> ArrayMesh:
 
 
 ## Yeux (blanc et iris) et sourcils.
+## Les iris et les paupières sont animés par `_animate_face`.
 func _build_eyes() -> void:
 	for side: float in [-1.0, 1.0]:
 		_ellipsoid(_head, 0.013, Vector3(1.1, 0.6, 0.5), Vector3(0.037 * side, 0.192, -0.094), _m_eye)
-		_sphere(_head, 0.0062, Vector3(0.036 * side, 0.192, -0.098), _m_iris)
+		var iris := _pivot(_head, IRIS_REST * Vector3(side, 1.0, 1.0), "Iris")
+		_sphere(iris, 0.0062, Vector3.ZERO, _m_iris)
+		_irises.append(iris)
+		# Paupière : pivot au bord supérieur de l'œil, aplati quand l'œil est
+		# ouvert, étiré vers le bas pour le fermer.
+		var lid := _pivot(_head, Vector3(0.037 * side, 0.2, -0.094), "Eyelid")
+		_ellipsoid(lid, 0.0145, Vector3(1.15, 0.7, 0.75), Vector3(0.0, -0.008, -0.001), _m_skin)
+		lid.scale.y = LID_OPEN
+		_lids.append(lid)
 		var brow := _box(_head, Vector3(0.036, 0.008, 0.012), Vector3(0.038 * side, 0.211, -0.097), _m_hair)
 		brow.rotation.z = -0.12 * side
+		_brows.append(brow)
+
+
+## Paupières (clignements, yeux mi-clos de douleur, fermés une fois mort ou
+## inconscient) et regard : les iris visent `look_target`, sinon errent.
+func _animate_face(delta: float) -> void:
+	if _lids.is_empty():
+		return
+	_blink_wait -= delta
+	if _blink_wait <= 0.0:
+		_blink_wait = randf_range(2.0, 5.0)
+		_blink_time = 0.0
+	_blink_time += delta
+	var blink := 1.0 - absf(_blink_time / BLINK_DURATION * 2.0 - 1.0) if _blink_time < BLINK_DURATION else 0.0
+	var closed := maxf(blink, _squint)
+	if is_dead:
+		closed = 1.0
+	for lid in _lids:
+		lid.scale.y = lerpf(LID_OPEN, 1.0, closed)
+	# Regard : vers la cible, ou petits mouvements au hasard.
+	_gaze_wait -= delta
+	if _gaze_wait <= 0.0:
+		_gaze_wait = randf_range(0.8, 2.5)
+		_gaze_idle = Vector2(randf_range(-1.0, 1.0), randf_range(-0.6, 0.4))
+	var gaze := _gaze_idle * 0.6
+	if look_target != Vector3.INF and is_inside_tree():
+		var local := _head.global_transform.affine_inverse() * look_target - HEAD_CENTER
+		if local.length_squared() > 0.0001:
+			local = local.normalized()
+			gaze = Vector2(clampf(local.x * 3.0, -1.0, 1.0), clampf(local.y * 3.0, -1.0, 1.0))
+	_gaze = _gaze.lerp(gaze, 1.0 - exp(-20.0 * delta))
+	for i in _irises.size():
+		var side := -1.0 if i == 0 else 1.0
+		_irises[i].position = IRIS_REST * Vector3(side, 1.0, 1.0) + Vector3(_gaze.x * 0.0045, _gaze.y * 0.0022, 0.0)
+
+
+## Lacet de la tête vers `look_target` (repère du modèle), borné à ±`limit`.
+func _look_yaw(limit: float) -> float:
+	if look_target == Vector3.INF or not is_inside_tree():
+		return NAN
+	var local := to_local(look_target)
+	if Vector2(local.x, local.z).length_squared() < 0.01:
+		return NAN
+	return clampf(atan2(-local.x, -local.z) - _torso_yaw, -limit, limit)
 
 
 ## Casquette, chapeau de brousse ou bonnet, dans la couleur du couvre-chef.

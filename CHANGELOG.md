@@ -326,3 +326,4 @@
 ## Modèle et animation (points 6.x)
 
 - Mains articulées : quatre doigts de deux phalanges et un pouce. Elles se ferment sur l'arme, le couteau ou la grenade et en poing pour frapper. Elles s'ouvrent pour pousser, parer, s'agripper en escaladant ou prendre appui au sol, et se détendent le long du corps.
+- Yeux vivants : clignements, regard qui erre au repos, yeux fermés une fois mort ou inconscient. La tête et les yeux suivent la cible : ennemi visé, attaqué ou point d'un lancer pour les opérateurs, cible ou endroit suspect pour les ennemis.

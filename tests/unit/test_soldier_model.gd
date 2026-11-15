@@ -31,3 +31,20 @@ func test_fingers_close_on_the_weapon_and_relax_without_it() -> void:
 	model.crate_grip = true
 	_run(1.0)
 	assert_lt(_finger_curl("ShoulderL"), 0.3, "main ouverte contre la caisse")
+
+
+func test_eyes_follow_the_target_and_close_when_dead() -> void:
+	var lid: Node3D = model.find_child("Eyelid", true, false)
+	var iris: Node3D = model.find_child("Iris", true, false)
+	var rest := iris.position
+	# Cible sur sa gauche (le modèle regarde vers -Z).
+	model.look_target = model.global_position + Vector3(-4.0, 1.6, -2.0)
+	_run(1.0)
+	assert_gt(model.find_child("Head", true, false).rotation.y, 0.3, "tête tournée vers la cible")
+	assert_lt(iris.position.x, rest.x, "iris tourné vers la cible")
+	model._blink_wait = 100.0
+	_run(0.5)
+	assert_lt(lid.scale.y, 0.2, "œil ouvert")
+	model.is_dead = true
+	_run(0.2)
+	assert_almost_eq(lid.scale.y, 1.0, 0.01, "yeux fermés une fois mort")

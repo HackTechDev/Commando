@@ -239,6 +239,7 @@ func _physics_process(delta: float) -> void:
 	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife or crate)
 	_update_reload(delta)
 	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
+	_model.look_target = _look_point()
 	if _hopping:
 		return
 	if _crate and not is_dead:
@@ -294,6 +295,15 @@ func _physics_process(delta: float) -> void:
 		_agent.velocity = horizontal
 	else:
 		_apply_velocity(horizontal)
+
+
+## Ce que l'opérateur regarde : l'ennemi visé ou attaqué, le point d'un
+## lancer de grenade, sinon rien (`Vector3.INF`).
+func _look_point() -> Vector3:
+	for enemy: Enemy in [_defend_enemy, _strike_target, _melee_target, _throw_target, _attack_target]:
+		if is_instance_valid(enemy) and not enemy.is_dead:
+			return enemy.global_position + Vector3.UP * 1.5
+	return _grenade_target
 
 
 ## Applique la vitesse horizontale (éventuellement corrigée par l'évitement).
