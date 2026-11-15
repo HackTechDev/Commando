@@ -537,3 +537,8 @@
 
 - Le pas de côté part du côté dégagé (mur, caisse, autre unité testés sur le trajet) ; au hasard si les deux le sont. Coincé des deux côtés, l'opérateur pare au lieu d'esquiver.
 
+## Parade au choix du joueur (3.11)
+
+- Touche de parade (I) : un coup qui porte dans les 0,45 s qui suivent l'appui est paré à coup sûr, et l'assaillant est déséquilibré (contre possible). On ne peut rappuyer qu'au bout de 0,9 s.
+- Sans la touche, l'opérateur encaisse. L'ancienne défense au hasard (parade ou esquive) reste disponible : option « Parade automatique » du menu pause.
+

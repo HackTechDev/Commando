@@ -406,6 +406,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_feedback(SelectionManager.detonate_explosives() > 0)
 	elif event.is_action_pressed(&"action_medkit"):
 		_feedback(SelectionManager.use_medkit())
+	elif event.is_action_pressed(&"parry"):
+		# Parade au moment du coup : pas de bip, il faut pouvoir la presser vite.
+		for unit in SelectionManager.selected:
+			unit.ready_parry()
 	elif event.is_action_pressed(&"action_shield"):
 		_feedback(SelectionManager.toggle_shield())
 	elif event.is_action_pressed(&"switch_weapon"):

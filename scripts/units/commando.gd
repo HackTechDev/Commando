@@ -70,6 +70,15 @@ const JUMP_LANDING := 0.62
 const JUMP_LIFT := 0.1
 ## Bouclier levé : part de la vitesse de marche (on ne court pas avec).
 const SHIELD_SPEED := 0.7
+## Parade au choix du joueur (touche de parade) : un coup qui porte dans les
+## `PARRY_WINDOW` secondes qui suivent l'appui est paré ; on ne peut
+## rappuyer qu'après `PARRY_COOLDOWN` secondes (pas de parade permanente).
+const PARRY_WINDOW := 0.45
+const PARRY_COOLDOWN := 0.9
+
+## Parade automatique (option) : tirage au sort selon `parry_chance` et
+## `dodge_chance`, sans la touche. Posé par `Settings`.
+static var auto_parry: bool = false
 
 @export var stats: UnitStats
 ## Numéro de l'unité dans l'escouade (touches 1 à 6).
@@ -156,6 +165,9 @@ var _hint_frame: int = -100
 var _flash: Hint = Hint.NONE
 var _flash_text: String = ""
 var _flash_left: float = 0.0
+## Parade demandée : temps restant de la fenêtre, et avant de pouvoir rappuyer.
+var _parry_left: float = 0.0
+var _parry_cooldown: float = 0.0
 var _hint_label: Label3D
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
@@ -1077,8 +1089,10 @@ func _release_knife(enemy: Enemy) -> void:
 	Sfx.play_at(&"whoosh", hand, -6.0)
 
 
-## Coup porté par `enemy` au corps à corps : l'opérateur pare ou esquive
-## s'il est disponible et que le tirage le permet, sinon il encaisse.
+## Coup porté par `enemy` au corps à corps : l'opérateur pare si le joueur
+## a pressé la touche de parade juste avant (`ready_parry`) ; avec la parade
+## automatique (option), il pare ou esquive si le tirage le permet ; sinon il
+## encaisse. Occupé (geste, escalade, caisse, couché), il encaisse toujours.
 ## Renvoie vrai si le coup est évité. Une pose de charge ou des soins sont
 ## abandonnés pour se défendre.
 func defend_against(enemy: Enemy) -> bool:
@@ -1086,11 +1100,35 @@ func defend_against(enemy: Enemy) -> bool:
 		return false
 	var busy := (_gesture != null and not _gesture.interruptible) or _hopping or perched_on != null \
 			or is_handling_crate() or posture == SoldierModel.Posture.PRONE or _model.is_changing_posture()
+	if busy:
+		return super(enemy)
+	if _parry_left > 0.0:
+		# Touche pressée au bon moment : paré à coup sûr.
+		_parry_left = 0.0
+		_start(DefendGesture.new(self, enemy, false))
+		return true
+	if not auto_parry:
+		return super(enemy)
 	var roll := randf()
-	if busy or roll >= stats.parry_chance + stats.dodge_chance:
+	if roll >= stats.parry_chance + stats.dodge_chance:
 		return super(enemy)
 	_start(DefendGesture.new(self, enemy, roll >= stats.parry_chance))
 	return true
+
+
+## Touche de parade : le prochain coup reçu dans `PARRY_WINDOW` secondes est
+## paré. Renvoie faux si c'est trop tôt depuis le dernier appui.
+func ready_parry() -> bool:
+	if is_dead or _parry_cooldown > 0.0:
+		return false
+	_parry_left = PARRY_WINDOW
+	_parry_cooldown = PARRY_COOLDOWN
+	return true
+
+
+## Vrai pendant la fenêtre de parade ouverte par la touche.
+func is_ready_to_parry() -> bool:
+	return _parry_left > 0.0
 
 
 func _update_reload(delta: float) -> void:
@@ -1283,6 +1321,8 @@ func current_hint() -> Hint:
 
 func _process(delta: float) -> void:
 	_flash_left = maxf(_flash_left - delta, 0.0)
+	_parry_left = maxf(_parry_left - delta, 0.0)
+	_parry_cooldown = maxf(_parry_cooldown - delta, 0.0)
 	if _hint_label == null:
 		return
 	var hint := Hint.NONE if is_dead else current_hint()

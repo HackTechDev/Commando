@@ -1,7 +1,7 @@
 class_name OptionsPanel
 extends Control
 ## Options (menu pause) : volumes, plein écran, défilement de la caméra par
-## le bord de l'écran. Enregistrées par `Settings`.
+## le bord de l'écran, parade automatique. Enregistrées par `Settings`.
 
 signal closed
 
@@ -103,6 +103,12 @@ func _build() -> void:
 	edge.button_pressed = Settings.edge_scroll()
 	edge.toggled.connect(func(on: bool) -> void: Settings.set_value("display", "edge_scroll", on))
 	column.add_child(edge)
+	var parry := CheckBox.new()
+	parry.name = "AutoParry"
+	parry.text = "Parade automatique (au hasard, sans la touche %s)" % KeyNames.label(&"parry")
+	parry.button_pressed = Settings.auto_parry()
+	parry.toggled.connect(func(on: bool) -> void: Settings.set_value("gameplay", "auto_parry", on))
+	column.add_child(parry)
 	var close_button := Button.new()
 	close_button.name = "Close"
 	close_button.text = "Retour"

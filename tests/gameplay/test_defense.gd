@@ -5,8 +5,9 @@ extends LevelTest
 
 ## Met l'ennemi `enemy_path` en alerte face à Alpha, à portée de coup ;
 ## renvoie [Alpha, ennemi].
-func _face_off(enemy_path: String, parry: float, dodge: float) -> Array:
+func _face_off(enemy_path: String, parry: float, dodge: float, auto: bool = true) -> Array:
 	await load_level()
+	Commando.auto_parry = auto
 	var other := "Enemies/Soldier1" if enemy_path.ends_with("Dummy") else "Enemies/TrainingDummy"
 	park(node(other), Vector3(25, 0, 25))
 	var enemy: Enemy = node(enemy_path)
@@ -128,3 +129,29 @@ func test_dodge_goes_to_the_free_side() -> void:
 	other.global_transform.basis = wall.global_transform.basis
 	await frames(2)
 	assert_eq(DefendGesture.free_side(alpha, enemy, right), 0.0, "coincé : aucun côté")
+
+
+func test_parry_key_blocks_only_when_pressed_in_time() -> void:
+	var units := await _face_off("Enemies/TrainingDummy", 0.0, 0.0, false)
+	var alpha: Commando = units[0]
+	var enemy: Enemy = units[1]
+	# Sans la touche, la parade automatique étant coupée : il encaisse.
+	var tally := await _tally(alpha, enemy, 200)
+	assert_gt(tally["attacks"], 0)
+	assert_eq(tally["hit"], tally["attacks"], "sans la touche, chaque coup porte : %s" % [tally])
+	# Touche pressée au début de l'élan : paré, et l'ennemi est déséquilibré.
+	assert_gt(await frames_until(func() -> bool: return enemy.is_attacking(), 300), -1)
+	var health := alpha.health.health
+	assert_true(alpha.ready_parry())
+	assert_false(alpha.ready_parry(), "pas deux fois de suite")
+	assert_gt(await frames_until(alpha.is_defending, 60), -1, "parade")
+	assert_eq(alpha._model.defend_move, SoldierModel.DefendMove.PARRY)
+	assert_eq(alpha.health.health, health, "coup paré")
+	assert_gt(await frames_until(enemy.is_off_balance, 30), -1, "ennemi déséquilibré")
+	# Touche pressée trop tôt : la fenêtre est passée quand le coup arrive.
+	assert_gt(await frames_until(func() -> bool: return not enemy.is_attacking() and not enemy.is_off_balance(), 300), -1)
+	await frames(roundi(Commando.PARRY_COOLDOWN * 60.0) + 2)
+	assert_true(alpha.ready_parry())
+	await frames(roundi(Commando.PARRY_WINDOW * 60.0) + 5)
+	assert_false(alpha.is_ready_to_parry(), "fenêtre refermée")
+

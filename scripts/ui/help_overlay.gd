@@ -22,6 +22,7 @@ const SECTIONS: Array = [
 		[[&"action_knife"], "Couteau, puis clic gauche sur l'ennemi"],
 		[[&"action_knockout"], "Assommer, puis clic gauche sur l'ennemi"],
 		[[&"action_throw"], "Lancer le couteau, puis clic gauche"],
+		[[&"parry"], "Parer : au moment où l'ennemi frappe"],
 		[[&"action_grenade"], "Grenade, puis clic au sol"],
 		[[&"reload"], "Recharger"],
 		[[&"switch_weapon"], "Arme secondaire / principale"],

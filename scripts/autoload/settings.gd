@@ -1,7 +1,7 @@
 extends Node
 ## Réglages du joueur, conservés entre les parties (`user://settings.cfg`) :
 ## dernière carte jouée, volumes, plein écran, défilement par le bord de
-## l'écran.
+## l'écran, parade automatique.
 
 const PATH := "user://settings.cfg"
 ## Bus audio réglables : nom du bus → libellé.
@@ -63,8 +63,14 @@ func fullscreen() -> bool:
 	return value("display", "fullscreen", false)
 
 
-## Applique volumes et mode d'affichage.
+## Parade automatique (tirage au sort) au lieu de la touche de parade.
+func auto_parry() -> bool:
+	return value("gameplay", "auto_parry", false)
+
+
+## Applique volumes, mode d'affichage et parade automatique.
 func apply() -> void:
+	Commando.auto_parry = auto_parry()
 	for bus: StringName in BUSES:
 		var index := AudioServer.get_bus_index(bus)
 		if index >= 0:

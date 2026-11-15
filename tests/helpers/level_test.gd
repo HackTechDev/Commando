@@ -21,6 +21,9 @@ func before_each() -> void:
 	Roof.hovered = null
 	# Pas d'écran de fin : les tests continuent après une mort.
 	EndScreen.enabled = false
+	# Parade à la touche, comme par défaut (les tests de défense au hasard
+	# l'activent eux-mêmes).
+	Commando.auto_parry = false
 
 
 func after_each() -> void:
