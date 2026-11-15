@@ -17,6 +17,11 @@ signal shield_changed(raised: bool)
 enum MeleeKind { KNIFE, KNOCKOUT }
 
 const MASK_OCCLUDERS := 0b10
+## Indicatif affiché au-dessus de la tête : couleur, couleur une fois
+## sélectionné, et hauteur selon la posture (debout, accroupi, rampé).
+const CALLSIGN_COLOR := Color(0.85, 0.92, 1.0, 0.85)
+const CALLSIGN_SELECTED := Color(1.0, 0.85, 0.4, 1.0)
+const CALLSIGN_HEIGHTS: Array[float] = [2.05, 1.55, 0.85]
 ## Distance (entre centres) à partir de laquelle une attaque au corps à corps est possible.
 const MELEE_RANGE := 1.3
 ## Instant de l'attaque (0 à 1) où le coup porte.
@@ -153,6 +158,33 @@ func _ready() -> void:
 	_agent.velocity_computed.connect(_apply_velocity)
 	_traversal = LinkTraversal.new(self, _model)
 	_agent.link_reached.connect(_on_link_reached)
+	_build_callsign()
+
+
+## Petit texte de l'indicatif au-dessus de l'opérateur, toujours visible
+## (même derrière un mur) et tourné vers la caméra.
+func _build_callsign() -> void:
+	var label := Label3D.new()
+	label.name = "Callsign"
+	label.text = display_name
+	# Taille fixe à l'écran : lisible quel que soit le zoom.
+	label.fixed_size = true
+	label.font_size = 28
+	label.outline_size = 8
+	label.pixel_size = 0.0012
+	label.outline_modulate = Color(0.0, 0.0, 0.0, 0.8)
+	label.modulate = CALLSIGN_COLOR
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.shaded = false
+	label.render_priority = 1
+	label.position.y = CALLSIGN_HEIGHTS[posture]
+	add_child(label)
+	posture_changed.connect(func(new_posture: SoldierModel.Posture) -> void:
+		var tween := label.create_tween()
+		tween.tween_property(label, "position:y", CALLSIGN_HEIGHTS[new_posture], 0.25))
+	selected_changed.connect(func(value: bool) -> void:
+		label.modulate = CALLSIGN_SELECTED if value else CALLSIGN_COLOR)
 
 
 ## Entrée d'un lien de navigation : échelle ou muret à franchir.
@@ -1121,5 +1153,8 @@ func _on_died() -> void:
 	collision_layer = 0
 	_agent.avoidance_enabled = false
 	_model.is_dead = true
+	var callsign := get_node_or_null(^"Callsign") as Label3D
+	if callsign:
+		callsign.visible = false
 	SelectionManager.remove(self)
 	EventBus.unit_died.emit(self)

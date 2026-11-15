@@ -483,3 +483,7 @@
 - H ouvre une page d'aide qui liste toutes les commandes par rubrique (sélection, combat, équipement, tactique, caméra), avec les touches lues dans l'InputMap selon la disposition du clavier. Le jeu est en pause tant qu'elle est ouverte ; H, Échap ou un clic la referment. Elle s'ouvre aussi pendant la pause tactique, qui reste active à la fermeture.
 - Les longues lignes de commandes en haut de l'écran sont remplacées par un rappel « H : aide ».
 - Le changement d'arme passe de H à Y.
+
+## Indicatifs des opérateurs
+
+- Un petit texte au-dessus de chaque opérateur affiche son indicatif (Alpha, Bravo…). Il reste lisible quel que soit le zoom, se voit même derrière un mur, passe au jaune quand l'opérateur est sélectionné, descend quand il s'accroupit ou rampe, et disparaît à sa mort.
