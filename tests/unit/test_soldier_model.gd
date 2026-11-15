@@ -163,3 +163,26 @@ func test_civilian_wears_a_suit_without_military_gear() -> void:
 		assert_null(civilian.find_child(gear, true, false), "pas de %s" % gear)
 	assert_same(civilian._m_glove, civilian._m_skin, "mains nues")
 	assert_false(civilian._rifle.visible, "sans arme")
+
+
+func test_female_body_is_slimmer_and_beardless() -> void:
+	var outfit := OperatorProfile.defaults(0)
+	outfit.balaclava = false
+	outfit.headwear = &"none"
+	outfit.beard = &"full"
+	outfit.hair_style = &"long"
+	outfit.body = &"female"
+	model.outfit = outfit
+	assert_true(model._female)
+	assert_almost_eq(model._body.scale.y, SoldierModel.FEMALE_SCALE, 0.001, "un peu plus petite")
+	assert_null(model.find_child("Beard", true, false), "pas de barbe")
+	assert_not_null(model.find_child("LongHair", true, false), "cheveux longs")
+	assert_eq(model.find_children("Bust*", "", true, false).size(), 2)
+	assert_ne((model.find_child("Face", true, false) as MeshInstance3D).mesh, SoldierModel._head_mesh(false), "visage plus fin")
+	assert_eq(OperatorProfile.defaults(1).body, &"female", "Bravo : Inès Morel")
+	# Les articulations ne changent pas : les animations restent valables.
+	assert_eq(model.find_child("ShoulderR", true, false).position, model._shoulder_position(1.0))
+	_run(1.0)
+	model.posture = SoldierModel.Posture.PRONE
+	_run(2.0)
+	assert_false(model.is_changing_posture(), "se couche normalement")

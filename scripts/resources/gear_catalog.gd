@@ -57,6 +57,12 @@ const HEADWEAR: Dictionary = {
 	&"none": "Aucun",
 }
 
+## Morphologies : nom affiché.
+const BODIES: Dictionary = {
+	&"male": "Homme",
+	&"female": "Femme",
+}
+
 ## Teintes de peau (visage).
 const SKINS: Array[Color] = [
 	Color(0.93, 0.76, 0.64), Color(0.8, 0.62, 0.5), Color(0.66, 0.48, 0.35), Color(0.48, 0.33, 0.23), Color(0.31, 0.21, 0.15),
@@ -66,6 +72,8 @@ const HAIR_STYLES: Dictionary = {
 	&"shaved": "Rasé",
 	&"short": "Court",
 	&"ponytail": "Queue de cheval",
+	&"bun": "Chignon",
+	&"long": "Cheveux longs",
 	&"mohawk": "Crête",
 }
 

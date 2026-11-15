@@ -33,13 +33,15 @@ func _custom() -> OperatorProfile:
 	profile.grenades = 3
 	profile.medkit = 1
 	profile.hair_style = &"mohawk"
+	profile.body = &"female"
+	profile.shield = 1
 	return profile
 
 
 func test_profile_survives_json() -> void:
 	var profile := _custom()
 	var copy := OperatorProfile.from_dict(JSON.parse_string(JSON.stringify(profile.to_dict())), 1)
-	for key in ["callsign", "name", "camo", "headwear", "balaclava", "primary", "secondary", "grenades", "medkit", "hair_style", "skin"]:
+	for key in ["callsign", "name", "camo", "headwear", "balaclava", "primary", "secondary", "grenades", "medkit", "hair_style", "skin", "body", "shield"]:
 		assert_eq(copy.get(key), profile.get(key), key)
 	assert_eq(copy.top_color.to_html(false), profile.top_color.to_html(false), "couleur du haut")
 
@@ -107,6 +109,12 @@ func test_screen_edits_and_saves() -> void:
 	assert_eq(screen.current, 2, "Charlie sélectionné")
 	var callsign := screen.find_child("Indicatif", true, false) as LineEdit
 	assert_eq(callsign.text, "Charlie")
+	var body := screen.find_child("body", true, false) as OptionButton
+	var female := GearCatalog.BODIES.keys().find(&"female")
+	body.select(female)
+	body.item_selected.emit(female)
+	assert_eq(roster.operators[2].body, &"female", "morphologie choisie")
+	assert_true(screen.model._female, "aperçu féminin")
 	callsign.text = "Renard"
 	callsign.text_changed.emit("Renard")
 	assert_eq(roster.operators[2].callsign, "Renard")

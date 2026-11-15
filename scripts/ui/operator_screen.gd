@@ -536,6 +536,7 @@ func _build_identity() -> Control:
 	suggested.pressed.connect(wear_specialty_outfit)
 	box.add_child(suggested)
 	_heading(box, "Visage")
+	_option(box, "Morphologie", &"body", GearCatalog.BODIES, &"full")
 	_swatch_row(box, &"skin", GearCatalog.SKINS, func(i: int) -> void: profile().skin = i, &"head")
 	_option(box, "Barbe", &"beard", GearCatalog.BEARDS, &"head")
 	_heading(box, "Cheveux")

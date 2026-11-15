@@ -384,3 +384,13 @@
 - Les balles ennemies qui croisent le bouclier levé sont arrêtées, avec un tintement métallique. Cela protège le porteur et ceux qui s'abritent derrière lui (un coéquipier, un VIP). Les tirs venant de côté ou de dos passent toujours.
 - Pendant un geste (frappe, lancer, soins, escalade, caisse), le bouclier passe un instant dans le dos, puis revient.
 - Modèle 3D : panneau noir, hublot de visée, bande aux couleurs de l'équipe, poignée à l'arrière. Il est porté dans le dos quand il est baissé.
+
+## Modèle féminin
+
+- Écran « Opérateurs », section Visage : nouveau choix « Morphologie » (Homme / Femme), sauvegardé avec l'opérateur.
+- Silhouette féminine :
+  - un peu plus petite (95 %), taille plus fine, buste et épaules plus étroits, hanches plus larges ;
+  - cou et bras plus fins ;
+  - visage plus fin : mâchoire étroite, menton moins marqué, petit nez, lèvres plus pleines, sourcils fins, sans barbe.
+- Deux nouvelles coupes pour tous : « Cheveux longs » (sur les épaules, visibles même sous un casque) et « Chignon ».
+- Bravo (Inès Morel) a désormais la morphologie féminine et les cheveux longs par défaut.

@@ -260,6 +260,8 @@ const SLING_TIME := 0.7
 ## dos, et décalage de l'arme de poing (repère du torse), tenue à droite du
 ## bouclier.
 const SHIELD_SIZE := Vector2(0.56, 0.92)
+## Taille relative de la silhouette féminine.
+const FEMALE_SCALE := 0.95
 const SHIELD_HANDLE := Vector3(0.0, 0.0, 0.07)
 const SHIELD_TIME := 0.35
 const SHIELD_PISTOL_OFFSET := Vector3(0.2, 0.08, -0.06)
@@ -429,6 +431,8 @@ var _sling: float = 0.0
 ## Bouclier (null sans bouclier), sa position dans le dos (repère du torse) et
 ## sa levée (0 : dans le dos, 1 : devant).
 var _shield: Node3D
+## Silhouette et visage féminins (`OperatorProfile.body`).
+var _female: bool = false
 var _shield_back: Transform3D
 var _shield_up: float = 0.0
 var _rifle_aim: Transform3D
@@ -587,6 +591,7 @@ func _build() -> void:
 		_m_gear = _mat(Color(0.09, 0.06, 0.04), 0.45)
 		_m_boot = _mat(Color(0.05, 0.04, 0.035), 0.35)
 	_guard_look = _pick_guard_look() if outfit == null and not operator_helmet and not civilian else {}
+	_female = outfit != null and outfit.body == &"female"
 	if not _guard_look.is_empty():
 		_m_skin = _mat(GearCatalog.SKINS[_guard_look["skin"]], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[_guard_look["hair_color"]], 0.9)
@@ -596,7 +601,7 @@ func _build() -> void:
 	_m_sole = _mat(Color(0.06, 0.06, 0.06), 0.9)
 	_m_eye = _mat(Color(0.9, 0.9, 0.86), 0.3)
 	_m_iris = _mat(Color(0.12, 0.08, 0.05), 0.2)
-	_m_lip = _mat((_m_skin.albedo_color as Color).darkened(0.25).lerp(Color(0.6, 0.25, 0.22), 0.25), 0.6)
+	_m_lip = _mat((_m_skin.albedo_color as Color).darkened(0.25).lerp(Color(0.6, 0.25, 0.22), 0.45 if _female else 0.25), 0.6)
 	_m_stubble = _mat((_m_skin.albedo_color as Color).lerp(_m_hair.albedo_color, 0.55), 0.95)
 	_m_red = _mat(Color(0.75, 0.1, 0.08), 0.6)
 	_m_white = _mat(Color(0.88, 0.88, 0.85), 0.8)
@@ -615,6 +620,8 @@ func _build() -> void:
 	_m_steel = _mat(Color(0.72, 0.74, 0.78), 0.25, 0.9)
 
 	_body = _pivot(self, Vector3.ZERO, "Body")
+	# Un peu plus petite ; les articulations restent les mêmes (animations).
+	_body.scale = Vector3.ONE * (FEMALE_SCALE if _female else 1.0)
 	_hips = _pivot(_body, Vector3(0.0, HIP_HEIGHT, 0.0), "Hips")
 	_build_legs()
 	_build_torso()
@@ -1651,7 +1658,7 @@ func _build_legs() -> void:
 	for side: float in [-1.0, 1.0]:
 		var leg := _pivot(_hips, Vector3(0.11 * side, 0.0, 0.0), "LegL" if side < 0.0 else "LegR")
 		# Haut de cuisse (fessier) et cuisse effilée vers le genou.
-		_ellipsoid(leg, 0.088, Vector3(1.0, 0.9, 1.08), Vector3(0.0, -0.03, 0.005), _m_pants)
+		_ellipsoid(leg, 0.094 if _female else 0.088, Vector3(1.0, 0.9, 1.08), Vector3(0.012 * side if _female else 0.0, -0.03, 0.005), _m_pants)
 		_tapered(leg, 0.084, 0.063, THIGH_LENGTH, Vector3(0.0, -0.22, 0.0), _m_pants).scale.z = 1.08
 		if not civilian:
 			# Poche cargo et son rabat.
@@ -1689,18 +1696,24 @@ func _build_legs() -> void:
 func _build_torso() -> void:
 	_torso = _pivot(_hips, Vector3.ZERO, "Torso")
 	# Bassin, ceinturon (boucle, poche).
-	_ellipsoid(_torso, 0.19, Vector3(1.0, 0.55, 0.66), Vector3(0.0, 0.03, 0.0), _m_pants)
+	_ellipsoid(_torso, 0.19, Vector3(1.08 if _female else 1.0, 0.58 if _female else 0.55, 0.68 if _female else 0.66), Vector3(0.0, 0.03, 0.0), _m_pants)
 	_tapered(_torso, 0.2, 0.2, 0.055, Vector3(0.0, 0.085, 0.0), _m_gear).scale.z = 0.68
 	_box(_torso, Vector3(0.06, 0.045, 0.02), Vector3(0.0, 0.085, -0.137), _m_weapon)
 	if not civilian:
 		_box(_torso, Vector3(0.07, 0.09, 0.06), Vector3(-0.2, 0.05, 0.0), _m_gear)
 	# Buste : taille, poitrine plus large, épaules arrondies, col.
-	_tapered(_torso, 0.165, 0.172, 0.2, Vector3(0.0, 0.2, 0.0), _m_top).scale.z = 0.62
-	_tapered(_torso, 0.2, 0.168, 0.24, Vector3(0.0, 0.4, 0.0), _m_top).scale.z = 0.6
-	var shoulders := _capsule(_torso, 0.07, 0.52, Vector3(0.0, 0.5, 0.0), _m_top)
+	# Silhouette féminine : taille plus marquée, buste et épaules plus étroits.
+	var waist := 0.85 if _female else 1.0
+	var chest := 0.92 if _female else 1.0
+	_tapered(_torso, 0.165 * waist, 0.172, 0.2, Vector3(0.0, 0.2, 0.0), _m_top).scale.z = 0.62
+	_tapered(_torso, 0.2 * chest, 0.168 * waist, 0.24, Vector3(0.0, 0.4, 0.0), _m_top).scale.z = 0.6
+	if _female:
+		for side: float in [-1.0, 1.0]:
+			_ellipsoid(_torso, 0.058, Vector3(1.0, 0.85, 0.75), Vector3(0.062 * side, 0.385, -0.085), _m_top).name = "BustL" if side < 0.0 else "BustR"
+	var shoulders := _capsule(_torso, 0.065 if _female else 0.07, 0.47 if _female else 0.52, Vector3(0.0, 0.5, 0.0), _m_top)
 	shoulders.rotation.z = PI / 2.0
 	shoulders.scale = Vector3(1.0, 1.0, 0.95)
-	_tapered(_torso, 0.068, 0.08, 0.04, Vector3(0.0, 0.565, 0.005), _m_top)
+	_tapered(_torso, 0.068 * (0.88 if _female else 1.0), 0.08, 0.04, Vector3(0.0, 0.565, 0.005), _m_top)
 	var front := -0.12
 	if _wears(&"vest") and not _guard_look.is_empty():
 		front = -0.16
@@ -2038,7 +2051,8 @@ static func fabric_normal_map() -> Texture2D:
 func _build_head() -> void:
 	_head = _pivot(_torso, Vector3(0.0, 0.57, 0.0), "Head")
 	var masked := _wears(&"balaclava")
-	_tapered(_head, 0.05, 0.057, 0.12, Vector3(0.0, 0.035, 0.008), _m_gear if masked else _m_skin)
+	var neck := 0.86 if _female else 1.0
+	_tapered(_head, 0.05 * neck, 0.057 * neck, 0.12, Vector3(0.0, 0.035, 0.008), _m_gear if masked else _m_skin)
 	if masked:
 		# Tête sous cagoule : seuls les yeux et l'arête du nez se voient.
 		_head_shape(_m_gear).name = "Balaclava"
@@ -2096,12 +2110,15 @@ func _build_face() -> void:
 		_ellipsoid(_head, 0.024, Vector3(0.45, 1.0, 0.75), Vector3(0.1 * side, 0.18, 0.014), _m_skin)
 	_build_eyes()
 	# Nez : arête et bout, bouche.
-	var bridge := _box(_head, Vector3(0.02, 0.048, 0.022), Vector3(0.0, 0.168, -0.1), _m_skin)
+	var nose := 0.85 if _female else 1.0
+	var bridge := _box(_head, Vector3(0.02 * nose, 0.048 * nose, 0.022 * nose), Vector3(0.0, 0.168, -0.1), _m_skin)
 	bridge.rotation.x = -0.3
-	_ellipsoid(_head, 0.014, Vector3(1.25, 0.9, 1.0), Vector3(0.0, 0.147, -0.111), _m_skin)
+	_ellipsoid(_head, 0.014 * nose, Vector3(1.25, 0.9, 1.0), Vector3(0.0, 0.147, -0.109 if _female else -0.111), _m_skin)
 	var beard: StringName = _guard_look.get("beard", &"none") if outfit == null else outfit.beard
+	if _female:
+		beard = &"none"
 	var lips_depth := {&"none": -0.108, &"stubble": -0.116, &"full": -0.131}[beard] as float
-	_mouth = _ellipsoid(_head, 0.02, MOUTH_REST, Vector3(0.0, 0.119, lips_depth), _m_lip)
+	_mouth = _ellipsoid(_head, 0.023 if _female else 0.02, MOUTH_REST, Vector3(0.0, 0.119, lips_depth), _m_lip)
 	_mouth.name = "Mouth"
 	# Intérieur de la bouche, visible quand elle s'ouvre (douleur).
 	_mouth_inner = _ellipsoid(_head, 0.016, Vector3(1.2, 0.01, 0.4), Vector3(0.0, 0.118, lips_depth - 0.004), _m_dark)
@@ -2127,6 +2144,16 @@ func _build_face() -> void:
 			var tail := _capsule(_head, 0.024, 0.15, Vector3(0.0, 0.15, 0.135), _m_hair)
 			tail.rotation.x = 0.45
 			_sphere(_head, 0.018, Vector3(0.0, 0.195, 0.12), _m_gear)
+		&"bun":
+			_sphere(_head, 0.045, Vector3(0.0, 0.2, 0.125), _m_hair).name = "Bun"
+		&"long":
+			# Mèches qui encadrent le visage et tombent sur la nuque et les
+			# épaules (visibles sous un casque).
+			var back := _ellipsoid(_head, 0.1, Vector3(1.0, 1.45, 0.5), Vector3(0.0, 0.07, 0.075), _m_hair)
+			back.name = "LongHair"
+			back.rotation.x = -0.15
+			for side: float in [-1.0, 1.0]:
+				_ellipsoid(_head, 0.06, Vector3(0.38, 1.6, 0.9), Vector3(0.092 * side, 0.115, 0.01), _m_hair)
 		&"mohawk":
 			if not covered:
 				_box(_head, Vector3(0.032, 0.05, 0.22), Vector3(0.0, 0.31, 0.005), _m_hair)
@@ -2142,7 +2169,7 @@ func _build_face() -> void:
 ## plus étroite jusqu'au menton (partagé par tous les modèles).
 func _head_shape(material: Material) -> MeshInstance3D:
 	var head := MeshInstance3D.new()
-	head.mesh = _head_mesh()
+	head.mesh = _head_mesh(_female)
 	head.material_override = material
 	_head.add_child(head)
 	return head
@@ -2153,12 +2180,19 @@ const HEAD_CENTER := Vector3(0.0, 0.195, 0.008)
 ## demi-profondeur de la tête.
 const HEAD_RADII := Vector4(0.0998, 0.1134, 0.141, 0.11)
 
-static var _head_cache: ArrayMesh
+## Têtes générées : [masculine, féminine].
+static var _head_cache: Array[ArrayMesh] = [null, null]
 
 
-static func _head_mesh() -> ArrayMesh:
-	if _head_cache:
-		return _head_cache
+## Volume de la tête ; `female` : un peu plus petite, mâchoire plus fine et
+## menton moins avancé.
+static func _head_mesh(female: bool = false) -> ArrayMesh:
+	var variant := 1 if female else 0
+	if _head_cache[variant]:
+		return _head_cache[variant]
+	var jaw := 0.3 if female else 0.2
+	var chin := 0.04 if female else 0.08
+	var size := 0.96 if female else 1.0
 	var rings := 18
 	var segments := 28
 	var tool := SurfaceTool.new()
@@ -2170,13 +2204,13 @@ static func _head_mesh() -> ArrayMesh:
 			var d := Vector3(sin(theta) * sin(phi), cos(theta), -sin(theta) * cos(phi))
 			# Sous le centre, la tête se resserre (mâchoire) et le menton avance.
 			var t := maxf(-d.y, 0.0)
-			var x := d.x * HEAD_RADII.x * (1.0 - 0.2 * t * t)
+			var x := d.x * HEAD_RADII.x * (1.0 - jaw * t * t)
 			var y := d.y * (HEAD_RADII.y if d.y > 0.0 else HEAD_RADII.z)
 			var z := d.z * HEAD_RADII.w * (1.0 - 0.12 * t * t)
 			if d.z < 0.0:
-				z *= 1.0 + 0.08 * t
+				z *= 1.0 + chin * t
 			tool.set_uv(Vector2(float(j) / segments, float(i) / rings))
-			tool.add_vertex(HEAD_CENTER + Vector3(x, y, z))
+			tool.add_vertex(HEAD_CENTER + Vector3(x, y, z) * size)
 	for i in rings:
 		for j in segments:
 			var a := i * (segments + 1) + j
@@ -2185,8 +2219,8 @@ static func _head_mesh() -> ArrayMesh:
 			for index: int in [a, b, a + 1, a + 1, b, b + 1]:
 				tool.add_index(index)
 	tool.generate_normals()
-	_head_cache = tool.commit()
-	return _head_cache
+	_head_cache[variant] = tool.commit()
+	return _head_cache[variant]
 
 
 ## Yeux (blanc et iris) et sourcils.
@@ -2203,7 +2237,7 @@ func _build_eyes() -> void:
 		_ellipsoid(lid, 0.0145, Vector3(1.15, 0.7, 0.75), Vector3(0.0, -0.008, -0.001), _m_skin)
 		lid.scale.y = LID_OPEN
 		_lids.append(lid)
-		var brow := _box(_head, Vector3(0.036, 0.008, 0.012), Vector3(0.038 * side, 0.211, -0.097), _m_hair)
+		var brow := _box(_head, Vector3(0.034, 0.005, 0.01) if _female else Vector3(0.036, 0.008, 0.012), Vector3(0.038 * side, 0.211, -0.097), _m_hair)
 		brow.rotation.z = -0.12 * side
 		_brows.append(brow)
 
@@ -2809,8 +2843,9 @@ func _shoulder_position(side: float) -> Vector3:
 func _build_arm(side: float) -> void:
 	var shoulder := _pivot(_torso, _shoulder_position(side), "ShoulderL" if side < 0.0 else "ShoulderR")
 	# Épaule, bras effilé, écusson d'équipe.
-	_sphere(shoulder, 0.072, Vector3.ZERO, _m_top)
-	_tapered(shoulder, 0.064, 0.052, UPPER_ARM_LENGTH, Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_top)
+	var arm := 0.88 if _female else 1.0
+	_sphere(shoulder, 0.072 * arm, Vector3.ZERO, _m_top)
+	_tapered(shoulder, 0.064 * arm, 0.052 * arm, UPPER_ARM_LENGTH, Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_top)
 	_box(shoulder, Vector3(0.012, 0.07, 0.07), Vector3(0.063 * side, -0.085, 0.0), _m_team)
 	if outfit and outfit.specialty == &"medic":
 		# Brassard blanc à croix rouge.
@@ -2820,8 +2855,8 @@ func _build_arm(side: float) -> void:
 		_box(band, Vector3(0.006, 0.012, 0.04), Vector3(0.062 * side, 0.0, 0.0), _m_red)
 	# Coude, avant-bras, manchette et main gantée (pouce vers l'avant).
 	var elbow := _pivot(shoulder, Vector3(0.0, -UPPER_ARM_LENGTH, 0.0), "Elbow")
-	_sphere(elbow, 0.053, Vector3.ZERO, _m_top)
-	_tapered(elbow, 0.052, 0.043, FOREARM_LENGTH - 0.04, Vector3(0.0, -(FOREARM_LENGTH - 0.04) * 0.5, 0.0), _m_top)
+	_sphere(elbow, 0.053 * arm, Vector3.ZERO, _m_top)
+	_tapered(elbow, 0.052 * arm, 0.043 * arm, FOREARM_LENGTH - 0.04, Vector3(0.0, -(FOREARM_LENGTH - 0.04) * 0.5, 0.0), _m_top)
 	_tapered(elbow, 0.047, 0.045, 0.04, Vector3(0.0, -FOREARM_LENGTH + 0.03, 0.0), _m_glove)
 	_build_hand(elbow, side)
 	_arm_joints.append(shoulder)

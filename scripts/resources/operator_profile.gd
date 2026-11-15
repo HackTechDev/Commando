@@ -8,13 +8,15 @@ extends Resource
 ## Identités par défaut des trois opérateurs (indicatif, nom, visage).
 const DEFAULTS: Array[Dictionary] = [
 	{"callsign": "Alpha", "name": "Marc Delaunay", "skin": 1, "hair_style": &"short", "hair_color": 1, "beard": &"stubble"},
-	{"callsign": "Bravo", "name": "Inès Morel", "skin": 2, "hair_style": &"ponytail", "hair_color": 0, "beard": &"none"},
+	{"callsign": "Bravo", "name": "Inès Morel", "body": &"female", "skin": 2, "hair_style": &"long", "hair_color": 0, "beard": &"none"},
 	{"callsign": "Charlie", "name": "Karim Benali", "skin": 3, "hair_style": &"shaved", "hair_color": 0, "beard": &"full"},
 ]
 
 # Identité.
 @export var name: String = ""
 @export var callsign: String = ""
+## Morphologie (`GearCatalog.BODIES`) : silhouette et visage du modèle.
+@export var body: StringName = &"male"
 ## Indices dans `GearCatalog.SKINS` et `HAIR_COLORS`.
 @export var skin: int = 1
 @export var hair_style: StringName = &"short"
@@ -70,7 +72,7 @@ const LOOK_KEYS: Array[String] = [
 ]
 
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
-const _NAME_KEYS: Array[String] = ["camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
+const _NAME_KEYS: Array[String] = ["body", "camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads"]
 const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "explosives", "medkit", "shield"]
 
@@ -184,7 +186,7 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 			profile.set(key, Color.html(data[key]))
 	var choices := {
 		"camo": GearCatalog.CAMOS, "hair_style": GearCatalog.HAIR_STYLES, "beard": GearCatalog.BEARDS,
-		"headwear": GearCatalog.HEADWEAR, "primary": GearCatalog.PRIMARY, "secondary": GearCatalog.SECONDARY,
+		"body": GearCatalog.BODIES, "headwear": GearCatalog.HEADWEAR, "primary": GearCatalog.PRIMARY, "secondary": GearCatalog.SECONDARY,
 		"specialty": GearCatalog.SPECIALTIES,
 	}
 	for key in _NAME_KEYS:
