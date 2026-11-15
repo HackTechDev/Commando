@@ -11,6 +11,11 @@ const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 ## Niveau générique qui construit n'importe quelle carte UFO:AI
 ## (`UfoMapLevel.requested_map`) : il sert aux cartes hors catalogue.
 const GENERIC_SCENE := "res://scenes/levels/ufo_map/ufo_map.tscn"
+## Objectifs d'une carte qui n'en précise pas.
+const DEFAULT_OBJECTIVES: Array[Dictionary] = [
+	{"id": "all_enemies_down", "text": "Neutraliser toutes les sentinelles"},
+	{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+]
 ## Camouflage deviné d'après le nom d'une carte hors catalogue.
 const CAMO_HINTS: Dictionary = {
 	"desert": "desert", "dam": "desert", "excavation": "desert", "mine": "desert",
@@ -24,12 +29,21 @@ const LEVELS: Array[Dictionary] = [
 		"scene": "res://scenes/levels/sandbox/sandbox.tscn",
 		"description": "Petite carte d'exemple : une sentinelle en patrouille, une cible d'entraînement, des caisses à escalader et à déplacer.",
 		"camo": "woodland",
+		"objectives": [
+			{"id": "all_enemies_down", "text": "Neutraliser la sentinelle et la cible d'entraînement"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
 	},
 	{
 		"title": "Escorte",
 		"scene": "res://scenes/levels/escort/escort.tscn",
 		"description": "Carte d'essai : un VIP à ramener jusqu'à la zone d'extraction, au nord-est, à travers deux lignes de murs gardées par deux patrouilles et une sentinelle. Clic du milieu sur lui : « Suivre l'opérateur » sélectionné (il imite alors sa posture) ou « Attendre ici ». S'il meurt, la mission échoue.",
 		"camo": "woodland",
+		"objectives": [
+			{"id": "vip_extracted", "text": "Escorter le VIP jusqu'à la zone d'extraction, au nord-est"},
+			{"id": "vip_alive", "text": "Le VIP doit survivre"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
 	},
 	{
 		"title": "Entraînement A",
@@ -124,6 +138,14 @@ static func title_of(scene_path: String) -> String:
 		if level["scene"] == scene_path:
 			return level["title"]
 	return ""
+
+
+## Objectifs de `level` : [{"id": String, "text": String}] (voir
+## `Objectives` pour les identifiants suivis en jeu).
+static func objectives_of(level: Dictionary) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	result.assign(level.get("objectives", DEFAULT_OBJECTIVES))
+	return result
 
 
 ## Camouflage conseillé pour `level`.

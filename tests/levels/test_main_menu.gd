@@ -135,3 +135,23 @@ func test_quit_and_menu_from_game_ask_confirmation() -> void:
 	var hud: Hud = get_tree().current_scene.find_children("*", "Hud", true, false)[0]
 	await _check_confirmation(hud, "Quit", hud.quit_dialog)
 	await _check_confirmation(hud, "Menu", hud.menu_dialog)
+
+
+func test_briefing_shows_preview_objectives_and_edits_outfits() -> void:
+	var menu := await _open_menu()
+	_play_buttons(menu)[1].pressed.emit()
+	var objectives := menu.briefing.find_child("Objectives", true, false)
+	await wait_process_frames(1)
+	var texts := objectives.get_children().map(func(label: Label) -> String: return label.text)
+	assert_true(texts.any(func(text: String) -> bool: return text.contains("VIP")), "objectifs de l'escorte : %s" % [texts])
+	var preview := menu.briefing.find_child("BriefingPreview", true, false)
+	assert_eq(preview.get_child_count(), 1, "aperçu ou cadre d'attente")
+	(menu.briefing.find_child("Edit2", true, false) as Button).pressed.emit()
+	await wait_process_frames(2)
+	assert_not_null(menu.operator_editor, "éditeur ouvert sur place")
+	assert_eq(menu.operator_editor.current, 1, "sur Bravo")
+	assert_eq(get_tree().current_scene, menu, "sans quitter le menu")
+	(menu.operator_editor.find_child("Back", true, false) as Button).pressed.emit()
+	await wait_process_frames(2)
+	assert_null(menu.operator_editor, "refermé")
+	assert_true(menu.briefing.visible, "retour à la préparation")

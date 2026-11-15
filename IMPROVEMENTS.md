@@ -111,7 +111,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **b)** grenade qui rebondit et roule selon le relief ;
   - **c)** munitions de l'arme secondaire visibles en même temps que celles de la principale ;
   - **d)** effet visuel de soin.
-- **5.4 Préparation de mission, suite** : aperçu de la carte, objectifs, et modification complète de la tenue sans passer par l'écran « Opérateurs ».
+- **5.4 ~~Préparation de mission, suite~~** (fait) : aperçu de la carte, objectifs, et modification complète de la tenue sans passer par l'écran « Opérateurs ».
 - **5.5 ~~Menu, suite~~** (fait) :
   - **a)** ~~menu pause sur Échap~~ ;
   - **b)** ~~aperçu de chaque carte~~ (vue du dessus enregistrée à la première partie) ;

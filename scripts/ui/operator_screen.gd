@@ -73,6 +73,13 @@ const LOUDEST := 24.0
 
 ## Opérateur modifié (0 à 2).
 var current: int = 0
+## Ouvert par-dessus la préparation de mission (et non comme une scène) :
+## « Retour » referme l'écran (signal `closed`) au lieu de revenir au menu.
+var embedded: bool = false
+## Opérateur affiché à l'ouverture.
+var start_index: int = 0
+
+signal closed
 var roster: OperatorRoster
 ## Modèle de l'aperçu.
 var model: SoldierModel
@@ -168,8 +175,10 @@ func _ready() -> void:
 	column.add_child(_build_footer())
 	reset_dialog = ConfirmDialog.new("Réinitialiser", "", "Réinitialiser", reset_current)
 	add_child(reset_dialog)
-	select(0)
+	select(start_index)
 	_refresh_portraits()
+	if embedded:
+		(find_child("Back", true, false) as Button).text = "Retour à la préparation"
 
 
 ## Modifie l'opérateur `index` (0 à 2).
@@ -268,6 +277,10 @@ func focus_on(part: StringName) -> void:
 
 
 func back_to_menu() -> void:
+	if embedded:
+		closed.emit()
+		queue_free()
+		return
 	get_tree().change_scene_to_file(LevelCatalog.MENU_SCENE)
 
 

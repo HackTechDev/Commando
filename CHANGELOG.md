@@ -504,3 +504,8 @@
 - Chaque carte du menu a une vignette : une vue du dessus, enregistrée à la fin du premier chargement (`user://previews`).
 - La dernière carte jouée passe en tête de liste, sélectionnée (`user://settings.cfg`, autoload `Settings`).
 - Les autres cartes UFO:AI du dossier (`.map` hors catalogue) sont proposées à la suite, jouables dans un niveau générique : opérateurs sur les points de départ, sentinelles sur les positions des aliens, camouflage deviné d'après le nom.
+
+## Préparation de mission, suite
+
+- La préparation montre l'aperçu de la carte et ses objectifs (escorter le VIP, neutraliser les sentinelles, ne perdre personne…), décrits dans le catalogue des niveaux.
+- « Modifier la tenue… » ouvre l'écran « Opérateurs » complet (identité, tenue, accessoires, armement, équipement) par-dessus la préparation, sur l'opérateur choisi ; « Retour à la préparation » y ramène avec les changements.

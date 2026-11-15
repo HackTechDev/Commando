@@ -24,6 +24,13 @@ var _briefing_level: Dictionary = {}
 var _briefing_rows: VBoxContainer
 var _briefing_camo: Label
 var _suggest_all: Button
+var _briefing_preview: Control
+var _briefing_objectives: VBoxContainer
+## Écran « Opérateurs » ouvert depuis la préparation, ou null.
+var operator_editor: OperatorScreen
+
+## Taille de l'aperçu de la carte dans la préparation.
+const BRIEFING_PREVIEW_SIZE := Vector2(320, 200)
 
 
 func _ready() -> void:
@@ -151,6 +158,17 @@ func open_briefing(level: Dictionary) -> void:
 	var camo_name: String = GearCatalog.CAMOS[camo]["name"]
 	(briefing.find_child("BriefingTitle", true, false) as Label).text = "Préparation — %s" % level["title"]
 	_briefing_camo.text = "Camouflage conseillé pour cette carte : %s" % camo_name
+	for child in _briefing_preview.get_children():
+		child.queue_free()
+	_briefing_preview.add_child(preview_of(level, BRIEFING_PREVIEW_SIZE))
+	for child in _briefing_objectives.get_children():
+		if child.name != "ObjectivesTitle":
+			child.queue_free()
+	for objective in LevelCatalog.objectives_of(level):
+		var line := Label.new()
+		line.text = "•  " + String(objective["text"])
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_briefing_objectives.add_child(line)
 	_suggest_all.text = "Toute l'équipe en %s" % camo_name
 	_refresh_briefing()
 	briefing.visible = true
@@ -202,7 +220,13 @@ func _build_briefing() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	briefing.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(820, 0)
+	panel.custom_minimum_size = Vector2(980, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.1, 0.1, 0.98)
+	style.border_color = Color(0.35, 0.55, 0.75, 0.9)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	panel.add_theme_stylebox_override(&"panel", style)
 	center.add_child(panel)
 	var margin := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
@@ -215,6 +239,24 @@ func _build_briefing() -> void:
 	title.name = "BriefingTitle"
 	title.add_theme_font_size_override(&"font_size", 26)
 	column.add_child(title)
+	# Aperçu de la carte et objectifs.
+	var overview := HBoxContainer.new()
+	overview.add_theme_constant_override(&"separation", 18)
+	column.add_child(overview)
+	_briefing_preview = CenterContainer.new()
+	_briefing_preview.name = "BriefingPreview"
+	overview.add_child(_briefing_preview)
+	_briefing_objectives = VBoxContainer.new()
+	_briefing_objectives.name = "Objectives"
+	_briefing_objectives.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_briefing_objectives.add_theme_constant_override(&"separation", 6)
+	overview.add_child(_briefing_objectives)
+	var objectives_title := Label.new()
+	objectives_title.name = "ObjectivesTitle"
+	objectives_title.text = "OBJECTIFS"
+	objectives_title.add_theme_font_size_override(&"font_size", 16)
+	objectives_title.add_theme_color_override(&"font_color", Color(0.55, 0.8, 1.0))
+	_briefing_objectives.add_child(objectives_title)
 	var camo_row := HBoxContainer.new()
 	_briefing_camo = Label.new()
 	_briefing_camo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -280,6 +322,12 @@ func _refresh_briefing() -> void:
 				roster.save()
 				_refresh_briefing())
 		row.add_child(outfits)
+		var edit := Button.new()
+		edit.name = "Edit%d" % (i + 1)
+		edit.text = "Modifier la tenue…"
+		edit.tooltip_text = "Tenue, accessoires, armement et équipement de %s." % operator.callsign
+		edit.pressed.connect(open_operator_editor.bind(i))
+		row.add_child(edit)
 		var suggest := Button.new()
 		suggest.name = "Camo%d" % (i + 1)
 		suggest.text = "Camouflage conseillé"
@@ -287,6 +335,22 @@ func _refresh_briefing() -> void:
 		suggest.pressed.connect(apply_suggested_camo.bind(i))
 		row.add_child(suggest)
 		_briefing_rows.add_child(row)
+
+
+## Ouvre l'écran « Opérateurs » par-dessus la préparation, sur l'opérateur
+## `index` ; à sa fermeture, la préparation reflète les changements.
+func open_operator_editor(index: int) -> void:
+	if operator_editor:
+		return
+	operator_editor = (load(OperatorScreen.SCENE) as PackedScene).instantiate() as OperatorScreen
+	operator_editor.embedded = true
+	operator_editor.start_index = index
+	operator_editor.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(operator_editor)
+	operator_editor.closed.connect(func() -> void:
+		operator_editor = null
+		_refresh_briefing()
+		(briefing.find_child("Launch", true, false) as Button).grab_focus())
 
 
 func _start(level: Dictionary) -> void:
