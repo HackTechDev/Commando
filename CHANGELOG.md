@@ -262,3 +262,10 @@
 
 - Quand un opérateur entre dans un bâtiment, le toit s'efface en fondu et ne fait plus d'ombre : on voit l'intérieur. Les clics traversent le toit effacé pour donner des ordres à l'intérieur. Le toit réapparaît quand plus aucun opérateur n'est dessous, et il reste solide : un opérateur peut toujours se tenir dessus.
 - Les petits escaliers (0,9 m de large) entre le terrain et les tranchées se montent et se descendent : la navigation de `training_b` les prend en compte, et le modèle de l'opérateur suit les marches en douceur au lieu de sauter d'un coup.
+
+## Toits sur toutes les cartes UFO:AI
+
+- Les toits sont aussi repérés sur la Gare du désert (gare, hangars) : le repérage précédent n'en trouvait aucun, car les opérateurs y partent d'une terrasse plus haute que les bâtiments.
+- Bâtiments à étage : au rez-de-chaussée, l'étage et son toit s'effacent aussi ; à l'étage, seul le toit.
+- Les deux pans d'un toit en pente s'effacent ensemble.
+- Sur Entraînement B, les tranchées couvertes laissent aussi voir l'intérieur.

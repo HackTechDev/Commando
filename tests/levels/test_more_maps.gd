@@ -132,7 +132,7 @@ func test_roof_fades_when_an_operator_is_inside() -> void:
 	assert_almost_eq(roof.view.transparency, 1.0, 0.01)
 	assert_true(Roof.is_revealed_body(roof.body), "les clics traversent le toit effacé")
 	for other: Roof in roofs:
-		if other != roof:
+		if other != roof and not other.below.has(roof):
 			assert_false(other.is_revealed(), "les autres toits restent affichés : %s" % other.name)
 	# Le toit effacé reste solide : on peut toujours s'y tenir.
 	var bravo: Commando = node("Units/Bravo")
@@ -146,3 +146,42 @@ func test_roof_fades_when_an_operator_is_inside() -> void:
 	assert_false(roof.is_revealed(), "toit réaffiché, opérateur sorti")
 	assert_eq(roof.view.transparency, 0.0)
 	assert_false(Roof.is_revealed_body(roof.body))
+
+
+func test_station_roofs_fade_floor_by_floor() -> void:
+	# La gare de fighter_crash a un étage : au rez-de-chaussée, l'étage et
+	# son toit s'effacent ; à l'étage, seul le toit.
+	if not await _load("fighter_crash.map"):
+		return
+	for enemy in node("Enemies").get_children():
+		enemy.free()
+	var roofs := level.find_children("Roof*", "Roof", true, false)
+	assert_gte(roofs.size(), 4, "toits des bâtiments repérés")
+	var ground := Vector3(10.35, -2.9, 3.9)
+	var lower: Roof = null
+	for roof: Roof in roofs:
+		if roof.covers(ground):
+			lower = roof
+	assert_not_null(lower, "plafond du rez-de-chaussée de la gare")
+	if lower == null:
+		return
+	var upper: Roof = null
+	for roof: Roof in roofs:
+		if roof.below.has(lower):
+			upper = roof
+	assert_not_null(upper, "toit de l'étage, au-dessus")
+	if upper == null:
+		return
+	var alpha: Commando = node("Units/Alpha")
+	alpha.global_position = ground + Vector3.UP * 0.05
+	alpha.velocity = Vector3.ZERO
+	await frames(60)
+	assert_true(lower.is_revealed(), "rez-de-chaussée visible")
+	assert_true(upper.is_revealed(), "étage effacé aussi")
+	var top := upper.areas[upper.areas.size() / 2].get_center()
+	alpha.global_position = Vector3(top.x, upper.ceilings[upper.areas.size() / 2] - 1.0, top.y)
+	alpha.velocity = Vector3.ZERO
+	await frames(60)
+	assert_true(upper.covers(alpha.global_position), "opérateur à l'étage (%s)" % alpha.global_position)
+	assert_true(upper.is_revealed(), "toit de l'étage effacé")
+	assert_false(lower.is_revealed(), "plancher de l'étage affiché")

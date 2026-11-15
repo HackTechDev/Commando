@@ -11,12 +11,20 @@ extends Node3D
 const FADE_TIME := 0.3
 ## Intervalle entre deux recherches d'opérateurs dessous, en secondes.
 const CHECK_INTERVAL := 0.1
+## Marge (m) sous le sol d'une emprise (pente, marche) pour y être encore.
+const FLOOR_TOLERANCE := 0.5
 
-## Emprises au sol du plafond (rectangles x, z du monde).
+## Emprises au sol de l'intérieur couvert (rectangles x, z du monde), avec la
+## hauteur (y du monde) du sol et du plafond de chacune : un opérateur est
+## « dessous » s'il est dans une emprise, entre son sol et son plafond.
 var areas: Array[Rect2] = []
-## Hauteur (y du monde) du dessous du plafond : un opérateur est « dessous »
-## s'il est dans une emprise et plus bas que ça.
+var floors: Array[float] = []
+var ceilings: Array[float] = []
+## Plafond le plus bas.
 var ceiling: float = 0.0
+## Toits des étages inférieurs du même bâtiment : un opérateur sous l'un
+## d'eux efface aussi celui-ci.
+var below: Array[Roof] = []
 ## Maillage affiché et corps de collision du toit.
 var view: MeshInstance3D
 var body: StaticBody3D
@@ -24,16 +32,16 @@ var body: StaticBody3D
 ## 0 : toit affiché ; 1 : toit effacé.
 var _fade: float = 0.0
 var _occupied: bool = false
+## Un opérateur est directement sous ce toit.
+var _inside: bool = false
 var _check_left: float = 0.0
 
 
 ## Vrai si `point` (pieds d'une unité) est sous ce toit.
 func covers(point: Vector3) -> bool:
-	if point.y >= ceiling:
-		return false
 	var flat := Vector2(point.x, point.z)
-	for area in areas:
-		if area.has_point(flat):
+	for i in areas.size():
+		if areas[i].has_point(flat) and point.y < ceilings[i] and point.y > floors[i] - FLOOR_TOLERANCE:
 			return true
 	return false
 
@@ -47,6 +55,15 @@ static func is_revealed_body(collider: Object) -> bool:
 	return roof != null and roof.body == body and roof._fade > 0.5
 
 
+## Vrai si une emprise de ce toit chevauche une de `other`.
+func overlaps(other: Roof) -> bool:
+	for area in areas:
+		for other_area in other.areas:
+			if area.intersects(other_area):
+				return true
+	return false
+
+
 ## Vrai si le toit est (en train d'être) effacé.
 func is_revealed() -> bool:
 	return _occupied or _fade > 0.0
@@ -56,7 +73,8 @@ func _process(delta: float) -> void:
 	_check_left -= delta
 	if _check_left <= 0.0:
 		_check_left = CHECK_INTERVAL
-		_occupied = _has_operator_below()
+		_inside = _has_operator_below()
+		_occupied = _inside or below.any(func(roof: Roof) -> bool: return roof._inside)
 	var target := 1.0 if _occupied else 0.0
 	if is_equal_approx(_fade, target):
 		return
