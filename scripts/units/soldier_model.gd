@@ -451,6 +451,10 @@ var _fingers: Array = []
 ## Apparence d'un soldat ennemi, tirée au hasard (graine : chemin du nœud) ;
 ## vide pour un opérateur.
 var _guard_look: Dictionary = {}
+## Déplacement mesuré dans le repère du modèle (x : vers la droite, y : vers
+## l'avant), lissé : sert à marcher à reculons ou en pas chassés.
+var _motion := Vector2.ZERO
+var _last_position := Vector3.INF
 ## Visage animé (absent sous un casque fermé : listes vides).
 var _irises: Array[Node3D] = []
 var _lids: Array[Node3D] = []
@@ -754,6 +758,7 @@ func play_hit(from: Vector3 = Vector3.INF, strength: float = 1.0) -> void:
 
 
 func _animate_alive(delta: float) -> void:
+	_measure_motion(delta)
 	var walk := clampf(move_ratio, 0.0, 2.0)
 	var moving := minf(walk, 1.0)
 	var prone := posture == Posture.PRONE
@@ -763,7 +768,7 @@ func _animate_alive(delta: float) -> void:
 		# Cadence liée à la distance parcourue ; à reculons pour tirer.
 		_phase += delta * walk * CRATE_PHASE_RATE * (-1.0 if crate_pull else 1.0)
 	else:
-		_phase += delta * (5.0 + 3.5 * walk) * moving
+		_phase += delta * (5.0 + 3.5 * walk) * moving * (-1.0 if _backward() > 0.5 else 1.0)
 	_play_steps(walk, moving, prone)
 	_crawl = move_toward(_crawl, 1.0 if prone and walk > 0.02 else 0.0, delta * 4.0)
 	var crawl := smoothstep(0.0, 1.0, _crawl)
@@ -843,6 +848,19 @@ func _animate_alive(delta: float) -> void:
 			chest_roll = 0.1 * s * crawl
 			chest_turn = 0.12 * s * crawl
 			hips_y = HIP_HEIGHT
+	# Pas chassés quand il est déplacé de côté (esquive, poussée) : la jambe
+	# du côté du mouvement s'ouvre, l'autre la rejoint.
+	var strafe := _sideways()
+	if strafe > 0.0 and not prone and posture == Posture.STANDING:
+		var lead := signf(_motion.x)
+		var open := 0.22 * maxf(s, 0.0) * strafe
+		var close := 0.08 * maxf(-s, 0.0) * strafe
+		thigh = thigh.lerp(Vector2(0.08, 0.08), strafe)
+		knee = knee.lerp(Vector2(-0.45 * maxf(c, 0.0), -0.45 * maxf(-c, 0.0)), strafe)
+		if lead > 0.0:
+			spread = Vector2(-close, open)
+		else:
+			spread = Vector2(-open, close)
 	# Épauler redresse le buste.
 	lean = lerpf(lean, -0.05, aim)
 	if butt:
@@ -934,6 +952,9 @@ func _animate_alive(delta: float) -> void:
 		thigh += Vector2.ONE * _knee_bend(0.06 * stagger)
 		knee -= Vector2.ONE * 2.0 * _knee_bend(0.06 * stagger)
 		body_pos.z += 0.12 * stagger
+		# Le pied droit recule pour rattraper l'équilibre.
+		thigh.y -= 0.35 * stagger
+		knee.y -= 0.25 * stagger
 		shake += sin(_time * 7.0) * 0.1 * stagger
 	# Caisse : buste penché en avant pour pousser, en arrière pour tirer,
 	# genoux fléchis.
@@ -1141,6 +1162,33 @@ func _animate_alive(delta: float) -> void:
 
 	effort = 1.0 if unarmed_strike or grapple or throwing or shove or strike > 0.0 or (grip > 0.0 and walk > 0.05) else 0.0
 	pain = maxf(maxf(hit * _hit_strength, stagger), 1.0 if grabbed else 0.0)
+
+
+## Mesure le déplacement réel du modèle depuis l'image précédente (le
+## modèle ne connaît pas la vitesse de son unité, seulement `move_ratio`).
+func _measure_motion(delta: float) -> void:
+	if not is_inside_tree() or delta <= 0.0:
+		return
+	var position_now := global_position
+	var moved := Vector3.ZERO if _last_position == Vector3.INF else position_now - _last_position
+	_last_position = position_now
+	# Téléportation (placement, escalade scriptée) : on l'ignore.
+	if moved.length() > 0.5:
+		moved = Vector3.ZERO
+	var local := global_basis.inverse() * (moved / delta)
+	_motion = _motion.lerp(Vector2(local.x, -local.z), 1.0 - exp(-12.0 * delta))
+
+
+## Part du déplacement vers l'arrière (0 à 1).
+func _backward() -> float:
+	var speed := _motion.length()
+	return 0.0 if speed < 0.3 else clampf(-_motion.y / speed, 0.0, 1.0)
+
+
+## Part du déplacement sur le côté (0 à 1), au-delà de la marche en crabe.
+func _sideways() -> float:
+	var speed := _motion.length()
+	return 0.0 if speed < 0.3 else smoothstep(0.55, 0.85, absf(_motion.x) / speed)
 
 
 ## Bruit de pas à chaque pied posé (deux par cycle), plus fort en courant,

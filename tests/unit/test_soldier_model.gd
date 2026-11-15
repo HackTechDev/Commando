@@ -93,3 +93,25 @@ func test_enemies_have_their_own_kit() -> void:
 	assert_null(guard.find_child("NvgTube*", true, false), "pas de JVN")
 	assert_null(guard.find_child("Backpack", true, false))
 	assert_not_null(guard.find_child("Magazine", true, false), "fusil à chargeur courbe")
+
+
+## Déplace le modèle de `velocity` (repère du modèle) pendant `seconds`.
+func _slide(velocity: Vector3, seconds: float) -> void:
+	model.move_ratio = velocity.length() / 1.6
+	for i in int(seconds * 60.0):
+		model.position += velocity / 60.0
+		model._process(1.0 / 60.0)
+
+
+func test_pushed_sideways_or_back_it_steps_instead_of_sliding() -> void:
+	_run(0.2)
+	_slide(Vector3(1.5, 0.0, 0.0), 0.5)
+	var legs_apart: float = absf(model._leg_r.rotation.z) + absf(model._leg_l.rotation.z)
+	assert_gt(model._sideways(), 0.9, "déplacement latéral mesuré")
+	model._phase = 0.0
+	_slide(Vector3(1.5, 0.0, 0.0), 0.4)
+	assert_gt(legs_apart + absf(model._leg_r.rotation.z) + absf(model._leg_l.rotation.z), 0.1, "pas chassés")
+	var phase: float = model._phase
+	_slide(Vector3(0.0, 0.0, 1.5), 0.6)
+	assert_gt(model._backward(), 0.9, "recul mesuré")
+	assert_lt(model._phase, phase, "foulée à reculons")

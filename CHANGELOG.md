@@ -340,3 +340,4 @@
   - gilet à quatre porte-chargeurs et bretelles croisées, radio pour certains ;
   - fusil d'assaut à crosse en bois et chargeur courbe ;
   - ni JVN, ni cagoule, ni sac.
+- Déplacements subis : l'opérateur repoussé recule pas à pas, l'esquive se fait en pas chassés, et un soldat déséquilibré recule d'un pied. Le corps ne glisse plus avec une marche en avant.
