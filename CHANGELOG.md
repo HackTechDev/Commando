@@ -513,3 +513,10 @@
 ## Écran de fin et redémarrage
 
 - À la fin d'une mission (VIP évacué ou tué, opérateur tué), un écran annonce « MISSION RÉUSSIE » ou « MISSION ÉCHOUÉE » avec la raison (« ÉCHEC — Bravo tué »), après un court délai, jeu en pause. Il propose de recommencer (le niveau est rechargé), de continuer à jouer, ou de revenir au menu.
+
+## Journal d'objectifs, minicarte, options (5.7)
+
+- `Objectives` suit les objectifs du niveau (catalogue) : en cours, rempli, échoué. Toutes les sentinelles neutralisées ou un opérateur tué terminent la mission ; la mort du VIP fait échouer son objectif.
+- Journal d'objectifs en haut à droite (O), affiché quelques secondes au début de la partie.
+- Minicarte en haut à gauche (touche à droite de L : M sur AZERTY) : aperçu de la carte, opérateurs, VIP, ennemis (gris s'ils sont assommés), champ de la caméra ; un clic y centre la caméra.
+- Menu pause : bouton « Options » (volumes général, musique, effets ; plein écran ; défilement aux bords de l'écran), enregistrées dans `user://settings.cfg`.

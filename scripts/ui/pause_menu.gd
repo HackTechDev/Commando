@@ -110,11 +110,9 @@ func _build() -> void:
 	_button(column, "Help", "Aide", func() -> void:
 		close(true)
 		help_requested.emit())
-	# Options : voir le point 5.7.
-	var options := _button(column, "Options", "Options", func() -> void:
+	_button(column, "Options", "Options", func() -> void:
 		close(true)
 		options_requested.emit())
-	options.visible = false
 	_button(column, "Menu", "Menu principal", func() -> void:
 		close(true)
 		menu_requested.emit())

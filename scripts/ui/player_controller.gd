@@ -307,6 +307,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				menu.open()
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed(&"toggle_objectives") or event.is_action_pressed(&"toggle_minimap"):
+		var hud := get_parent() as Hud
+		if hud and event.is_action_pressed(&"toggle_objectives"):
+			hud.objectives_panel.toggle()
+		elif hud:
+			hud.minimap.visible = not hud.minimap.visible
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(&"toggle_help"):
 		var help := get_node_or_null(^"../HelpOverlay") as HelpOverlay
 		if help:

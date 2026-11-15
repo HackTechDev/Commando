@@ -40,7 +40,9 @@ const SECTIONS: Array = [
 		[[&"tactical_pause"], "Pause tactique (les ordres restent possibles)"],
 		[[&"plan_orders"], "Ordres simultanés : préparer"],
 		[[&"execute_orders"], "Ordres simultanés : exécuter"],
-		[[&"ui_cancel"], "Menu pause (reprendre, recommencer…)"],
+		[[&"ui_cancel"], "Menu pause (reprendre, recommencer, options…)"],
+		[[&"toggle_objectives"], "Journal des objectifs"],
+		[[&"toggle_minimap"], "Minicarte (clic : centrer la caméra)"],
 	]],
 	["Caméra", [
 		[[&"camera_forward", &"camera_left", &"camera_back", &"camera_right"], "Déplacer (aussi : flèches, bord d'écran)"],

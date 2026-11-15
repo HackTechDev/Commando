@@ -92,7 +92,7 @@ func focus_on(world_position: Vector3) -> void:
 
 
 func _edge_scroll() -> Vector2:
-	if not edge_scroll_enabled or not get_window().has_focus():
+	if not edge_scroll_enabled or not Settings.edge_scroll() or not get_window().has_focus():
 		return Vector2.ZERO
 	var viewport := get_viewport()
 	var size := viewport.get_visible_rect().size

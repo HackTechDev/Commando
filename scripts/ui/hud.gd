@@ -34,6 +34,12 @@ var help: HelpOverlay
 var pause_menu: PauseMenu
 ## Écran de fin de mission.
 var end_screen: EndScreen
+## Objectifs de la mission, leur journal (O), la minicarte (M) et les
+## options (menu pause).
+var objectives: Objectives
+var objectives_panel: ObjectivesPanel
+var minimap: Minimap
+var options: OptionsPanel
 
 
 func _ready() -> void:
@@ -80,6 +86,7 @@ func _ready() -> void:
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
 	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")
+	_build_mission_panels()
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
 	pause_menu.restart_requested.connect(restart_mission)
@@ -97,7 +104,35 @@ func _ready() -> void:
 	add_child(help)
 	pause_menu.help_requested.connect(help.open)
 	help.closed.connect(_back_to_pause_menu)
+	options = OptionsPanel.new()
+	add_child(options)
+	pause_menu.options_requested.connect(options.open)
+	options.closed.connect(_back_to_pause_menu)
 	_refresh_actions()
+
+
+## Objectifs (d'après le catalogue des niveaux), leur journal en haut à
+## droite, et la minicarte en haut à gauche.
+func _build_mission_panels() -> void:
+	var level := get_parent() as Node3D
+	var key := ""
+	if level is LevelRoot:
+		key = (level as LevelRoot).level_key()
+	objectives = Objectives.new()
+	add_child(objectives)
+	objectives.setup(LevelCatalog.objectives_of(LevelCatalog.find(key)))
+	objectives_panel = ObjectivesPanel.new()
+	_controller.add_child(objectives_panel)
+	objectives_panel.setup(objectives)
+	# En haut à droite, sous l'alerte, à sa taille minimale.
+	objectives_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
+	objectives_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	objectives_panel.offset_top = 60.0
+	minimap = Minimap.new()
+	_controller.add_child(minimap)
+	if level:
+		minimap.setup(level, key)
+	minimap.position = Vector2(16, 44)
 
 
 ## Recommence la mission : la scène du niveau est rechargée.

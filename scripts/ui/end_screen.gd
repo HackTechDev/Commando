@@ -33,14 +33,8 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
+	# La mort d'un opérateur est annoncée par les objectifs (`Objectives`).
 	EventBus.mission_ended.connect(_on_mission_ended)
-	EventBus.unit_died.connect(_on_unit_died)
-
-
-func _on_unit_died(unit: Node3D) -> void:
-	var commando := unit as Commando
-	if commando:
-		_on_mission_ended(false, "ÉCHEC — %s tué" % commando.display_name)
 
 
 func _on_mission_ended(won: bool, text: String) -> void:
