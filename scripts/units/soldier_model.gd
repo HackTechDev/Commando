@@ -270,6 +270,7 @@ const IRIS_REST := Vector3(0.036, 0.192, -0.098)
 ## Échelle verticale de la paupière, œil ouvert (1 : fermé).
 const LID_OPEN := 0.08
 const BLINK_DURATION := 0.16
+const MOUTH_REST := Vector3(1.5, 0.32, 0.5)
 
 @export var uniform_color := Color(0.30, 0.33, 0.24)
 @export var gear_color := Color(0.16, 0.17, 0.14)
@@ -457,6 +458,14 @@ var _gaze_idle := Vector2.ZERO
 var _gaze := Vector2.ZERO
 ## Yeux mi-clos (douleur), de 0 à 1.
 var _squint: float = 0.0
+var _mouth: MeshInstance3D
+var _mouth_inner: MeshInstance3D
+## Expression : effort (frappe, lancer, escalade, caisse) et douleur (coup
+## encaissé, prise, déséquilibre), de 0 à 1, visées puis lissées.
+var effort: float = 0.0
+var pain: float = 0.0
+var _effort: float = 0.0
+var _pain: float = 0.0
 var _curl := Vector2(0.4, 0.4)
 var _time: float = 0.0
 
@@ -499,6 +508,8 @@ func _rebuild() -> void:
 	_irises.clear()
 	_lids.clear()
 	_brows.clear()
+	_mouth = null
+	_mouth_inner = null
 	_butt_keys.clear()
 	_build()
 
@@ -1114,6 +1125,9 @@ func _animate_alive(delta: float) -> void:
 		curl.x = 0.85
 	_animate_fingers(curl, delta)
 
+	effort = 1.0 if unarmed_strike or grapple or throwing or shove or strike > 0.0 or (grip > 0.0 and walk > 0.05) else 0.0
+	pain = maxf(maxf(hit * _hit_strength, stagger), 1.0 if grabbed else 0.0)
+
 
 ## Bruit de pas à chaque pied posé (deux par cycle), plus fort en courant,
 ## plus discret accroupi ; bruissement en rampant.
@@ -1322,6 +1336,9 @@ func _animate_death(delta: float) -> void:
 	_hand_grenade.visible = false
 	_update_magazines()
 	_animate_fingers(Vector2(0.3, 0.3), delta)
+	# Grimace pendant la chute, puis visage détendu.
+	effort = 0.0
+	pain = 1.0 - smoothstep(0.6, 1.4, t)
 
 
 ## Retire ou rend la carabine. Sans arme, la pose de repos des bras devient
@@ -1386,6 +1403,8 @@ func _animate_climb(delta: float) -> void:
 	_rifle.transform = _sling_transform(_rifle_hold, sling)
 	_rifle_base = _rifle.transform
 	_apply_arm_keys(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t)
+	effort = 0.0 if down else 1.0
+	pain = 0.0
 	_animate_fingers(_climb_curl(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t), delta)
 
 
@@ -1677,7 +1696,11 @@ func _build_face() -> void:
 	_ellipsoid(_head, 0.014, Vector3(1.25, 0.9, 1.0), Vector3(0.0, 0.147, -0.111), _m_skin)
 	var beard := &"none" if outfit == null else outfit.beard
 	var lips_depth := {&"none": -0.108, &"stubble": -0.116, &"full": -0.131}[beard] as float
-	_ellipsoid(_head, 0.02, Vector3(1.5, 0.32, 0.5), Vector3(0.0, 0.119, lips_depth), _m_lip).name = "Mouth"
+	_mouth = _ellipsoid(_head, 0.02, MOUTH_REST, Vector3(0.0, 0.119, lips_depth), _m_lip)
+	_mouth.name = "Mouth"
+	# Intérieur de la bouche, visible quand elle s'ouvre (douleur).
+	_mouth_inner = _ellipsoid(_head, 0.016, Vector3(1.2, 0.01, 0.4), Vector3(0.0, 0.118, lips_depth - 0.004), _m_dark)
+	_mouth_inner.visible = false
 	var style := &"short" if outfit == null else outfit.hair_style
 	# Sous un couvre-chef, seuls l'arrière du crâne et la queue de cheval
 	# dépassent.
@@ -1791,6 +1814,10 @@ func _animate_face(delta: float) -> void:
 		_blink_time = 0.0
 	_blink_time += delta
 	var blink := 1.0 - absf(_blink_time / BLINK_DURATION * 2.0 - 1.0) if _blink_time < BLINK_DURATION else 0.0
+	_effort = lerpf(_effort, effort, 1.0 - exp(-10.0 * delta))
+	_pain = lerpf(_pain, pain, 1.0 - exp(-(16.0 if pain > _pain else 4.0) * delta))
+	_squint = 0.55 * _pain + 0.3 * _effort
+	_animate_expression()
 	var closed := maxf(blink, _squint)
 	if is_dead:
 		closed = 1.0
@@ -1811,6 +1838,19 @@ func _animate_face(delta: float) -> void:
 	for i in _irises.size():
 		var side := -1.0 if i == 0 else 1.0
 		_irises[i].position = IRIS_REST * Vector3(side, 1.0, 1.0) + Vector3(_gaze.x * 0.0045, _gaze.y * 0.0022, 0.0)
+
+
+## Sourcils froncés (effort) ou relevés au milieu (douleur), lèvres serrées
+## ou bouche ouverte.
+func _animate_expression() -> void:
+	for i in _brows.size():
+		var side := -1.0 if i == 0 else 1.0
+		_brows[i].position.y = 0.211 - 0.004 * _effort + 0.003 * _pain
+		_brows[i].rotation.z = side * (-0.12 + 0.42 * _effort - 0.35 * _pain)
+	if _mouth:
+		_mouth.scale = MOUTH_REST + Vector3(0.25 * _effort - 0.2 * _pain, -0.12 * _effort + 0.4 * _pain, 0.05 * _pain)
+		_mouth_inner.visible = _pain > 0.1
+		_mouth_inner.scale.y = maxf(0.75 * _pain, 0.01)
 
 
 ## Lacet de la tête vers `look_target` (repère du modèle), borné à ±`limit`.

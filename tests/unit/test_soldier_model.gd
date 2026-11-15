@@ -48,3 +48,20 @@ func test_eyes_follow_the_target_and_close_when_dead() -> void:
 	model.is_dead = true
 	_run(0.2)
 	assert_almost_eq(lid.scale.y, 1.0, 0.01, "yeux fermés une fois mort")
+
+
+func test_face_shows_effort_and_pain() -> void:
+	var outfit := OperatorProfile.defaults(0)
+	outfit.balaclava = false
+	model.outfit = outfit
+	model._rebuild()
+	var mouth: Node3D = model.find_child("Mouth", true, false)
+	_run(0.5)
+	var rest := mouth.scale.y
+	model.strike_progress = 0.3
+	_run(0.3)
+	assert_lt(mouth.scale.y, rest, "lèvres serrées pendant l'effort")
+	model.strike_progress = -1.0
+	model.grabbed = true
+	_run(0.5)
+	assert_gt(mouth.scale.y, rest * 1.5, "bouche ouverte de douleur")

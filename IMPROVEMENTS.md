@@ -128,7 +128,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **6.1 Corps, suite** :
   - **a)** ~~doigts articulés autour des armes et des objets~~ (fait) ;
   - **b)** ~~clignement des yeux et regard qui suit la cible~~ (fait) ;
-  - **c)** expressions (effort, douleur) ;
+  - **c)** ~~expressions (effort, douleur)~~ (fait) ;
   - **d)** plis et coutures sur les vêtements (texture) ;
   - **e)** silhouette propre à chaque spécialité.
 - **6.2 Silhouette des ennemis** : ils ont désormais le même corps que les opérateurs (membres galbés, mains gantées, visage), mais toujours l'ancien casque générique. Leur donner un équipement propre (casquette, casque plus ancien, gilet différent), pour les reconnaître d'un coup d'œil.
