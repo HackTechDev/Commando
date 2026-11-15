@@ -33,7 +33,7 @@ func _tally(alpha: Commando, enemy: Enemy, count: int) -> Dictionary:
 		if enemy.is_attacking() and not was_attacking:
 			tally["attacks"] += 1
 		was_attacking = enemy.is_attacking()
-		var defending := alpha._defend_left > 0.0
+		var defending := alpha.is_defending()
 		if defending and not was_defending:
 			var move: SoldierModel.DefendMove = alpha.get_node("SoldierModel").defend_move
 			tally["parry" if move == SoldierModel.DefendMove.PARRY else "dodge"] += 1

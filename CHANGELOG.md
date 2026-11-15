@@ -353,3 +353,11 @@
 - M249 : mitrailleuse légère, bande de 100 cartouches. Elle est lourde (8 kg), bruyante, peu précise de loin et longue à recharger.
 - Chaque arme a son modèle 3D, son poids et ses réglages de tir. La comparaison des armes de l'écran « Opérateurs » montre maintenant une ligne par arme.
 - Corrigé : une erreur pouvait survenir quand un son était joué juste après un changement de niveau (voix libérée avec l'ancienne scène).
+
+## Actions des opérateurs restructurées
+
+- Ce que fait un opérateur est désormais une action (`scripts/units/actions/`). Chaque ordre (déplacement, attaque, approche d'escalade, de corps à corps ou de lancer, caisse) et chaque geste (frappe, lancer, charge, soins, ramassage, parade, recul) a sa classe et sa propre remise à zéro.
+- Petits changements de comportement :
+  - un couteau de lancer déjà lancé part même si un nouvel ordre arrive pendant le geste ;
+  - un opérateur occupé à lancer ou à ramasser encaisse les coups au lieu de parer ;
+  - poser une charge ou soigner est abandonné pour parer ou esquiver.

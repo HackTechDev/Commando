@@ -1,6 +1,11 @@
 class_name Commando
 extends CharacterBody3D
 ## Unité contrôlable par le joueur : déplacement par navigation et postures.
+## Ce qu'elle fait est décrit par deux actions (`CommandoAction`) : l'ordre
+## en cours (`_order` : se déplacer, attaquer, s'approcher pour grimper,
+## frapper ou lancer, tenir une caisse) et le geste en cours (`_gesture` :
+## frappe, lancer, pose de charge, soins, ramassage, parade, recul), qui passe
+## avant l'ordre. Voir `scripts/units/actions/`.
 
 signal selected_changed(is_selected: bool)
 signal posture_changed(posture: SoldierModel.Posture)
@@ -17,31 +22,12 @@ const MELEE_RANGE := 1.3
 const STRIKE_HIT_TIME := 0.45
 ## Marge tolérée si la cible s'éloigne pendant l'élan.
 const STRIKE_REACH_MARGIN := 0.4
-## Instants (0 à 1) où l'étranglement et l'égorgement neutralisent la victime.
-const CHOKE_HIT_TIME := 0.85
-const THROAT_CUT_HIT_TIME := 0.6
-## Durée (s) du glissement de l'opérateur contre la victime d'une prise.
-const GRAB_SLIDE_TIME := 0.15
-## Caisse : distance au point de prise à partir de laquelle l'opérateur s'y
-## glisse sans navigation, et intervalle entre deux bruits de frottement.
-const CRATE_GRIP_REACH := 0.75
-const CRATE_NOISE_INTERVAL := 0.5
-## Repoussé par un ennemi en alerte : recul (m) et durée du recul (s).
-const REPEL_DISTANCE := 1.0
-const REPEL_TIME := 0.35
-## Réaction d'un opérateur repoussé ou frappé.
-const SHOVED_HIT_STRENGTH := 1.8
-## Esquive : pas de côté (m) et sa durée (s).
-const DODGE_DISTANCE := 0.5
-const DODGE_TIME := 0.3
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
 const BLOCKED_RATIO := 0.4
 const SIDESTEP_RATIO := 0.7
 ## Part de la vitesse au sol utilisée pour marcher d'une caisse à l'autre.
 const CRATE_WALK_RATIO := 0.6
-const CLIMB_START_DISTANCE := 0.4
-const CLIMB_REACH := 1.2
 # Avancée et élévation du corps pendant l'escalade, par paires (instant,
 # fraction du trajet), calées sur les images clés de `SoldierModel`.
 const CLIMB_UP_FORWARD: Array[float] = [0, 0, 0.12, 0.069, 0.26, 0.194, 0.45, 0.312, 0.54, 0.3, 0.62, 0.344, 0.72, 0.5, 0.84, 0.75, 1, 1]
@@ -59,9 +45,6 @@ const JUMP_TAKEOFF := 0.26
 const JUMP_LANDING := 0.62
 ## Vitesse verticale d'impulsion (en part du dénivelé, vers le haut).
 const JUMP_LIFT := 0.1
-const STUCK_PROGRESS := 0.05
-const STUCK_DELAY := 0.6
-const STUCK_GOAL_DISTANCE := 2.0
 
 @export var stats: UnitStats
 ## Numéro de l'unité dans l'escouade (touches 1 à 6).
@@ -99,64 +82,16 @@ var using_secondary: bool = false
 var perched_on: Climbable
 
 var _running: bool = false
-var _has_order: bool = false
-var _attack_target: Enemy
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
-var _climb_target: Climbable
-## Suite à donner une fois monté sur `_climb_target`.
-var _climb_then: Callable
-var _melee_target: Enemy
-var _melee_kind: MeleeKind = MeleeKind.KNIFE
-## Caisse à saisir (approche), côté choisi (direction du centre vers
-## l'opérateur), caisse tenue, position visée pour la caisse.
-var _crate_target: Climbable
-var _crate_side: Vector3
-var _crate: Climbable
-var _crate_goal: Vector3
-var _crate_moving: bool = false
-var _crate_noise_left: float = 0.0
-## Lancer de couteau : cible, temps restant du geste, couteau parti.
-var _throw_target: Enemy
-var _throw_left: float = 0.0
-var _throw_released: bool = false
-## Point visé par une grenade (INF : aucun lancer en cours).
-var _grenade_target: Vector3 = Vector3.INF
-var _throwing_grenade: bool = false
-## Pose d'une charge et soins en cours (temps restant).
-var _plant_left: float = 0.0
-var _heal_left: float = 0.0
-var _heal_target: Commando
+## Ordre en cours et geste en cours (null : aucun).
+var _order: CommandoAction
+var _gesture: CommandoAction
 var _gear_noise_left: float = 0.0
 ## Réglages des deux armes, et munitions (chargeur, réserve) de celle rangée.
 var _primary_stats: UnitStats
 var _secondary_stats: UnitStats
 var _holstered_ammo := Vector2i.ZERO
-var _strike_target: Enemy
-var _strike_kind: MeleeKind = MeleeKind.KNIFE
-var _strike_left: float = 0.0
-var _strike_landed: bool = false
-## Durée et instant d'impact (0 à 1) de la frappe en cours.
-var _strike_duration: float = 1.0
-var _strike_hit_time: float = STRIKE_HIT_TIME
-## Prise par derrière en cours (étranglement, égorgement) et glissement de
-## l'opérateur vers sa place, juste derrière la victime.
-var _grapple: bool = false
-var _grab_from: Vector3
-var _grab_to: Vector3
-var _climb_point: Vector3
-## Déplacement subi (repoussé, esquive) : délai avant, durée, vitesse
-## initiale, et position de l'assaillant pour la réaction (INF : aucune).
-var _push_delay: float = 0.0
-var _push_left: float = 0.0
-var _push_time: float = 1.0
-var _push_velocity: Vector3
-var _push_hit_from: Vector3 = Vector3.INF
-## Parade ou esquive en cours face à `_defend_enemy`.
-var _defend_left: float = 0.0
-var _defend_enemy: Enemy
-## Temps restant du geste de ramassage (immobile).
-var _pickup_left: float = 0.0
 ## Choix du joueur : arme à la bretelle (mains libres) plutôt qu'en main.
 ## Un ordre d'attaque ou de rechargement la fait reprendre en main.
 var weapon_slung: bool = false:
@@ -171,8 +106,6 @@ var _vertical_velocity: float = 0.0
 var _last_health: float = INF
 var _wants_to_move: bool = false
 var _desired_velocity: Vector3
-var _stuck_time: float = 0.0
-var _best_goal_distance: float = INF
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 ## Suivi de chemin sur terrain inégal (points bloqués, marches basses).
 var _walker := PathWalker.new()
@@ -233,62 +166,31 @@ func _exit_tree() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	# Mains libres pour grimper ou jouer du couteau : arme à la bretelle.
-	# Pour assommer, l'arme reste comme le joueur l'a choisie (crosse ou mains nues).
-	var knife := (_melee_target != null and _melee_kind == MeleeKind.KNIFE) or (_strike_left > 0.0 and (_strike_kind == MeleeKind.KNIFE or _grapple)) \
-			or _throw_target != null or _grenade_target != Vector3.INF or _plant_left > 0.0 or _heal_left > 0.0
-	var crate := _crate_target != null or _crate != null
-	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or _climb_target != null or knife or crate)
+	# Mains libres pour grimper, jouer du couteau, lancer, poser une charge,
+	# soigner ou tenir une caisse : arme à la bretelle. Pour assommer, l'arme
+	# reste comme le joueur l'a choisie (crosse ou mains nues).
+	var hands_free := (_order != null and _order.hands_free()) or (_gesture != null and _gesture.hands_free())
+	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or hands_free)
 	_update_reload(delta)
-	_model.aiming = not is_dead and is_instance_valid(_attack_target) and not _attack_target.is_dead
+	_model.aiming = not is_dead and _order is AttackOrder and (_order as AttackOrder).is_aiming()
 	_model.look_target = _look_point()
 	if _hopping:
 		return
-	if _crate and not is_dead:
-		_update_crate(delta)
+	if is_handling_crate() and not is_dead:
+		_run(_order, delta)
 		return
 	var horizontal := Vector3.ZERO
 	if is_dead:
 		pass
-	elif _defend_left > 0.0:
-		horizontal = _update_defend(delta)
-	elif _push_delay > 0.0 or _push_left > 0.0:
-		horizontal = _update_push(delta)
-	elif _pickup_left > 0.0:
-		_pickup_left = maxf(_pickup_left - delta, 0.0)
-	elif _strike_left > 0.0:
-		_update_strike(delta)
-	elif _throw_left > 0.0:
-		_update_throw(delta)
-	elif _plant_left > 0.0:
-		_update_plant(delta)
-	elif _heal_left > 0.0:
-		_update_heal(delta)
-	elif _climb_target:
-		horizontal = _approach_climb()
-		if horizontal != Vector3.ZERO:
-			_face(horizontal, delta)
-	elif _melee_target:
-		horizontal = _approach_melee(delta)
-	elif _throw_target:
-		horizontal = _approach_throw(delta)
-	elif _grenade_target != Vector3.INF:
-		horizontal = _approach_grenade(delta)
-	elif _crate_target:
-		horizontal = _approach_crate(delta)
-	elif _attack_target:
-		horizontal = _attack(delta)
-	elif _has_order:
-		if _agent.is_navigation_finished():
-			_has_order = false
-		else:
-			horizontal = _follow_path(delta)
+	elif _gesture:
+		horizontal = _run(_gesture, delta)
+	elif _order:
+		horizontal = _run(_order, delta)
 
 	# Se coucher ou se relever immobilise l'unité un instant.
 	if _model.is_changing_posture():
 		horizontal = Vector3.ZERO
 	_vertical_velocity = 0.0 if is_on_floor() else velocity.y - _gravity * delta
-	_update_stuck(delta, horizontal)
 	_wants_to_move = horizontal != Vector3.ZERO
 	_desired_velocity = horizontal
 	_update_gear_noise(delta)
@@ -301,13 +203,63 @@ func _physics_process(delta: float) -> void:
 		_apply_velocity(horizontal)
 
 
-## Ce que l'opérateur regarde : l'ennemi visé ou attaqué, le point d'un
-## lancer de grenade, sinon rien (`Vector3.INF`).
+## Avance `action` d'une image ; une fois terminée, elle laisse la place à
+## sa suite éventuelle. Renvoie la vitesse horizontale voulue.
+func _run(action: CommandoAction, delta: float) -> Vector3:
+	var horizontal := action.update(delta)
+	if action.done:
+		if action == _gesture:
+			_gesture = null
+		elif action == _order:
+			_order = null
+		if action.next:
+			_start(action.next)
+	return horizontal
+
+
+## Fait de `action` l'ordre ou le geste en cours.
+func _start(action: CommandoAction) -> void:
+	if action.gesture:
+		if _gesture:
+			_gesture.cancel()
+		_gesture = action
+	else:
+		_set_order(action)
+		return
+	action.start()
+
+
+## Remplace l'ordre en cours par `order` (null : aucun). Un geste
+## interruptible (pose de charge, soins) est annulé ; les autres vont à leur
+## terme, puis l'ordre commence.
+func _set_order(order: CommandoAction) -> void:
+	if _order and _order != order:
+		_order.cancel()
+	_order = order
+	if _gesture and _gesture.interruptible:
+		_gesture.cancel()
+		_gesture = null
+	if order:
+		order.start()
+
+
+## Abandonne toutes les actions (mort de l'unité).
+func _cancel_actions() -> void:
+	if _gesture:
+		_gesture.cancel()
+		_gesture = null
+	if _order:
+		_order.cancel()
+		_order = null
+
+
+## Ce que l'opérateur regarde : la cible du geste en cours, sinon celle de
+## l'ordre (ennemi visé ou attaqué, point d'un lancer de grenade), sinon rien
+## (`Vector3.INF`).
 func _look_point() -> Vector3:
-	for enemy: Enemy in [_defend_enemy, _strike_target, _melee_target, _throw_target, _attack_target]:
-		if is_instance_valid(enemy) and not enemy.is_dead:
-			return enemy.global_position + Vector3.UP * 1.5
-	return _grenade_target
+	if _gesture and _gesture.look_point() != Vector3.INF:
+		return _gesture.look_point()
+	return _order.look_point() if _order else Vector3.INF
 
 
 ## Applique la vitesse horizontale (éventuellement corrigée par l'évitement).
@@ -315,7 +267,7 @@ func _apply_velocity(horizontal: Vector3) -> void:
 	# Pendant une escalade, une traversée de caisses ou le déplacement d'une
 	# caisse, le déplacement et l'animation sont scriptés : la physique (et
 	# l'évitement, qui rappelle cette fonction) ne doit pas s'en mêler.
-	if _hopping or _crate:
+	if _hopping or is_handling_crate():
 		return
 	# Une unité à l'arrêt ne se laisse pas pousser par l'évitement.
 	if not _wants_to_move:
@@ -337,46 +289,19 @@ func _apply_velocity(horizontal: Vector3) -> void:
 	_model.move_ratio = Vector2(velocity.x, velocity.z).length() / stats.walk_speed
 
 
-## Abandonne un ordre de déplacement dont la destination est occupée par une
-## autre unité : près du but et sans s'en rapprocher, on considère qu'on est arrivé.
-func _update_stuck(delta: float, desired: Vector3) -> void:
-	if not _has_order or desired == Vector3.ZERO:
-		_stuck_time = 0.0
-		_best_goal_distance = INF
-		return
-	var goal_distance := global_position.distance_to(_agent.target_position)
-	if goal_distance < _best_goal_distance - STUCK_PROGRESS:
-		_best_goal_distance = goal_distance
-		_stuck_time = 0.0
-	elif goal_distance < STUCK_GOAL_DISTANCE:
-		_stuck_time += delta
-		if _stuck_time > STUCK_DELAY:
-			_has_order = false
-			_stuck_time = 0.0
-			_best_goal_distance = INF
-
-
 ## Ordonne un déplacement vers `target`. `run` n'a d'effet que debout.
 func move_to(target: Vector3, run: bool) -> void:
 	if is_dead or _hopping:
 		return
-	if _crate:
+	if is_handling_crate():
 		# Mains sur une caisse : l'ordre de déplacement la pousse ou la tire.
-		_set_crate_goal(target)
+		(_order as CrateHoldOrder).set_goal(target)
 		return
-	_crate_target = null
-	_climb_target = null
-	_melee_target = null
-	_cancel_tasks()
 	if perched_on:
+		_set_order(null)
 		_descend(target, move_to.bind(target, run))
 		return
-	_attack_target = null
-	_throw_target = null
-	_running = run
-	_has_order = true
-	_best_goal_distance = INF
-	_agent.target_position = target
+	_set_order(MoveOrder.new(self, target, run))
 
 
 ## Ordonne d'attaquer `enemy` : l'unité s'approche jusqu'à avoir une ligne de
@@ -384,16 +309,8 @@ func move_to(target: Vector3, run: bool) -> void:
 func attack(enemy: Enemy, run: bool) -> void:
 	if is_dead or _hopping or enemy == null or enemy.is_dead or not _ready_to_fire():
 		return
-	_release_crate()
-	_cancel_tasks()
 	weapon_slung = false
-	_climb_target = null
-	_melee_target = null
-	_throw_target = null
-	_has_order = false
-	_running = run
-	_attack_target = enemy
-	_fire_cooldown = stats.aim_time
+	_set_order(AttackOrder.new(self, enemy, run))
 
 
 ## Ordonne de grimper sur `target`. Renvoie faux si c'est impossible
@@ -409,8 +326,7 @@ func climb(target: Climbable, run: bool) -> bool:
 		return false
 	if target.handler != null:
 		return false
-	_release_crate()
-	_cancel_tasks()
+	_set_order(null)
 	if perched_on:
 		var route := _route_across(perched_on, target)
 		if not route.is_empty():
@@ -429,15 +345,7 @@ func climb(target: Climbable, run: bool) -> bool:
 	var access := target.get_nearest_access(global_position)
 	if not access["found"]:
 		return false
-	_has_order = false
-	_attack_target = null
-	_melee_target = null
-	_throw_target = null
-	_running = run
-	_climb_target = target
-	_climb_then = then
-	_climb_point = access["point"]
-	_agent.target_position = _climb_point
+	_set_order(ClimbOrder.new(self, target, access["point"], then, run))
 	return true
 
 
@@ -455,7 +363,7 @@ func is_reloading() -> bool:
 func reload() -> void:
 	if is_dead or is_reloading() or ammo_reserve <= 0 or ammo_in_magazine >= stats.magazine_size:
 		return
-	_release_crate()
+	release_crate()
 	weapon_slung = false
 	_reload_left = stats.reload_time
 	EventBus.unit_ammo_changed.emit(self)
@@ -472,15 +380,7 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 		return false
 	if perched_on:
 		return _descend(enemy.global_position, melee.bind(enemy, kind, run))
-	_release_crate()
-	_cancel_tasks()
-	_has_order = false
-	_attack_target = null
-	_climb_target = null
-	_throw_target = null
-	_running = run
-	_melee_target = enemy
-	_melee_kind = kind
+	_set_order(MeleeOrder.new(self, enemy, kind, run))
 	return true
 
 
@@ -492,14 +392,7 @@ func throw_knife(enemy: Enemy, run: bool = false) -> bool:
 		return false
 	if perched_on and not _can_throw_at(enemy):
 		return _descend(enemy.global_position, throw_knife.bind(enemy, run))
-	_release_crate()
-	_cancel_tasks()
-	_has_order = false
-	_attack_target = null
-	_climb_target = null
-	_melee_target = null
-	_running = run
-	_throw_target = enemy
+	_set_order(KnifeThrowOrder.new(self, enemy, run))
 	return true
 
 
@@ -510,9 +403,9 @@ func pick_up_knife() -> bool:
 	throwing_knives += 1
 	EventBus.unit_ammo_changed.emit(self)
 	Sfx.play_at(&"clink", global_position, -12.0)
-	# Il s'arrête le temps de se baisser ; son ordre reprend ensuite.
-	_model.play_pickup()
-	_pickup_left = SoldierModel.PICKUP_DURATION
+	# Il se baisse s'il n'est pas déjà occupé ; son ordre reprend ensuite.
+	if _gesture == null and not _hopping:
+		_start(PickupGesture.new(self))
 	return true
 
 
@@ -560,15 +453,7 @@ func throw_grenade(target: Vector3, run: bool = false) -> bool:
 		return false
 	if perched_on and not _in_grenade_range(target):
 		return _descend(target, throw_grenade.bind(target, run))
-	_release_crate()
-	_cancel_tasks()
-	_has_order = false
-	_attack_target = null
-	_climb_target = null
-	_melee_target = null
-	_throw_target = null
-	_running = run
-	_grenade_target = target
+	_set_order(GrenadeOrder.new(self, target, run))
 	return true
 
 
@@ -578,79 +463,30 @@ func _in_grenade_range(target: Vector3) -> bool:
 	return offset.length() <= stats.grenade_range
 
 
-func _approach_grenade(delta: float) -> Vector3:
+## Lâche une grenade vers `target` (instant du lancer de `ThrowGesture`).
+func _release_grenade(target: Vector3) -> void:
 	if grenades <= 0:
-		_grenade_target = Vector3.INF
-		return Vector3.ZERO
-	var to_target := _grenade_target - global_position
-	to_target.y = 0.0
-	if _in_grenade_range(_grenade_target):
-		if to_target.length() > 0.05:
-			_face(to_target, delta)
-		if posture == SoldierModel.Posture.PRONE:
-			posture = SoldierModel.Posture.CROUCHED
-		if _model.is_weapon_slung() and not _model.is_changing_posture() and (to_target.length() < 0.05 or (-global_basis.z).angle_to(to_target) < 0.2):
-			_throw_left = stats.throw_time
-			_throw_released = false
-			_throwing_grenade = true
-			_model.throw_grenade = true
-			_model.throw_progress = 0.0
-		return Vector3.ZERO
-	if _agent.target_position.distance_to(_grenade_target) > 0.3:
-		_agent.target_position = _grenade_target
-	if _agent.is_navigation_finished():
-		_grenade_target = Vector3.INF
-		return Vector3.ZERO
-	return _follow_path(delta)
-
-
-func _update_grenade_throw(delta: float, progress: float) -> void:
-	var to_target := _grenade_target - global_position
-	to_target.y = 0.0
-	if to_target.length() > 0.05:
-		_face(to_target, delta)
-	if not _throw_released and progress >= SoldierModel.THROW_RELEASE:
-		_throw_released = true
-		if grenades > 0:
-			grenades -= 1
-			EventBus.unit_ammo_changed.emit(self)
-			var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
-			Grenade.spawn(get_tree().current_scene, hand, _grenade_target + Vector3.UP * 0.05, stats)
-			Sfx.play_at(&"whoosh", hand, -8.0)
-	if _throw_left <= 0.0:
-		_model.throw_progress = -1.0
-		_model.throw_grenade = false
-		_throwing_grenade = false
-		_grenade_target = Vector3.INF
+		return
+	grenades -= 1
+	EventBus.unit_ammo_changed.emit(self)
+	var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
+	Grenade.spawn(get_tree().current_scene, hand, target + Vector3.UP * 0.05, stats)
+	Sfx.play_at(&"whoosh", hand, -8.0)
 
 
 ## Pose une charge explosive aux pieds de l'unité (elle s'accroupit le temps
 ## de l'armer). Renvoie faux s'il ne lui en reste pas ou qu'elle est occupée.
 func plant_explosive() -> bool:
-	if is_dead or _hopping or explosives <= 0 or _plant_left > 0.0 or _heal_left > 0.0 or _crate:
+	if is_dead or _hopping or explosives <= 0 or _gesture != null or is_handling_crate():
 		return false
 	stop()
-	if posture == SoldierModel.Posture.STANDING:
-		posture = SoldierModel.Posture.CROUCHED
-	_plant_left = stats.plant_time
+	_start(PlantGesture.new(self))
 	return true
 
 
 ## Vrai pendant la pose d'une charge.
 func is_planting() -> bool:
-	return _plant_left > 0.0
-
-
-func _update_plant(delta: float) -> void:
-	_plant_left -= delta
-	if _plant_left > 0.0:
-		return
-	_plant_left = 0.0
-	explosives -= 1
-	var at := global_position - global_basis.z * 0.45
-	ExplosiveCharge.plant(get_tree().current_scene, at, self)
-	Sfx.play_at(&"clink", at, -10.0)
-	EventBus.unit_ammo_changed.emit(self)
+	return _gesture is PlantGesture
 
 
 ## Fait sauter les charges posées par l'unité. Renvoie leur nombre.
@@ -668,21 +504,19 @@ func detonate_explosives() -> int:
 ## Soigne l'opérateur le plus blessé à portée (l'unité elle-même comprise)
 ## avec une trousse. Renvoie faux sans trousse ou sans blessé à portée.
 func use_medkit() -> bool:
-	if is_dead or _hopping or medkits <= 0 or _plant_left > 0.0 or _heal_left > 0.0:
+	if is_dead or _hopping or medkits <= 0 or _gesture != null:
 		return false
 	var patient := _most_wounded_nearby()
 	if patient == null:
 		return false
 	stop()
-	_heal_target = patient
-	_heal_left = stats.heal_time
-	Sfx.play_at(&"bandage", global_position + Vector3.UP, -6.0)
+	_start(HealGesture.new(self, patient))
 	return true
 
 
 ## Vrai pendant des soins.
 func is_healing() -> bool:
-	return _heal_left > 0.0
+	return _gesture is HealGesture
 
 
 func _most_wounded_nearby() -> Commando:
@@ -698,34 +532,6 @@ func _most_wounded_nearby() -> Commando:
 	return best
 
 
-func _update_heal(delta: float) -> void:
-	var patient := _heal_target
-	if not is_instance_valid(patient) or patient.is_dead or patient.global_position.distance_to(global_position) > stats.heal_range + 0.5:
-		_heal_left = 0.0
-		_heal_target = null
-		return
-	if patient != self:
-		_face(patient.global_position - global_position, delta)
-	_heal_left -= delta
-	if _heal_left > 0.0:
-		return
-	_heal_left = 0.0
-	_heal_target = null
-	medkits -= 1
-	patient.health.heal(stats.heal_amount)
-	EventBus.unit_ammo_changed.emit(self)
-
-
-## Annule la pose d'une charge, des soins ou un lancer de grenade pas encore
-## commencé.
-func _cancel_tasks() -> void:
-	_plant_left = 0.0
-	_heal_left = 0.0
-	_heal_target = null
-	if not _throwing_grenade:
-		_grenade_target = Vector3.INF
-
-
 ## Charge lourde : l'équipement s'entrechoque quand l'opérateur court.
 func _update_gear_noise(delta: float) -> void:
 	if stats.gear_noise_radius <= 0.0 or not _wants_to_move or not _running or posture != SoldierModel.Posture.STANDING:
@@ -738,18 +544,33 @@ func _update_gear_noise(delta: float) -> void:
 
 ## Vrai pendant une attaque au corps à corps (élan et coup).
 func is_striking() -> bool:
-	return _strike_left > 0.0
+	return _gesture is StrikeGesture
 
 
-## Arrête le déplacement et l'attaque en cours (un coup déjà lancé va à son terme).
+## Vrai pendant une prise par derrière (étranglement, égorgement).
+func is_grappling() -> bool:
+	return _gesture is StrikeGesture and (_gesture as StrikeGesture).grapple
+
+
+## Vrai pendant une parade ou une esquive.
+func is_defending() -> bool:
+	return _gesture is DefendGesture
+
+
+## Vrai pendant un lancer (couteau ou grenade).
+func is_throwing() -> bool:
+	return _gesture is ThrowGesture
+
+
+## Ennemi que l'unité a ordre de neutraliser au corps à corps (null : aucun).
+func melee_target() -> Enemy:
+	return (_order as MeleeOrder).enemy if _order is MeleeOrder else null
+
+
+## Arrête l'ordre en cours (déplacement, attaque, caisse…) et une pose de
+## charge ou des soins ; un coup ou un lancer déjà commencé va à son terme.
 func stop() -> void:
-	_has_order = false
-	_attack_target = null
-	_climb_target = null
-	_melee_target = null
-	_throw_target = null
-	_cancel_tasks()
-	_release_crate()
+	_set_order(null)
 
 
 ## Ordonne de pousser ou tirer `crate` : l'unité rejoint le côté le plus
@@ -766,119 +587,19 @@ func handle_crate(crate: Climbable, near: Vector3) -> bool:
 	var side := crate.get_side_toward(near)
 	if side == Vector3.ZERO:
 		return false
-	_release_crate()
-	_has_order = false
-	_attack_target = null
-	_climb_target = null
-	_melee_target = null
-	_throw_target = null
-	_crate_target = crate
-	_crate_side = side
-	_agent.target_position = crate.get_access_point(side)
+	_set_order(CrateApproachOrder.new(self, crate, side))
 	return true
 
 
-## Lâche la caisse tenue.
+## Lâche la caisse tenue (ou abandonne l'approche).
 func release_crate() -> void:
-	_release_crate()
+	if _order is CrateHoldOrder or _order is CrateApproachOrder:
+		_set_order(null)
 
 
 ## Vrai pendant qu'il tient une caisse.
 func is_handling_crate() -> bool:
-	return _crate != null
-
-
-## Lâche la caisse tenue (ou abandonne l'approche).
-func _release_crate() -> void:
-	_crate_target = null
-	if _crate == null:
-		return
-	if is_instance_valid(_crate):
-		remove_collision_exception_with(_crate)
-		_crate.handler = null
-	_crate = null
-	_model.crate_grip = false
-	if _crate_moving:
-		_crate_moving = false
-		EventBus.navigation_obstacle_moved.emit()
-
-
-func _crate_grip_point(crate: Climbable) -> Vector3:
-	var point := crate.global_position + _crate_side * (crate.half_extent + SoldierModel.CRATE_GRIP_GAP)
-	point.y = global_position.y
-	return point
-
-
-## Rejoint le côté choisi ; tout près, se glisse au point de prise, face à
-## la caisse, et la saisit une fois l'arme à la bretelle.
-func _approach_crate(delta: float) -> Vector3:
-	var crate := _crate_target
-	if not is_instance_valid(crate) or crate.occupant != null or (crate.handler != null and crate.handler != self):
-		_crate_target = null
-		return Vector3.ZERO
-	var to_grip := _crate_grip_point(crate) - global_position
-	to_grip.y = 0.0
-	if to_grip.length() > CRATE_GRIP_REACH:
-		if _agent.is_navigation_finished():
-			_crate_target = null
-			return Vector3.ZERO
-		return _follow_path(delta)
-	posture = SoldierModel.Posture.STANDING
-	if to_grip.length() > 0.04:
-		_face(to_grip, delta)
-		return to_grip.normalized() * minf(stats.walk_speed * 0.5, to_grip.length() / delta)
-	_face(-_crate_side, delta)
-	if _model.is_weapon_slung() and not _model.is_changing_posture() and (-global_basis.z).angle_to(-_crate_side) < 0.15:
-		_crate_target = null
-		_crate = crate
-		crate.handler = self
-		add_collision_exception_with(crate)
-		_crate_goal = crate.global_position
-		_model.crate_grip = true
-	return Vector3.ZERO
-
-
-## Destination de la caisse : projection de `target` sur l'axe du côté tenu.
-func _set_crate_goal(target: Vector3) -> void:
-	var axis := -_crate_side
-	var along := (target - _crate.global_position).dot(axis)
-	_crate_goal = _crate.global_position + axis * along
-
-
-## Pousse ou tire la caisse vers `_crate_goal`, pas à pas, et s'arrête au
-## premier obstacle (la caisse ou l'opérateur heurterait quelque chose).
-func _update_crate(delta: float) -> void:
-	var crate := _crate
-	if not is_instance_valid(crate):
-		_release_crate()
-		return
-	velocity = Vector3.ZERO
-	_model.posture = posture
-	var axis := -_crate_side
-	_face(axis, delta)
-	var remaining := (_crate_goal - crate.global_position).dot(axis)
-	if absf(remaining) > 0.01:
-		_model.crate_pull = remaining < 0.0
-		var speed := stats.crate_push_speed if remaining > 0.0 else stats.crate_pull_speed
-		var step := axis * signf(remaining) * minf(absf(remaining), speed * delta)
-		if crate.is_free_at(crate.global_position + step, [get_rid()]) and not test_move(global_transform, step):
-			crate.global_position += step
-			global_position += step
-			_crate_moving = true
-			_model.move_ratio = speed / stats.walk_speed
-			_crate_noise_left -= delta
-			if _crate_noise_left <= 0.0:
-				_crate_noise_left = CRATE_NOISE_INTERVAL
-				EventBus.noise_emitted.emit(crate.global_position, stats.crate_noise_radius, &"crate")
-				Sfx.play_at(&"scrape", crate.global_position, -6.0, 0.15)
-			return
-		# Bloqué : la caisse reste où elle est.
-		_crate_goal = crate.global_position
-	_model.move_ratio = 0.0
-	_crate_noise_left = 0.0
-	if _crate_moving:
-		_crate_moving = false
-		EventBus.navigation_obstacle_moved.emit()
+	return _order is CrateHoldOrder
 
 
 ## Passe l'arme à la bretelle, ou la reprend en main.
@@ -888,7 +609,7 @@ func toggle_sling() -> void:
 	weapon_slung = not weapon_slung
 	# Reprendre son arme oblige à lâcher la caisse.
 	if not weapon_slung:
-		_release_crate()
+		release_crate()
 
 
 ## Bascule entre `new_posture` et debout.
@@ -898,7 +619,7 @@ func toggle_posture(new_posture: SoldierModel.Posture) -> void:
 	posture = SoldierModel.Posture.STANDING if posture == new_posture else new_posture
 	# On ne déplace une caisse que debout.
 	if posture != SoldierModel.Posture.STANDING:
-		_release_crate()
+		release_crate()
 
 
 ## Met à jour l'état de sélection et l'anneau au sol.
@@ -908,36 +629,6 @@ func set_selected(value: bool) -> void:
 	is_selected = value
 	_ring.visible = value
 	selected_changed.emit(value)
-
-
-## Rejoint le point d'accès de l'obstacle visé, puis grimpe.
-func _approach_climb() -> Vector3:
-	if _climb_target.occupant != null and _climb_target.occupant != self:
-		_climb_target = null
-		return Vector3.ZERO
-	var offset := _climb_point - global_position
-	offset.y = 0.0
-	var distance := offset.length()
-	var arrived := _agent.is_navigation_finished()
-	if distance < CLIMB_START_DISTANCE or (arrived and distance < CLIMB_REACH):
-		var target := _climb_target
-		_climb_target = null
-		target.occupant = self
-		var then := _climb_then
-		_climb_then = Callable()
-		_hop(target.get_top_position(), func() -> void:
-			perched_on = target
-			if then.is_valid():
-				then.call())
-		return Vector3.ZERO
-	if arrived:
-		_climb_target = null
-		return Vector3.ZERO
-	var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
-	to_next.y = 0.0
-	if to_next.length_squared() < 0.0001:
-		return Vector3.ZERO
-	return to_next.normalized() * _current_speed()
 
 
 ## Redescend de l'obstacle du côté le plus proche de `toward`, puis appelle
@@ -1050,9 +741,7 @@ func _continue_across(target: Climbable) -> void:
 ## en redescendant sinon. Appelle `then` au bout du chemin.
 func _walk_across(route: Array[Climbable], then: Callable = Callable()) -> void:
 	var target: Climbable = route[0]
-	_has_order = false
-	_attack_target = null
-	_climb_target = null
+	_set_order(null)
 	var origin := perched_on
 	perched_on = null
 	target.occupant = self
@@ -1100,7 +789,8 @@ func _walk_across(route: Array[Climbable], then: Callable = Callable()) -> void:
 func _hop(to: Vector3, done: Callable) -> void:
 	_hopping = true
 	_climbing = true
-	_has_order = false
+	if _order is MoveOrder:
+		_set_order(null)
 	velocity = Vector3.ZERO
 	posture = SoldierModel.Posture.STANDING
 	var from := global_position
@@ -1165,85 +855,11 @@ func _on_jump_landed() -> void:
 	EventBus.noise_emitted.emit(global_position, stats.jump_noise_radius, &"jump")
 
 
-## Approche de la cible du corps à corps ; frappe dès qu'elle est à portée.
-func _approach_melee(delta: float) -> Vector3:
-	var enemy := _melee_target
-	if not is_instance_valid(enemy) or enemy.is_dead or (_melee_kind == MeleeKind.KNOCKOUT and enemy.is_stunned()):
-		_melee_target = null
-		return Vector3.ZERO
-	var to_enemy := enemy.global_position - global_position
-	to_enemy.y = 0.0
-	if to_enemy.length() <= MELEE_RANGE:
-		if enemy.is_attacking():
-			# Il frappe le premier : on attend l'issue (parade, puis contre).
-			_face(to_enemy, delta)
-			return Vector3.ZERO
-		_melee_target = null
-		if enemy.resists(global_position):
-			# Il l'a vu venir : il le repousse, le coup échoue.
-			enemy.shove(self)
-			_push(-to_enemy.normalized() * REPEL_DISTANCE, REPEL_TIME, enemy.stats.shove_time * 0.5, enemy.global_position)
-			return Vector3.ZERO
-		_start_strike(enemy, _melee_kind)
-		return Vector3.ZERO
-	if _agent.target_position.distance_to(enemy.global_position) > 0.3:
-		_agent.target_position = enemy.global_position
-	if _agent.is_navigation_finished():
-		return Vector3.ZERO
-	return _follow_path(delta)
-
-
 ## Vrai si `enemy` est à portée de lancer, avec une ligne de vue dégagée.
 func _can_throw_at(enemy: Enemy) -> bool:
 	var offset := enemy.global_position - global_position
 	offset.y = 0.0
 	return offset.length() <= stats.throw_range and _has_line_of_fire(enemy)
-
-
-## Approche jusqu'à portée de lancer ; lance une fois les mains libres et
-## la cible dans l'axe.
-func _approach_throw(delta: float) -> Vector3:
-	var enemy := _throw_target
-	if not is_instance_valid(enemy) or enemy.is_dead or throwing_knives <= 0:
-		_throw_target = null
-		return Vector3.ZERO
-	var to_enemy := enemy.global_position - global_position
-	to_enemy.y = 0.0
-	if _can_throw_at(enemy):
-		_face(to_enemy, delta)
-		# On ne lance pas couché : l'opérateur se met à genoux.
-		if posture == SoldierModel.Posture.PRONE:
-			posture = SoldierModel.Posture.CROUCHED
-		if _model.is_weapon_slung() and not _model.is_changing_posture() and (-global_basis.z).angle_to(to_enemy) < 0.2:
-			_throw_left = stats.throw_time
-			_throw_released = false
-			_model.throw_progress = 0.0
-		return Vector3.ZERO
-	if _agent.target_position.distance_to(enemy.global_position) > 0.3:
-		_agent.target_position = enemy.global_position
-	if _agent.is_navigation_finished():
-		return Vector3.ZERO
-	return _follow_path(delta)
-
-
-func _update_throw(delta: float) -> void:
-	_throw_left = maxf(_throw_left - delta, 0.0)
-	var progress := 1.0 - _throw_left / stats.throw_time
-	_model.throw_progress = progress
-	if _throwing_grenade:
-		_update_grenade_throw(delta, progress)
-		return
-	var enemy := _throw_target
-	var valid := is_instance_valid(enemy) and not enemy.is_dead
-	if valid:
-		_face(enemy.global_position - global_position, delta)
-	if not _throw_released and progress >= SoldierModel.THROW_RELEASE:
-		_throw_released = true
-		if valid and throwing_knives > 0:
-			_release_knife(enemy)
-	if _throw_left <= 0.0:
-		_model.throw_progress = -1.0
-		_throw_target = null
 
 
 func _release_knife(enemy: Enemy) -> void:
@@ -1262,194 +878,22 @@ func _release_knife(enemy: Enemy) -> void:
 
 ## Coup porté par `enemy` au corps à corps : l'opérateur pare ou esquive
 ## s'il est disponible et que le tirage le permet, sinon il encaisse.
-## Renvoie vrai si le coup est évité.
+## Renvoie vrai si le coup est évité. Une pose de charge ou des soins sont
+## abandonnés pour se défendre.
 func defend_against(enemy: Enemy) -> bool:
 	if is_dead:
 		return false
-	var busy := _strike_left > 0.0 or _hopping or perched_on != null or _defend_left > 0.0 \
-			or _push_delay > 0.0 or _push_left > 0.0 \
-			or posture == SoldierModel.Posture.PRONE or _model.is_changing_posture()
+	var busy := (_gesture != null and not _gesture.interruptible) or _hopping or perched_on != null \
+			or is_handling_crate() or posture == SoldierModel.Posture.PRONE or _model.is_changing_posture()
 	var roll := randf()
 	if busy or roll >= stats.parry_chance + stats.dodge_chance:
 		Sfx.play_at(&"punch", global_position + Vector3.UP * 1.4)
 		health.take_damage(enemy.stats.melee_damage)
 		if not is_dead:
-			_model.play_hit(enemy.global_position, SHOVED_HIT_STRENGTH)
+			_model.play_hit(enemy.global_position, PushGesture.HIT_STRENGTH)
 		return false
-	_defend_left = stats.defend_time
-	_defend_enemy = enemy
-	if roll < stats.parry_chance:
-		_model.defend_move = SoldierModel.DefendMove.PARRY
-		Sfx.play_at(&"block", global_position + Vector3.UP * 1.5)
-	else:
-		# Pas de côté, perpendiculaire à l'axe du coup.
-		var side := 1.0 if randf() < 0.5 else -1.0
-		var to_enemy := enemy.global_position - global_position
-		to_enemy.y = 0.0
-		_model.defend_move = SoldierModel.DefendMove.DODGE
-		Sfx.play_at(&"whoosh", global_position + Vector3.UP * 1.4, -4.0)
-		_model.defend_side = side
-		_push(to_enemy.normalized().cross(Vector3.UP) * side * DODGE_DISTANCE, DODGE_TIME, 0.0)
-	_model.defend_progress = 0.0
+	_start(DefendGesture.new(self, enemy, roll >= stats.parry_chance))
 	return true
-
-
-func _update_defend(delta: float) -> Vector3:
-	_defend_left = maxf(_defend_left - delta, 0.0)
-	_model.defend_progress = 1.0 - _defend_left / stats.defend_time
-	var horizontal := Vector3.ZERO
-	if _push_left > 0.0:
-		horizontal = _update_push(delta)
-	var enemy := _defend_enemy
-	if is_instance_valid(enemy):
-		_face(enemy.global_position - global_position, delta)
-	if _defend_left <= 0.0:
-		_model.defend_progress = -1.0
-		_defend_enemy = null
-		# Contre : un ordre de corps à corps en attente sur l'assaillant
-		# déséquilibré part aussitôt, s'il est à portée.
-		if _melee_target == enemy and is_instance_valid(enemy) and not enemy.is_dead and enemy.is_off_balance():
-			var offset := enemy.global_position - global_position
-			offset.y = 0.0
-			if offset.length() <= MELEE_RANGE + STRIKE_REACH_MARGIN:
-				_melee_target = null
-				_start_strike(enemy, _melee_kind)
-	return horizontal
-
-
-## Fait subir un déplacement de `offset` en `duration` secondes, après
-## `delay` secondes, avec réaction à un choc venu de `hit_from` (INF : aucun).
-func _push(offset: Vector3, duration: float, delay: float, hit_from: Vector3 = Vector3.INF) -> void:
-	_push_delay = delay
-	_push_time = duration
-	_push_left = duration
-	_push_velocity = offset / duration
-	_push_hit_from = hit_from
-
-
-func _update_push(delta: float) -> Vector3:
-	if _push_delay > 0.0:
-		_push_delay -= delta
-		if _push_delay <= 0.0 and _push_hit_from != Vector3.INF:
-			_model.play_hit(_push_hit_from, SHOVED_HIT_STRENGTH)
-			Sfx.play_at(&"punch", global_position + Vector3.UP * 1.2, -6.0)
-		return Vector3.ZERO
-	_push_left = maxf(_push_left - delta, 0.0)
-	# Vitesse décroissante : départ brusque, arrêt en douceur.
-	return _push_velocity * 2.0 * (_push_left / _push_time)
-
-
-func _start_strike(enemy: Enemy, kind: MeleeKind) -> void:
-	_strike_target = enemy
-	_strike_kind = kind
-	_strike_landed = false
-	_model.strike_with_knife = kind == MeleeKind.KNIFE
-	# Un ennemi déjà au sol s'achève sans prise.
-	_grapple = not enemy.is_stunned() and enemy.is_behind(global_position)
-	if _grapple:
-		# Par derrière : l'opérateur se glisse contre la victime, qui est
-		# immobilisée, puis l'étrangle ou l'égorge.
-		posture = SoldierModel.Posture.STANDING
-		enemy.grab()
-		add_collision_exception_with(enemy)
-		_grab_from = global_position
-		_grab_to = enemy.global_position + enemy.global_basis.z * SoldierModel.GRAB_DISTANCE
-		_grab_to.y = global_position.y
-		rotation.y = enemy.rotation.y
-		if kind == MeleeKind.KNIFE:
-			_model.strike_move = SoldierModel.StrikeMove.THROAT_CUT
-			_strike_duration = stats.throat_cut_time
-			_strike_hit_time = THROAT_CUT_HIT_TIME
-		else:
-			_model.strike_move = SoldierModel.StrikeMove.CHOKE
-			_strike_duration = stats.choke_time
-			_strike_hit_time = CHOKE_HIT_TIME
-	else:
-		_strike_duration = stats.melee_time
-		_strike_hit_time = STRIKE_HIT_TIME
-		# On ne frappe pas allongé : l'opérateur se met à genoux.
-		if posture == SoldierModel.Posture.PRONE:
-			posture = SoldierModel.Posture.CROUCHED
-		if kind == MeleeKind.KNOCKOUT:
-			_model.strike_move = _pick_strike_move()
-		elif _model.strike_move == SoldierModel.StrikeMove.CHOKE or _model.strike_move == SoldierModel.StrikeMove.THROAT_CUT:
-			_model.strike_move = SoldierModel.StrikeMove.UPPERCUT
-	_strike_left = _strike_duration
-	_model.strike_progress = 0.0
-
-
-## Coup pour assommer : coup de crosse arme en main ; à mains nues (arme à
-## la bretelle), tiré au hasard, jamais deux fois de suite le même, et
-## uppercut seulement hors de la position debout.
-func _pick_strike_move() -> SoldierModel.StrikeMove:
-	if not weapon_slung:
-		return SoldierModel.StrikeMove.BUTT_STRIKE
-	if posture != SoldierModel.Posture.STANDING:
-		return SoldierModel.StrikeMove.UPPERCUT
-	var moves: Array = [SoldierModel.StrikeMove.UPPERCUT, SoldierModel.StrikeMove.FRONT_KICK,
-			SoldierModel.StrikeMove.ROUNDHOUSE, SoldierModel.StrikeMove.SIDE_KICK]
-	moves.erase(_model.strike_move)
-	return moves.pick_random()
-
-
-func _update_strike(delta: float) -> void:
-	_strike_left = maxf(_strike_left - delta, 0.0)
-	var progress := 1.0 - _strike_left / _strike_duration
-	_model.strike_progress = progress
-	if _grapple:
-		var slide := smoothstep(0.0, 1.0, minf(progress * _strike_duration / GRAB_SLIDE_TIME, 1.0))
-		global_position = _grab_from.lerp(_grab_to, slide)
-		velocity = Vector3.ZERO
-	elif is_instance_valid(_strike_target):
-		_face(_strike_target.global_position - global_position, delta)
-	if not _strike_landed and progress >= _strike_hit_time:
-		_strike_landed = true
-		_land_strike()
-	if _strike_left <= 0.0:
-		_model.strike_progress = -1.0
-		_end_grapple()
-		_strike_target = null
-
-
-## Fin d'une prise par derrière : la victime n'est plus tenue. Si elle n'a
-## pas été neutralisée (opérateur tué), elle se dégage et donne l'alerte.
-func _end_grapple() -> void:
-	if not _grapple:
-		return
-	_grapple = false
-	if is_instance_valid(_strike_target):
-		remove_collision_exception_with(_strike_target)
-		if not _strike_landed:
-			_strike_target.release()
-
-
-func _land_strike() -> void:
-	var enemy := _strike_target
-	if not is_instance_valid(enemy) or enemy.is_dead:
-		return
-	if _grapple:
-		# Par derrière : sans un bruit, la victime s'effondre vers l'avant.
-		match _strike_kind:
-			MeleeKind.KNIFE:
-				enemy.kill_silently(true)
-				Sfx.play_at(&"knife", enemy.global_position + Vector3.UP * 1.4, -12.0)
-			MeleeKind.KNOCKOUT:
-				enemy.knock_out(true)
-		return
-	var offset := enemy.global_position - global_position
-	offset.y = 0.0
-	if offset.length() > MELEE_RANGE + STRIKE_REACH_MARGIN:
-		return
-	match _strike_kind:
-		MeleeKind.KNIFE:
-			# De face, la victime a le temps de crier.
-			enemy.kill_silently()
-			EventBus.noise_emitted.emit(global_position, stats.knife_front_noise_radius, &"scream")
-			Sfx.play_at(&"knife", enemy.global_position + Vector3.UP * 1.2, -2.0)
-		MeleeKind.KNOCKOUT:
-			enemy.knock_out()
-			Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 1.4)
-			EventBus.noise_emitted.emit(global_position, stats.melee_noise_radius, &"melee")
 
 
 func _update_reload(delta: float) -> void:
@@ -1481,37 +925,6 @@ func _follow_path(delta: float) -> Vector3:
 func _face(direction: Vector3, delta: float) -> void:
 	var target_yaw := atan2(-direction.x, -direction.z)
 	rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-stats.turn_speed * delta))
-
-
-func _attack(delta: float) -> Vector3:
-	if not is_instance_valid(_attack_target) or _attack_target.is_dead:
-		_attack_target = null
-		return Vector3.ZERO
-	if not _ready_to_fire():
-		_attack_target = null
-		return Vector3.ZERO
-	var to_target := _attack_target.global_position - global_position
-	to_target.y = 0.0
-	var distance := to_target.length()
-	if distance <= stats.fire_range and _has_line_of_fire(_attack_target):
-		if distance > 0.01:
-			_face(to_target, delta)
-		_fire_cooldown -= delta
-		if ammo_in_magazine <= 0:
-			reload()
-		elif not is_reloading() and _model.is_weapon_ready() and not _model.is_changing_posture() and _fire_cooldown <= 0.0 and (-global_basis.z).angle_to(to_target) < 0.25:
-			_fire(_attack_target, distance)
-		return Vector3.ZERO
-	# Pas de ligne de tir : s'approcher, puis viser de nouveau.
-	_fire_cooldown = stats.aim_time
-	if perched_on:
-		_descend(_attack_target.global_position, func() -> void: pass)
-		return Vector3.ZERO
-	if _agent.target_position.distance_to(_attack_target.global_position) > 0.5:
-		_agent.target_position = _attack_target.global_position
-	if _agent.is_navigation_finished():
-		return Vector3.ZERO
-	return _follow_path(delta)
 
 
 func _weapon_height() -> float:
@@ -1573,25 +986,7 @@ func _on_health_changed(current: float, _maximum: float) -> void:
 func _on_died() -> void:
 	is_dead = true
 	Sfx.play_at(&"fall", global_position, -2.0)
-	_has_order = false
-	_attack_target = null
-	_climb_target = null
-	_melee_target = null
-	_throw_target = null
-	_throw_left = 0.0
-	_model.throw_progress = -1.0
-	_grenade_target = Vector3.INF
-	_throwing_grenade = false
-	_cancel_tasks()
-	_release_crate()
-	_strike_left = 0.0
-	_model.strike_progress = -1.0
-	_end_grapple()
-	_push_delay = 0.0
-	_push_left = 0.0
-	_defend_left = 0.0
-	_defend_enemy = null
-	_model.defend_progress = -1.0
+	_cancel_actions()
 	_reload_left = 0.0
 	_model.reload_progress = -1.0
 	remove_from_group(&"commandos")

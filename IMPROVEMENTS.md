@@ -17,7 +17,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - la saisie et la perte de connaissance.
 
   Il deviendra ingérable avec les états `Investigate`, `Search` et `Return`.
-- **1.4 Restructurer les actions de `Commando`** : déplacement, attaque, escalade, corps à corps, prise, lancers (couteau, grenade), pose de charge, soins, recul et défense sont autant de variables et de branches dans `_physics_process`. Leurs remises à zéro sont dispersées (`stop`, `_cancel_tasks`, `_on_died`, chaque ordre). Une petite file d'actions (une action courante, interruptible ou non) simplifierait l'ajout de nouveaux gestes.
+- **1.4 ~~Restructurer les actions de `Commando`~~** (fait) : un ordre en cours et un geste en cours (`CommandoAction`, dans `scripts/units/actions/`).
 - **1.5 Factoriser le code commun à `Commando` et `Enemy`** : déplacement par navigation, évitement, pas de côté, orientation et tir sont dupliqués. Extraire des composants (`MovementComponent`, `WeaponComponent`), comme le prévoit le §3.
 - **1.6 Préparer la sauvegarde rapide** (M7) : donner dès maintenant à chaque composant un couple `save_state()` / `load_state()`, sinon il faudra tout reprendre plus tard.
 - **1.7 Mettre à jour le cahier des charges** : l'univers est passé au militaire moderne et la caméra tourne librement, mais les §1 et §4 disent encore le contraire.
@@ -135,7 +135,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **6.3 ~~Pas pendant les déplacements subis~~** (fait) : marche à reculons, pas chassés sur le côté, pas en arrière quand il vacille.
 - **6.4 ~~Geste de ramassage~~** (fait).
 - **6.5 ~~Réaction des ennemis désarmés~~** (fait) : garde de boxe en alerte.
-- **6.6 Passer à des modèles et animations CC0** avec un `AnimationTree` (M10), quand le prototype sera stabilisé. `soldier_model.gd` dépasse 2 000 lignes de géométrie et d'images clés écrites à la main.
+- Ne pas implémenter : **6.6 Passer à des modèles et animations CC0** avec un `AnimationTree` (M10), quand le prototype sera stabilisé. `soldier_model.gd` dépasse 2 000 lignes de géométrie et d'images clés écrites à la main.
 
 ## 7. Niveau et technique
 

@@ -20,7 +20,7 @@ func test_throw_kills_from_seven_meters_then_knife_is_picked_up() -> void:
 	assert_true(alpha.throw_knife(dummy), "ordre accepté")
 	var throw_distance := [-1.0]
 	var landed := func() -> bool:
-		if alpha._throw_left > 0.0 and throw_distance[0] < 0.0:
+		if alpha.is_throwing() and throw_distance[0] < 0.0:
 			throw_distance[0] = flat_distance(alpha.global_position, dummy.global_position)
 		return dummy.is_dead and not _knives().is_empty()
 	assert_gt(await frames_until(landed, 400), -1, "cible tuée, couteau au sol")

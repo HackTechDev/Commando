@@ -39,12 +39,12 @@ func _from_behind(kind: Commando.MeleeKind, kill_operator_midway := false) -> Ar
 		await get_tree().physics_frame
 		if dummy.state == Enemy.State.GRABBED:
 			grabbed = true
-		if alpha._grapple:
+		if alpha.is_grappling():
 			min_distance = minf(min_distance, flat_distance(alpha.global_position, dummy.global_position))
-			if kill_operator_midway and alpha._strike_left < 1.5:
+			if kill_operator_midway and (alpha._gesture as StrikeGesture).left < 1.5:
 				alpha.health.take_damage(500.0)
 				kill_operator_midway = false
-		if alpha._strike_left <= 0.0 and alpha._melee_target == null and i > 20:
+		if not alpha.is_striking() and alpha.melee_target() == null and i > 20:
 			break
 	await frames(30)
 	return [grabbed, min_distance]
@@ -105,6 +105,6 @@ func test_alert_enemy_shoves_back_a_frontal_attacker() -> void:
 	var closest := flat_distance(alpha.global_position, soldier.global_position)
 	await frames(60)
 	assert_gt(flat_distance(alpha.global_position, soldier.global_position), closest + 0.5, "l'opérateur recule")
-	assert_null(alpha._melee_target, "l'ordre de corps à corps est annulé")
+	assert_null(alpha.melee_target(), "l'ordre de corps à corps est annulé")
 	assert_false(soldier.is_stunned())
 	assert_false(soldier.is_dead)

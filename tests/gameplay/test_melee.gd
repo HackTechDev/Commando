@@ -22,7 +22,7 @@ func _knock_out_from_side(alpha: Commando, dummy: Enemy) -> int:
 	alpha.global_position = dummy.global_position + Vector3(0, 0, 3)
 	await frames(5)
 	alpha.melee(dummy, Commando.MeleeKind.KNOCKOUT)
-	var done := func() -> bool: return dummy.is_stunned() and alpha._strike_left <= 0.0
+	var done := func() -> bool: return dummy.is_stunned() and not alpha.is_striking()
 	if await frames_until(done, 400) < 0:
 		return -1
 	return alpha.get_node("SoldierModel").strike_move
@@ -78,9 +78,9 @@ func test_knife_slings_weapon_during_approach_then_takes_it_back() -> void:
 	bravo.melee(dummy, Commando.MeleeKind.KNIFE)
 	var max_sling := [0.0]
 	var done := func() -> bool:
-		if bravo._melee_target != null:
+		if bravo.melee_target() != null:
 			max_sling[0] = maxf(max_sling[0], model._sling)
-		return dummy.is_dead and bravo._strike_left <= 0.0
+		return dummy.is_dead and not bravo.is_striking()
 	assert_gt(await frames_until(done, 400), -1, "mannequin tué")
 	assert_almost_eq(max_sling[0], 1.0, 0.01, "arme à la bretelle pendant l'approche")
 	await frames(80)
