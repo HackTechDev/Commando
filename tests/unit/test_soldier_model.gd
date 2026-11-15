@@ -71,3 +71,13 @@ func test_clothes_have_folds_and_seams() -> void:
 	assert_not_null(model._m_uniform.normal_texture, "relief du tissu")
 	assert_true(model._m_uniform.uv1_triplanar, "plaqué sans UV")
 	assert_same(model._m_gear.normal_texture, model._m_uniform.normal_texture, "texture générée une seule fois")
+
+
+func test_specialty_changes_the_silhouette() -> void:
+	assert_null(model.find_child("Specialty", true, false), "rien sans spécialité")
+	var outfit := OperatorProfile.defaults(0)
+	outfit.specialty = &"medic"
+	model.outfit = outfit
+	model._rebuild()
+	assert_not_null(model.find_child("Specialty", true, false), "sac de soins")
+	assert_eq(model.find_children("Armband", "", true, false).size(), 2, "brassards aux deux bras")

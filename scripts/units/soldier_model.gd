@@ -483,6 +483,8 @@ var _m_pants: StandardMaterial3D
 var _m_hair: StandardMaterial3D
 var _m_dark: StandardMaterial3D
 var _m_red: StandardMaterial3D
+var _m_white: StandardMaterial3D
+var _m_scrim: StandardMaterial3D
 var _m_grenade: StandardMaterial3D
 var _m_explosive: StandardMaterial3D
 var _m_glove: StandardMaterial3D
@@ -540,6 +542,9 @@ func _build() -> void:
 	_m_lip = _mat((_m_skin.albedo_color as Color).darkened(0.25).lerp(Color(0.6, 0.25, 0.22), 0.25), 0.6)
 	_m_stubble = _mat((_m_skin.albedo_color as Color).lerp(_m_hair.albedo_color, 0.55), 0.95)
 	_m_red = _mat(Color(0.75, 0.1, 0.08), 0.6)
+	_m_white = _mat(Color(0.88, 0.88, 0.85), 0.8)
+	# Toile de camouflage du tireur d'élite (filet, écharpe).
+	_m_scrim = _cloth((_m_top.albedo_color as Color).lerp(Color(0.45, 0.42, 0.3), 0.5))
 	_m_grenade = _mat(Color(0.2, 0.24, 0.16), 0.6, 0.2)
 	_m_explosive = _mat(Color(0.62, 0.55, 0.38), 0.85)
 	_m_team = _mat(team_color, 0.6)
@@ -1568,6 +1573,58 @@ func _build_torso() -> void:
 		_box(radio, Vector3(0.07, 0.16, 0.05), Vector3(-0.12, 0.47, back), _m_weapon)
 		_cylinder(radio, 0.006, 0.38, Vector3(-0.12, 0.72, back), _m_weapon)
 	_build_equipment(front)
+	_build_specialty(front, back)
+
+
+## Équipement qui distingue la spécialité au premier coup d'œil.
+func _build_specialty(front: float, back: float) -> void:
+	var specialty := &"none" if outfit == null else outfit.specialty
+	if specialty == &"none":
+		return
+	var gear := _pivot(_torso, Vector3.ZERO, "Specialty")
+	match specialty:
+		&"marksman":
+			# Écharpe de camouflage au cou, télémètre, tapis de tir roulé
+			# en travers du haut du dos.
+			var scarf := _tapered(gear, 0.088, 0.105, 0.06, Vector3(0.0, 0.565, 0.008), _m_scrim)
+			scarf.scale.z = 0.9
+			for side: float in [-1.0, 1.0]:
+				var tail := _box(gear, Vector3(0.05, 0.16, 0.012), Vector3(0.035 * side, 0.47, back + 0.005), _m_scrim)
+				tail.rotation.z = 0.15 * side
+			_box(gear, Vector3(0.05, 0.09, 0.04), Vector3(0.11, 0.45, front - 0.02), _m_gear)
+			_box(gear, Vector3(0.035, 0.03, 0.05), Vector3(0.11, 0.51, front - 0.02), _m_weapon)
+			var mat := _cylinder(gear, 0.055, 0.46, Vector3(0.0, 0.6, back + 0.05), _m_scrim)
+			mat.rotation.z = PI / 2.0
+			for side: float in [-1.0, 1.0]:
+				var band := _cylinder(gear, 0.058, 0.02, Vector3(0.15 * side, 0.6, back + 0.05), _m_weapon)
+				band.rotation.z = PI / 2.0
+		&"scout":
+			# Jumelles sur la poitrine, poche à eau plate dans le dos.
+			for side: float in [-1.0, 1.0]:
+				var tube := _cylinder(gear, 0.026, 0.1, Vector3(0.032 * side, 0.48, front - 0.04), _m_weapon)
+				tube.rotation.x = 0.15
+				_cylinder(gear, 0.021, 0.006, Vector3(0.032 * side, 0.428, front - 0.033), _m_lens)
+			_box(gear, Vector3(0.03, 0.03, 0.02), Vector3(0.0, 0.5, front - 0.04), _m_weapon)
+			if not _wears(&"backpack"):
+				_box(gear, Vector3(0.2, 0.3, 0.05), Vector3(0.0, 0.36, back + 0.025), _m_gear)
+				var hose := _cylinder(gear, 0.008, 0.3, Vector3(0.1, 0.45, front + 0.07), _m_weapon)
+				hose.rotation.x = 0.25
+		&"sapper":
+			# Pied-de-biche d'effraction en travers du dos, bobine de
+			# cordeau détonant sur la hanche.
+			var bar := _box(gear, Vector3(0.026, 0.72, 0.026), Vector3(0.0, 0.38, back + (0.12 if _wears(&"backpack") else 0.03)), _m_steel)
+			bar.rotation.z = 0.75
+			var fork := _box(bar, Vector3(0.07, 0.03, 0.02), Vector3(0.0, 0.37, 0.0), _m_steel)
+			fork.rotation.x = 0.4
+			var spool := _cylinder(gear, 0.05, 0.05, Vector3(-0.22, 0.02, 0.06), _m_red)
+			spool.rotation.z = PI / 2.0
+			_cylinder(gear, 0.025, 0.055, Vector3(-0.22, 0.02, 0.06), _m_weapon).rotation.z = PI / 2.0
+		&"medic":
+			# Grand sac de soins à la hanche droite, croix rouge sur fond blanc.
+			var bag := _box(gear, Vector3(0.09, 0.16, 0.2), Vector3(0.23, 0.0, 0.03), _m_gear)
+			_box(bag, Vector3(0.004, 0.08, 0.08), Vector3(0.047, 0.0, 0.0), _m_white)
+			_box(bag, Vector3(0.006, 0.06, 0.018), Vector3(0.048, 0.0, 0.0), _m_red)
+			_box(bag, Vector3(0.006, 0.018, 0.06), Vector3(0.048, 0.0, 0.0), _m_red)
 
 
 ## Équipement visible : grenades et charges au ceinturon, trousse de soins
@@ -1621,8 +1678,8 @@ func _wears(accessory: StringName) -> bool:
 
 
 ## Tissu de couleur `color`, ou du camouflage de `outfit` s'il y en a un
-## (texture plaquée en triplanaire dans le repère de chaque pièce).
-## Plis et coutures (`fabric_normal_map`) en relief.
+## (texture plaquée en triplanaire dans le repère de chaque pièce), avec
+## plis et coutures en relief (`fabric_normal_map`).
 func _cloth(color: Color) -> StandardMaterial3D:
 	var material := _mat(color, 0.95)
 	material.uv1_triplanar = true
@@ -2312,6 +2369,12 @@ func _build_arm(side: float) -> void:
 	_sphere(shoulder, 0.072, Vector3.ZERO, _m_top)
 	_tapered(shoulder, 0.064, 0.052, UPPER_ARM_LENGTH, Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_top)
 	_box(shoulder, Vector3(0.012, 0.07, 0.07), Vector3(0.063 * side, -0.085, 0.0), _m_team)
+	if outfit and outfit.specialty == &"medic":
+		# Brassard blanc à croix rouge.
+		var band := _tapered(shoulder, 0.0625, 0.061, 0.06, Vector3(0.0, -0.17, 0.0), _m_white)
+		band.name = "Armband"
+		_box(band, Vector3(0.006, 0.04, 0.012), Vector3(0.062 * side, 0.0, 0.0), _m_red)
+		_box(band, Vector3(0.006, 0.012, 0.04), Vector3(0.062 * side, 0.0, 0.0), _m_red)
 	# Coude, avant-bras, manchette et main gantée (pouce vers l'avant).
 	var elbow := _pivot(shoulder, Vector3(0.0, -UPPER_ARM_LENGTH, 0.0), "Elbow")
 	_sphere(elbow, 0.053, Vector3.ZERO, _m_top)

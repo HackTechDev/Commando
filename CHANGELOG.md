@@ -329,3 +329,8 @@
 - Yeux vivants : clignements, regard qui erre au repos, yeux fermés une fois mort ou inconscient. La tête et les yeux suivent la cible : ennemi visé, attaqué ou point d'un lancer pour les opérateurs, cible ou endroit suspect pour les ennemis.
 - Expressions : sourcils froncés et lèvres serrées dans l'effort (frappe, lancer, escalade, caisse), yeux plissés, sourcils relevés et bouche ouverte quand l'opérateur encaisse un coup, est saisi, vacille ou tombe.
 - Tissus en relief : plis et coutures piquées sur l'uniforme, trame plus fine sur le gilet et les poches, en uni comme en camouflage.
+- Silhouette de spécialité :
+  - tireur d'élite : écharpe de camouflage, télémètre, tapis de tir roulé sur le haut du dos ;
+  - éclaireur : jumelles sur la poitrine, poche à eau sans sac ;
+  - sapeur : pied-de-biche d'effraction en travers du dos, bobine de cordeau détonant ;
+  - infirmier : brassards à croix rouge et grand sac de soins à la hanche.
