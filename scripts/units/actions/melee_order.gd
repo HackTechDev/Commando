@@ -39,11 +39,16 @@ func update(delta: float) -> Vector3:
 	var to_enemy := enemy.global_position - unit.global_position
 	to_enemy.y = 0.0
 	if to_enemy.length() <= Commando.MELEE_RANGE:
-		if enemy.is_attacking():
+		if enemy.is_attacking() and kind != Commando.MeleeKind.DISARM:
 			# Il frappe le premier : on attend l'issue (parade, puis contre).
 			unit._face(to_enemy, delta)
 			return Vector3.ZERO
-		if enemy.resists(unit.global_position):
+		if kind == Commando.MeleeKind.DISARM and not enemy.can_be_disarmed():
+			finish()
+			return Vector3.ZERO
+		# Pris de court, il se laisse arracher son arme, même de face.
+		var surprised := kind == Commando.MeleeKind.DISARM and enemy.is_surprised()
+		if not surprised and enemy.resists(unit.global_position):
 			# Il l'a vu venir, garde levée : il le repousse, le coup échoue.
 			unit.flash_message("En garde : parer son coup pour contrer, ou le prendre à revers")
 			enemy.shove(unit)

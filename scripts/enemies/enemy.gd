@@ -15,6 +15,9 @@ extends CharacterBody3D
 ##   esquivé le déséquilibre un instant ; à sec, il charge pour frapper ;
 ## - GRABBED : saisi par derrière (étranglement, égorgement), immobile et
 ##   sans réaction ; relâché, il passe en alerte.
+##
+## Désarmé (`disarm`), il lève les mains et ne fait plus rien, quel que soit
+## son état : inoffensif, mais toujours conscient.
 
 enum State { PATROL, SUSPICIOUS, ALERT, STUNNED, GRABBED }
 
@@ -46,6 +49,12 @@ const BEHIND_ANGLE := 110.0
 ## à sa cible (bras levés, arme en travers) : seuls un contre ou une prise
 ## par derrière passent alors.
 const GUARD_RANGE := 2.2
+## Durée (s) pendant laquelle un ennemi qui vient de passer en alerte est
+## pris de court : il se laisse désarmer, même de face.
+const SURPRISE_TIME := 1.5
+## Arme arrachée : posée au sol à cette distance (m) de l'ennemi, côté
+## assaillant.
+const DROP_DISTANCE := 0.6
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -57,6 +66,14 @@ var detection: float = 0.0
 var shots_blocked: int = 0
 ## Cartouches restantes (négatif : sans limite).
 var ammo: int = -1
+## Désarmé : mains en l'air, inoffensif.
+var disarmed: bool = false
+## Temps (s) écoulé depuis son passage en alerte.
+var alert_age: float = 0.0
+## Arme qu'on lui a arrachée, au sol.
+var dropped_weapon: Node3D
+## Opérateur qui l'a désarmé (il le regarde).
+var _disarmer: Node3D
 
 var _waypoints: Array[Vector3] = []
 var _waypoint_index: int = 0
@@ -125,6 +142,16 @@ func _physics_process(delta: float) -> void:
 	if state == State.GRABBED:
 		velocity = Vector3.ZERO
 		return
+	if disarmed:
+		# Mains en l'air, il ne quitte pas des yeux celui qui l'a désarmé.
+		_model.aiming = false
+		_model.guard_up = false
+		if is_instance_valid(_disarmer):
+			_face(_disarmer.global_position - global_position, delta)
+			_model.look_target = _disarmer.global_position + Vector3.UP * 1.4
+		_apply_velocity(Vector3.ZERO)
+		return
+	alert_age += delta
 	_update_detection(delta)
 	_update_state()
 	if _traversal.update(delta):
@@ -259,7 +286,7 @@ func is_out_of_ammo() -> bool:
 ## `GUARD_RANGE` devant lui, et libre de ses mouvements (ni coup en cours, ni
 ## déséquilibre).
 func is_guarding() -> bool:
-	if is_dead or state != State.ALERT or not is_instance_valid(_target) or _target.is_dead:
+	if is_dead or disarmed or state != State.ALERT or not is_instance_valid(_target) or _target.is_dead:
 		return false
 	if _attack_left > 0.0 or _shove_left > 0.0 or _off_balance_left > 0.0:
 		return false
@@ -271,7 +298,7 @@ func is_guarding() -> bool:
 ## Vrai s'il repousse un assaillant venant de `from` : en alerte, il le voit
 ## arriver de face et le coup échoue.
 func resists(from: Vector3) -> bool:
-	if is_dead or state != State.ALERT or _off_balance_left > 0.0:
+	if is_dead or disarmed or state != State.ALERT or _off_balance_left > 0.0:
 		return false
 	var to := from - global_position
 	to.y = 0.0
@@ -280,9 +307,63 @@ func resists(from: Vector3) -> bool:
 	return rad_to_deg((-global_basis.z).angle_to(to)) < stats.resist_angle
 
 
+## Vrai s'il est pris de court : pas encore en alerte, en alerte depuis
+## moins de `SURPRISE_TIME`, ou déséquilibré.
+func is_surprised() -> bool:
+	return state != State.ALERT or alert_age < SURPRISE_TIME or _off_balance_left > 0.0
+
+
+## Vrai s'il porte une arme qu'on peut lui arracher.
+func can_be_disarmed() -> bool:
+	return armed and not disarmed and not is_dead and state != State.STUNNED
+
+
+## Arme arrachée par `by` : elle tombe à ses pieds, côté assaillant, et il
+## lève les mains. `drop` : poser l'arme au sol.
+func disarm(by: Node3D, drop: bool = true) -> void:
+	if is_dead or disarmed:
+		return
+	_traversal.cancel()
+	_cancel_melee()
+	if drop:
+		_drop_weapon(by.global_position if is_instance_valid(by) else global_position)
+	armed = false
+	disarmed = true
+	_disarmer = by
+	_model.set_armed(false)
+	_model.hands_up = true
+	_model.aiming = false
+	_model.guard_up = false
+	_hide_senses()
+	velocity = Vector3.ZERO
+	state_changed.emit(state)
+	GameState.refresh_alert()
+
+
+## Désarmé, il ne guette plus : ni cône de vision, ni jauge.
+func _hide_senses() -> void:
+	_vision.visible = false
+	_vision.set_physics_process(false)
+	_gauge.visible = false
+
+
+## Laisse l'arme tenue au sol, entre lui et `toward`.
+func _drop_weapon(toward: Vector3) -> void:
+	var weapon := _model.weapon_copy(get_parent())
+	if weapon == null:
+		return
+	var side := toward - global_position
+	side.y = 0.0
+	side = side.normalized() if side.length_squared() > 0.0001 else -global_basis.z
+	var spot := global_position + side * DROP_DISTANCE
+	# À plat sur le sol, le canon en travers.
+	weapon.global_transform = Transform3D(Basis(Vector3.UP, atan2(side.x, side.z)) * Basis(Vector3.FORWARD, PI * 0.5), spot + Vector3.UP * 0.04)
+	dropped_weapon = weapon
+
+
 ## Repousse `attacker` (animation de poussée), puis reprend le combat.
 func shove(attacker: Commando) -> void:
-	if is_dead or state == State.STUNNED or state == State.GRABBED:
+	if is_dead or disarmed or state == State.STUNNED or state == State.GRABBED:
 		return
 	_shove_left = stats.shove_time
 	_shove_target = attacker
@@ -400,6 +481,8 @@ func release() -> void:
 	_memory_left = stats.alert_memory
 	_update_state()
 	_update_feedback()
+	if disarmed:
+		_hide_senses()
 
 
 ## Élimination silencieuse (couteau) : mort immédiate, sans alerte.
@@ -454,6 +537,8 @@ func _wake_up() -> void:
 	_memory_left = stats.alert_memory
 	_update_state()
 	_update_feedback()
+	if disarmed:
+		_hide_senses()
 
 
 func _on_died() -> void:
@@ -528,6 +613,7 @@ func _update_state() -> void:
 	elif state == State.SUSPICIOUS and previous == State.PATROL:
 		Sfx.play_at(&"suspicious", global_position + Vector3.UP * 2.0, -4.0)
 	if state == State.ALERT:
+		alert_age = 0.0
 		_fire_cooldown = stats.aim_time
 		_chase_arrived = false
 		if _target:
@@ -684,6 +770,7 @@ func save_state() -> Dictionary:
 	return {
 		"position": global_position, "rotation": rotation.y, "state": state,
 		"detection": detection, "waypoint": _waypoint_index, "stun_left": _stun_left, "ammo": ammo,
+		"disarmed": disarmed,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 	}
 
@@ -700,6 +787,7 @@ func load_state(data: Dictionary) -> void:
 		return
 	_waypoint_index = clampi(data.get("waypoint", _waypoint_index), 0, maxi(_waypoints.size() - 1, 0))
 	ammo = data.get("ammo", ammo)
+	_load_disarmed(data.get("disarmed", false))
 	var saved: State = data.get("state", state)
 	if saved == State.STUNNED:
 		knock_out()
@@ -716,3 +804,23 @@ func load_state(data: Dictionary) -> void:
 	_memory_left = data.get("memory_left", _memory_left)
 	_update_feedback()
 	state_changed.emit(state)
+
+
+## Rend l'état désarmé d'une sauvegarde : l'arme au sol disparaît si elle
+## n'avait pas encore été arrachée.
+func _load_disarmed(value: bool) -> void:
+	if value == disarmed:
+		return
+	if value:
+		disarm(null)
+		return
+	if is_instance_valid(dropped_weapon):
+		dropped_weapon.queue_free()
+	dropped_weapon = null
+	disarmed = false
+	armed = true
+	_disarmer = null
+	_model.hands_up = false
+	_model.set_armed(true)
+	_vision.visible = true
+	_vision.set_physics_process(true)

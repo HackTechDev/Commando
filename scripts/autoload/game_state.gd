@@ -17,7 +17,7 @@ func refresh_alert() -> void:
 	var level := AlertLevel.CALM
 	for node in get_tree().get_nodes_in_group(&"enemies"):
 		var enemy := node as Enemy
-		if enemy == null:
+		if enemy == null or enemy.disarmed:
 			continue
 		if enemy.state == Enemy.State.ALERT:
 			level = AlertLevel.ALARM

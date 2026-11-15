@@ -68,7 +68,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **3.2 ~~Balayage~~** (fait) : coup de pied bas qui fauche les jambes. L'ennemi tombe et reste sonné moins longtemps.
 - **3.3 ~~Enchaînement direct + crochet~~** (fait) : plus lisible qu'un coup unique.
 - **3.4 ~~Projection~~** (fait) : saisir l'ennemi, le jeter au sol par-dessus la hanche, puis le frapper au sol.
-- **3.5 Désarmement** : arracher l'arme d'un ennemi en alerte pris de court. Il devient inoffensif sans être neutralisé.
+- **3.5 ~~Désarmement~~** (fait) : arracher l'arme d'un ennemi en alerte pris de court. Il devient inoffensif sans être neutralisé.
 - **3.6 Bouclier humain** : saisir un ennemi par derrière et s'en couvrir. L'opérateur se déplace lentement et ne tire qu'à l'arme secondaire ; les autres ennemis hésitent à tirer.
 - **3.7 Lancer de couteau, suite** :
   - **a)** récupérer le couteau directement sur le corps (aujourd'hui, il tombe à côté) ;

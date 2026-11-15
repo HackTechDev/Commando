@@ -13,7 +13,7 @@ enum Posture { STANDING, CROUCHED, PRONE }
 ## Défense au corps à corps : parade (avant-bras ou arme levés) ou esquive
 ## (pas de côté, buste baissé).
 enum DefendMove { PARRY, DODGE }
-enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH }
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH, DISARM }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -194,6 +194,7 @@ const JAB_HOOK_TIMES: Array[float] = [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 1.0]
 const SWEEP_TIMES: Array[float] = [0.0, 0.25, 0.5, 0.7, 1.0]
 const HIP_THROW_TIMES: Array[float] = [0.0, 0.2, 0.5, 0.65, 1.0]
 const GROUND_PUNCH_TIMES: Array[float] = [0.0, 0.3, 0.5, 0.7, 1.0]
+const DISARM_TIMES: Array[float] = [0.0, 0.3, 0.5, 0.7, 1.0]
 const MOVES := {
 	# Coup de coude horizontal du bras droit, en pivotant le buste.
 	StrikeMove.ELBOW: {
@@ -272,12 +273,24 @@ const MOVES := {
 		"torso_yaw": [0.0, 0.0, 0.3, -0.35, 0.5, 0.3, 1.0, 0.0],
 		"head": [0.0, 0.0, 0.3, 0.3, 0.5, 0.45, 1.0, 0.0],
 	},
+	# Désarmement : les deux mains saisissent l'arme de la cible, la tordent
+	# et l'arrachent vers la hanche droite.
+	StrikeMove.DISARM: {
+		"times": DISARM_TIMES,
+		"left": [Vector3.ZERO, Vector3(-0.08, 0.42, -0.55), Vector3(-0.06, 0.4, -0.52), Vector3(0.12, 0.25, -0.3), Vector3.ZERO] as Array[Vector3],
+		"right": [Vector3.ZERO, Vector3(0.12, 0.36, -0.52), Vector3(0.14, 0.32, -0.5), Vector3(0.32, 0.15, -0.18), Vector3.ZERO] as Array[Vector3],
+		"open": true,
+		"lunge": [0.0, 0.0, 0.3, -0.25, 0.5, -0.3, 0.7, -0.08, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.3, 0.1, 0.5, 0.15, 0.7, -0.7, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.3, -0.12, 0.5, -0.1, 0.7, 0.12, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.3, 0.05, 0.7, 0.08, 1.0, 0.0],
+	},
 }
 
 ## Instant (0 à 1) où porte le coup décisif des mouvements de `MOVES` qui ne
 ## frappent pas à `Commando.STRIKE_HIT_TIME`, et premier coup d'un
 ## enchaînement.
-const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75, StrikeMove.SWEEP: 0.5, StrikeMove.HIP_THROW: 0.5, StrikeMove.GROUND_PUNCH: 0.5}
+const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75, StrikeMove.SWEEP: 0.5, StrikeMove.HIP_THROW: 0.5, StrikeMove.GROUND_PUNCH: 0.5, StrikeMove.DISARM: 0.6}
 const MOVE_FIRST_HIT := {StrikeMove.JAB_HOOK: 0.3}
 
 # Coup de crosse (arme en main) : l'arme recule sur la hanche droite, crosse
@@ -354,6 +367,8 @@ const DEATH_FWD_POS_Y: Array[float] = [0.0, 0.0, 0.35, 0.0, 0.85, 0.15, 1.1, 0.1
 const DEATH_FWD_POS_Z: Array[float] = [0.0, 0.0, 0.35, 0.0, 0.85, 0.6, 1.1, 0.9]
 
 ## Garde des poings pendant un coup de pied (repère du torse).
+const HANDS_UP_LEFT := Vector3(-0.24, 0.98, -0.08)
+const HANDS_UP_RIGHT := Vector3(0.24, 0.98, -0.08)
 const GUARD_LEFT := Vector3(-0.12, 0.62, -0.28)
 const GUARD_RIGHT := Vector3(0.14, 0.58, -0.22)
 
@@ -473,6 +488,8 @@ var climb_jump: bool = false
 var ladder_phase: float = -1.0
 ## Vrai si le modèle porte sa carabine ; sans arme, les bras pendent le long du corps.
 var is_armed: bool = true
+## Mains en l'air (désarmé, il se rend).
+var hands_up: bool = false
 ## Avancement d'une attaque au corps à corps (0 à 1) ; négatif hors attaque.
 var strike_progress: float = -1.0
 ## Vrai si l'attaque se fait au couteau (lame visible), faux pour un coup de poing.
@@ -1440,6 +1457,9 @@ func _animate_alive(delta: float) -> void:
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
 		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
 		target = _solve_arms(free_left.lerp(STAGGER_LEFT, stagger), free_right.lerp(STAGGER_RIGHT, stagger))
+	elif hands_up and not is_armed and strike_progress < 0.0:
+		# Il se rend : mains en l'air, paumes ouvertes.
+		target = _solve_arms(HANDS_UP_LEFT, HANDS_UP_RIGHT, Vector3(1.0, -0.2, 0.3))
 	elif guard > 0.0 and not is_armed and strike_progress < 0.0:
 		var free_left := _free_hand(-1.0, false, s, c, moving, 0.0)
 		var free_right := _free_hand(1.0, false, s, c, moving, 0.0)
@@ -1488,6 +1508,8 @@ func _animate_alive(delta: float) -> void:
 		curl = Vector2(0.7, 0.7)
 	elif throwing:
 		curl = Vector2(0.3, 1.0 if throw_t < THROW_RELEASE else 0.15)
+	elif hands_up and not is_armed:
+		curl = Vector2(0.1, 0.1)
 	elif grip > 0.0 or (shove and not is_armed) or (parry and not block):
 		curl = curl.lerp(Vector2(0.12, 0.12), maxf(grip, 1.0 if shove or parry else 0.0))
 	elif strike > 0.0:
@@ -1755,6 +1777,20 @@ func _animate_death(delta: float) -> void:
 
 ## Retire ou rend la carabine. Sans arme, la pose de repos des bras devient
 ## « bras le long du corps ».
+## Copie de l'arme en main, posée dans le monde (`parent`) à l'endroit où elle
+## est : l'arme arrachée ou lâchée. Renvoie null sans arme.
+func weapon_copy(parent: Node) -> Node3D:
+	if not is_armed or _rifle == null:
+		return null
+	var copy := _rifle.duplicate() as Node3D
+	copy.name = "DroppedWeapon"
+	for child in copy.find_children("MuzzleFlash", "", true, false):
+		child.queue_free()
+	parent.add_child(copy)
+	copy.global_transform = _rifle.global_transform
+	return copy
+
+
 func set_armed(value: bool) -> void:
 	is_armed = value
 	_rifle.visible = value
@@ -1766,13 +1802,13 @@ func set_armed(value: bool) -> void:
 		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
 
-## Valeur interpolée (avec adoucissement) d'une piste d'images clés donnée
-## par paires (instant, valeur).
 ## Piste `name` du mouvement `move` à l'instant `t` (0 si elle manque).
 static func _track(move: Dictionary, name: String, t: float) -> float:
 	return sample_keys(move[name], t) if move.has(name) else 0.0
 
 
+## Valeur interpolée (avec adoucissement) d'une piste d'images clés donnée
+## par paires (instant, valeur).
 static func sample_keys(keys: Array, t: float) -> float:
 	var count := keys.size() / 2
 	if t <= keys[0]:

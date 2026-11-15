@@ -569,3 +569,8 @@
 
 - Menu de corps à corps → « Projection » : l'opérateur saisit l'ennemi au col et à la manche, pivote et le fait passer par-dessus sa hanche. L'ennemi bascule en l'air et retombe sur le dos devant lui, sonné un instant ; l'opérateur s'accroupit aussitôt à côté de sa poitrine et le frappe au sol, ce qui l'assomme pour de bon.
 
+## Désarmement (3.5)
+
+- Menu de corps à corps → « Désarmer » : l'opérateur s'avance au contact, saisit l'arme à deux mains, la tord et l'arrache. Elle tombe au sol ; l'ennemi lève les mains et ne fait plus rien (ni tir, ni coup, ni poursuite, plus de cône de vision), sans être neutralisé : on peut encore l'assommer.
+- De face, il faut le prendre de court : pas encore en alerte, en alerte depuis moins de 1,5 s, ou déséquilibré par une parade. Sinon, il repousse l'opérateur comme pour un coup.
+- Un ennemi désarmé ne compte plus pour le niveau d'alerte ; l'état est conservé par la sauvegarde rapide.

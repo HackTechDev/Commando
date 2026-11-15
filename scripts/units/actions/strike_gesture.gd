@@ -38,6 +38,7 @@ const MOVE_DURATIONS := {
 	SoldierModel.StrikeMove.ELBOW: 0.9,
 	SoldierModel.StrikeMove.KNEE: 1.1,
 	SoldierModel.StrikeMove.JAB_HOOK: 1.6,
+	SoldierModel.StrikeMove.DISARM: 1.1,
 }
 
 var enemy: Enemy
@@ -129,6 +130,10 @@ func start() -> void:
 			_throw_from = enemy.global_position
 			_throw_to = unit.global_position + offset.normalized() * THROW_DISTANCE
 			_throw_to.y = enemy.global_position.y
+		elif kind == Commando.MeleeKind.DISARM:
+			# Les deux mains sur l'arme : debout, face à lui.
+			unit.posture = SoldierModel.Posture.STANDING
+			forced_move = SoldierModel.StrikeMove.DISARM
 		elif forced_move == SoldierModel.StrikeMove.GROUND_PUNCH:
 			# Accroupi à côté de la poitrine (le corps est couché sur le dos,
 			# tête vers son +Z), frappe vers le sol.
@@ -149,7 +154,8 @@ func start() -> void:
 			_first_hit_time = SoldierModel.MOVE_FIRST_HIT.get(model.strike_move, -1.0)
 			if model.strike_move == SoldierModel.StrikeMove.GROUND_PUNCH:
 				pass
-			elif model.strike_move in [SoldierModel.StrikeMove.ELBOW, SoldierModel.StrikeMove.KNEE]:
+			elif model.strike_move in [SoldierModel.StrikeMove.ELBOW, SoldierModel.StrikeMove.KNEE, SoldierModel.StrikeMove.DISARM]:
+				_close = true
 				_step_from = unit.global_position
 				_step_to = enemy.global_position - offset.normalized() * minf(CLOSE_DISTANCE, offset.length())
 				_step_to.y = unit.global_position.y
@@ -282,6 +288,11 @@ func _land() -> void:
 			enemy.knock_out()
 			Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 1.4)
 			EventBus.noise_emitted.emit(unit.global_position, stats.melee_noise_radius, &"melee")
+		Commando.MeleeKind.DISARM:
+			# Arme arrachée : il lève les mains.
+			enemy.disarm(unit)
+			Sfx.play_at(&"clink", enemy.global_position + Vector3.UP * 0.3, -2.0)
+			EventBus.noise_emitted.emit(unit.global_position, stats.melee_noise_radius * 0.5, &"melee")
 		Commando.MeleeKind.SWEEP:
 			# Jambes fauchées : il tombe à la renverse, sonné peu de temps.
 			enemy.knock_out(false, enemy.stats.stun_duration * SWEEP_STUN_RATIO)

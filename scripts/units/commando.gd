@@ -16,7 +16,7 @@ signal shield_changed(raised: bool)
 
 ## Corps à corps : couteau (tue), assommer, balayage (assomme moins
 ## longtemps), projection (au sol par-dessus la hanche, puis assommé).
-enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW }
+enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM }
 
 const MASK_OCCLUDERS := 0b10
 ## Indicatif affiché au-dessus de la tête : couleur, couleur une fois
@@ -498,6 +498,8 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 	if is_dead or _hopping or enemy == null or enemy.is_dead:
 		return false
 	if kind != MeleeKind.KNIFE and enemy.is_stunned():
+		return false
+	if kind == MeleeKind.DISARM and not enemy.can_be_disarmed():
 		return false
 	if perched_on:
 		return _descend(enemy.global_position, melee.bind(enemy, kind, run))
