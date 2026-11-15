@@ -595,3 +595,8 @@
 
 - T, puis clic gauche au sol : l'opérateur le plus proche lance un caillou (jusqu'à 14 m, sans limite). Il tombe avec un bruit sec.
 - Les ennemis qui l'entendent (7 m) deviennent méfiants, vont voir au pas, balaient les alentours du regard trois secondes, puis reprennent leur ronde. Un ennemi en alerte n'en tient pas compte.
+
+## Roulade (3.8)
+
+- Touche « , » (AZERTY) : les opérateurs sélectionnés plongent vers le curseur sur 2,5 m (moins si un obstacle les arrête), se reçoivent sur les mains et finissent couchés, en 0,8 s. Couchés dès l'envol, ils sont plus difficiles à toucher.
+- Refusée depuis la position couchée, perché, pendant un autre geste ou avec un otage.

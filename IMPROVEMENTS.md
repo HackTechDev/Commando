@@ -76,7 +76,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 
 ### Défense
 
-- **3.8 Roulade** : plonger au sol pour sortir d'un cône de vision ou d'une ligne de tir, et finir couché.
+- **3.8 ~~Roulade~~** (fait) : plonger au sol pour sortir d'un cône de vision ou d'une ligne de tir, et finir couché.
 - **3.9 ~~Garde de l'ennemi~~** (fait) : un ennemi en alerte lève les bras, ce qui impose un contre ou une prise par derrière.
 - **3.10 ~~Riposte au corps à corps~~** (fait) des ennemis à court de munitions (les ennemis frappent déjà au contact).
 - **3.11 ~~Parade au choix du joueur~~** (fait) : une touche de défense, à presser au bon moment, au lieu du tirage au sort.

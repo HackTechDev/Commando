@@ -15,6 +15,7 @@ const SECTIONS: Array = [
 		[["Clic droit sur une caisse"], "Grimper dessus"],
 		[["Clic droit sur un toit"], "Y monter par l'échelle, enjamber les murets"],
 		[[&"posture_crouch", &"posture_prone"], "Accroupi / rampé"],
+		[[&"dive"], "Roulade vers le curseur"],
 		[[&"stop"], "Annuler l'ordre en cours"],
 	]],
 	["Combat", [

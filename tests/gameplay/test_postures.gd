@@ -62,3 +62,24 @@ func test_death_during_transition_falls_flat() -> void:
 	assert_true(charlie.is_dead)
 	assert_false(model.is_changing_posture())
 	assert_almost_eq(model._body.rotation.x, -PI / 2.0, 0.05, "à plat ventre")
+
+
+func test_dive_ends_prone_a_few_meters_away() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	hide_from_enemies(alpha)
+	alpha.global_position = Vector3(-14, 0, 2)
+	await frames(5)
+	var start := alpha.global_position
+	var toward := start + Vector3(6, 0, 0)
+	assert_true(alpha.dive(toward), "roulade")
+	assert_true(alpha.is_diving())
+	assert_eq(alpha.posture, SoldierModel.Posture.PRONE, "couché dès l'envol")
+	assert_false(alpha.dive(toward), "pas deux à la fois")
+	var landed := func() -> bool: return not alpha.is_diving()
+	assert_gt(await frames_until(landed, int(SoldierModel.DIVE_TIME * 60) + 20), -1, "geste terminé")
+	assert_almost_eq(flat_distance(alpha.global_position, start), DiveGesture.DISTANCE, 0.3, "plongé vers le curseur")
+	assert_gt(alpha.global_position.x, start.x + 2.0, "dans la bonne direction")
+	await frames(5)
+	assert_false(alpha._model.is_changing_posture(), "déjà allongé")
+	assert_eq(alpha.posture, SoldierModel.Posture.PRONE)
+	assert_false(alpha.dive(start), "pas de roulade depuis la position couchée")

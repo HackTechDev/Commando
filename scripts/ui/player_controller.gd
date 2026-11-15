@@ -416,6 +416,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			unit.ready_parry()
 	elif event.is_action_pressed(&"action_shield"):
 		_feedback(SelectionManager.toggle_shield())
+	elif event.is_action_pressed(&"dive"):
+		# Roulade vers le curseur.
+		var mouse := get_viewport().get_mouse_position()
+		var ground := _raycast(mouse, MASK_GROUND)
+		if not ground.is_empty():
+			_feedback(SelectionManager.dive(ground["position"]))
 	elif event.is_action_pressed(&"switch_weapon"):
 		SelectionManager.switch_weapons()
 	elif event.is_action_pressed(&"action_sling"):

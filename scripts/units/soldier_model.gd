@@ -116,6 +116,11 @@ const POSE_KNEEL: Array[float] = [0.0, 0.52, 0.0, 1.45, -0.1, -1.45, -1.47, -0.1
 const POSE_KNEES: Array[float] = [0.0, 0.52, 0.0, -0.05, -0.05, -1.5, -1.5, -0.45, 0.35, 0.05, 0.3, 0.3]
 const POSE_ALL_FOURS: Array[float] = [-1.2, 0.5, 0.0, 1.2, 1.2, -1.5, -1.5, -0.15, 1.1, 0.08, 1.0, 1.0]
 const POSE_PRONE: Array[float] = [-PI / 2.0, 0.18, -0.02, 0.0, 0.0, 0.0, 0.0, 0.2, 1.2, 0.12, 0.0, 1.0]
+# Roulade (plongeon) : envol, corps tendu, puis réception sur les mains et
+# couché.
+const POSE_DIVE_AIR: Array[float] = [-1.05, 1.0, 0.0, -0.35, -0.2, -0.15, -0.35, 0.05, 0.75, 0.04, 0.0, 0.5]
+const POSE_DIVE_LAND: Array[float] = [-1.45, 0.42, 0.0, 0.05, 0.15, -0.25, -0.5, 0.15, 1.1, 0.1, 0.7, 0.85]
+const DIVE_TIME := 0.8
 ## Durées (s) : se coucher depuis debout / accroupi, se relever debout / accroupi.
 const GO_PRONE_TIME := 1.1
 const GO_PRONE_FROM_CROUCH_TIME := 0.9
@@ -899,6 +904,19 @@ func _free_hand(side: float, prone: bool, s: float, c: float, moving: float, cra
 ## Vrai pendant qu'il se couche ou se relève : l'unité ne doit ni bouger ni tirer.
 func is_changing_posture() -> bool:
 	return _transition_duration > 0.0
+
+
+## Plongeon jusqu'à la position couchée (roulade), plus vif qu'en se
+## couchant : envol, réception sur les mains, allongé.
+func dive() -> void:
+	if _body == null or is_dead:
+		posture = Posture.PRONE
+		return
+	posture = Posture.PRONE
+	_transition_time = 0.0
+	_transition_duration = DIVE_TIME
+	_transition_times = [0.0, 0.35, 0.7, 1.0]
+	_transition_poses = [_current_pose(), POSE_DIVE_AIR, POSE_DIVE_LAND, POSE_PRONE]
 
 
 func _start_transition(from: Posture, to: Posture) -> void:

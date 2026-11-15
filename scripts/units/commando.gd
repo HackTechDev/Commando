@@ -906,6 +906,28 @@ func toggle_sling() -> void:
 		release_crate()
 
 
+## Roulade vers `toward` : l'opérateur plonge et finit couché. Refusée
+## couché, perché, en plein geste ou un otage dans les bras. Renvoie vrai si
+## elle commence.
+func dive(toward: Vector3) -> bool:
+	if _hostage_busy():
+		return false
+	if is_dead or _hopping or _climbing or perched_on or is_traversing() or _gesture != null:
+		return false
+	if posture == SoldierModel.Posture.PRONE or _model.is_changing_posture():
+		return false
+	release_crate()
+	set_shield(false)
+	_set_order(null)
+	_start(DiveGesture.new(self, toward))
+	return true
+
+
+## Vrai pendant une roulade.
+func is_diving() -> bool:
+	return _gesture is DiveGesture
+
+
 ## Bascule entre `new_posture` et debout.
 func toggle_posture(new_posture: SoldierModel.Posture) -> void:
 	if is_dead:

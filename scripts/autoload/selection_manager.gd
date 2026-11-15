@@ -292,6 +292,15 @@ func toggle_shield() -> bool:
 
 
 ## Fait changer d'arme (principale ↔ secondaire) aux unités sélectionnées.
+## Roulade de chaque unité sélectionnée vers `toward`. Renvoie vrai si au
+## moins une plonge.
+func dive(toward: Vector3) -> bool:
+	var any := false
+	for unit in selected:
+		any = unit.dive(toward) or any
+	return any
+
+
 func switch_weapons() -> void:
 	for unit in selected:
 		unit.switch_weapon()

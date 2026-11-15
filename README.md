@@ -50,6 +50,7 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Recharger | R |
 | Annuler l'ordre en cours | F (clic droit pour annuler une action V / B / T / P armée) |
 | Accroupi / rampé | C / X (bascule) |
+| Roulade vers le curseur (finit couché) | , (touche à droite de N en AZERTY) |
 | Déplacer la caméra | ZQSD, flèches, bord d'écran, clic molette maintenu |
 | Zoom | Molette |
 | Rotation de la caméra | A / E (maintenir) |
