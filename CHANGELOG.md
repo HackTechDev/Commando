@@ -322,3 +322,7 @@
 - Corps : membres galbés (cuisses, mollets, avant-bras), genoux et coudes, mains gantées avec pouce, bottes avec tige, semelle et lacets. Le pantalon a des poches cargo et des bas resserrés.
 - Torse : bassin, ceinturon à boucle, buste et épaules arrondis. Le gilet a des plaques avant et arrière, des porte-chargeurs à rabat, une poche administrative et un écusson.
 - Les ennemis partagent le nouveau corps. Les animations sont inchangées.
+
+## Modèle et animation (points 6.x)
+
+- Mains articulées : quatre doigts de deux phalanges et un pouce. Elles se ferment sur l'arme, le couteau ou la grenade et en poing pour frapper. Elles s'ouvrent pour pousser, parer, s'agripper en escaladant ou prendre appui au sol, et se détendent le long du corps.

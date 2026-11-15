@@ -437,6 +437,9 @@ var _mag_dropped: bool = false
 var _arm_joints: Array[Node3D] = []
 ## Poses des bras (une rotation par pivot), indexées par `ArmPose`.
 var _arm_poses: Array = []
+## Phalanges de chaque main (gauche, droite) : 4 doigts × 2, puis le pouce.
+var _fingers: Array = []
+var _curl := Vector2(0.4, 0.4)
 var _time: float = 0.0
 
 var _m_uniform: StandardMaterial3D
@@ -474,6 +477,7 @@ func _rebuild() -> void:
 	old.free()
 	_arm_joints.clear()
 	_arm_poses.clear()
+	_fingers.clear()
 	_butt_keys.clear()
 	_build()
 
@@ -670,6 +674,7 @@ func _animate_transition(delta: float) -> void:
 	_knife.visible = false
 	_hand_grenade.visible = false
 	_update_magazines()
+	_animate_fingers(Vector2(lerpf(0.95, 0.1, hand), 1.0) if is_armed else Vector2(lerpf(0.35, 0.1, hand), lerpf(0.35, 0.1, hand)), delta)
 	if t >= 1.0:
 		_transition_duration = 0.0
 
@@ -1058,6 +1063,30 @@ func _animate_alive(delta: float) -> void:
 	_knife.visible = (strike > 0.0 and strike_with_knife) or (throwing and not throw_grenade and throw_t < THROW_RELEASE) or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
 	_update_magazines()
 
+	# Doigts : serrés sur l'arme, le couteau, la grenade ou en poing ; ouverts
+	# pour pousser, parer, prendre appui ; détendus sinon.
+	var curl := Vector2(0.35, 0.35)
+	if is_armed:
+		var held := 1.0 - smoothstep(0.35, 0.75, _sling)
+		curl = curl.lerp(Vector2(0.95, 1.0), held)
+		if prone:
+			curl.x = lerpf(curl.x, 0.15, crawl)
+	if uppercut or not kick.is_empty() or butt:
+		curl = Vector2(1.0, 1.0)
+	elif grapple:
+		curl = Vector2(0.55, 1.0 if strike_move == StrikeMove.THROAT_CUT else 0.6)
+	elif grabbed:
+		curl = Vector2(0.7, 0.7)
+	elif throwing:
+		curl = Vector2(0.3, 1.0 if throw_t < THROW_RELEASE else 0.15)
+	elif grip > 0.0 or (shove and not is_armed) or (parry and not block):
+		curl = curl.lerp(Vector2(0.12, 0.12), maxf(grip, 1.0 if shove or parry else 0.0))
+	elif strike > 0.0:
+		curl.y = 1.0
+	if reloading:
+		curl.x = 0.85
+	_animate_fingers(curl, delta)
+
 
 ## Bruit de pas à chaque pied posé (deux par cycle), plus fort en courant,
 ## plus discret accroupi ; bruissement en rampant.
@@ -1265,6 +1294,7 @@ func _animate_death(delta: float) -> void:
 	_knife.visible = false
 	_hand_grenade.visible = false
 	_update_magazines()
+	_animate_fingers(Vector2(0.3, 0.3), delta)
 
 
 ## Retire ou rend la carabine. Sans arme, la pose de repos des bras devient
@@ -1329,6 +1359,7 @@ func _animate_climb(delta: float) -> void:
 	_rifle.transform = _sling_transform(_rifle_hold, sling)
 	_rifle_base = _rifle.transform
 	_apply_arm_keys(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t)
+	_animate_fingers(_climb_curl(CLIMB_DOWN_ARMS if down else CLIMB_UP_ARMS, t), delta)
 
 
 ## Pose du saut depuis un mur à l'instant `t` (même squelette que l'escalade).
@@ -1353,6 +1384,20 @@ func _animate_jump(delta: float, t: float) -> void:
 	_rifle.transform = _sling_transform(_rifle_hold, sling)
 	_rifle_base = _rifle.transform
 	_apply_arm_keys(JUMP_ARMS, t)
+	_animate_fingers(_climb_curl(JUMP_ARMS, t), delta)
+
+
+## Doigts pendant l'escalade : ouverts pour attraper et prendre appui,
+## serrés sur l'arme sinon.
+func _climb_curl(keys: Array[float], t: float) -> Vector2:
+	var count := keys.size() / 2
+	var index := 0
+	while index < count - 1 and t > keys[(index + 1) * 2]:
+		index += 1
+	var pose := int(keys[index * 2 + 1])
+	if pose == ArmPose.REACH or pose == ArmPose.PUSH:
+		return Vector2(0.1, 0.1)
+	return Vector2(0.95, 1.0) if is_armed and _sling < 0.5 else Vector2(0.35, 0.35)
 
 
 ## IK des pieds : la cheville compense la flexion de la hanche et du genou
@@ -2102,9 +2147,7 @@ func _build_arm(side: float) -> void:
 	_sphere(elbow, 0.053, Vector3.ZERO, _m_top)
 	_tapered(elbow, 0.052, 0.043, FOREARM_LENGTH - 0.04, Vector3(0.0, -(FOREARM_LENGTH - 0.04) * 0.5, 0.0), _m_top)
 	_tapered(elbow, 0.047, 0.045, 0.04, Vector3(0.0, -FOREARM_LENGTH + 0.03, 0.0), _m_glove)
-	_ellipsoid(elbow, 0.044, Vector3(0.72, 1.15, 1.0), Vector3(0.0, -FOREARM_LENGTH - 0.012, 0.0), _m_glove).name = "Hand"
-	var thumb := _capsule(elbow, 0.014, 0.06, Vector3(-0.018 * side, -FOREARM_LENGTH + 0.005, -0.03), _m_glove)
-	thumb.rotation.x = 0.6
+	_build_hand(elbow, side)
 	_arm_joints.append(shoulder)
 	_arm_joints.append(elbow)
 	if side < 0.0:
@@ -2122,6 +2165,43 @@ func _build_arm(side: float) -> void:
 		_hand_grenade = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.04, -0.02), "HandGrenade")
 		_sphere(_hand_grenade, 0.036, Vector3.ZERO, _m_grenade)
 		_hand_grenade.visible = false
+
+
+## Main gantée articulée : paume, quatre doigts de deux phalanges et pouce,
+## qui se referment vers la paume (côté intérieur, vers le corps) selon
+## `_curl` (`_animate_fingers`).
+func _build_hand(elbow: Node3D, side: float) -> void:
+	var wrist := -FOREARM_LENGTH
+	_ellipsoid(elbow, 0.036, Vector3(0.62, 1.05, 1.0), Vector3(0.0, wrist - 0.022, 0.0), _m_glove).name = "Hand"
+	var joints: Array[Node3D] = []
+	for i in 4:
+		var z := -0.024 + 0.016 * i
+		var length := 0.03 - 0.004 * absf(i - 1.4)
+		var knuckle := _pivot(elbow, Vector3(0.0, wrist - 0.052, z), "Finger%d" % i)
+		_capsule(knuckle, 0.0085, length + 0.012, Vector3(0.0, -length * 0.5, 0.0), _m_glove)
+		var middle := _pivot(knuckle, Vector3(0.0, -length, 0.0), "Phalanx")
+		_capsule(middle, 0.0078, length, Vector3(0.0, -length * 0.4, 0.0), _m_glove)
+		joints.append_array([knuckle, middle])
+	var thumb := _pivot(elbow, Vector3(-0.008 * side, wrist - 0.018, -0.026), "Thumb")
+	_capsule(thumb, 0.0105, 0.05, Vector3(0.0, -0.02, 0.0), _m_glove)
+	thumb.rotation.x = 0.55
+	joints.append(thumb)
+	_fingers.append(joints)
+
+
+## Doigts : 0 = main ouverte, 1 = poing serré (sur une arme, un objet).
+## `curl` : fermeture visée pour la main gauche (x) et droite (y).
+func _animate_fingers(curl: Vector2, delta: float) -> void:
+	_curl = _curl.lerp(curl, 1.0 - exp(-14.0 * delta))
+	for hand in _fingers.size():
+		var side := -1.0 if hand == 0 else 1.0
+		var amount: float = _curl.x if hand == 0 else _curl.y
+		var joints: Array = _fingers[hand]
+		for i in 8:
+			# Phalanges vers la paume : rotation autour de l'axe avant-arrière.
+			(joints[i] as Node3D).rotation.z = -side * amount * (1.45 if i % 2 == 0 else 1.6)
+		var thumb: Node3D = joints[8]
+		thumb.rotation = Vector3(0.55 + 0.35 * amount, 0.0, -side * 0.9 * amount)
 
 
 ## Rotations [épaule gauche, coude gauche, épaule droite, coude droit] qui

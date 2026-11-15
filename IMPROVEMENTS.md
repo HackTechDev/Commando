@@ -1,6 +1,6 @@
 # Idées d'amélioration
 
-Pistes classées par priorité. Chaque point a un numéro (section.point, puis une lettre pour les sous-points) pour qu'on puisse y renvoyer. Les renvois « § » et « M » pointent vers `CAHIER_DES_CHARGES.md`.
+Pistes classées par priorité. Chaque point a un numéro (section.point, puis une lettre pour les sous-points) pour qu'on puisse y renvoyer. Les points faits sont barrés et gardent leur numéro. Les renvois « § » et « M » pointent vers `CAHIER_DES_CHARGES.md`.
 
 ## 1. À faire en premier (fondations)
 
@@ -126,7 +126,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 ## 6. Modèle et animation
 
 - **6.1 Corps, suite** :
-  - **a)** doigts articulés autour des armes et des objets ;
+  - **a)** ~~doigts articulés autour des armes et des objets~~ (fait) ;
   - **b)** clignement des yeux et regard qui suit la cible ;
   - **c)** expressions (effort, douleur) ;
   - **d)** plis et coutures sur les vêtements (texture) ;
