@@ -2109,19 +2109,25 @@ func _build_face() -> void:
 		# Oreille.
 		_ellipsoid(_head, 0.024, Vector3(0.45, 1.0, 0.75), Vector3(0.1 * side, 0.18, 0.014), _m_skin)
 	_build_eyes()
-	# Nez : arête et bout, bouche.
-	var nose := 0.85 if _female else 1.0
-	var bridge := _box(_head, Vector3(0.02 * nose, 0.048 * nose, 0.022 * nose), Vector3(0.0, 0.168, -0.1), _m_skin)
-	bridge.rotation.x = -0.3
-	_ellipsoid(_head, 0.014 * nose, Vector3(1.25, 0.9, 1.0), Vector3(0.0, 0.147, -0.109 if _female else -0.111), _m_skin)
+	var nose := MeshInstance3D.new()
+	nose.name = "Nose"
+	nose.mesh = _nose_mesh(_female)
+	nose.material_override = _m_skin
+	_head.add_child(nose)
 	var beard: StringName = _guard_look.get("beard", &"none") if outfit == null else outfit.beard
 	if _female:
 		beard = &"none"
-	var lips_depth := {&"none": -0.108, &"stubble": -0.116, &"full": -0.131}[beard] as float
-	_mouth = _ellipsoid(_head, 0.023 if _female else 0.02, MOUTH_REST, Vector3(0.0, 0.119, lips_depth), _m_lip)
+	# Lèvres posées sur la peau, ou sur la barbe qui la recouvre ; à moitié
+	# enfoncées pour rester collées au visage malgré sa courbure.
+	var lips_depth := face_depth(0.0, MOUTH_HEIGHT, _female)
+	match beard:
+		&"stubble", &"full":
+			lips_depth = _beard_point(MOUTH_HEIGHT, 0.0, beard == &"full").z
+	lips_depth += 0.003
+	_mouth = _ellipsoid(_head, 0.023 if _female else 0.02, MOUTH_REST, Vector3(0.0, MOUTH_HEIGHT, lips_depth), _m_lip)
 	_mouth.name = "Mouth"
 	# Intérieur de la bouche, visible quand elle s'ouvre (douleur).
-	_mouth_inner = _ellipsoid(_head, 0.016, Vector3(1.2, 0.01, 0.4), Vector3(0.0, 0.118, lips_depth - 0.004), _m_dark)
+	_mouth_inner = _ellipsoid(_head, 0.016, Vector3(1.2, 0.01, 0.4), Vector3(0.0, MOUTH_HEIGHT - 0.001, lips_depth - 0.004), _m_dark)
 	_mouth_inner.visible = false
 	var style: StringName = _guard_look.get("hair_style", &"short") if outfit == null else outfit.hair_style
 	# Sous un couvre-chef, seuls l'arrière du crâne et la queue de cheval
@@ -2159,10 +2165,11 @@ func _build_face() -> void:
 				_box(_head, Vector3(0.032, 0.05, 0.22), Vector3(0.0, 0.31, 0.005), _m_hair)
 	match beard:
 		&"stubble":
-			_ellipsoid(_head, 0.082, Vector3(1.07, 0.9, 1.12), Vector3(0.0, 0.124, -0.022), _m_stubble).name = "Beard"
+			_mesh(_head, _beard_mesh(false), Vector3.ZERO, _m_stubble).name = "Beard"
 		&"full":
-			_ellipsoid(_head, 0.088, Vector3(1.1, 1.0, 1.15), Vector3(0.0, 0.11, -0.028), _m_hair).name = "Beard"
-			_ellipsoid(_head, 0.022, Vector3(1.8, 0.45, 0.6), Vector3(0.0, 0.132, -0.128), _m_hair)
+			_mesh(_head, _beard_mesh(true), Vector3.ZERO, _m_hair).name = "Beard"
+			# Moustache, entre le nez et la lèvre.
+			_ellipsoid(_head, 0.022, Vector3(1.7, 0.4, 0.55), Vector3(0.0, 0.131, face_depth(0.0, 0.131) - 0.004), _m_hair)
 
 
 ## Volume de la tête : un seul maillage lissé, crâne arrondi et mâchoire
@@ -2175,10 +2182,155 @@ func _head_shape(material: Material) -> MeshInstance3D:
 	return head
 
 
+## Hauteur de la bouche (repère de la tête).
+const MOUTH_HEIGHT := 0.119
+## Barbe : coque qui épouse la mâchoire, sous le nez, remontant en favoris
+## jusqu'aux oreilles ; épaisseur (m) en haut et au menton.
+const BEARD_TOP := 0.136
+const BEARD_SIDEBURN := 0.04
+const BEARD_SPREAD := 1.75
+const STUBBLE_THICKNESS := Vector2(0.0025, 0.004)
+const FULL_BEARD_THICKNESS := Vector2(0.007, 0.024)
+
+static var _beard_cache: Array[ArrayMesh] = [null, null]
+
+
+## Point de la barbe à la hauteur `y` et à l'angle `phi` (0 : devant) autour
+## de la tête masculine.
+static func _beard_point(y: float, phi: float, full: bool) -> Vector3:
+	var dy := clampf((y - HEAD_CENTER.y) / HEAD_RADII.z, -1.0, 0.0)
+	var ring := sqrt(1.0 - dy * dy)
+	var t := -dy
+	var skin := Vector3(
+		ring * sin(phi) * HEAD_RADII.x * (1.0 - 0.2 * t * t),
+		dy * HEAD_RADII.z,
+		-ring * cos(phi) * HEAD_RADII.w * (1.0 - 0.12 * t * t))
+	if skin.z < 0.0:
+		skin.z *= 1.0 + 0.08 * t
+	var thickness := STUBBLE_THICKNESS if not full else FULL_BEARD_THICKNESS
+	var depth := lerpf(thickness.x, thickness.y, smoothstep(0.5, 1.0, t))
+	return HEAD_CENTER + skin * (1.0 + depth / maxf(skin.length(), 0.001))
+
+
+static func _beard_mesh(full: bool) -> ArrayMesh:
+	var variant := 1 if full else 0
+	if _beard_cache[variant]:
+		return _beard_cache[variant]
+	var rows := 12
+	var columns := 20
+	var bottom := HEAD_CENTER.y - HEAD_RADII.z
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in rows + 1:
+		for j in columns + 1:
+			var phi := lerpf(-BEARD_SPREAD, BEARD_SPREAD, float(j) / columns)
+			var top := BEARD_TOP + BEARD_SIDEBURN * absf(sin(phi))
+			tool.add_vertex(_beard_point(lerpf(top, bottom, float(i) / rows), phi, full))
+	for i in rows:
+		for j in columns:
+			var a := i * (columns + 1) + j
+			var b := a + columns + 1
+			for index: int in [a, b, a + 1, a + 1, b, b + 1]:
+				tool.add_index(index)
+	tool.generate_normals()
+	_beard_cache[variant] = tool.commit()
+	return _beard_cache[variant]
+
 const HEAD_CENTER := Vector3(0.0, 0.195, 0.008)
 ## Demi-largeur, demi-hauteurs (au-dessus et au-dessous du centre) et
 ## demi-profondeur de la tête.
 const HEAD_RADII := Vector4(0.0998, 0.1134, 0.141, 0.11)
+
+## Profondeur (z, vers l'avant négatif) de la surface du visage au point
+## (`x`, `y`) du repère de la tête : même calcul que `_head_mesh`.
+static func face_depth(x: float, y: float, female: bool = false) -> float:
+	var size := 0.96 if female else 1.0
+	var jaw := 0.3 if female else 0.2
+	var chin := 0.04 if female else 0.08
+	var dy := (y - HEAD_CENTER.y) / (size * (HEAD_RADII.y if y > HEAD_CENTER.y else HEAD_RADII.z))
+	dy = clampf(dy, -1.0, 1.0)
+	var ring := sqrt(1.0 - dy * dy)
+	var t := maxf(-dy, 0.0)
+	var half_width := size * HEAD_RADII.x * (1.0 - jaw * t * t) * ring
+	var side := clampf(x / maxf(half_width, 0.0001), -1.0, 1.0)
+	var depth := ring * sqrt(1.0 - side * side) * HEAD_RADII.w * (1.0 - 0.12 * t * t) * (1.0 + chin * t)
+	return HEAD_CENTER.z - size * depth
+
+
+## Nez : arête qui part d'entre les yeux, bout arrondi, ailes et narines,
+## ancré dans la surface du visage (`face_depth`).
+static var _nose_cache: Array[ArrayMesh] = [null, null]
+
+
+static func _nose_mesh(female: bool) -> ArrayMesh:
+	var variant := 1 if female else 0
+	if _nose_cache[variant]:
+		return _nose_cache[variant]
+	var k := 0.85 if female else 1.0
+	# Points : x, y, avancée devant la surface du visage (négatif : enfoncé).
+	var spec := {
+		"root": Vector3(0.0, 0.19, 0.002),
+		"bridge_l": Vector3(-0.009, 0.175, 0.004), "bridge_r": Vector3(0.009, 0.175, 0.004),
+		"ridge": Vector3(0.0, 0.168, 0.016),
+		"tip": Vector3(0.0, 0.148, 0.028),
+		"tip_l": Vector3(-0.01, 0.147, 0.021), "tip_r": Vector3(0.01, 0.147, 0.021),
+		"wing_l": Vector3(-0.017, 0.141, 0.008), "wing_r": Vector3(0.017, 0.141, 0.008),
+		"base": Vector3(0.0, 0.137, 0.011),
+		"nostril_l": Vector3(-0.009, 0.138, 0.009), "nostril_r": Vector3(0.009, 0.138, 0.009),
+		# Ancrages sous la peau.
+		"in_root": Vector3(0.0, 0.195, -0.006),
+		"in_l": Vector3(-0.016, 0.168, -0.004), "in_r": Vector3(0.016, 0.168, -0.004),
+		"in_wing_l": Vector3(-0.022, 0.139, -0.004), "in_wing_r": Vector3(0.022, 0.139, -0.004),
+		"in_base": Vector3(0.0, 0.132, -0.004),
+	}
+	var points := {}
+	for key: String in spec:
+		var p: Vector3 = spec[key]
+		var x := p.x * k
+		var y := 0.142 + (p.y - 0.142) * k
+		points[key] = Vector3(x, y, face_depth(x, y, female) - p.z * k)
+	var triangles := [
+		["in_root", "root", "bridge_l"], ["in_root", "bridge_r", "root"],
+		["root", "ridge", "bridge_l"], ["root", "bridge_r", "ridge"],
+		["in_root", "bridge_l", "in_l"], ["in_root", "in_r", "bridge_r"],
+		["bridge_l", "ridge", "tip_l"], ["ridge", "bridge_r", "tip_r"],
+		["ridge", "tip", "tip_l"], ["ridge", "tip_r", "tip"],
+		["in_l", "bridge_l", "wing_l"], ["bridge_l", "tip_l", "wing_l"],
+		["in_r", "wing_r", "bridge_r"], ["bridge_r", "wing_r", "tip_r"],
+		["in_l", "wing_l", "in_wing_l"], ["in_r", "in_wing_r", "wing_r"],
+		["tip_l", "tip", "nostril_l"], ["tip", "tip_r", "nostril_r"],
+		["tip", "base", "nostril_l"], ["tip", "nostril_r", "base"],
+		["tip_l", "nostril_l", "wing_l"], ["tip_r", "wing_r", "nostril_r"],
+		["wing_l", "nostril_l", "in_wing_l"], ["wing_r", "in_wing_r", "nostril_r"],
+		["nostril_l", "base", "in_base"], ["base", "nostril_r", "in_base"],
+		["nostril_l", "in_base", "in_wing_l"], ["nostril_r", "in_wing_r", "in_base"],
+	]
+	# Orientation de chaque face : vers l'extérieur du volume du nez.
+	var inside: Vector3 = (points["in_root"] + points["in_base"]) * 0.5 + Vector3(0.0, 0.0, -0.004)
+	var keys := spec.keys()
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	tool.set_smooth_group(0)
+	for key: String in keys:
+		tool.add_vertex(points[key])
+	for tri: Array in triangles:
+		var a: Vector3 = points[tri[0]]
+		var b: Vector3 = points[tri[1]]
+		var c: Vector3 = points[tri[2]]
+		var ia := keys.find(tri[0])
+		var ib := keys.find(tri[1])
+		var ic := keys.find(tri[2])
+		# Sens horaire vu de l'extérieur (faces avant de Godot).
+		if (b - a).cross(c - a).dot((a + b + c) / 3.0 - inside) > 0.0:
+			var swap := ib
+			ib = ic
+			ic = swap
+		for index: int in [ia, ib, ic]:
+			tool.add_index(index)
+	tool.generate_normals()
+	_nose_cache[variant] = tool.commit()
+	return _nose_cache[variant]
+
 
 ## Têtes générées : [masculine, féminine].
 static var _head_cache: Array[ArrayMesh] = [null, null]

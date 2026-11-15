@@ -186,3 +186,22 @@ func test_female_body_is_slimmer_and_beardless() -> void:
 	model.posture = SoldierModel.Posture.PRONE
 	_run(2.0)
 	assert_false(model.is_changing_posture(), "se couche normalement")
+
+
+func test_mouth_and_nose_sit_on_the_face() -> void:
+	for body: StringName in [&"male", &"female"]:
+		for beard: StringName in [&"none", &"stubble", &"full"]:
+			var outfit := OperatorProfile.defaults(0)
+			outfit.balaclava = false
+			outfit.body = body
+			outfit.beard = beard
+			model.outfit = outfit
+			var female := body == &"female"
+			var mouth: Node3D = model.find_child("Mouth", true, false)
+			var surface := SoldierModel.face_depth(0.0, SoldierModel.MOUTH_HEIGHT, female)
+			# Lèvres à moitié enfoncées dans la peau ou dans la barbe.
+			assert_between(mouth.position.z, surface - 0.03, surface + 0.006, "%s/%s : bouche contre le visage" % [body, beard])
+			var nose := model.find_child("Nose", true, false) as MeshInstance3D
+			var box := nose.get_aabb()
+			assert_lt(box.position.z, SoldierModel.face_depth(0.0, 0.148, female) - 0.015, "%s : nez saillant" % body)
+			assert_gt(box.end.z, SoldierModel.face_depth(0.0, 0.17, female), "%s : nez ancré dans le visage" % body)

@@ -394,3 +394,9 @@
   - visage plus fin : mâchoire étroite, menton moins marqué, petit nez, lèvres plus pleines, sourcils fins, sans barbe.
 - Deux nouvelles coupes pour tous : « Cheveux longs » (sur les épaules, visibles même sous un casque) et « Chignon ».
 - Bravo (Inès Morel) a désormais la morphologie féminine et les cheveux longs par défaut.
+
+## Visage : bouche, nez et barbe
+
+- La bouche est posée sur le visage (ou sur la barbe) au lieu de flotter devant, pour les deux morphologies.
+- Nouveau nez modelé : arête partant d'entre les yeux, bout arrondi, ailes et narines, ancré dans la peau. Il est plus petit pour une opératrice.
+- Barbe courte et barbe fournie : elles épousent désormais la mâchoire sous le nez et remontent en favoris jusqu'aux oreilles. La barbe fournie s'épaissit vers le menton et garde sa moustache. Auparavant, c'était un ellipsoïde qui flottait à plusieurs centimètres du visage et cachait le nez.
