@@ -277,6 +277,17 @@ const ANKLE_MAX := 1.0
 @export var operator_helmet := true
 @export var helmet_color := Color(0.25, 0.27, 0.2)
 
+## Personnalisation d'un opérateur (tenue, accessoires, visage, armes) ; null :
+## apparence donnée par les réglages ci-dessus (ennemis). Changer de profil
+## reconstruit le modèle.
+## Pas de bruits de pas (aperçu de l'écran « Opérateurs »).
+var silent: bool = false
+var outfit: OperatorProfile:
+	set(value):
+		outfit = value
+		if _body != null:
+			_rebuild()
+
 ## Posture affichée. Se coucher et se relever sont animés (voir
 ## `is_changing_posture`) ; entre debout et accroupi, la pose est interpolée.
 var posture: Posture = Posture.STANDING:
@@ -421,21 +432,58 @@ var _m_team: StandardMaterial3D
 var _m_lens: StandardMaterial3D
 var _m_steel: StandardMaterial3D
 var _m_helmet: StandardMaterial3D
+var _m_top: StandardMaterial3D
+var _m_pants: StandardMaterial3D
+var _m_hair: StandardMaterial3D
+var _m_dark: StandardMaterial3D
+var _m_red: StandardMaterial3D
+var _m_grenade: StandardMaterial3D
+var _m_explosive: StandardMaterial3D
 
 
 func _ready() -> void:
+	_build()
+
+
+## Remplace le modèle construit par un nouveau, d'après `outfit`.
+func _rebuild() -> void:
+	var old := _body
+	remove_child(old)
+	old.free()
+	_arm_joints.clear()
+	_arm_poses.clear()
+	_butt_keys.clear()
+	_build()
+
+
+func _build() -> void:
 	_m_uniform = _mat(uniform_color, 0.95)
 	_m_gear = _mat(gear_color, 0.85)
 	_m_boot = _mat(boot_color, 0.7)
 	_m_weapon = _mat(weapon_color, 0.45, 0.6)
 	_m_skin = _mat(skin_color, 0.8)
+	_m_helmet = _mat(helmet_color, 0.75)
+	_m_top = _m_uniform
+	_m_pants = _m_uniform
+	_m_hair = _mat(GearCatalog.HAIR_COLORS[0], 0.9)
+	if outfit:
+		_m_top = _cloth(outfit.top_color)
+		_m_pants = _cloth(outfit.pants_color)
+		_m_uniform = _m_top
+		_m_gear = _mat(outfit.vest_color, 0.85)
+		_m_helmet = _mat(outfit.headwear_color, 0.75)
+		_m_skin = _mat(GearCatalog.SKINS[outfit.skin], 0.8)
+		_m_hair = _mat(GearCatalog.HAIR_COLORS[outfit.hair_color], 0.9)
+	_m_dark = _mat(Color(0.05, 0.05, 0.05), 0.4)
+	_m_red = _mat(Color(0.75, 0.1, 0.08), 0.6)
+	_m_grenade = _mat(Color(0.2, 0.24, 0.16), 0.6, 0.2)
+	_m_explosive = _mat(Color(0.62, 0.55, 0.38), 0.85)
 	_m_team = _mat(team_color, 0.6)
 	_m_team.emission_enabled = true
 	_m_team.emission = team_color
 	_m_team.emission_energy_multiplier = 0.4
 	_m_lens = _mat(Color(0.1, 0.5, 0.3), 0.15, 0.8)
 	_m_steel = _mat(Color(0.72, 0.74, 0.78), 0.25, 0.9)
-	_m_helmet = _mat(helmet_color, 0.75)
 
 	_body = _pivot(self, Vector3.ZERO, "Body")
 	_hips = _pivot(_body, Vector3(0.0, HIP_HEIGHT, 0.0), "Hips")
@@ -988,7 +1036,7 @@ func _play_steps(walk: float, moving: float, prone: bool) -> void:
 	if step == _last_step:
 		return
 	_last_step = step
-	if moving < 0.15 or not is_inside_tree():
+	if moving < 0.15 or not is_inside_tree() or silent:
 		return
 	if prone:
 		Sfx.play_at(&"crawl", global_position, -16.0, 0.15)
@@ -1309,13 +1357,13 @@ func _apply_arm_keys(keys: Array[float], t: float) -> void:
 func _build_legs() -> void:
 	for side: float in [-1.0, 1.0]:
 		var leg := _pivot(_hips, Vector3(0.11 * side, 0.0, 0.0), "LegL" if side < 0.0 else "LegR")
-		_box(leg, Vector3(0.16, THIGH_LENGTH, 0.18), Vector3(0.0, -0.22, 0.0), _m_uniform)
+		_box(leg, Vector3(0.16, THIGH_LENGTH, 0.18), Vector3(0.0, -0.22, 0.0), _m_pants)
 		# Poche cargo.
-		_box(leg, Vector3(0.04, 0.16, 0.13), Vector3(0.09 * side, -0.24, 0.0), _m_uniform)
+		_box(leg, Vector3(0.04, 0.16, 0.13), Vector3(0.09 * side, -0.24, 0.0), _m_pants)
 		var knee := _pivot(leg, Vector3(0.0, -THIGH_LENGTH, 0.0), "Knee")
-		_box(knee, Vector3(0.14, 0.40, 0.16), Vector3(0.0, -0.20, 0.0), _m_uniform)
-		# Genouillère.
-		_box(knee, Vector3(0.15, 0.13, 0.07), Vector3(0.0, -0.02, -0.085), _m_gear)
+		_box(knee, Vector3(0.14, 0.40, 0.16), Vector3(0.0, -0.20, 0.0), _m_pants)
+		if _wears(&"knee_pads"):
+			_box(knee, Vector3(0.15, 0.13, 0.07), Vector3(0.0, -0.02, -0.085), _m_gear).name = "KneePad"
 		# Botte (tige + semelle) articulée à la cheville.
 		var ankle := _pivot(knee, Vector3(0.0, -SHIN_LENGTH, 0.0), "Ankle")
 		_box(ankle, Vector3(0.15, 0.16, 0.18), Vector3(0.0, 0.04, 0.0), _m_boot)
@@ -1328,49 +1376,143 @@ func _build_legs() -> void:
 			_leg_r = leg
 			_knee_r = knee
 			_ankle_r = ankle
-			# Holster de cuisse avec pistolet.
-			_box(leg, Vector3(0.05, 0.20, 0.12), Vector3(0.115, -0.20, 0.0), _m_gear)
-			_box(leg, Vector3(0.035, 0.07, 0.10), Vector3(0.12, -0.07, 0.02), _m_weapon)
+			_build_sidearm(leg)
 
 
 func _build_torso() -> void:
 	_torso = _pivot(_hips, Vector3.ZERO, "Torso")
 	# Bassin et ceinturon de combat.
-	_box(_torso, Vector3(0.36, 0.14, 0.22), Vector3(0.0, 0.02, 0.0), _m_uniform)
+	_box(_torso, Vector3(0.36, 0.14, 0.22), Vector3(0.0, 0.02, 0.0), _m_pants)
 	_box(_torso, Vector3(0.39, 0.06, 0.25), Vector3(0.0, 0.08, 0.0), _m_gear)
 	_box(_torso, Vector3(0.07, 0.09, 0.06), Vector3(-0.2, 0.05, 0.0), _m_gear)
 	# Buste.
-	_box(_torso, Vector3(0.38, 0.46, 0.22), Vector3(0.0, 0.33, 0.0), _m_uniform)
-	# Porte-plaques.
-	_box(_torso, Vector3(0.36, 0.36, 0.28), Vector3(0.0, 0.33, 0.0), _m_gear)
-	_box(_torso, Vector3(0.41, 0.14, 0.20), Vector3(0.0, 0.22, 0.0), _m_gear)
-	# Bretelles.
-	for side: float in [-1.0, 1.0]:
-		_box(_torso, Vector3(0.08, 0.07, 0.26), Vector3(0.12 * side, 0.545, 0.0), _m_gear)
-	# Trois porte-chargeurs.
-	for i in 3:
-		var x := (float(i) - 1.0) * 0.105
-		_box(_torso, Vector3(0.09, 0.17, 0.05), Vector3(x, 0.24, -0.16), _m_gear)
-		_box(_torso, Vector3(0.06, 0.04, 0.035), Vector3(x, 0.34, -0.155), _m_weapon)
-	# Poche utilitaire et écusson de poitrine.
-	_box(_torso, Vector3(0.14, 0.07, 0.03), Vector3(0.0, 0.44, -0.15), _m_gear)
-	_box(_torso, Vector3(0.08, 0.035, 0.01), Vector3(0.0, 0.445, -0.168), _m_team)
-	# Sac d'assaut + radio et antenne.
-	_box(_torso, Vector3(0.30, 0.36, 0.14), Vector3(0.0, 0.34, 0.20), _m_gear)
-	_box(_torso, Vector3(0.22, 0.14, 0.05), Vector3(0.0, 0.28, 0.285), _m_gear)
-	_box(_torso, Vector3(0.07, 0.16, 0.05), Vector3(-0.12, 0.47, 0.17), _m_weapon)
-	_cylinder(_torso, 0.006, 0.38, Vector3(-0.12, 0.72, 0.17), _m_weapon)
+	_box(_torso, Vector3(0.38, 0.46, 0.22), Vector3(0.0, 0.33, 0.0), _m_top)
+	var front := -0.11
+	if _wears(&"vest"):
+		front = -0.14
+		var vest := _pivot(_torso, Vector3.ZERO, "Vest")
+		# Porte-plaques.
+		_box(vest, Vector3(0.36, 0.36, 0.28), Vector3(0.0, 0.33, 0.0), _m_gear)
+		_box(vest, Vector3(0.41, 0.14, 0.20), Vector3(0.0, 0.22, 0.0), _m_gear)
+		# Bretelles.
+		for side: float in [-1.0, 1.0]:
+			_box(vest, Vector3(0.08, 0.07, 0.26), Vector3(0.12 * side, 0.545, 0.0), _m_gear)
+		# Trois porte-chargeurs.
+		for i in 3:
+			var x := (float(i) - 1.0) * 0.105
+			_box(vest, Vector3(0.09, 0.17, 0.05), Vector3(x, 0.24, -0.16), _m_gear)
+			_box(vest, Vector3(0.06, 0.04, 0.035), Vector3(x, 0.34, -0.155), _m_weapon)
+		# Poche utilitaire et écusson de poitrine.
+		_box(vest, Vector3(0.14, 0.07, 0.03), Vector3(0.0, 0.44, -0.15), _m_gear)
+		_box(vest, Vector3(0.08, 0.035, 0.01), Vector3(0.0, 0.445, -0.168), _m_team)
+	else:
+		# Sans gilet : poche de poitrine et écusson sur la veste, chargeurs au
+		# ceinturon.
+		_box(_torso, Vector3(0.1, 0.09, 0.02), Vector3(0.09, 0.4, -0.115), _m_top)
+		_box(_torso, Vector3(0.07, 0.03, 0.01), Vector3(0.09, 0.47, -0.115), _m_team)
+		for x: float in [-0.07, 0.07]:
+			_box(_torso, Vector3(0.07, 0.12, 0.05), Vector3(x, 0.03, -0.14), _m_gear)
+			_box(_torso, Vector3(0.05, 0.03, 0.03), Vector3(x, 0.1, -0.14), _m_weapon)
+	var back := 0.14 if _wears(&"vest") else 0.11
+	if _wears(&"backpack"):
+		# Sac d'assaut.
+		var pack := _pivot(_torso, Vector3.ZERO, "Backpack")
+		_box(pack, Vector3(0.30, 0.36, 0.14), Vector3(0.0, 0.34, back + 0.06), _m_gear)
+		_box(pack, Vector3(0.22, 0.14, 0.05), Vector3(0.0, 0.28, back + 0.145), _m_gear)
+		back += 0.03
+	if _wears(&"radio"):
+		# Radio et antenne, sur le sac ou à l'épaule.
+		var radio := _pivot(_torso, Vector3.ZERO, "Radio")
+		_box(radio, Vector3(0.07, 0.16, 0.05), Vector3(-0.12, 0.47, back), _m_weapon)
+		_cylinder(radio, 0.006, 0.38, Vector3(-0.12, 0.72, back), _m_weapon)
+	_build_equipment(front)
+
+
+## Équipement visible : grenades et charges au ceinturon, trousse de soins
+## dans le dos, fourreaux des couteaux de lancer sur la poitrine (`front` :
+## devant du buste).
+func _build_equipment(front: float) -> void:
+	if outfit == null:
+		return
+	var grenade_spots: Array[Vector3] = [Vector3(0.17, 0.03, -0.1), Vector3(-0.165, 0.03, -0.1), Vector3(0.21, 0.03, 0.0), Vector3(-0.2, 0.03, 0.08)]
+	for i in outfit.grenades:
+		var grenade := _pivot(_torso, grenade_spots[i], "Grenade%d" % (i + 1))
+		_sphere(grenade, 0.034, Vector3.ZERO, _m_grenade)
+		_box(grenade, Vector3(0.012, 0.035, 0.014), Vector3(0.0, 0.035, -0.02), _m_steel)
+	for i in outfit.explosives:
+		var charge := _box(_torso, Vector3(0.09, 0.06, 0.045), Vector3(0.125 * (1.0 if i == 0 else -1.0), 0.05, 0.14), _m_explosive)
+		charge.name = "Explosive%d" % (i + 1)
+		_box(charge, Vector3(0.012, 0.012, 0.05), Vector3(0.025, 0.035, 0.0), _m_red)
+	if outfit.medkit > 0:
+		var kit := _box(_torso, Vector3(0.08, 0.08, 0.05), Vector3(0.0, 0.05, 0.145), _m_gear)
+		kit.name = "Medkit"
+		_box(kit, Vector3(0.05, 0.014, 0.004), Vector3(0.0, 0.0, 0.026), _m_red)
+		_box(kit, Vector3(0.014, 0.05, 0.004), Vector3(0.0, 0.0, 0.026), _m_red)
+	for i in outfit.throwing_knives:
+		var sheath := _pivot(_torso, Vector3(-0.115 - 0.035 * i, 0.36, front - 0.02), "ThrowingKnife%d" % (i + 1))
+		_box(sheath, Vector3(0.026, 0.13, 0.016), Vector3.ZERO, _m_gear)
+		_box(sheath, Vector3(0.02, 0.05, 0.014), Vector3(0.0, 0.09, 0.0), _m_weapon)
+
+
+## Arme secondaire dans son holster, sur la cuisse droite.
+func _build_sidearm(leg: Node3D) -> void:
+	var kind := &"pistol" if outfit == null else outfit.secondary
+	if kind == &"none":
+		return
+	var holster := _pivot(leg, Vector3.ZERO, "Sidearm")
+	if kind == &"machine_pistol":
+		_box(holster, Vector3(0.06, 0.24, 0.13), Vector3(0.12, -0.21, 0.0), _m_gear)
+		_box(holster, Vector3(0.04, 0.09, 0.13), Vector3(0.125, -0.06, 0.02), _m_weapon)
+		_box(holster, Vector3(0.025, 0.07, 0.03), Vector3(0.125, -0.02, 0.05), _m_weapon)
+		return
+	_box(holster, Vector3(0.05, 0.20, 0.12), Vector3(0.115, -0.20, 0.0), _m_gear)
+	_box(holster, Vector3(0.035, 0.07, 0.10), Vector3(0.12, -0.07, 0.02), _m_weapon)
+
+
+## Vrai si l'opérateur porte l'accessoire `accessory` (toujours, sans profil).
+func _wears(accessory: StringName) -> bool:
+	return outfit == null or bool(outfit.get(accessory))
+
+
+## Tissu de couleur `color`, ou du camouflage de `outfit` s'il y en a un
+## (texture plaquée en triplanaire dans le repère de chaque pièce).
+func _cloth(color: Color) -> StandardMaterial3D:
+	var material := _mat(color, 0.95)
+	if outfit and not outfit.camo.is_empty():
+		material.albedo_color = Color.WHITE
+		material.albedo_texture = GearCatalog.camo_texture(outfit.camo)
+		material.uv1_triplanar = true
+		material.uv1_scale = Vector3.ONE * 2.5
+	return material
 
 
 func _build_head() -> void:
 	_head = _pivot(_torso, Vector3(0.0, 0.57, 0.0), "Head")
-	_cylinder(_head, 0.06, 0.10, Vector3(0.0, 0.03, 0.0), _m_gear)
-	# Tête sous cagoule, bande des yeux.
-	var head := _sphere(_head, 0.112, Vector3(0.0, 0.17, 0.0), _m_gear)
-	head.scale = Vector3(1.0, 1.12, 1.05)
-	_box(_head, Vector3(0.15, 0.04, 0.03), Vector3(0.0, 0.185, -0.105), _m_skin)
+	var masked := _wears(&"balaclava")
+	_cylinder(_head, 0.06, 0.10, Vector3(0.0, 0.03, 0.0), _m_gear if masked else _m_skin)
+	if masked:
+		# Tête sous cagoule, bande des yeux.
+		var head := _sphere(_head, 0.112, Vector3(0.0, 0.17, 0.0), _m_gear)
+		head.name = "Balaclava"
+		head.scale = Vector3(1.0, 1.12, 1.05)
+		_box(_head, Vector3(0.15, 0.04, 0.03), Vector3(0.0, 0.185, -0.105), _m_skin)
+	else:
+		_build_face()
+	if outfit:
+		match outfit.headwear:
+			&"helmet":
+				_build_operator_helmet(outfit.wears_nvg(), outfit.headset)
+			&"none":
+				if outfit.headset:
+					_build_ear_cups(0.12)
+					_box(_head, Vector3(0.25, 0.015, 0.03), Vector3(0.0, 0.3, 0.0), _m_weapon)
+			_:
+				_build_soft_headwear(outfit.headwear)
+				if outfit.headset:
+					_build_ear_cups(0.12)
+		return
 	if operator_helmet:
-		_build_operator_helmet()
+		_build_operator_helmet(true, true)
 		return
 	# Casque balistique « high cut ».
 	var dome := SphereMesh.new()
@@ -1395,15 +1537,95 @@ func _build_head() -> void:
 	_box(_head, Vector3(0.05, 0.012, 0.05), Vector3(0.0, 0.337, 0.06), _m_team)
 
 
+## Visage découvert : tête, yeux, sourcils, nez, cheveux et barbe d'`outfit`.
+func _build_face() -> void:
+	var head := _sphere(_head, 0.112, Vector3(0.0, 0.17, 0.0), _m_skin)
+	head.name = "Face"
+	head.scale = Vector3(1.0, 1.12, 1.05)
+	for side: float in [-1.0, 1.0]:
+		_box(_head, Vector3(0.026, 0.012, 0.01), Vector3(0.04 * side, 0.19, -0.114), _m_dark)
+		_box(_head, Vector3(0.036, 0.009, 0.012), Vector3(0.04 * side, 0.207, -0.112), _m_hair)
+	_box(_head, Vector3(0.024, 0.04, 0.025), Vector3(0.0, 0.163, -0.12), _m_skin)
+	var style := &"short" if outfit == null else outfit.hair_style
+	# Sous un couvre-chef, seuls l'arrière du crâne et la queue de cheval
+	# dépassent.
+	var covered := outfit != null and outfit.headwear != &"none"
+	if style != &"shaved" and covered:
+		_box(_head, Vector3(0.18, 0.08, 0.03), Vector3(0.0, 0.18, 0.105), _m_hair)
+	elif style != &"shaved":
+		var cap := SphereMesh.new()
+		cap.radius = 0.118
+		cap.height = 0.118
+		cap.is_hemisphere = true
+		var hair := _mesh(_head, cap, Vector3(0.0, 0.215, 0.006), _m_hair)
+		hair.name = "Hair"
+		hair.scale = Vector3(1.0, 0.75, 1.08)
+		# Arrière du crâne.
+		_box(_head, Vector3(0.18, 0.08, 0.03), Vector3(0.0, 0.18, 0.105), _m_hair)
+	match style:
+		&"ponytail":
+			var tail := _cylinder(_head, 0.024, 0.14, Vector3(0.0, 0.15, 0.135), _m_hair)
+			tail.rotation.x = 0.45
+		&"mohawk":
+			if not covered:
+				_box(_head, Vector3(0.035, 0.05, 0.23), Vector3(0.0, 0.3, 0.0), _m_hair)
+	match &"none" if outfit == null else outfit.beard:
+		&"stubble":
+			_box(_head, Vector3(0.15, 0.06, 0.05), Vector3(0.0, 0.105, -0.085), _m_hair).name = "Beard"
+		&"full":
+			_box(_head, Vector3(0.18, 0.09, 0.07), Vector3(0.0, 0.1, -0.07), _m_hair).name = "Beard"
+			_box(_head, Vector3(0.1, 0.05, 0.05), Vector3(0.0, 0.065, -0.08), _m_hair)
+
+
+## Casquette, chapeau de brousse ou bonnet, dans la couleur du couvre-chef.
+func _build_soft_headwear(kind: StringName) -> void:
+	var dome := SphereMesh.new()
+	dome.radius = 0.121
+	dome.height = 0.121
+	dome.is_hemisphere = true
+	var hat := _mesh(_head, dome, Vector3(0.0, 0.2, 0.005), _m_helmet)
+	hat.name = "Headwear"
+	match kind:
+		&"cap":
+			hat.scale = Vector3(1.0, 0.9, 1.06)
+			var brim := _box(_head, Vector3(0.15, 0.012, 0.1), Vector3(0.0, 0.205, -0.16), _m_helmet)
+			brim.rotation.x = 0.12
+		&"boonie":
+			hat.scale = Vector3(1.03, 1.05, 1.08)
+			_cylinder(_head, 0.2, 0.01, Vector3(0.0, 0.205, 0.005), _m_helmet)
+		&"beanie":
+			hat.scale = Vector3(1.02, 1.2, 1.07)
+			hat.position.y = 0.19
+			_cylinder(_head, 0.124, 0.04, Vector3(0.0, 0.2, 0.005), _m_helmet).scale = Vector3(1.0, 1.0, 1.07)
+
+
+## Protection auditive : coquilles, couvercles, coussinets et micro
+## (`offset` : écart des coquilles au centre de la tête).
+func _build_ear_cups(offset: float) -> void:
+	for side: float in [-1.0, 1.0]:
+		var cup := _cylinder(_head, 0.052, 0.04, Vector3((offset + 0.013) * side, 0.15, 0.005), _m_gear)
+		cup.name = "EarCup"
+		cup.rotation.z = PI / 2.0
+		var cap := _cylinder(_head, 0.036, 0.014, Vector3((offset + 0.038) * side, 0.15, 0.005), _m_weapon)
+		cap.rotation.z = PI / 2.0
+		var cushion := _cylinder(_head, 0.048, 0.012, Vector3((offset - 0.012) * side, 0.15, 0.005), _m_weapon)
+		cushion.rotation.z = PI / 2.0
+	# Micro sur perche, devant la bouche.
+	var boom := _box(_head, Vector3(0.01, 0.01, 0.11), Vector3(-0.12, 0.13, -0.07), _m_weapon)
+	boom.rotation.y = -0.45
+	_sphere(_head, 0.014, Vector3(-0.085, 0.125, -0.12), _m_gear)
+
+
 ## Casque balistique « high cut » d'opérateur : coque découpée au-dessus des
 ## oreilles, rails RIS latéraux (avec lampe et adaptateurs), protection
 ## auditive électronique à micro, support et JVN relevées, contrepoids.
-func _build_operator_helmet() -> void:
+func _build_operator_helmet(nvg: bool, headset: bool) -> void:
 	var dome := SphereMesh.new()
 	dome.radius = 0.142
 	dome.height = 0.145
 	dome.is_hemisphere = true
 	var shell := _mesh(_head, dome, Vector3(0.0, 0.19, 0.005), _m_helmet)
+	shell.name = "Helmet"
 	shell.scale = Vector3(1.0, 1.0, 1.1)
 	# Bord de la coque (garniture caoutchouc).
 	var rim := _cylinder(_head, 0.144, 0.014, Vector3(0.0, 0.192, 0.005), _m_gear)
@@ -1417,32 +1639,27 @@ func _build_operator_helmet() -> void:
 		_box(rail, Vector3(0.016, 0.034, 0.16), Vector3.ZERO, _m_weapon)
 		for i in 6:
 			_box(rail, Vector3(0.022, 0.026, 0.01), Vector3(0.0, 0.0, -0.065 + 0.026 * i), _m_weapon)
-		# Adaptateur qui relie la coquille auditive au rail.
-		_box(_head, Vector3(0.014, 0.06, 0.022), Vector3(0.143 * side, 0.2, 0.0), _m_weapon)
-		# Protection auditive : coquille, couvercle, coussinet.
-		var cup := _cylinder(_head, 0.052, 0.04, Vector3(0.133 * side, 0.15, 0.005), _m_gear)
-		cup.rotation.z = PI / 2.0
-		var cap := _cylinder(_head, 0.036, 0.014, Vector3(0.158 * side, 0.15, 0.005), _m_weapon)
-		cap.rotation.z = PI / 2.0
-		var cushion := _cylinder(_head, 0.048, 0.012, Vector3(0.108 * side, 0.15, 0.005), _m_weapon)
-		cushion.rotation.z = PI / 2.0
-		# Tubes des jumelles de vision nocturne, relevées.
-		var tube := _cylinder(_head, 0.022, 0.10, Vector3(0.032 * side, 0.335, -0.14), _m_weapon)
-		tube.rotation.x = deg_to_rad(-65.0)
-		var lens := _cylinder(_head, 0.018, 0.012, Vector3(0.032 * side, 0.358, -0.188), _m_lens)
-		lens.rotation.x = deg_to_rad(-65.0)
+		if headset:
+			# Adaptateur qui relie la coquille auditive au rail.
+			_box(_head, Vector3(0.014, 0.06, 0.022), Vector3(0.143 * side, 0.2, 0.0), _m_weapon)
+		if nvg:
+			# Tubes des jumelles de vision nocturne, relevées.
+			var tube := _cylinder(_head, 0.022, 0.10, Vector3(0.032 * side, 0.335, -0.14), _m_weapon)
+			tube.name = "NvgTube"
+			tube.rotation.x = deg_to_rad(-65.0)
+			var lens := _cylinder(_head, 0.018, 0.012, Vector3(0.032 * side, 0.358, -0.188), _m_lens)
+			lens.rotation.x = deg_to_rad(-65.0)
+	if headset:
+		_build_ear_cups(0.12)
 	# Lampe tactique sur le rail droit.
 	var lamp := _cylinder(_head, 0.016, 0.07, Vector3(0.168, 0.25, -0.03), _m_weapon)
 	lamp.rotation.x = PI / 2.0
 	_box(_head, Vector3(0.02, 0.02, 0.02), Vector3(0.158, 0.245, -0.03), _m_weapon)
-	# Micro sur perche, devant la bouche.
-	var boom := _box(_head, Vector3(0.01, 0.01, 0.11), Vector3(-0.12, 0.13, -0.07), _m_weapon)
-	boom.rotation.y = -0.45
-	_sphere(_head, 0.014, Vector3(-0.085, 0.125, -0.12), _m_gear)
 	# Support de JVN (plaque frontale), contrepoids à l'arrière, marqueur IR.
 	_box(_head, Vector3(0.06, 0.06, 0.03), Vector3(0.0, 0.27, -0.14), _m_weapon)
-	_box(_head, Vector3(0.05, 0.05, 0.035), Vector3(0.0, 0.29, -0.155), _m_weapon)
-	_box(_head, Vector3(0.11, 0.06, 0.035), Vector3(0.0, 0.235, 0.16), _m_gear)
+	if nvg:
+		_box(_head, Vector3(0.05, 0.05, 0.035), Vector3(0.0, 0.29, -0.155), _m_weapon)
+		_box(_head, Vector3(0.11, 0.06, 0.035), Vector3(0.0, 0.235, 0.16), _m_gear)
 	_box(_head, Vector3(0.05, 0.012, 0.05), Vector3(0.0, 0.337, 0.06), _m_team)
 
 
@@ -1464,29 +1681,12 @@ func _build_rifle_and_arms() -> void:
 	_rifle_shove_push = Transform3D(Basis.from_euler(Vector3(0.3, PI / 2.0, 0.0)), Vector3(0.14, 0.48, -0.5))
 	_rifle_block = Transform3D(Basis.from_euler(Vector3(0.15, PI / 2.0, 0.0)), Vector3(0.16, 0.66, -0.34))
 	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
-	_box(rifle, Vector3(0.045, 0.08, 0.30), Vector3(0.0, 0.04, -0.05), _m_weapon)      # boîtier
-	_box(rifle, Vector3(0.04, 0.065, 0.20), Vector3(0.0, 0.035, 0.19), _m_weapon)     # crosse
-	_box(rifle, Vector3(0.045, 0.10, 0.03), Vector3(0.0, 0.02, 0.30), _m_gear)        # plaque de couche
-	var grip := _box(rifle, Vector3(0.035, 0.10, 0.045), Vector3(0.0, -0.045, 0.04), _m_weapon)
-	grip.rotation.x = deg_to_rad(18.0)
-	var mag := _box(rifle, Vector3(0.03, 0.17, 0.06), Vector3(0.0, -0.08, -0.09), _m_weapon)
-	mag.rotation.x = deg_to_rad(-12.0)
-	_rifle_mag = mag
-	_box(rifle, Vector3(0.05, 0.06, 0.27), Vector3(0.0, 0.045, -0.335), _m_gear)      # garde-main
-	_box(rifle, Vector3(0.025, 0.07, 0.035), Vector3(0.0, -0.01, -0.36), _m_weapon)   # poignée avant
-	var barrel := _cylinder(rifle, 0.012, 0.12, Vector3(0.0, 0.045, -0.52), _m_weapon)
-	barrel.rotation.x = PI / 2.0
-	var suppressor := _cylinder(rifle, 0.023, 0.19, Vector3(0.0, 0.045, -0.65), _m_weapon)
-	suppressor.rotation.x = PI / 2.0
-	# Viseur point rouge et lampe.
-	_box(rifle, Vector3(0.04, 0.05, 0.08), Vector3(0.0, 0.115, -0.05), _m_weapon)
-	_box(rifle, Vector3(0.03, 0.03, 0.005), Vector3(0.0, 0.118, -0.092), _m_lens)
-	_box(rifle, Vector3(0.03, 0.03, 0.09), Vector3(0.042, 0.05, -0.40), _m_weapon)
+	var muzzle := _build_weapon(rifle, &"carbine" if outfit == null else outfit.primary)
 	# Flash de bouche (discret : arme à silencieux).
 	var flash_material := StandardMaterial3D.new()
 	flash_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	flash_material.albedo_color = Color(1.0, 0.8, 0.35)
-	_flash = _pivot(rifle, Vector3(0.0, 0.045, -0.77), "MuzzleFlash")
+	_flash = _pivot(rifle, Vector3(0.0, 0.045, muzzle), "MuzzleFlash")
 	var flash := _sphere(_flash, 0.045, Vector3.ZERO, flash_material)
 	flash.scale = Vector3(1.0, 1.0, 1.8)
 	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -1523,6 +1723,84 @@ func _build_rifle_and_arms() -> void:
 		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
 
+## Géométrie de l'arme principale `kind` (`GearCatalog.PRIMARY`) dans le
+## repère `rifle` : poignée et garde-main aux mêmes endroits pour toutes, pour
+## les mains. Renvoie la position (z) de la bouche du canon.
+func _build_weapon(rifle: Node3D, kind: StringName) -> float:
+	rifle.name = "Rifle"
+	var grip := _box(rifle, Vector3(0.035, 0.10, 0.045), Vector3(0.0, -0.045, 0.04), _m_weapon)
+	grip.rotation.x = deg_to_rad(18.0)
+	match kind:
+		&"smg":
+			_box(rifle, Vector3(0.045, 0.085, 0.26), Vector3(0.0, 0.04, -0.04), _m_weapon)
+			for side: float in [-1.0, 1.0]:
+				_box(rifle, Vector3(0.012, 0.012, 0.18), Vector3(0.015 * side, 0.05, 0.16), _m_weapon)
+			_box(rifle, Vector3(0.045, 0.08, 0.02), Vector3(0.0, 0.03, 0.25), _m_gear)
+			_rifle_mag = _box(rifle, Vector3(0.028, 0.15, 0.045), Vector3(0.0, -0.07, -0.12), _m_weapon)
+			_rifle_mag.rotation.x = -0.25
+			# Silencieux intégré, qui sert de garde-main.
+			var body := _cylinder(rifle, 0.027, 0.34, Vector3(0.0, 0.045, -0.33), _m_weapon)
+			body.rotation.x = PI / 2.0
+			_box(rifle, Vector3(0.035, 0.04, 0.06), Vector3(0.0, 0.11, -0.04), _m_weapon)
+			_box(rifle, Vector3(0.025, 0.025, 0.005), Vector3(0.0, 0.112, -0.072), _m_lens)
+			return -0.52
+		&"dmr":
+			_box(rifle, Vector3(0.048, 0.085, 0.32), Vector3(0.0, 0.04, -0.05), _m_weapon)
+			_box(rifle, Vector3(0.045, 0.09, 0.24), Vector3(0.0, 0.03, 0.2), _m_weapon)
+			_box(rifle, Vector3(0.04, 0.03, 0.12), Vector3(0.0, 0.085, 0.17), _m_weapon)
+			_box(rifle, Vector3(0.05, 0.11, 0.03), Vector3(0.0, 0.02, 0.33), _m_gear)
+			_rifle_mag = _box(rifle, Vector3(0.03, 0.1, 0.065), Vector3(0.0, -0.055, -0.09), _m_weapon)
+			_rifle_mag.rotation.x = deg_to_rad(-8.0)
+			_box(rifle, Vector3(0.052, 0.065, 0.42), Vector3(0.0, 0.045, -0.41), _m_gear)
+			var barrel := _cylinder(rifle, 0.011, 0.24, Vector3(0.0, 0.045, -0.74), _m_weapon)
+			barrel.rotation.x = PI / 2.0
+			var brake := _cylinder(rifle, 0.017, 0.06, Vector3(0.0, 0.045, -0.86), _m_weapon)
+			brake.rotation.x = PI / 2.0
+			# Lunette et ses colliers.
+			var scope := _cylinder(rifle, 0.024, 0.26, Vector3(0.0, 0.13, -0.07), _m_weapon)
+			scope.name = "Scope"
+			scope.rotation.x = PI / 2.0
+			var bell := _cylinder(rifle, 0.032, 0.05, Vector3(0.0, 0.13, -0.21), _m_weapon)
+			bell.rotation.x = PI / 2.0
+			var lens := _cylinder(rifle, 0.027, 0.005, Vector3(0.0, 0.13, -0.237), _m_lens)
+			lens.rotation.x = PI / 2.0
+			for z: float in [-0.13, 0.0]:
+				_box(rifle, Vector3(0.03, 0.05, 0.02), Vector3(0.0, 0.095, z), _m_weapon)
+			# Bipied replié.
+			for side: float in [-1.0, 1.0]:
+				_box(rifle, Vector3(0.01, 0.01, 0.18), Vector3(0.016 * side, 0.0, -0.5), _m_weapon)
+			return -0.89
+		&"shotgun":
+			_box(rifle, Vector3(0.05, 0.09, 0.26), Vector3(0.0, 0.04, -0.03), _m_weapon)
+			_box(rifle, Vector3(0.04, 0.08, 0.22), Vector3(0.0, 0.03, 0.19), _m_weapon)
+			_box(rifle, Vector3(0.05, 0.11, 0.03), Vector3(0.0, 0.02, 0.31), _m_gear)
+			_rifle_mag = _box(rifle, Vector3(0.035, 0.13, 0.07), Vector3(0.0, -0.07, -0.08), _m_weapon)
+			var barrel := _cylinder(rifle, 0.018, 0.45, Vector3(0.0, 0.06, -0.38), _m_weapon)
+			barrel.rotation.x = PI / 2.0
+			_box(rifle, Vector3(0.055, 0.06, 0.18), Vector3(0.0, 0.025, -0.34), _m_gear)
+			_box(rifle, Vector3(0.012, 0.02, 0.012), Vector3(0.0, 0.085, -0.58), _m_weapon)
+			_box(rifle, Vector3(0.03, 0.025, 0.015), Vector3(0.0, 0.1, 0.0), _m_weapon)
+			return -0.61
+	# Carabine à silencieux.
+	_box(rifle, Vector3(0.045, 0.08, 0.30), Vector3(0.0, 0.04, -0.05), _m_weapon)      # boîtier
+	_box(rifle, Vector3(0.04, 0.065, 0.20), Vector3(0.0, 0.035, 0.19), _m_weapon)     # crosse
+	_box(rifle, Vector3(0.045, 0.10, 0.03), Vector3(0.0, 0.02, 0.30), _m_gear)        # plaque de couche
+	var mag := _box(rifle, Vector3(0.03, 0.17, 0.06), Vector3(0.0, -0.08, -0.09), _m_weapon)
+	mag.rotation.x = deg_to_rad(-12.0)
+	_rifle_mag = mag
+	_box(rifle, Vector3(0.05, 0.06, 0.27), Vector3(0.0, 0.045, -0.335), _m_gear)      # garde-main
+	_box(rifle, Vector3(0.025, 0.07, 0.035), Vector3(0.0, -0.01, -0.36), _m_weapon)   # poignée avant
+	var barrel := _cylinder(rifle, 0.012, 0.12, Vector3(0.0, 0.045, -0.52), _m_weapon)
+	barrel.rotation.x = PI / 2.0
+	var suppressor := _cylinder(rifle, 0.023, 0.19, Vector3(0.0, 0.045, -0.65), _m_weapon)
+	suppressor.rotation.x = PI / 2.0
+	# Viseur point rouge et lampe.
+	_box(rifle, Vector3(0.04, 0.05, 0.08), Vector3(0.0, 0.115, -0.05), _m_weapon)
+	_box(rifle, Vector3(0.03, 0.03, 0.005), Vector3(0.0, 0.118, -0.092), _m_lens)
+	_box(rifle, Vector3(0.03, 0.03, 0.09), Vector3(0.042, 0.05, -0.40), _m_weapon)
+	return -0.77
+
+
 func _shoulder_position(side: float) -> Vector3:
 	return Vector3(0.245 * side, 0.50, 0.0)
 
@@ -1531,13 +1809,13 @@ func _shoulder_position(side: float) -> Vector3:
 ## Au repos (rotations nulles), le bras pend vers le bas.
 func _build_arm(side: float) -> void:
 	var shoulder := _pivot(_torso, _shoulder_position(side), "ShoulderL" if side < 0.0 else "ShoulderR")
-	_sphere(shoulder, 0.078, Vector3.ZERO, _m_uniform)
-	_box(shoulder, Vector3(0.115, UPPER_ARM_LENGTH, 0.125), Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_uniform)
+	_sphere(shoulder, 0.078, Vector3.ZERO, _m_top)
+	_box(shoulder, Vector3(0.115, UPPER_ARM_LENGTH, 0.125), Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_top)
 	# Écusson d'équipe sur l'épaule.
 	_box(shoulder, Vector3(0.012, 0.075, 0.075), Vector3(0.064 * side, -0.09, 0.0), _m_team)
 	var elbow := _pivot(shoulder, Vector3(0.0, -UPPER_ARM_LENGTH, 0.0), "Elbow")
 	_sphere(elbow, 0.062, Vector3.ZERO, _m_gear)
-	_box(elbow, Vector3(0.095, FOREARM_LENGTH, 0.105), Vector3(0.0, -FOREARM_LENGTH * 0.5, 0.0), _m_uniform)
+	_box(elbow, Vector3(0.095, FOREARM_LENGTH, 0.105), Vector3(0.0, -FOREARM_LENGTH * 0.5, 0.0), _m_top)
 	_sphere(elbow, 0.058, Vector3(0.0, -FOREARM_LENGTH, 0.0), _m_gear)
 	_arm_joints.append(shoulder)
 	_arm_joints.append(elbow)

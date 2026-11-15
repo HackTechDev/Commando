@@ -65,6 +65,12 @@ const STUCK_GOAL_DISTANCE := 2.0
 ## Numéro de l'unité dans l'escouade (touches 1 à 6).
 @export_range(1, 6) var unit_index: int = 1
 @export var display_name: String = "Opérateur"
+## Applique en mission la personnalisation de l'opérateur `unit_index` de
+## l'équipe (`OperatorRoster`) : indicatif, arme, équipement, apparence.
+@export var use_roster: bool = true
+
+## Personnalisation appliquée (null : réglages de la scène).
+var profile: OperatorProfile
 
 var is_selected: bool = false
 var is_dead: bool = false
@@ -156,6 +162,8 @@ var _walker := PathWalker.new()
 
 
 func _ready() -> void:
+	if use_roster:
+		_apply_profile(OperatorRoster.current().profile(unit_index))
 	health.reset(stats.max_health)
 	_last_health = health.health
 	ammo_in_magazine = stats.magazine_size
@@ -164,6 +172,18 @@ func _ready() -> void:
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
 	_agent.velocity_computed.connect(_apply_velocity)
+
+
+## Indicatif, réglages de l'arme principale, couteaux de lancer et apparence
+## de `operator` (l'unité garde ses réglages si null).
+func _apply_profile(operator: OperatorProfile) -> void:
+	if operator == null:
+		return
+	profile = operator
+	display_name = operator.callsign
+	stats = GearCatalog.apply_weapon(stats, operator.primary)
+	stats.throwing_knives = operator.throwing_knives
+	_model.outfit = operator
 
 
 func _exit_tree() -> void:
@@ -1232,7 +1252,10 @@ func _fire(enemy: Enemy, distance: float) -> void:
 		aim += side + (aim - muzzle).normalized() * 4.0
 	Tracer.spawn(get_tree().current_scene, muzzle, aim, Color(0.6, 0.9, 1.0))
 	_model.play_shot()
-	Sfx.play_at(&"shot_suppressed", muzzle, -4.0)
+	if stats.suppressed:
+		Sfx.play_at(&"shot_suppressed", muzzle, -4.0)
+	else:
+		Sfx.play_at(&"shot", muzzle)
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if hit:
 		enemy.take_hit(stats.fire_damage, global_position)

@@ -36,6 +36,8 @@ func setup(unit: Commando) -> void:
 	_health.add_theme_stylebox_override(&"fill", _fill)
 	_number.text = str(unit.unit_index)
 	_name.text = unit.display_name
+	if unit.profile and not unit.profile.name.is_empty():
+		tooltip_text = "%s « %s »" % [unit.profile.name, unit.profile.callsign]
 	unit.selected_changed.connect(func(_selected: bool) -> void: _refresh())
 	unit.posture_changed.connect(func(_posture: SoldierModel.Posture) -> void: _refresh())
 	EventBus.unit_damaged.connect(_on_unit_event.unbind(1))

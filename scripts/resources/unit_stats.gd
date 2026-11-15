@@ -67,3 +67,5 @@ extends Resource
 @export var reload_time: float = 2.0
 ## Rayon du bruit d'un tir (arme équipée d'un silencieux).
 @export var gunshot_noise_radius: float = 8.0
+## Arme équipée d'un silencieux (son du tir).
+@export var suppressed: bool = true
