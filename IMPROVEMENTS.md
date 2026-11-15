@@ -129,7 +129,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **a)** ~~doigts articulés autour des armes et des objets~~ (fait) ;
   - **b)** ~~clignement des yeux et regard qui suit la cible~~ (fait) ;
   - **c)** ~~expressions (effort, douleur)~~ (fait) ;
-  - **d)** plis et coutures sur les vêtements (texture) ;
+  - **d)** ~~plis et coutures sur les vêtements (texture)~~ (fait) ;
   - **e)** silhouette propre à chaque spécialité.
 - **6.2 Silhouette des ennemis** : ils ont désormais le même corps que les opérateurs (membres galbés, mains gantées, visage), mais toujours l'ancien casque générique. Leur donner un équipement propre (casquette, casque plus ancien, gilet différent), pour les reconnaître d'un coup d'œil.
 - **6.3 Pas pendant les déplacements subis** : après une poussée ou une esquive, le corps glisse avec une marche approximative. Ajouter un vrai pas en arrière et un pas chassé.

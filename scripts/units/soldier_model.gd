@@ -515,8 +515,8 @@ func _rebuild() -> void:
 
 
 func _build() -> void:
-	_m_uniform = _mat(uniform_color, 0.95)
-	_m_gear = _mat(gear_color, 0.85)
+	_m_uniform = _cloth(uniform_color)
+	_m_gear = _webbing(gear_color)
 	_m_boot = _mat(boot_color, 0.7)
 	_m_weapon = _mat(weapon_color, 0.45, 0.6)
 	_m_skin = _mat(skin_color, 0.8)
@@ -528,7 +528,7 @@ func _build() -> void:
 		_m_top = _cloth(outfit.top_color)
 		_m_pants = _cloth(outfit.pants_color)
 		_m_uniform = _m_top
-		_m_gear = _mat(outfit.vest_color, 0.85)
+		_m_gear = _webbing(outfit.vest_color)
 		_m_helmet = _mat(outfit.headwear_color, 0.75)
 		_m_skin = _mat(GearCatalog.SKINS[outfit.skin], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[outfit.hair_color], 0.9)
@@ -1622,14 +1622,64 @@ func _wears(accessory: StringName) -> bool:
 
 ## Tissu de couleur `color`, ou du camouflage de `outfit` s'il y en a un
 ## (texture plaquée en triplanaire dans le repère de chaque pièce).
+## Plis et coutures (`fabric_normal_map`) en relief.
 func _cloth(color: Color) -> StandardMaterial3D:
 	var material := _mat(color, 0.95)
+	material.uv1_triplanar = true
+	material.uv1_scale = Vector3.ONE * 2.5
+	material.normal_enabled = true
+	material.normal_texture = fabric_normal_map()
+	material.normal_scale = 0.8
 	if outfit and not outfit.camo.is_empty():
 		material.albedo_color = Color.WHITE
 		material.albedo_texture = GearCatalog.camo_texture(outfit.camo)
-		material.uv1_triplanar = true
-		material.uv1_scale = Vector3.ONE * 2.5
 	return material
+
+
+## Toile du gilet et des poches : même relief, plus serré et plus discret.
+func _webbing(color: Color) -> StandardMaterial3D:
+	var material := _mat(color, 0.85)
+	material.uv1_triplanar = true
+	material.uv1_scale = Vector3.ONE * 6.0
+	material.normal_enabled = true
+	material.normal_texture = fabric_normal_map()
+	material.normal_scale = 0.35
+	return material
+
+
+const FABRIC_SIZE := 256
+## Écart (pixels) entre deux coutures de la texture de tissu.
+const FABRIC_SEAM := 128
+static var _fabric_cache: Texture2D
+
+
+## Carte normale répétable du tissu, générée une fois : plis (crêtes d'un
+## bruit doux), trame fine et coutures piquées.
+static func fabric_normal_map() -> Texture2D:
+	if _fabric_cache:
+		return _fabric_cache
+	var noise := FastNoiseLite.new()
+	noise.seed = 7
+	noise.frequency = 0.012
+	noise.fractal_octaves = 2
+	var folds := noise.get_seamless_image(FABRIC_SIZE, FABRIC_SIZE)
+	var image := Image.create(FABRIC_SIZE, FABRIC_SIZE, false, Image.FORMAT_RGBA8)
+	for y in FABRIC_SIZE:
+		for x in FABRIC_SIZE:
+			var n := folds.get_pixel(x, y).r
+			# Pli : crête étroite là où le bruit passe par sa valeur médiane.
+			var height := 0.55 * (1.0 - absf(2.0 * n - 1.0)) ** 3
+			height += 0.04 * sin(x * PI * 0.5) * sin(y * PI * 0.5)
+			var seam := y % FABRIC_SEAM
+			if seam < 3:
+				height -= 0.25
+			elif seam < 6 and x % 8 < 4:
+				height += 0.12
+			image.set_pixel(x, y, Color(height, height, height))
+	image.bump_map_to_normal_map(6.0)
+	image.generate_mipmaps()
+	_fabric_cache = ImageTexture.create_from_image(image)
+	return _fabric_cache
 
 
 func _build_head() -> void:
