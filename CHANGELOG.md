@@ -600,3 +600,9 @@
 
 - Touche « , » (AZERTY) : les opérateurs sélectionnés plongent vers le curseur sur 2,5 m (moins si un obstacle les arrête), se reçoivent sur les mains et finissent couchés, en 0,8 s. Couchés dès l'envol, ils sont plus difficiles à toucher.
 - Refusée depuis la position couchée, perché, pendant un autre geste ou avec un otage.
+
+## Corps à corps à plusieurs (3.14)
+
+- Un second ennemi qui vient frapper un opérateur déjà au contact d'un camarade le contourne pour l'attaquer de flanc (100° du premier).
+- Pendant que l'opérateur pare ou esquive, un autre assaillant frappe aussitôt, sans attendre sa récupération, et son coup passe.
+- Un opérateur attaqué au corps à corps appelle les coéquipiers inoccupés à moins de 8 m : ils accourent pour assommer l'assaillant (souvent par derrière, d'une prise).

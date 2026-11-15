@@ -68,6 +68,9 @@ const HELP_RADIUS := 12.0
 const HELP_RADIUS_MUFFLED := 4.0
 ## Bruit de diversion : il va voir, puis regarde autour de lui ce temps (s).
 const INVESTIGATE_LOOK_TIME := 3.0
+## Corps à corps à plusieurs : un second assaillant se place sur le flanc
+## de la cible, à cet angle (degrés) du premier.
+const FLANK_ANGLE := 100.0
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -430,13 +433,51 @@ func is_attacking() -> bool:
 	return _attack_left > 0.0
 
 
+## Autre ennemi déjà au contact de la même cible, ou null.
+func _other_attacker() -> Enemy:
+	if not is_instance_valid(_target):
+		return null
+	for node in get_tree().get_nodes_in_group(&"enemies"):
+		var other := node as Enemy
+		if other == null or other == self or other.is_dead or other.state != State.ALERT or other._target != _target:
+			continue
+		var gap := other.global_position - _target.global_position
+		gap.y = 0.0
+		if gap.length() <= other.stats.melee_range + 0.3:
+			return other
+	return null
+
+
+## Corps à corps à plusieurs : point où se placer pour frapper la cible de
+## flanc, un camarade étant déjà au contact ; `Vector3.INF` sinon (pas de
+## cible, cible hors d'atteinte, ou il frappe lui-même déjà de face).
+func flank_point() -> Vector3:
+	if can_fire() or not is_instance_valid(_target):
+		return Vector3.INF
+	var other := _other_attacker()
+	if other == null:
+		return Vector3.INF
+	var from_other := other.global_position - _target.global_position
+	from_other.y = 0.0
+	if from_other.length_squared() < 0.0001:
+		return Vector3.INF
+	var mine := global_position - _target.global_position
+	mine.y = 0.0
+	# Du côté où il se trouve déjà.
+	var side := 1.0 if from_other.cross(mine).y >= 0.0 else -1.0
+	var direction := from_other.normalized().rotated(Vector3.UP, deg_to_rad(FLANK_ANGLE) * side)
+	return _target.global_position + direction * stats.melee_range * 0.8
+
+
 ## Vrai pendant le déséquilibre qui suit un coup paré ou esquivé.
 func is_off_balance() -> bool:
 	return _off_balance_left > 0.0
 
 
 func _try_melee(to_target: Vector3) -> void:
-	if _melee_cooldown > 0.0 or (-global_basis.z).angle_to(to_target) > 0.5:
+	# Cible occupée à parer ou esquiver un autre : il en profite aussitôt.
+	var opening := _target is Commando and (_target as Commando).is_defending()
+	if (_melee_cooldown > 0.0 and not opening) or (-global_basis.z).angle_to(to_target) > 0.5:
 		return
 	_attack_left = stats.melee_time
 	_attack_target = _target
@@ -785,8 +826,12 @@ func _alert(delta: float) -> Vector3:
 			hold = maxf(hold, stats.fire_range * 0.9)
 		if to_target.length() <= hold:
 			return Vector3.ZERO
-	if _agent.target_position.distance_to(_last_seen) > 0.5:
-		_agent.target_position = _last_seen
+	var goal := _last_seen
+	var flank := flank_point()
+	if flank != Vector3.INF:
+		goal = flank
+	if _agent.target_position.distance_to(goal) > 0.5:
+		_agent.target_position = goal
 	if _agent.is_navigation_finished():
 		_chase_arrived = _target == null
 		return Vector3.ZERO

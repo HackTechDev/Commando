@@ -81,6 +81,9 @@ const HOSTAGE_SPEED := 0.45
 const HOSTAGE_BUSY := "Bouclier humain : relâchez d'abord l'otage"
 ## Portée (m) d'un caillou lancé pour faire diversion.
 const PEBBLE_RANGE := 14.0
+## Corps à corps à plusieurs : un coéquipier inoccupé à moins de cette
+## distance (m) d'un opérateur attaqué vient assommer l'assaillant.
+const BACKUP_RANGE := 8.0
 const PARRY_WINDOW := 0.45
 const PARRY_COOLDOWN := 0.9
 
@@ -1254,6 +1257,7 @@ func _release_knife(enemy: Enemy) -> void:
 func defend_against(enemy: Enemy) -> bool:
 	if is_dead:
 		return false
+	_call_backup(enemy)
 	var busy := (_gesture != null and not _gesture.interruptible) or _hopping or perched_on != null \
 			or is_handling_crate() or posture == SoldierModel.Posture.PRONE or _model.is_changing_posture()
 	if busy:
@@ -1270,6 +1274,20 @@ func defend_against(enemy: Enemy) -> bool:
 		return super(enemy)
 	_start(DefendGesture.new(self, enemy, roll >= stats.parry_chance))
 	return true
+
+
+## Coéquipiers inoccupés (sans ordre ni geste) à moins de `BACKUP_RANGE` :
+## ils accourent pour assommer `enemy`, qui frappe cet opérateur.
+func _call_backup(enemy: Enemy) -> void:
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var mate := node as Commando
+		if mate == null or mate == self or mate.is_dead or mate._order != null or mate._gesture != null:
+			continue
+		if mate.hostage or mate.perched_on or mate.is_handling_crate():
+			continue
+		if mate.global_position.distance_to(global_position) > BACKUP_RANGE:
+			continue
+		mate.melee(enemy, MeleeKind.KNOCKOUT, true)
 
 
 ## Touche de parade : le prochain coup reçu dans `PARRY_WINDOW` secondes est
