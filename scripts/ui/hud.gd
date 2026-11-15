@@ -32,6 +32,8 @@ var menu_dialog: ConfirmDialog
 var help: HelpOverlay
 ## Menu pause (Échap).
 var pause_menu: PauseMenu
+## Écran de fin de mission.
+var end_screen: EndScreen
 
 
 func _ready() -> void:
@@ -85,6 +87,11 @@ func _ready() -> void:
 	pause_menu.quit_requested.connect(quit_dialog.ask)
 	menu_dialog.canceled.connect(_back_to_pause_menu)
 	quit_dialog.canceled.connect(_back_to_pause_menu)
+	end_screen = EndScreen.new()
+	add_child(end_screen)
+	end_screen.restart_requested.connect(restart_mission)
+	end_screen.menu_requested.connect(func() -> void:
+		get_tree().change_scene_to_file(LevelCatalog.MENU_SCENE))
 	# Ajoutée après le menu : elle reçoit Échap la première.
 	help = HelpOverlay.new()
 	add_child(help)

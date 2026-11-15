@@ -12,9 +12,11 @@ func _ready() -> void:
 var _failed: bool = false
 
 
-func _on_unit_died(_unit: Node3D) -> void:
+func _on_unit_died(unit: Node3D) -> void:
+	if _failed:
+		return
 	_failed = true
-	text = "ÉCHEC — opérateur tué"
+	text = "ÉCHEC — %s tué" % (unit as Commando).display_name if unit is Commando else "ÉCHEC — opérateur tué"
 	modulate = Color(1.0, 0.25, 0.2)
 
 

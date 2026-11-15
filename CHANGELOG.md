@@ -509,3 +509,7 @@
 
 - La préparation montre l'aperçu de la carte et ses objectifs (escorter le VIP, neutraliser les sentinelles, ne perdre personne…), décrits dans le catalogue des niveaux.
 - « Modifier la tenue… » ouvre l'écran « Opérateurs » complet (identité, tenue, accessoires, armement, équipement) par-dessus la préparation, sur l'opérateur choisi ; « Retour à la préparation » y ramène avec les changements.
+
+## Écran de fin et redémarrage
+
+- À la fin d'une mission (VIP évacué ou tué, opérateur tué), un écran annonce « MISSION RÉUSSIE » ou « MISSION ÉCHOUÉE » avec la raison (« ÉCHEC — Bravo tué »), après un court délai, jeu en pause. Il propose de recommencer (le niveau est rechargé), de continuer à jouer, ou de revenir au menu.

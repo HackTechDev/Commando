@@ -19,6 +19,8 @@ func before_each() -> void:
 	GameState.alert_level = GameState.AlertLevel.CALM
 	Roof.view_level = -1
 	Roof.hovered = null
+	# Pas d'écran de fin : les tests continuent après une mort.
+	EndScreen.enabled = false
 
 
 func after_each() -> void:
