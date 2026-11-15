@@ -9,7 +9,7 @@ extends Node3D
 ##
 ## Étages : le joueur peut aussi choisir un niveau de vue (`view_level`) ;
 ## les toits de cet étage et des étages supérieurs sont alors effacés, qu'il y
-## ait quelqu'un dessous ou non.
+## ait quelqu'un dessous ou non. Un toit survolé par la souris s'efface aussi.
 
 ## Durée du fondu, en secondes.
 const FADE_TIME := 0.3
@@ -33,6 +33,16 @@ var below: Array[Roof] = []
 var view: MeshInstance3D
 var body: StaticBody3D
 
+## Marge (m) autour de l'intérieur couvert, effacée avec lui (murs,
+## parapets, débord du toit).
+const REVEAL_MARGIN := 0.5
+## Résolution du masque d'effacement (m par pixel).
+const MASK_STEP := 0.25
+
+## Matériaux propres à ce toit (copies de ceux du décor), qui portent son
+## masque d'effacement.
+var materials: Array[ShaderMaterial] = []
+
 ## 0 : toit affiché ; 1 : toit effacé.
 var _fade: float = 0.0
 var _occupied: bool = false
@@ -43,6 +53,11 @@ var _check_left: float = 0.0
 ## Niveau de vue choisi par le joueur : les toits d'étage (`storey`) égal ou
 ## supérieur sont effacés. -1 : aucun effacement imposé.
 static var view_level: int = -1
+## Toit sous la souris (`PlayerController`) : il s'efface au bout de
+## `HOVER_DELAY` secondes, pour voir l'intérieur sans y entrer.
+static var hovered: Roof = null
+const HOVER_DELAY := 0.8
+var _hover_time: float = 0.0
 
 
 func _ready() -> void:
@@ -72,13 +87,16 @@ func covers(point: Vector3) -> bool:
 	return false
 
 
-## Vrai si `collider` est le corps d'un toit effacé (les clics le traversent).
-static func is_revealed_body(collider: Object) -> bool:
+## Vrai si `collider` est le corps d'un toit effacé (les clics le
+## traversent), touché en `point` (s'il est donné) dans sa partie effacée.
+static func is_revealed_body(collider: Object, point: Vector3 = Vector3.INF) -> bool:
 	var body := collider as Node
 	if body == null:
 		return false
 	var roof := body.get_parent() as Roof
-	return roof != null and roof.body == body and roof._fade > 0.5
+	if roof == null or roof.body != body or roof._fade <= 0.5:
+		return false
+	return point == Vector3.INF or roof.reveals_point(point)
 
 
 ## Vrai si une emprise de ce toit chevauche une de `other`.
@@ -100,10 +118,11 @@ func _process(delta: float) -> void:
 	if _check_left <= 0.0:
 		_check_left = CHECK_INTERVAL
 		_inside = _has_operator_below()
-		_occupied = _inside or below.any(func(roof: Roof) -> bool: return roof._inside) \
+		_hover_time = _hover_time + CHECK_INTERVAL if hovered == self else 0.0
+		_occupied = _inside or _hover_time >= HOVER_DELAY or below.any(func(roof: Roof) -> bool: return roof._inside) \
 				or (view_level >= 0 and storey() >= view_level)
 	var target := 1.0 if _occupied else 0.0
-	if is_equal_approx(_fade, target):
+	if _fade == target:
 		return
 	_fade = move_toward(_fade, target, delta / FADE_TIME)
 	_apply_fade()
@@ -117,9 +136,50 @@ func _has_operator_below() -> bool:
 	return false
 
 
+## Donne au toit ses propres matériaux, avec le masque de ce qui s'efface :
+## l'intérieur couvert (`areas`) et `REVEAL_MARGIN` autour. Une dalle de
+## terrain qui couvre une tranchée ne s'efface ainsi qu'au-dessus d'elle.
+func prepare_reveal() -> void:
+	if view == null or view.mesh == null or areas.is_empty():
+		return
+	var bounds := areas[0]
+	for area in areas:
+		bounds = bounds.merge(area)
+	bounds = bounds.grow(REVEAL_MARGIN + MASK_STEP)
+	var size := Vector2i((bounds.size / MASK_STEP).ceil())
+	var image := Image.create_empty(maxi(size.x, 1), maxi(size.y, 1), false, Image.FORMAT_R8)
+	for area in areas:
+		var grown := area.grow(REVEAL_MARGIN)
+		var from := Vector2i(((grown.position - bounds.position) / MASK_STEP).floor())
+		var to := Vector2i(((grown.end - bounds.position) / MASK_STEP).ceil())
+		image.fill_rect(Rect2i(from, to - from), Color.WHITE)
+	var mask := ImageTexture.create_from_image(image)
+	var rect := Vector4(bounds.position.x, bounds.position.y, bounds.size.x, bounds.size.y)
+	var mesh := view.mesh
+	for i in mesh.get_surface_count():
+		var shared := mesh.surface_get_material(i) as ShaderMaterial
+		if shared == null:
+			continue
+		var own := shared.duplicate() as ShaderMaterial
+		for key in shared.get_meta_list():
+			own.set_meta(key, shared.get_meta(key))
+		own.set_shader_parameter(&"reveal_mask", mask)
+		own.set_shader_parameter(&"reveal_rect", rect)
+		own.set_shader_parameter(&"reveal", 0.0)
+		mesh.surface_set_material(i, own)
+		materials.append(own)
+
+
+## Vrai si `point` (monde) tombe dans la partie effaçable du toit.
+func reveals_point(point: Vector3) -> bool:
+	var flat := Vector2(point.x, point.z)
+	for area in areas:
+		if area.grow(REVEAL_MARGIN).has_point(flat):
+			return true
+	return false
+
+
 func _apply_fade() -> void:
-	if view:
-		view.transparency = _fade
-		view.visible = _fade < 1.0
-		# Un toit effacé ne fait plus d'ombre : l'intérieur s'éclaire.
-		view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if _fade > 0.0 else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	# Effacement en pointillé, ombres comprises : l'intérieur s'éclaire.
+	for material in materials:
+		material.set_shader_parameter(&"reveal", _fade)

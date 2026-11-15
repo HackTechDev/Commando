@@ -18,6 +18,7 @@ func before_each() -> void:
 	seed(1234)
 	GameState.alert_level = GameState.AlertLevel.CALM
 	Roof.view_level = -1
+	Roof.hovered = null
 
 
 func after_each() -> void:

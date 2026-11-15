@@ -470,3 +470,10 @@
 
 - Page suiv. / Page préc. choisissent l'étage affiché : les toits de cet étage et des étages supérieurs s'effacent, même sans opérateur dessous. On voit ainsi l'intérieur d'un bâtiment avant d'y entrer, étage par étage.
 - Au-dessus du dernier étage, l'affichage normal revient (seuls les toits au-dessus d'un opérateur s'effacent). Un bandeau rappelle l'étage choisi.
+
+## Toits et murs, suite
+
+- Le décor des cartes UFO:AI s'efface en pointillé autour de chaque opérateur, quand un mur, un surplomb ou une dalle est entre lui et la caméra : on ne perd plus un opérateur derrière un bâtiment. Le sol qu'il foule et ce qui est plus bas que ses genoux restent affichés.
+- Un toit ne s'efface plus d'un bloc : seule sa partie au-dessus de l'intérieur couvert disparaît, avec 50 cm de marge pour les murs. Une dalle de terrain qui couvre une tranchée, ou un surplomb au-dessus d'un passage, ne s'efface plus qu'au-dessus du passage ; les clics ne la traversent que là.
+- Garder la souris sur un toit (0,8 s) l'efface : on voit l'intérieur sans y entrer.
+- Le repérage des toits est mis en cache par carte (`user://roof_cache`) : les chargements suivants sautent ce calcul (2 s sur Entraînement B).

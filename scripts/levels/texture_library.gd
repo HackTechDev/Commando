@@ -3,7 +3,8 @@ extends RefCounted
 ## Textures lues à la volée depuis le dossier de textures externe (hors du
 ## projet, donc non importées par Godot), au chargement d'un niveau.
 ##
-## Un matériau (`BaseMaterial3D`) demande une texture par une métadonnée
+## Un matériau (`BaseMaterial3D`, ou `ShaderMaterial` du décor, voir
+## `SHADER_SLOTS`) demande une texture par une métadonnée
 ## contenant son chemin relatif au dossier de textures, par exemple
 ## `metadata/albedo_source = "tex_nature/grass_mowed_green_a.jpg"`.
 ## `apply_to_tree` parcourt un niveau, décode toutes les images demandées en
@@ -21,6 +22,14 @@ const SLOTS := {
 	&"normal_source": BaseMaterial3D.TEXTURE_NORMAL,
 	&"roughness_source": BaseMaterial3D.TEXTURE_ROUGHNESS,
 	&"emission_source": BaseMaterial3D.TEXTURE_EMISSION,
+}
+
+## Métadonnée → paramètre d'un `ShaderMaterial` (`WorldMaterial`) ; une
+## texture posée active aussi l'option correspondante (`use_normal`…).
+const SHADER_SLOTS := {
+	&"albedo_source": [&"albedo_texture", &""],
+	&"normal_source": [&"normal_texture", &"use_normal"],
+	&"emission_source": [&"emission_texture", &"use_emission"],
 }
 
 ## Chemin relatif → texture (null si le fichier manque ou est illisible).
@@ -46,7 +55,7 @@ static func find_file(path: String) -> String:
 ## Affecte leurs textures externes à tous les matériaux de `root` et de ses
 ## descendants (scènes instanciées comprises).
 static func apply_to_tree(root: Node) -> void:
-	var materials: Array[BaseMaterial3D] = []
+	var materials: Array[Material] = []
 	for node in root.find_children("*", "GeometryInstance3D", true, false):
 		for material in _materials_of(node as GeometryInstance3D):
 			if not materials.has(material):
@@ -59,8 +68,16 @@ static func apply_to_tree(root: Node) -> void:
 	load_textures(paths)
 	for material in materials:
 		for key: StringName in SLOTS:
-			if material.has_meta(key):
-				material.set_texture(SLOTS[key], get_texture(str(material.get_meta(key))))
+			if not material.has_meta(key):
+				continue
+			var texture := get_texture(str(material.get_meta(key)))
+			if material is BaseMaterial3D:
+				(material as BaseMaterial3D).set_texture(SLOTS[key], texture)
+			elif material is ShaderMaterial and SHADER_SLOTS.has(key):
+				var slot: Array = SHADER_SLOTS[key]
+				material.set_shader_parameter(slot[0], texture)
+				if slot[1] != &"":
+					material.set_shader_parameter(slot[1], texture != null)
 
 
 ## Charge en parallèle les textures de `paths` absentes du cache.
@@ -111,15 +128,15 @@ static func clear() -> void:
 	_cache.clear()
 
 
-static func _materials_of(geometry: GeometryInstance3D) -> Array[BaseMaterial3D]:
-	var found: Array[BaseMaterial3D] = []
-	var override := geometry.material_override as BaseMaterial3D
+static func _materials_of(geometry: GeometryInstance3D) -> Array[Material]:
+	var found: Array[Material] = []
+	var override := geometry.material_override
 	if override:
 		found.append(override)
 	var mesh_instance := geometry as MeshInstance3D
 	if mesh_instance and mesh_instance.mesh:
 		for i in mesh_instance.mesh.get_surface_count():
-			var material := mesh_instance.get_active_material(i) as BaseMaterial3D
+			var material := mesh_instance.get_active_material(i)
 			if material and not found.has(material):
 				found.append(material)
 	return found

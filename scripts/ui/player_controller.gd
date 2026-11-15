@@ -132,14 +132,31 @@ func _process(delta: float) -> void:
 	var viewport := get_viewport()
 	# Au-dessus de l'interface (boutons, portraits) : curseur normal.
 	if viewport.gui_get_hovered_control() != null:
+		Roof.hovered = null
 		GameCursor.apply(GameCursor.Kind.DEFAULT)
 		return
+	Roof.hovered = roof_at(viewport.get_mouse_position())
 	GameCursor.apply(cursor_kind_at(viewport.get_mouse_position()))
+
+
+## Toit sous le point `screen_position` de l'écran (effacé ou non), ou null.
+func roof_at(screen_position: Vector2) -> Roof:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return null
+	var from := camera.project_ray_origin(screen_position)
+	var query := PhysicsRayQueryParameters3D.create(from, from + camera.project_ray_normal(screen_position) * RAY_LENGTH, MASK_GROUND)
+	var hit := camera.get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return null
+	var roof := (hit["collider"] as Node).get_parent() as Roof
+	return roof if roof and roof.body == hit["collider"] else null
 
 
 func _exit_tree() -> void:
 	GameCursor.apply(GameCursor.Kind.DEFAULT)
 	SelectionManager.set_planning(false)
+	Roof.hovered = null
 	if tactical_paused and is_inside_tree():
 		get_tree().paused = false
 
@@ -596,7 +613,7 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	var hit := space.intersect_ray(query)
 	# Un toit effacé (opérateur à l'intérieur) laisse passer les clics vers
 	# l'intérieur du bâtiment.
-	while not hit.is_empty() and Roof.is_revealed_body(hit["collider"]):
+	while not hit.is_empty() and Roof.is_revealed_body(hit["collider"], hit["position"]):
 		query.exclude += [hit["rid"]]
 		hit = space.intersect_ray(query)
 	return hit

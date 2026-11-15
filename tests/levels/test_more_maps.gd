@@ -121,7 +121,7 @@ func test_roof_fades_when_an_operator_is_inside() -> void:
 	if roof == null:
 		return
 	assert_false(roof.is_revealed(), "toit affiché au départ")
-	assert_eq(roof.view.transparency, 0.0)
+	assert_eq(roof.materials[0].get_shader_parameter(&"reveal"), 0.0)
 	var alpha: Commando = node("Units/Alpha")
 	var outside := alpha.global_position
 	var inside := Vector3(-9.6, 0.05, -12.6)
@@ -129,7 +129,7 @@ func test_roof_fades_when_an_operator_is_inside() -> void:
 	alpha.velocity = Vector3.ZERO
 	await frames(60)
 	assert_true(roof.is_revealed(), "toit effacé, opérateur dedans")
-	assert_almost_eq(roof.view.transparency, 1.0, 0.01)
+	assert_almost_eq(roof.materials[0].get_shader_parameter(&"reveal"), 1.0, 0.01, "effacé dans le shader")
 	assert_true(Roof.is_revealed_body(roof.body), "les clics traversent le toit effacé")
 	for other: Roof in roofs:
 		if other != roof and not other.below.has(roof):
@@ -144,7 +144,7 @@ func test_roof_fades_when_an_operator_is_inside() -> void:
 	alpha.global_position = outside
 	await frames(60)
 	assert_false(roof.is_revealed(), "toit réaffiché, opérateur sorti")
-	assert_eq(roof.view.transparency, 0.0)
+	assert_eq(roof.materials[0].get_shader_parameter(&"reveal"), 0.0)
 	assert_false(Roof.is_revealed_body(roof.body))
 
 
@@ -233,3 +233,82 @@ func test_view_level_hides_the_upper_floors() -> void:
 	await frames(40)
 	assert_false(upper.is_revealed())
 	assert_false(controller.get_node("Banner").visible)
+
+
+## Toit de la tranchée couverte d'Entraînement B (le plus bas).
+func _trench_roof() -> Roof:
+	var roofs := level.find_children("Roof*", "Roof", true, false)
+	roofs.sort_custom(func(a: Roof, b: Roof) -> bool: return a.ceiling < b.ceiling)
+	return roofs[0] if not roofs.is_empty() else null
+
+
+func test_roofs_reveal_only_what_covers_the_inside() -> void:
+	# Une dalle de terrain qui couvre une tranchée ne s'efface qu'au-dessus
+	# d'elle ; les clics ne la traversent que là.
+	if not await _load("training_b.map"):
+		return
+	var roof := _trench_roof()
+	assert_false(roof.materials.is_empty(), "matériaux propres au toit")
+	var area := roof.areas[0]
+	var inside := Vector3(area.get_center().x, roof.ceiling, area.get_center().y)
+	assert_true(roof.reveals_point(inside))
+	var far := inside + Vector3(Roof.REVEAL_MARGIN + 20.0, 0.0, 0.0)
+	assert_false(roof.reveals_point(far), "terrain voisin gardé")
+	roof._fade = 1.0
+	assert_true(Roof.is_revealed_body(roof.body, inside))
+	assert_false(Roof.is_revealed_body(roof.body, far))
+	roof._fade = 0.0
+
+
+func test_roof_reveals_under_the_mouse() -> void:
+	if not await _load("training_b.map"):
+		return
+	for enemy in node("Enemies").get_children():
+		enemy.free()
+	var roof := _trench_roof()
+	# Les contrôleurs suivent la vraie souris : on les remplace.
+	var controllers := get_tree().root.find_children("*", "PlayerController", true, false)
+	for controller in controllers:
+		controller.set_process(false)
+	await frames(10)
+	assert_false(roof.is_revealed(), "personne dessous")
+	Roof.hovered = roof
+	var revealed := await frames_until(func() -> bool: return roof.is_revealed(), 120)
+	assert_gt(revealed, 20, "pas tout de suite : délai de survol")
+	assert_eq(roof.materials[0].get_shader_parameter(&"reveal"), roof._fade)
+	Roof.hovered = null
+	# Le fondu suit les images d'affichage (`Roof._process`).
+	var hidden := -1
+	for i in 600:
+		await get_tree().process_frame
+		if not roof.is_revealed():
+			hidden = i
+			break
+	assert_gt(hidden, -1, "réaffiché quand la souris s'en va")
+
+
+func test_scenery_fades_around_operators() -> void:
+	if not await _load("training_b.map"):
+		return
+	await frames(2)
+	var alpha: Commando = node("Units/Alpha")
+	assert_gte(WorldMaterial.see_through_points.size(), 1)
+	assert_true(WorldMaterial.see_through_points.has(alpha.global_position), "position d'Alpha transmise au décor")
+	alpha.health.take_damage(1000.0)
+	await frames(2)
+	assert_false(WorldMaterial.see_through_points.has(alpha.global_position), "pas pour un mort")
+
+
+func test_roof_detection_is_cached_per_map() -> void:
+	if not await _load("training_b.map"):
+		return
+	for file in DirAccess.get_files_at(UfoMapLevel.ROOF_CACHE_DIR):
+		DirAccess.remove_absolute(UfoMapLevel.ROOF_CACHE_DIR.path_join(file))
+	await _load("training_b.map")
+	var map: UfoMapLevel = node("NavigationRegion3D/Map")
+	assert_false(map.roofs_from_cache, "premier chargement : repérage")
+	var first := level.find_children("Roof*", "Roof", true, false).size()
+	await _load("training_b.map")
+	map = node("NavigationRegion3D/Map")
+	assert_true(map.roofs_from_cache, "ensuite : lu dans le cache")
+	assert_eq(level.find_children("Roof*", "Roof", true, false).size(), first)

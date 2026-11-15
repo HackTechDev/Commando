@@ -36,6 +36,10 @@ const ROOF_MAX_RISE := 0.5
 const ROOF_JOIN_HEIGHT := 0.75
 ## Durée maximale d'une tranche de construction avant d'afficher une image (µs).
 const SLICE_USEC := 25000
+## Cache du repérage des toits, une entrée par carte. Changer
+## `ROOF_CACHE_VERSION` dès que le repérage change.
+const ROOF_CACHE_DIR := "user://roof_cache"
+const ROOF_CACHE_VERSION := 1
 ## Caisse convertie en `Climbable` : cube de cette taille (unités UFO:AI),
 ## posé au sol, rien dessus.
 const CRATE_SIZE := 32.0
@@ -109,12 +113,32 @@ signal built
 
 ## Vrai une fois le niveau construit.
 var is_built: bool = false
+## Vrai si les toits ont été lus dans le cache (`ROOF_CACHE_DIR`).
+var roofs_from_cache: bool = false
 ## Étape en cours, pour l'écran de chargement.
 var build_stage: String = ""
 
 
 func _ready() -> void:
 	_build_level()
+
+
+func _process(_delta: float) -> void:
+	_update_see_through()
+
+
+func _exit_tree() -> void:
+	WorldMaterial.set_see_through([] as Array[Vector3])
+
+
+## Le décor s'efface entre la caméra et chaque opérateur vivant.
+func _update_see_through() -> void:
+	var points: Array[Vector3] = []
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and points.size() < WorldMaterial.SEE_THROUGH_SLOTS:
+			points.append(unit.global_position)
+	WorldMaterial.set_see_through(points)
 
 
 ## Construction répartie sur plusieurs images (l'écran de chargement reste
@@ -146,9 +170,13 @@ func _build_level() -> void:
 		var seeds := PackedVector3Array()
 		for start in map.find_entities("info_player_start") + map.find_entities("info_alien_start"):
 			seeds.append(start.origin())
-		await _run_in_thread(func() -> bool:
-			_find_roofs(solids, seeds)
-			return true)
+		var cache_key := _roof_cache_key(path, solids.size())
+		roofs_from_cache = _load_roof_cache(cache_key, solids)
+		if not roofs_from_cache:
+			await _run_in_thread(func() -> bool:
+				_find_roofs(solids, seeds)
+				return true)
+			_save_roof_cache(cache_key, solids)
 	build_stage = "Construction du décor"
 	await _build(solids)
 	if not is_inside_tree():
@@ -379,6 +407,7 @@ func _build(solids: Array[Dictionary]) -> void:
 		if not is_inside_tree():
 			return
 		node.add_child(node.view)
+		node.prepare_reveal()
 		node.body = bodies.get(StringName("RoofBody%d" % (roof + 1)))
 		if node.body:
 			node.add_child(node.body)
@@ -527,27 +556,26 @@ func _uvs(face: UfoMap.Face, points: PackedVector3Array) -> PackedVector2Array:
 
 
 ## Matériau partagé par toutes les faces d'une même texture et d'un même rendu.
-func _material(face: UfoMap.Face) -> StandardMaterial3D:
+## Matériau du décor (`WorldMaterial`) : s'efface autour des opérateurs.
+func _material(face: UfoMap.Face) -> ShaderMaterial:
 	var render_flags := face.surface & (UfoMap.SURF_LIGHT | UfoMap.SURF_BLEND33 | UfoMap.SURF_BLEND66 | UfoMap.SURF_ALPHATEST)
 	var key := "%s|%d" % [face.texture, render_flags]
 	if _materials.has(key):
 		return _materials[key]
-	var material := StandardMaterial3D.new()
+	var blend := WorldMaterial.Blend.OPAQUE
+	if render_flags & UfoMap.SURF_ALPHATEST:
+		blend = WorldMaterial.Blend.SCISSOR
+	elif render_flags & (UfoMap.SURF_BLEND33 | UfoMap.SURF_BLEND66):
+		blend = WorldMaterial.Blend.ALPHA
+	var material := WorldMaterial.create(blend)
 	material.resource_name = key
-	material.roughness = 0.9
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	material.set_meta(&"albedo_source", face.texture)
 	if not TextureLibrary.find_file(face.texture + "_nm").is_empty():
-		material.normal_enabled = true
 		material.set_meta(&"normal_source", face.texture + "_nm")
 	if render_flags & UfoMap.SURF_LIGHT:
-		material.emission_enabled = true
 		material.set_meta(&"emission_source", face.texture)
-	if render_flags & UfoMap.SURF_ALPHATEST:
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	elif render_flags & (UfoMap.SURF_BLEND33 | UfoMap.SURF_BLEND66):
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		material.albedo_color.a = 0.33 if render_flags & UfoMap.SURF_BLEND33 else 0.66
+	if blend == WorldMaterial.Blend.ALPHA:
+		material.set_shader_parameter(&"albedo_color", Color(1, 1, 1, 0.33 if render_flags & UfoMap.SURF_BLEND33 else 0.66))
 	_materials[key] = material
 	return material
 
@@ -796,6 +824,7 @@ func _build_crates(crates: Array[Dictionary]) -> void:
 ## (parapets, étage inaccessible). Un toit qui couvre moins de
 ## `ROOF_MIN_CELLS` cases (linteau) reste dans le décor.
 ## Calcul pur, lancé sur un fil de travail ; marque `solid["roof"]`.
+## Le résultat est mis en cache par carte (`_save_roof_cache`).
 func _find_roofs(solids: Array[Dictionary], seeds: PackedVector3Array) -> void:
 	_roofs.clear()
 	var bounds: Array[AABB] = []
@@ -1237,3 +1266,57 @@ func _setup_camera() -> void:
 			sum += (child as Node3D).global_position
 		var center := sum / parent.get_child_count()
 		rig.global_position = Vector3(center.x, 0.0, center.z)
+
+
+## Clé du cache des toits : carte (chemin, date, taille), nombre de brushes
+## et version du repérage.
+static func _roof_cache_key(path: String, solid_count: int) -> String:
+	var size := 0
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file:
+		size = file.get_length()
+	return "%d|%s|%d|%d|%d" % [ROOF_CACHE_VERSION, path, FileAccess.get_modified_time(path), size, solid_count]
+
+
+static func _roof_cache_file(key: String) -> String:
+	return ROOF_CACHE_DIR.path_join("%s.bin" % key.md5_text())
+
+
+## Relit le repérage des toits en cache. Faux s'il n'y est pas.
+func _load_roof_cache(key: String, solids: Array[Dictionary]) -> bool:
+	var file := FileAccess.open(_roof_cache_file(key), FileAccess.READ)
+	if file == null:
+		return false
+	var data: Variant = file.get_var()
+	if not (data is Dictionary) or data.get("key") != key:
+		return false
+	var marks: PackedInt32Array = data["marks"]
+	if marks.size() != solids.size():
+		return false
+	_roofs.clear()
+	for entry: Dictionary in data["roofs"]:
+		var areas: Array[Rect2] = []
+		areas.assign(entry["areas"])
+		var floors: Array[float] = []
+		floors.assign(entry["floors"])
+		var ceilings: Array[float] = []
+		ceilings.assign(entry["ceilings"])
+		_roofs.append({"areas": areas, "floors": floors, "ceilings": ceilings, "ceiling": entry["ceiling"]})
+	for i in solids.size():
+		if marks[i] >= 0:
+			solids[i]["roof"] = marks[i]
+	return true
+
+
+func _save_roof_cache(key: String, solids: Array[Dictionary]) -> void:
+	DirAccess.make_dir_recursive_absolute(ROOF_CACHE_DIR)
+	var file := FileAccess.open(_roof_cache_file(key), FileAccess.WRITE)
+	if file == null:
+		return
+	var marks := PackedInt32Array()
+	for solid in solids:
+		marks.append(solid.get("roof", -1))
+	var roofs: Array = []
+	for roof in _roofs:
+		roofs.append({"areas": Array(roof["areas"]), "floors": Array(roof["floors"]), "ceilings": Array(roof["ceilings"]), "ceiling": roof["ceiling"]})
+	file.store_var({"key": key, "marks": marks, "roofs": roofs})

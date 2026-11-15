@@ -30,8 +30,8 @@ func test_map_geometry_is_built_and_textured() -> void:
 	var mesh := (map.get_node("Geometry") as MeshInstance3D).mesh
 	assert_gt(mesh.get_surface_count(), 10, "un matériau par texture")
 	for i in mesh.get_surface_count():
-		var material := mesh.surface_get_material(i) as StandardMaterial3D
-		assert_not_null(material.albedo_texture, "texture de %s" % material.resource_name)
+		var material := mesh.surface_get_material(i) as ShaderMaterial
+		assert_not_null(material.get_shader_parameter(&"albedo_texture"), "texture de %s" % material.resource_name)
 	for body in ["Ground", "Walls", "Clip"]:
 		assert_gt(map.get_node(body).get_child_count(), 0, "collisions %s" % body)
 	assert_eq(map.get_node("Walls").collision_layer, 2, "les murs masquent la vue")
@@ -91,7 +91,7 @@ func test_map_crates_are_game_crates() -> void:
 		assert_almost_eq(crate.half_extent, 0.6, 0.001)
 		assert_almost_eq(crate.global_position.y, 0.0, 0.01, "posée au sol")
 		var mesh := (crate.get_node("MeshInstance3D") as MeshInstance3D).mesh
-		assert_not_null((mesh.surface_get_material(0) as StandardMaterial3D).albedo_texture, "textures de la carte")
+		assert_not_null((mesh.surface_get_material(0) as ShaderMaterial).get_shader_parameter(&"albedo_texture"), "textures de la carte")
 
 
 func test_climb_map_crate_and_hop_to_its_neighbour() -> void:
@@ -143,7 +143,7 @@ func test_map_barrels_are_movable_props() -> void:
 		assert_almost_eq(barrel.global_position.y, 0.0, 0.01, "posé au sol")
 		assert_is((barrel.get_node("CollisionShape3D") as CollisionShape3D).shape, CylinderShape3D)
 		var mesh := (barrel.get_node("MeshInstance3D") as MeshInstance3D).mesh
-		assert_not_null((mesh.surface_get_material(0) as StandardMaterial3D).albedo_texture, "textures de la carte")
+		assert_not_null((mesh.surface_get_material(0) as ShaderMaterial).get_shader_parameter(&"albedo_texture"), "textures de la carte")
 		assert_null(Climbable.find_at(get_tree(), barrel.get_top_position()), "un clic sur le dessus ne fait pas grimper")
 		# Plus de mur invisible sous le bidon (découpé s'il couvrait aussi du décor).
 		var query := PhysicsShapeQueryParameters3D.new()

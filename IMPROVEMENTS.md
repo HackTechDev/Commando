@@ -158,12 +158,12 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **b)** lumières (`light`) ;
   - **c)** portes (`func_door`) et objets destructibles (`func_breakable`) ;
   - **d)** ~~étages : masquer les niveaux supérieurs (cf. l'occlusion, 7.5). Les toits d'un seul niveau s'effacent déjà~~ (fait) ;
-  - **e)** toits, suite :
-    - effacer aussi les murs qui masquent un opérateur côté caméra ;
-    - ne pas effacer les surplombs de terrain ;
-    - n'effacer que la partie d'une dalle qui couvre une tranchée ;
-    - voir l'intérieur au survol de la souris ;
-    - accélérer le repérage (2 s sur Entraînement B) ou le mettre en cache par carte ;
+  - **e)** ~~toits, suite~~ (fait) :
+    - ~~effacer aussi les murs qui masquent un opérateur côté caméra~~ ;
+    - ~~ne pas effacer les surplombs de terrain~~ (seule la bande au-dessus du passage s'efface) ;
+    - ~~n'effacer que la partie d'une dalle qui couvre une tranchée~~ ;
+    - ~~voir l'intérieur au survol de la souris~~ ;
+    - ~~accélérer le repérage (2 s sur Entraînement B) ou le mettre en cache par carte~~ ;
   - **f)** remplacer les modèles absents (arbres, mobilier) par des modèles CC0 ;
   - **g)** patrouilles pour les sentinelles, aujourd'hui fixes ;
   - **h)** cartes aléatoires assemblées à partir des tuiles et des `.ump` ;
