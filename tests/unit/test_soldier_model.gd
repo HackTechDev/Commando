@@ -138,3 +138,13 @@ func test_unarmed_guard_raises_the_fists() -> void:
 	_run(1.0)
 	assert_gt(hand.global_position.y, low + 0.4, "poings à hauteur du visage")
 	assert_gt(_finger_curl("ShoulderR"), 1.2, "poings serrés")
+
+
+func test_every_primary_weapon_is_modelled() -> void:
+	var outfit := OperatorProfile.defaults(0)
+	for id: StringName in GearCatalog.PRIMARY:
+		outfit.primary = id
+		model.outfit = outfit
+		assert_not_null(model._rifle_mag, "%s : chargeur" % id)
+		assert_lt(model._flash.position.z, -0.4, "%s : bouche du canon devant" % id)
+		assert_true(GearCatalog.WEIGHTS.has(id), "%s : poids" % id)

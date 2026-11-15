@@ -133,6 +133,56 @@ const PRIMARY: Dictionary = {
 			"reload_time": 2.8, "gunshot_noise_radius": 18.0, "suppressed": false,
 		},
 	},
+	&"famas": {
+		"short": "FAMAS",
+		"name": "FAMAS",
+		"description": "Fusil d'assaut bullpup français : cadence très élevée et chargeur de 25, mais sans silencieux.",
+		"stats": {
+			"fire_range": 15.0, "aim_time": 0.35, "fire_interval": 0.3, "fire_damage": 30.0,
+			"hit_chance_near": 0.93, "hit_chance_far": 0.55, "magazine_size": 25, "reserve_ammo": 50,
+			"reload_time": 2.2, "gunshot_noise_radius": 16.0, "suppressed": false,
+		},
+	},
+	&"scar_l": {
+		"short": "SCAR-L",
+		"name": "FN SCAR Light",
+		"description": "Fusil d'assaut 5,56 mm silencieux : la carabine en mieux approvisionnée, un peu plus lourde.",
+		"stats": {
+			"fire_range": 17.0, "aim_time": 0.4, "fire_interval": 0.45, "fire_damage": 34.0,
+			"hit_chance_near": 0.95, "hit_chance_far": 0.62, "magazine_size": 20, "reserve_ammo": 40,
+			"reload_time": 2.1, "gunshot_noise_radius": 9.0, "suppressed": true,
+		},
+	},
+	&"scar_h": {
+		"short": "SCAR-H",
+		"name": "FN SCAR Heavy",
+		"description": "Fusil de combat 7,62 mm silencieux : plus de portée et de dégâts, cadence plus lente.",
+		"stats": {
+			"fire_range": 20.0, "aim_time": 0.5, "fire_interval": 0.6, "fire_damage": 46.0,
+			"hit_chance_near": 0.95, "hit_chance_far": 0.7, "magazine_size": 15, "reserve_ammo": 30,
+			"reload_time": 2.4, "gunshot_noise_radius": 11.0, "suppressed": true,
+		},
+	},
+	&"hk417": {
+		"short": "HK417",
+		"name": "HK417",
+		"description": "Fusil de tireur d'élite 7,62 mm à lunette, silencieux : précis de loin, semi-automatique.",
+		"stats": {
+			"fire_range": 22.0, "aim_time": 0.6, "fire_interval": 0.8, "fire_damage": 52.0,
+			"hit_chance_near": 0.96, "hit_chance_far": 0.76, "magazine_size": 10, "reserve_ammo": 20,
+			"reload_time": 2.4, "gunshot_noise_radius": 11.0, "suppressed": true,
+		},
+	},
+	&"m249": {
+		"short": "M249",
+		"name": "M249 (mitrailleuse légère)",
+		"description": "Feu de saturation : bande de 100 cartouches, mais lourde, imprécise de loin, très bruyante et longue à recharger.",
+		"stats": {
+			"fire_range": 18.0, "aim_time": 0.7, "fire_interval": 0.15, "fire_damage": 26.0,
+			"hit_chance_near": 0.85, "hit_chance_far": 0.42, "magazine_size": 100, "reserve_ammo": 100,
+			"reload_time": 4.5, "gunshot_noise_radius": 22.0, "suppressed": false,
+		},
+	},
 }
 
 ## Armes secondaires (portées à la cuisse) : nom, description et réglages de
@@ -173,6 +223,7 @@ const EQUIPMENT: Dictionary = {
 const BASE_WEIGHT := 2.0
 const WEIGHTS: Dictionary = {
 	&"carbine": 3.5, &"smg": 2.8, &"dmr": 6.0, &"shotgun": 4.0,
+	&"famas": 3.8, &"scar_l": 3.6, &"scar_h": 4.3, &"hk417": 5.0, &"m249": 8.0,
 	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
 	&"helmet": 1.4, &"nvg": 0.6, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0,

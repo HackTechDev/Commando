@@ -69,7 +69,7 @@ const ACCESSORY_PARTS: Dictionary = {
 ## Caractéristiques comparées des armes principales : nom affiché.
 const COMPARED: Array[String] = ["Portée", "Dégâts", "Cadence", "Chargeur", "Discrétion"]
 ## Rayon de bruit (m) d'une arme considérée comme sans aucune discrétion.
-const LOUDEST := 20.0
+const LOUDEST := 24.0
 
 ## Opérateur modifié (0 à 2).
 var current: int = 0
@@ -628,33 +628,34 @@ func _build_armament() -> Control:
 	return box
 
 
-## Comparaison des armes principales : une barre par arme et par
+## Comparaison des armes principales : une ligne par arme, une barre par
 ## caractéristique (relative à la meilleure), l'arme choisie en surbrillance.
 func _build_comparison() -> Control:
 	var grid := GridContainer.new()
 	grid.name = "Comparison"
-	grid.columns = 1 + GearCatalog.PRIMARY.size()
-	grid.add_theme_constant_override(&"h_separation", 8)
-	grid.add_theme_constant_override(&"v_separation", 4)
+	grid.columns = 1 + COMPARED.size()
+	grid.add_theme_constant_override(&"h_separation", 6)
+	grid.add_theme_constant_override(&"v_separation", 3)
 	grid.add_child(Control.new())
-	for id: StringName in GearCatalog.PRIMARY:
+	for title: String in COMPARED:
 		var head := Label.new()
-		head.text = GearCatalog.PRIMARY[id]["short"]
+		head.text = title
 		head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		head.add_theme_font_size_override(&"font_size", 13)
+		head.add_theme_font_size_override(&"font_size", 12)
 		grid.add_child(head)
-		_compare_heads.append(head)
 	var values := _comparison_values()
 	for row in COMPARED.size():
-		var label := Label.new()
-		label.text = COMPARED[row]
-		label.add_theme_font_size_override(&"font_size", 13)
-		grid.add_child(label)
-		var bars: Array[ProgressBar] = []
-		var column := 0
-		for id: StringName in GearCatalog.PRIMARY:
+		_compare_bars.append([] as Array[ProgressBar])
+	var column := 0
+	for id: StringName in GearCatalog.PRIMARY:
+		var name_label := Label.new()
+		name_label.text = GearCatalog.PRIMARY[id]["short"]
+		name_label.add_theme_font_size_override(&"font_size", 12)
+		grid.add_child(name_label)
+		_compare_heads.append(name_label)
+		for row in COMPARED.size():
 			var bar := ProgressBar.new()
-			bar.custom_minimum_size = Vector2(72, 12)
+			bar.custom_minimum_size = Vector2(48, 10)
 			bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			bar.show_percentage = false
@@ -662,9 +663,8 @@ func _build_comparison() -> Control:
 			bar.value = values[row][column][0]
 			bar.tooltip_text = "%s — %s : %s" % [GearCatalog.PRIMARY[id]["name"], COMPARED[row], values[row][column][1]]
 			grid.add_child(bar)
-			bars.append(bar)
-			column += 1
-		_compare_bars.append(bars)
+			(_compare_bars[row] as Array).append(bar)
+		column += 1
 	return grid
 
 

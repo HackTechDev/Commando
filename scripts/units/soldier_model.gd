@@ -2505,6 +2505,15 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 			_box(rifle, Vector3(0.012, 0.02, 0.012), Vector3(0.0, 0.085, -0.58), _m_weapon)
 			_box(rifle, Vector3(0.03, 0.025, 0.015), Vector3(0.0, 0.1, 0.0), _m_weapon)
 			return -0.61
+	match kind:
+		&"famas":
+			return _build_famas(rifle)
+		&"scar_l", &"scar_h":
+			return _build_scar(rifle, kind == &"scar_h")
+		&"hk417":
+			return _build_hk417(rifle)
+		&"m249":
+			return _build_m249(rifle)
 	if kind == &"rifle":
 		# Fusil d'assaut des ennemis : crosse et garde-main en bois, chargeur
 		# courbe, frein de bouche, sans optique.
@@ -2544,6 +2553,114 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 	_box(rifle, Vector3(0.03, 0.03, 0.005), Vector3(0.0, 0.118, -0.092), _m_lens)
 	_box(rifle, Vector3(0.03, 0.03, 0.09), Vector3(0.042, 0.05, -0.40), _m_weapon)
 	return -0.77
+
+
+## Cylindre couché le long du canon (axe Z de l'arme).
+func _barrel(rifle: Node3D, radius: float, length: float, at: Vector3, material: Material) -> MeshInstance3D:
+	var tube := _cylinder(rifle, radius, length, at, material)
+	tube.rotation.x = PI / 2.0
+	return tube
+
+
+## FAMAS : bullpup, chargeur derrière la poignée, longue poignée de
+## transport sur le dessus, bipied replié, canon court.
+func _build_famas(rifle: Node3D) -> float:
+	_box(rifle, Vector3(0.05, 0.09, 0.62), Vector3(0.0, 0.035, -0.02), _m_weapon)
+	_box(rifle, Vector3(0.052, 0.12, 0.05), Vector3(0.0, 0.02, 0.3), _m_gear)
+	_box(rifle, Vector3(0.046, 0.06, 0.12), Vector3(0.0, -0.03, 0.24), _m_weapon)
+	_box(rifle, Vector3(0.048, 0.03, 0.26), Vector3(0.0, -0.025, -0.2), _m_weapon)
+	# Poignée de transport : deux montants et la barre.
+	_box(rifle, Vector3(0.02, 0.02, 0.44), Vector3(0.0, 0.135, -0.06), _m_weapon)
+	_box(rifle, Vector3(0.02, 0.06, 0.03), Vector3(0.0, 0.1, -0.27), _m_weapon)
+	_box(rifle, Vector3(0.02, 0.06, 0.03), Vector3(0.0, 0.1, 0.14), _m_weapon)
+	_rifle_mag = _box(rifle, Vector3(0.026, 0.14, 0.05), Vector3(0.0, -0.06, 0.13), _m_weapon)
+	_rifle_mag.rotation.x = deg_to_rad(-6.0)
+	_barrel(rifle, 0.011, 0.16, Vector3(0.0, 0.045, -0.41), _m_weapon)
+	_barrel(rifle, 0.016, 0.05, Vector3(0.0, 0.045, -0.5), _m_weapon)
+	for side: float in [-1.0, 1.0]:
+		var leg := _box(rifle, Vector3(0.008, 0.008, 0.2), Vector3(0.03 * side, 0.03, -0.3), _m_weapon)
+		leg.rotation.y = 0.05 * side
+	return -0.53
+
+
+## FN SCAR : boîtier supérieur à long rail, crosse repliable réglable,
+## garde-main à rails, silencieux, couleur sable. Le SCAR-H (7,62 mm) a un
+## chargeur droit plus gros et un canon plus long.
+func _build_scar(rifle: Node3D, heavy: bool) -> float:
+	var tan := _mat(Color(0.55, 0.47, 0.33), 0.75)
+	var front := -0.44 if heavy else -0.4
+	_box(rifle, Vector3(0.05, 0.07, 0.62 + (0.04 if heavy else 0.0)), Vector3(0.0, 0.055, -0.13 - (0.02 if heavy else 0.0)), tan)
+	_box(rifle, Vector3(0.024, 0.012, 0.56), Vector3(0.0, 0.096, -0.12), _m_weapon)
+	_box(rifle, Vector3(0.044, 0.05, 0.16), Vector3(0.0, 0.0, -0.06), _m_weapon)
+	_box(rifle, Vector3(0.04, 0.05, 0.2), Vector3(0.0, 0.0, front + 0.12), tan)
+	# Crosse : armature, appui-joue et plaque de couche.
+	_box(rifle, Vector3(0.036, 0.04, 0.24), Vector3(0.0, 0.04, 0.17), tan)
+	_box(rifle, Vector3(0.036, 0.035, 0.1), Vector3(0.0, 0.08, 0.22), tan)
+	_box(rifle, Vector3(0.04, 0.11, 0.03), Vector3(0.0, 0.03, 0.3), _m_weapon)
+	if heavy:
+		_rifle_mag = _box(rifle, Vector3(0.032, 0.13, 0.075), Vector3(0.0, -0.08, -0.08), _m_weapon)
+		_rifle_mag.rotation.x = deg_to_rad(-4.0)
+	else:
+		_rifle_mag = _box(rifle, Vector3(0.028, 0.15, 0.06), Vector3(0.0, -0.08, -0.08), _m_weapon)
+		_rifle_mag.rotation.x = deg_to_rad(-14.0)
+	_box(rifle, Vector3(0.025, 0.07, 0.035), Vector3(0.0, -0.05, front + 0.06), _m_weapon)
+	# Viseur holographique.
+	_box(rifle, Vector3(0.04, 0.045, 0.07), Vector3(0.0, 0.124, -0.05), _m_weapon)
+	_box(rifle, Vector3(0.032, 0.03, 0.005), Vector3(0.0, 0.128, -0.087), _m_lens)
+	_barrel(rifle, 0.012, 0.08, Vector3(0.0, 0.05, front - 0.04), _m_weapon)
+	var length := 0.2 if heavy else 0.17
+	_barrel(rifle, 0.024 if heavy else 0.021, length, Vector3(0.0, 0.05, front - 0.08 - length * 0.5), _m_weapon)
+	return front - 0.1 - length
+
+
+## HK417 : grand AR en 7,62 mm, chargeur droit, garde-main long à rails,
+## lunette à faible grossissement, silencieux, crosse réglable.
+func _build_hk417(rifle: Node3D) -> float:
+	_box(rifle, Vector3(0.05, 0.085, 0.3), Vector3(0.0, 0.04, -0.05), _m_weapon)
+	_box(rifle, Vector3(0.042, 0.07, 0.22), Vector3(0.0, 0.035, 0.2), _m_weapon)
+	_box(rifle, Vector3(0.04, 0.035, 0.12), Vector3(0.0, 0.085, 0.2), _m_weapon)
+	_box(rifle, Vector3(0.046, 0.1, 0.03), Vector3(0.0, 0.02, 0.31), _m_gear)
+	_rifle_mag = _box(rifle, Vector3(0.032, 0.13, 0.07), Vector3(0.0, -0.075, -0.09), _m_weapon)
+	_rifle_mag.rotation.x = deg_to_rad(-6.0)
+	_box(rifle, Vector3(0.056, 0.066, 0.38), Vector3(0.0, 0.045, -0.39), _m_gear)
+	_box(rifle, Vector3(0.022, 0.012, 0.64), Vector3(0.0, 0.085, -0.27), _m_weapon)
+	_box(rifle, Vector3(0.025, 0.07, 0.035), Vector3(0.0, -0.01, -0.38), _m_weapon)
+	var scope := _barrel(rifle, 0.02, 0.2, Vector3(0.0, 0.125, -0.07), _m_weapon)
+	scope.name = "Scope"
+	_barrel(rifle, 0.027, 0.04, Vector3(0.0, 0.125, -0.18), _m_weapon)
+	_barrel(rifle, 0.022, 0.004, Vector3(0.0, 0.125, -0.2), _m_lens)
+	for z: float in [-0.12, -0.02]:
+		_box(rifle, Vector3(0.028, 0.04, 0.02), Vector3(0.0, 0.1, z), _m_weapon)
+	_barrel(rifle, 0.012, 0.08, Vector3(0.0, 0.045, -0.62), _m_weapon)
+	_barrel(rifle, 0.024, 0.2, Vector3(0.0, 0.045, -0.76), _m_weapon)
+	return -0.86
+
+
+## M249 : boîtier carré à couvercle d'alimentation, boîte de bande sous le
+## flanc gauche, poignée de transport, cache-canon ajouré, bipied replié,
+## crosse squelette.
+func _build_m249(rifle: Node3D) -> float:
+	_box(rifle, Vector3(0.06, 0.1, 0.36), Vector3(0.0, 0.04, -0.06), _m_weapon)
+	_box(rifle, Vector3(0.064, 0.025, 0.2), Vector3(0.0, 0.1, -0.08), _m_weapon)
+	# Crosse squelette.
+	_box(rifle, Vector3(0.04, 0.025, 0.26), Vector3(0.0, 0.07, 0.24), _m_weapon)
+	_box(rifle, Vector3(0.04, 0.025, 0.26), Vector3(0.0, -0.01, 0.24), _m_weapon)
+	_box(rifle, Vector3(0.045, 0.12, 0.03), Vector3(0.0, 0.03, 0.37), _m_gear)
+	# Boîte de bande et bande engagée dans le boîtier.
+	_rifle_mag = _box(rifle, Vector3(0.07, 0.11, 0.1), Vector3(-0.035, -0.07, -0.1), _m_gear)
+	_box(rifle, Vector3(0.04, 0.02, 0.05), Vector3(-0.04, 0.0, -0.1), _m_steel)
+	# Garde-main, cache-canon, canon et poignée de transport.
+	_box(rifle, Vector3(0.058, 0.055, 0.16), Vector3(0.0, 0.0, -0.32), _m_weapon)
+	_barrel(rifle, 0.016, 0.42, Vector3(0.0, 0.05, -0.48), _m_weapon)
+	_box(rifle, Vector3(0.04, 0.03, 0.22), Vector3(0.0, 0.08, -0.38), _m_gear)
+	_box(rifle, Vector3(0.03, 0.03, 0.03), Vector3(0.0, 0.105, -0.25), _m_weapon)
+	var handle := _box(rifle, Vector3(0.016, 0.022, 0.12), Vector3(0.0, 0.125, -0.3), _m_weapon)
+	handle.rotation.x = -0.25
+	_barrel(rifle, 0.021, 0.05, Vector3(0.0, 0.05, -0.71), _m_weapon)
+	for side: float in [-1.0, 1.0]:
+		var leg := _box(rifle, Vector3(0.01, 0.01, 0.26), Vector3(0.022 * side, 0.02, -0.5), _m_weapon)
+		leg.rotation.y = 0.04 * side
+	return -0.74
 
 
 func _shoulder_position(side: float) -> Vector3:

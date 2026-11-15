@@ -343,3 +343,12 @@
 - Déplacements subis : l'opérateur repoussé recule pas à pas, l'esquive se fait en pas chassés, et un soldat déséquilibré recule d'un pied. Le corps ne glisse plus avec une marche en avant.
 - Ramassage du couteau de lancer : l'opérateur s'arrête un instant, s'accroupit en se penchant, ouvre la main vers le sol puis la referme. Il prend le couteau de la main gauche s'il tient son arme. Son ordre reprend ensuite.
 - Un ennemi sans arme en alerte se met en garde entre deux coups : poings serrés devant le visage, genoux souples, léger rebond.
+
+## Nouvelles armes principales
+
+- FAMAS : bullpup à cadence très élevée, chargeur de 25, sans silencieux.
+- FN SCAR Light (5,56 mm) : silencieux, chargeur de 20, couleur sable.
+- FN SCAR Heavy (7,62 mm) : silencieux, plus de portée et de dégâts, cadence plus lente.
+- HK417 : fusil de tireur d'élite 7,62 mm à lunette, silencieux.
+- M249 : mitrailleuse légère, bande de 100 cartouches. Elle est lourde (8 kg), bruyante, peu précise de loin et longue à recharger.
+- Chaque arme a son modèle 3D, son poids et ses réglages de tir. La comparaison des armes de l'écran « Opérateurs » montre maintenant une ligne par arme.
