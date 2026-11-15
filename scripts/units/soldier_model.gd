@@ -255,6 +255,16 @@ const GUARD_RIGHT := Vector3(0.14, 0.58, -0.22)
 
 ## Durée (s) pour passer l'arme à la bretelle, ou pour la reprendre en main.
 const SLING_TIME := 0.7
+## Bouclier balistique : taille du panneau (m), poignée (repère du
+## bouclier, derrière le panneau), temps pour le lever ou le passer dans le
+## dos, et décalage de l'arme de poing (repère du torse), tenue à droite du
+## bouclier.
+const SHIELD_SIZE := Vector2(0.56, 0.92)
+const SHIELD_HANDLE := Vector3(0.0, 0.0, 0.07)
+const SHIELD_TIME := 0.35
+const SHIELD_PISTOL_OFFSET := Vector3(0.2, 0.08, -0.06)
+## Part de levée au-delà de laquelle le bouclier arrête les balles.
+const SHIELD_GUARD := 0.8
 ## Mains libres, arme à la bretelle (repère du torse).
 const FREE_HAND := Vector3(0.27, 0.08, -0.12)
 
@@ -371,6 +381,16 @@ var sidearm_drawn: bool = false:
 		sidearm_drawn = value
 		if _body:
 			_rebuild()
+## Porte un bouclier balistique (dans le dos, ou levé : `shield_raised`).
+var carries_shield: bool = false:
+	set(value):
+		if value == carries_shield:
+			return
+		carries_shield = value
+		if _body:
+			_rebuild()
+## Bouclier tenu devant soi, de la main gauche.
+var shield_raised: bool = false
 ## Avancement (0 à 1) d'une poussée pour repousser un assaillant ; -1 hors poussée.
 var shove_progress: float = -1.0
 ## Avancement (0 à 1) d'une défense (parade ou esquive) ; -1 hors défense.
@@ -406,6 +426,11 @@ var _rifle_sling_mid: Transform3D
 var _butt_keys: Array[Transform3D] = []
 ## 0 = arme en main, 1 = arme à la bretelle.
 var _sling: float = 0.0
+## Bouclier (null sans bouclier), sa position dans le dos (repère du torse) et
+## sa levée (0 : dans le dos, 1 : devant).
+var _shield: Node3D
+var _shield_back: Transform3D
+var _shield_up: float = 0.0
 var _rifle_aim: Transform3D
 var _rifle_prone: Transform3D
 var _rifle_dropped: Transform3D
@@ -535,6 +560,7 @@ func _rebuild() -> void:
 	_brows.clear()
 	_mouth = null
 	_mouth_inner = null
+	_shield = null
 	_butt_keys.clear()
 	_build()
 
@@ -594,6 +620,7 @@ func _build() -> void:
 	_build_torso()
 	_build_head()
 	_build_rifle_and_arms()
+	_build_shield()
 
 
 func _process(delta: float) -> void:
@@ -1094,6 +1121,9 @@ func _animate_alive(delta: float) -> void:
 	# Arme : basse, épaulée ou en position couchée ; inclinée pendant le
 	# rechargement ; à la bretelle sur le flanc pour libérer les mains.
 	var rifle_target := _rifle_prone if prone else _rifle_hold.interpolate_with(_rifle_aim, aim)
+	var shield := _update_shield(delta, prone)
+	# Bouclier levé : l'arme de poing passe à droite du bouclier.
+	rifle_target.origin += SHIELD_PISTOL_OFFSET * shield
 	if prone:
 		# Arme portée par la main droite, qui avance avec le coude droit.
 		rifle_target.origin += Vector3(0.0, -0.1 * s, -0.04) * crawl
@@ -1133,6 +1163,8 @@ func _animate_alive(delta: float) -> void:
 		# le flanc.
 		left = left.lerp(_free_hand(-1.0, prone, s, c, moving, crawl), smoothstep(0.35, 0.75, _sling))
 		right = right.lerp(_free_hand(1.0, prone, s, c, moving, crawl), smoothstep(0.65, 1.0, _sling))
+		if shield > 0.0:
+			left = left.lerp(_shield.transform * SHIELD_HANDLE, shield)
 		target = _solve_arms(left, right, PRONE_ELBOW_POLE if prone else ARM_POLE)
 	else:
 		target = _arm_poses[ArmPose.RIFLE]
@@ -1715,6 +1747,75 @@ func _build_torso() -> void:
 		_cylinder(radio, 0.006, 0.38, Vector3(-0.12, 0.72, back), _m_weapon)
 	_build_equipment(front)
 	_build_specialty(front, back)
+
+
+## Bouclier balistique : panneau, rebord, hublot de visée, bande
+## réfléchissante et poignée à l'arrière ; dans le dos au départ.
+func _build_shield() -> void:
+	if not (carries_shield or (outfit != null and outfit.shield > 0)):
+		return
+	var back := 0.15 if _wears(&"vest") else 0.12
+	if _wears(&"backpack"):
+		back += 0.17
+	_shield_back = Transform3D(Basis(Vector3.UP, PI), Vector3(0.0, 0.32, back + 0.03))
+	_shield = _pivot(_torso, Vector3.ZERO, "Shield")
+	_shield.transform = _shield_back
+	var panel := _mat(Color(0.11, 0.11, 0.12), 0.55, 0.25)
+	var rim := _mat(Color(0.05, 0.05, 0.05), 0.9)
+	var glass := _mat(Color(0.12, 0.2, 0.26), 0.08, 0.7)
+	var w := SHIELD_SIZE.x
+	var h := SHIELD_SIZE.y
+	_box(_shield, Vector3(w, h, 0.025), Vector3.ZERO, panel).name = "Panel"
+	for side: float in [-1.0, 1.0]:
+		_box(_shield, Vector3(0.02, h + 0.02, 0.035), Vector3((w * 0.5) * side, 0.0, 0.0), rim)
+		_box(_shield, Vector3(w, 0.02, 0.035), Vector3(0.0, (h * 0.5) * side, 0.0), rim)
+	# Hublot à hauteur des yeux, bande d'identification.
+	_box(_shield, Vector3(0.26, 0.075, 0.03), Vector3(0.0, 0.31, 0.0), glass).name = "Viewport"
+	_box(_shield, Vector3(0.42, 0.035, 0.006), Vector3(0.0, -0.05, -0.016), _m_team)
+	# Poignée verticale et brassière, à l'arrière.
+	_box(_shield, Vector3(0.03, 0.14, 0.03), SHIELD_HANDLE, rim)
+	for y: float in [-0.07, 0.07]:
+		_box(_shield, Vector3(0.025, 0.02, 0.06), Vector3(0.0, y, 0.035), rim)
+	_box(_shield, Vector3(0.12, 0.03, 0.04), Vector3(0.0, -0.2, 0.04), rim)
+
+
+## Fait passer le bouclier du dos à l'avant (par le flanc gauche) selon
+## `shield_raised`. Devant, il est tenu dans l'axe du corps, quels que
+## soient l'inclinaison et l'épaulement du buste. Renvoie sa levée (0 à 1).
+func _update_shield(delta: float, prone: bool) -> float:
+	if _shield == null:
+		return 0.0
+	_shield_up = move_toward(_shield_up, 1.0 if shield_raised and not prone and not is_dead else 0.0, delta / SHIELD_TIME)
+	var up := smoothstep(0.0, 1.0, _shield_up)
+	var to_torso := (_body.transform * _hips.transform * _torso.transform).affine_inverse()
+	var front := to_torso * Transform3D(Basis.IDENTITY, Vector3(-0.04, _hips.position.y + 0.36, -0.44))
+	var side := Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3(-0.34, 0.3, 0.0))
+	if up < 0.5:
+		_shield.transform = _shield_back.interpolate_with(side, up * 2.0)
+	else:
+		_shield.transform = side.interpolate_with(front, up * 2.0 - 1.0)
+	return up
+
+
+## Vrai si le bouclier est levé.
+func is_shield_up() -> bool:
+	return _shield != null and _shield_up >= SHIELD_GUARD
+
+
+## Point où le tir `from` → `to` frappe le bouclier levé (tireur devant,
+## cible derrière), ou `Vector3.INF`.
+func shield_blocks(from: Vector3, to: Vector3) -> Vector3:
+	if not is_shield_up() or not _shield.is_inside_tree():
+		return Vector3.INF
+	var frame := _shield.global_transform
+	var a := frame.affine_inverse() * from
+	var b := frame.affine_inverse() * to
+	if a.z >= 0.0 or b.z < 0.0:
+		return Vector3.INF
+	var hit := a.lerp(b, a.z / (a.z - b.z))
+	if absf(hit.x) > SHIELD_SIZE.x * 0.5 or absf(hit.y) > SHIELD_SIZE.y * 0.5:
+		return Vector3.INF
+	return frame * hit
 
 
 ## Costume d'un civil : plastron et col de chemise, cravate, revers de la

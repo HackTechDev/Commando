@@ -30,7 +30,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Clic gauche / rectangle / 1-3 : sélectionner (Maj : ajouter)  •  Clic droit : marcher  •  Double clic droit : courir  •  Clic droit sur un ennemi : tirer  •  Clic droit sur une caisse : grimper
 V : couteau  •  B : assommer  •  T : lancer le couteau  (puis clic gauche sur un ennemi)  •  P : caisse  •  G : arme à la bretelle
-N : grenade (puis clic au sol)  •  K : poser une charge  •  L : mise à feu  •  J : soigner  •  H : arme secondaire
+N : grenade (puis clic au sol)  •  K : poser une charge  •  L : mise à feu  •  J : soigner  •  H : arme secondaire  •  U : bouclier
 ZQSD / flèches / bord d'écran / clic molette : caméra  •  Molette : zoom  •  A / E (maintenir) : rotation  •  Origine : centrer"
 
 [node name="TopRight" type="HBoxContainer" parent="PlayerController"]
@@ -145,6 +145,14 @@ focus_mode = 0
 tooltip_text = "Changer d'arme : arme secondaire en main, arme principale dans le dos (et inversement). L'opérateur dégaine de lui-même son arme secondaire quand l'autre est à sec."
 toggle_mode = true
 text = "Arme secondaire  [H]"
+
+[node name="Shield" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Bouclier balistique : levé, il arrête les balles tirées de face, y compris celles destinées aux unités abritées derrière. L'opérateur tire alors à l'arme de poing, marche plus lentement et ne court plus. Un geste (frappe, lancer, escalade, caisse) le fait passer un instant dans le dos."
+toggle_mode = true
+text = "Bouclier  [U]"
 
 [node name="Buttons" type="HBoxContainer" parent="PlayerController/ActionBar/Rows"]
 layout_mode = 2

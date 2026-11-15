@@ -11,6 +11,8 @@ signal selected_changed(is_selected: bool)
 signal sling_changed(slung: bool)
 ## Arme en main changée (secondaire ou principale).
 signal weapon_changed(secondary: bool)
+## Bouclier levé ou baissé (choix du joueur).
+signal shield_changed(raised: bool)
 
 enum MeleeKind { KNIFE, KNOCKOUT }
 
@@ -44,6 +46,8 @@ const JUMP_TAKEOFF := 0.26
 const JUMP_LANDING := 0.62
 ## Vitesse verticale d'impulsion (en part du dénivelé, vers le haut).
 const JUMP_LIFT := 0.1
+## Bouclier levé : part de la vitesse de marche (on ne court pas avec).
+const SHIELD_SPEED := 0.7
 
 @export var stats: UnitStats
 ## Numéro de l'unité dans l'escouade (touches 1 à 6).
@@ -67,6 +71,21 @@ var throwing_knives: int = 0
 var grenades: int = 0
 var explosives: int = 0
 var medkits: int = 0
+## Bouclier balistique emporté (0 ou 1).
+var shields: int = 0:
+	set(value):
+		shields = value
+		if _model:
+			_model.carries_shield = value > 0
+		if value > 0:
+			add_to_group(&"shield_bearers")
+		else:
+			remove_from_group(&"shield_bearers")
+			set_shield(false)
+## Choix du joueur : bouclier levé (arme de poing en main). Il n'est
+## effectivement tenu devant soi que pendant les déplacements et le tir
+## (`is_shield_up`) ; les autres gestes le passent dans le dos un instant.
+var shield_raised: bool = false
 ## Arme secondaire en main (`stats` est alors celui de l'arme secondaire).
 var using_secondary: bool = false
 ## Obstacle sur lequel l'unité se tient, le cas échéant.
@@ -116,6 +135,7 @@ func _ready() -> void:
 	grenades = stats.grenades
 	explosives = stats.explosives
 	medkits = stats.medkits
+	shields = stats.shields
 	_primary_stats = stats
 	if _secondary_stats:
 		_holstered_ammo = Vector2i(_secondary_stats.magazine_size, _secondary_stats.reserve_ammo)
@@ -145,6 +165,7 @@ func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.grenades = operator.grenades
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
+	weapon.shields = operator.shield
 	GearCatalog.apply_load_and_specialty(weapon, GearCatalog.load_of(operator), operator.specialty)
 	return weapon
 
@@ -163,6 +184,7 @@ func _physics_process(delta: float) -> void:
 	_update_reload(delta)
 	_model.aiming = not is_dead and _order is AttackOrder and (_order as AttackOrder).is_aiming()
 	_model.look_target = _look_point()
+	_model.shield_raised = is_shield_up()
 	if _hopping:
 		return
 	if is_handling_crate() and not is_dead:
@@ -416,6 +438,9 @@ func switch_weapon() -> bool:
 	_holstered_ammo = in_hand
 	using_secondary = not using_secondary
 	stats = _secondary_stats if using_secondary else _primary_stats
+	# L'arme principale se tient à deux mains : le bouclier passe dans le dos.
+	if not using_secondary:
+		set_shield(false)
 	_model.sidearm_drawn = using_secondary
 	_fire_cooldown = stats.aim_time
 	weapon_slung = false
@@ -606,9 +631,56 @@ func toggle_posture(new_posture: SoldierModel.Posture) -> void:
 	if is_dead:
 		return
 	posture = SoldierModel.Posture.STANDING if posture == new_posture else new_posture
+	# On ne rampe pas derrière un bouclier.
+	if posture == SoldierModel.Posture.PRONE:
+		set_shield(false)
 	# On ne déplace une caisse que debout.
 	if posture != SoldierModel.Posture.STANDING:
 		release_crate()
+
+
+## Lève (`raised`) ou baisse le bouclier. Le lever fait dégainer l'arme de
+## poing (le bouclier occupe la main gauche) et relever un opérateur couché ;
+## il est refusé sans bouclier ni arme secondaire. Renvoie vrai si le
+## bouclier est dans l'état demandé.
+func set_shield(raised: bool) -> bool:
+	if raised == shield_raised:
+		return true
+	if raised:
+		if is_dead or shields <= 0 or _secondary_stats == null:
+			return false
+		if not using_secondary:
+			switch_weapon()
+		if posture == SoldierModel.Posture.PRONE:
+			posture = SoldierModel.Posture.CROUCHED
+		weapon_slung = false
+		release_crate()
+	shield_raised = raised
+	Sfx.play_at(&"reload", global_position + Vector3.UP, -10.0)
+	shield_changed.emit(raised)
+	return true
+
+
+## Vrai si le bouclier est tenu devant l'opérateur : levé, et pas occupé à un
+## geste, une escalade, une caisse ou une poussée.
+func is_shield_up() -> bool:
+	return shield_raised and not is_dead and _gesture == null and not _climbing and not _hopping \
+			and not is_handling_crate() and posture != SoldierModel.Posture.PRONE and perched_on == null
+
+
+## Point où le segment de tir `from` → `to` est arrêté par un bouclier levé
+## (le plus proche du tireur), ou `Vector3.INF` si aucun ne le coupe. Protège
+## le porteur et ceux qui s'abritent derrière lui.
+static func shield_in_the_way(tree: SceneTree, from: Vector3, to: Vector3) -> Vector3:
+	var best := Vector3.INF
+	for node in tree.get_nodes_in_group(&"shield_bearers"):
+		var unit := node as Commando
+		if unit == null or not unit.is_shield_up():
+			continue
+		var stop := unit._model.shield_blocks(from, to)
+		if stop != Vector3.INF and from.distance_to(stop) < from.distance_to(best):
+			best = stop
+	return best
 
 
 ## Met à jour l'état de sélection et l'anneau au sol.
@@ -952,11 +1024,14 @@ func _fire(enemy: Enemy, distance: float) -> void:
 
 
 func _current_speed() -> float:
+	var shield := SHIELD_SPEED if shield_raised else 1.0
 	match posture:
 		SoldierModel.Posture.CROUCHED:
-			return stats.crouch_speed
+			return stats.crouch_speed * shield
 		SoldierModel.Posture.PRONE:
 			return stats.crawl_speed
+	if shield_raised:
+		return stats.walk_speed * shield
 	return stats.run_speed if _running else stats.walk_speed
 
 

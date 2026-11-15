@@ -20,6 +20,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _detonate: Button = %Detonate
 @onready var _medkit: Button = %Medkit
 @onready var _weapon: Button = %Weapon
+@onready var _shield: Button = %Shield
 @onready var _menu: Button = %Menu
 @onready var _quit: Button = %Quit
 @onready var _controller: PlayerController = $PlayerController
@@ -41,6 +42,7 @@ func _ready() -> void:
 		unit.posture_changed.connect(func(_posture: SoldierModel.Posture) -> void: _refresh_actions())
 		unit.sling_changed.connect(func(_slung: bool) -> void: _refresh_actions())
 		unit.weapon_changed.connect(func(_secondary: bool) -> void: _refresh_actions())
+		unit.shield_changed.connect(func(_raised: bool) -> void: _refresh_actions())
 
 	_crouch.pressed.connect(func() -> void: SelectionManager.toggle_posture(SoldierModel.Posture.CROUCHED))
 	_prone.pressed.connect(func() -> void: SelectionManager.toggle_posture(SoldierModel.Posture.PRONE))
@@ -57,6 +59,7 @@ func _ready() -> void:
 	_detonate.pressed.connect(func() -> void: _controller._feedback(SelectionManager.detonate_explosives() > 0))
 	_medkit.pressed.connect(func() -> void: _controller._feedback(SelectionManager.use_medkit()))
 	_weapon.pressed.connect(SelectionManager.switch_weapons)
+	_shield.pressed.connect(func() -> void: _controller._feedback(SelectionManager.toggle_shield()))
 	EventBus.unit_ammo_changed.connect(func(_unit: Node3D) -> void: _refresh_actions())
 	menu_dialog = ConfirmDialog.for_menu(self)
 	add_child(menu_dialog)
@@ -81,6 +84,9 @@ func _refresh_actions() -> void:
 	_detonate.disabled = not selected.any(func(unit: Commando) -> bool: return not ExplosiveCharge.planted_by(get_tree(), unit).is_empty())
 	_medkit.disabled = not selected.any(func(unit: Commando) -> bool: return unit.medkits > 0)
 	_weapon.disabled = not selected.any(func(unit: Commando) -> bool: return unit.has_secondary())
+	var carriers := selected.filter(func(unit: Commando) -> bool: return unit.shields > 0)
+	_shield.disabled = carriers.is_empty()
+	_shield.set_pressed_no_signal(not carriers.is_empty() and carriers.all(func(unit: Commando) -> bool: return unit.shield_raised))
 	_grenade.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_GRENADE)
 	_weapon.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.using_secondary))
 	_crouch.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.posture == SoldierModel.Posture.CROUCHED))

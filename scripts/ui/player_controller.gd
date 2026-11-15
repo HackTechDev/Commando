@@ -116,6 +116,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_feedback(SelectionManager.detonate_explosives() > 0)
 	elif event.is_action_pressed(&"action_medkit"):
 		_feedback(SelectionManager.use_medkit())
+	elif event.is_action_pressed(&"action_shield"):
+		_feedback(SelectionManager.toggle_shield())
 	elif event.is_action_pressed(&"switch_weapon"):
 		SelectionManager.switch_weapons()
 	elif event.is_action_pressed(&"action_sling"):

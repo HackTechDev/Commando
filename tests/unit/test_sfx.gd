@@ -1,7 +1,7 @@
 extends GutTest
 ## Sons synthétisés (`Sfx`) : bibliothèque complète, sans saturation.
 
-const SOUNDS: Array[StringName] = [&"shot", &"shot_suppressed", &"step", &"crawl", &"hit", &"punch", &"fall", &"knife", &"block", &"whoosh", &"clink", &"reload", &"scrape", &"alert", &"suspicious", &"select", &"order", &"arm", &"denied"]
+const SOUNDS: Array[StringName] = [&"shot", &"shot_suppressed", &"step", &"crawl", &"hit", &"punch", &"fall", &"knife", &"block", &"ricochet", &"whoosh", &"clink", &"reload", &"scrape", &"alert", &"suspicious", &"select", &"order", &"arm", &"denied"]
 
 
 func test_library_is_complete() -> void:

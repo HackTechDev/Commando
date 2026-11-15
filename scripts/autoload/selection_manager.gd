@@ -177,6 +177,18 @@ func use_medkit() -> bool:
 	return false
 
 
+## Fait lever le bouclier aux unités sélectionnées qui en ont un, ou le leur
+## fait baisser s'il est déjà levé chez toutes. Renvoie vrai si au moins une
+## a obéi.
+func toggle_shield() -> bool:
+	var carriers := selected.filter(func(unit: Commando) -> bool: return unit.shields > 0)
+	var raise := not carriers.all(func(unit: Commando) -> bool: return unit.shield_raised)
+	var done := false
+	for unit: Commando in carriers:
+		done = unit.set_shield(raise) or done
+	return done
+
+
 ## Fait changer d'arme (principale ↔ secondaire) aux unités sélectionnées.
 func switch_weapons() -> void:
 	for unit in selected:

@@ -373,3 +373,14 @@
 - Les ennemis repèrent le VIP, lui tirent dessus et le frappent comme un opérateur. Les grenades le blessent aussi.
 - `ExtractionZone` : zone tracée au sol. Quand tous les VIP y sont entrés, la mission est réussie ; si l'un d'eux meurt, elle est manquée. Le résultat s'affiche à la place de l'indicateur d'alerte. Une fois à l'abri dans la zone, le VIP n'est plus pris pour cible.
 - `SoldierModel` a une tenue civile (`civilian`) : costume, chemise, cravate, mains nues et chaussures de ville, sans aucun équipement militaire.
+
+## Bouclier balistique
+
+- Nouvel équipement « Bouclier balistique » (7 kg), à choisir dans l'écran « Opérateurs ».
+- En mission, U ou le bouton « Bouclier » le lève ou le baisse. Levé :
+  - l'opérateur le tient de la main gauche et tire à l'arme de poing, qu'il dégaine de lui-même ;
+  - il marche 30 % plus lentement, ne court plus et ne peut pas ramper (se coucher baisse le bouclier) ;
+  - reprendre l'arme principale baisse le bouclier.
+- Les balles ennemies qui croisent le bouclier levé sont arrêtées, avec un tintement métallique. Cela protège le porteur et ceux qui s'abritent derrière lui (un coéquipier, un VIP). Les tirs venant de côté ou de dos passent toujours.
+- Pendant un geste (frappe, lancer, soins, escalade, caisse), le bouclier passe un instant dans le dos, puis revient.
+- Modèle 3D : panneau noir, hublot de visée, bande aux couleurs de l'équipe, poignée à l'arrière. Il est porté dans le dos quand il est baissé.

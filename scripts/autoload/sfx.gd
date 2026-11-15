@@ -127,6 +127,12 @@ func _build_library() -> void:
 		_noise(0.05, 0.001, 0.02, 0.7, 0.8),
 		_tone([900.0, 700.0], 0.06, 0.25, 0.001, 0.03),
 	]))
+	# Balle arrêtée par un bouclier : impact sec et tintement métallique.
+	_streams[&"ricochet"] = _wav(_mix([
+		_noise(0.06, 0.001, 0.03, 0.6, 0.9),
+		_tone([1900.0, 1500.0], 0.22, 0.3, 0.001, 0.08),
+		_tone([3100.0, 2800.0], 0.15, 0.18, 0.001, 0.05),
+	]))
 	_streams[&"whoosh"] = _wav(_sweep_noise(0.22, 0.1, 0.5, 0.5))
 	# Couteau qui tombe au sol : tintement métallique.
 	_streams[&"clink"] = _wav(_mix([

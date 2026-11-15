@@ -46,6 +46,8 @@ var state: State = State.PATROL
 var is_dead: bool = false
 ## Jauge de détection, de 0 (rien vu) à 1 (repéré).
 var detection: float = 0.0
+## Balles arrêtées par un bouclier.
+var shots_blocked: int = 0
 
 var _waypoints: Array[Vector3] = []
 var _waypoint_index: int = 0
@@ -548,11 +550,16 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 	if not hit:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
 		aim += side + (aim - muzzle).normalized() * 4.0
-	Tracer.spawn(get_tree().current_scene, muzzle, aim)
+	# Un bouclier levé sur la trajectoire arrête la balle.
+	var stop := Commando.shield_in_the_way(get_tree(), muzzle, aim)
+	Tracer.spawn(get_tree().current_scene, muzzle, aim if stop == Vector3.INF else stop)
 	_model.play_shot()
 	Sfx.play_at(&"shot", muzzle)
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
-	if hit:
+	if stop != Vector3.INF:
+		Sfx.play_at(&"ricochet", stop, -2.0)
+		shots_blocked += 1
+	elif hit:
 		_target.health.take_damage(stats.fire_damage)
 
 
