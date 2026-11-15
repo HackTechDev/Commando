@@ -314,3 +314,11 @@
 - La coque est maintenant un vrai casque « high cut » : découpée au-dessus des oreilles, ras des sourcils devant et plus basse sur la nuque, avec une bordure caoutchouc et une doublure visibles.
 - Rails latéraux courbes et crantés, lampe sur le rail droit, platine de JVN épousant le front, bras articulé et bagues des jumelles, scratchs sur le dessus et l'arrière, contrepoids sur la nuque.
 - Jugulaire : sangles devant et derrière l'oreille jusqu'à la mentonnière, avec ou sans cagoule.
+
+## Visage et corps des opérateurs retravaillés
+
+- Visage : une tête lisse d'un seul tenant, avec une mâchoire qui s'affine. Elle a des yeux (blanc et iris), des sourcils, un nez, une bouche, des oreilles, et des cheveux qui suivent le crâne.
+- Barbes de trois jours et barbes fournies avec moustache. Avec la cagoule, les yeux restent visibles dans l'ouverture.
+- Corps : membres galbés (cuisses, mollets, avant-bras), genoux et coudes, mains gantées avec pouce, bottes avec tige, semelle et lacets. Le pantalon a des poches cargo et des bas resserrés.
+- Torse : bassin, ceinturon à boucle, buste et épaules arrondis. Le gilet a des plaques avant et arrière, des porte-chargeurs à rabat, une poche administrative et un écusson.
+- Les ennemis partagent le nouveau corps. Les animations sont inchangées.

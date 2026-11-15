@@ -455,6 +455,12 @@ var _m_dark: StandardMaterial3D
 var _m_red: StandardMaterial3D
 var _m_grenade: StandardMaterial3D
 var _m_explosive: StandardMaterial3D
+var _m_glove: StandardMaterial3D
+var _m_sole: StandardMaterial3D
+var _m_eye: StandardMaterial3D
+var _m_iris: StandardMaterial3D
+var _m_lip: StandardMaterial3D
+var _m_stubble: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -491,6 +497,12 @@ func _build() -> void:
 		_m_skin = _mat(GearCatalog.SKINS[outfit.skin], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[outfit.hair_color], 0.9)
 	_m_dark = _mat(Color(0.05, 0.05, 0.05), 0.4)
+	_m_glove = _mat(Color(0.13, 0.13, 0.12), 0.8)
+	_m_sole = _mat(Color(0.06, 0.06, 0.06), 0.9)
+	_m_eye = _mat(Color(0.9, 0.9, 0.86), 0.3)
+	_m_iris = _mat(Color(0.12, 0.08, 0.05), 0.2)
+	_m_lip = _mat((_m_skin.albedo_color as Color).darkened(0.25).lerp(Color(0.6, 0.25, 0.22), 0.25), 0.6)
+	_m_stubble = _mat((_m_skin.albedo_color as Color).lerp(_m_hair.albedo_color, 0.55), 0.95)
 	_m_red = _mat(Color(0.75, 0.1, 0.08), 0.6)
 	_m_grenade = _mat(Color(0.2, 0.24, 0.16), 0.6, 0.2)
 	_m_explosive = _mat(Color(0.62, 0.55, 0.38), 0.85)
@@ -1376,17 +1388,30 @@ func _apply_arm_keys(keys: Array[float], t: float) -> void:
 func _build_legs() -> void:
 	for side: float in [-1.0, 1.0]:
 		var leg := _pivot(_hips, Vector3(0.11 * side, 0.0, 0.0), "LegL" if side < 0.0 else "LegR")
-		_box(leg, Vector3(0.16, THIGH_LENGTH, 0.18), Vector3(0.0, -0.22, 0.0), _m_pants)
-		# Poche cargo.
-		_box(leg, Vector3(0.04, 0.16, 0.13), Vector3(0.09 * side, -0.24, 0.0), _m_pants)
+		# Haut de cuisse (fessier) et cuisse effilée vers le genou.
+		_ellipsoid(leg, 0.088, Vector3(1.0, 0.9, 1.08), Vector3(0.0, -0.03, 0.005), _m_pants)
+		_tapered(leg, 0.084, 0.063, THIGH_LENGTH, Vector3(0.0, -0.22, 0.0), _m_pants).scale.z = 1.08
+		# Poche cargo et son rabat.
+		_box(leg, Vector3(0.035, 0.13, 0.115), Vector3(0.078 * side, -0.25, 0.0), _m_pants)
+		_box(leg, Vector3(0.042, 0.03, 0.122), Vector3(0.08 * side, -0.175, 0.0), _m_pants)
 		var knee := _pivot(leg, Vector3(0.0, -THIGH_LENGTH, 0.0), "Knee")
-		_box(knee, Vector3(0.14, 0.40, 0.16), Vector3(0.0, -0.20, 0.0), _m_pants)
+		_sphere(knee, 0.064, Vector3.ZERO, _m_pants)
+		# Jambe et mollet, bas du pantalon bouffant sur la botte.
+		_tapered(knee, 0.062, 0.05, 0.34, Vector3(0.0, -0.18, 0.0), _m_pants).scale.z = 1.08
+		_ellipsoid(knee, 0.056, Vector3(0.95, 1.7, 0.9), Vector3(0.0, -0.13, 0.016), _m_pants)
+		_tapered(knee, 0.056, 0.064, 0.05, Vector3(0.0, -0.335, 0.0), _m_pants)
 		if _wears(&"knee_pads"):
-			_box(knee, Vector3(0.15, 0.13, 0.07), Vector3(0.0, -0.02, -0.085), _m_gear).name = "KneePad"
-		# Botte (tige + semelle) articulée à la cheville.
+			var pad := _ellipsoid(knee, 0.072, Vector3(1.0, 1.15, 0.55), Vector3(0.0, -0.02, -0.05), _m_gear)
+			pad.name = "KneePad"
+			_tapered(knee, 0.066, 0.066, 0.016, Vector3(0.0, -0.07, 0.0), _m_weapon)
+		# Botte : tige, empeigne arrondie, lacets, semelle crantée.
 		var ankle := _pivot(knee, Vector3(0.0, -SHIN_LENGTH, 0.0), "Ankle")
-		_box(ankle, Vector3(0.15, 0.16, 0.18), Vector3(0.0, 0.04, 0.0), _m_boot)
-		_box(ankle, Vector3(0.15, 0.09, 0.30), Vector3(0.0, -0.035, -0.05), _m_boot)
+		_tapered(ankle, 0.058, 0.064, 0.15, Vector3(0.0, 0.035, 0.002), _m_boot)
+		var foot := _capsule(ankle, 0.056, 0.27, Vector3(0.0, -0.026, -0.05), _m_boot)
+		foot.rotation.x = PI / 2.0
+		foot.scale = Vector3(1.0, 1.0, 0.72)
+		_box(ankle, Vector3(0.04, 0.008, 0.11), Vector3(0.0, 0.016, -0.085), _m_weapon).rotation.x = -0.25
+		_box(ankle, Vector3(0.118, 0.026, 0.285), Vector3(0.0, -0.067, -0.05), _m_sole)
 		if side < 0.0:
 			_leg_l = leg
 			_knee_l = knee
@@ -1400,39 +1425,46 @@ func _build_legs() -> void:
 
 func _build_torso() -> void:
 	_torso = _pivot(_hips, Vector3.ZERO, "Torso")
-	# Bassin et ceinturon de combat.
-	_box(_torso, Vector3(0.36, 0.14, 0.22), Vector3(0.0, 0.02, 0.0), _m_pants)
-	_box(_torso, Vector3(0.39, 0.06, 0.25), Vector3(0.0, 0.08, 0.0), _m_gear)
+	# Bassin, ceinturon (boucle, poche).
+	_ellipsoid(_torso, 0.19, Vector3(1.0, 0.55, 0.66), Vector3(0.0, 0.03, 0.0), _m_pants)
+	_tapered(_torso, 0.2, 0.2, 0.055, Vector3(0.0, 0.085, 0.0), _m_gear).scale.z = 0.68
+	_box(_torso, Vector3(0.06, 0.045, 0.02), Vector3(0.0, 0.085, -0.137), _m_weapon)
 	_box(_torso, Vector3(0.07, 0.09, 0.06), Vector3(-0.2, 0.05, 0.0), _m_gear)
-	# Buste.
-	_box(_torso, Vector3(0.38, 0.46, 0.22), Vector3(0.0, 0.33, 0.0), _m_top)
-	var front := -0.11
+	# Buste : taille, poitrine plus large, épaules arrondies, col.
+	_tapered(_torso, 0.165, 0.172, 0.2, Vector3(0.0, 0.2, 0.0), _m_top).scale.z = 0.62
+	_tapered(_torso, 0.2, 0.168, 0.24, Vector3(0.0, 0.4, 0.0), _m_top).scale.z = 0.6
+	var shoulders := _capsule(_torso, 0.07, 0.52, Vector3(0.0, 0.5, 0.0), _m_top)
+	shoulders.rotation.z = PI / 2.0
+	shoulders.scale = Vector3(1.0, 1.0, 0.95)
+	_tapered(_torso, 0.068, 0.08, 0.04, Vector3(0.0, 0.565, 0.005), _m_top)
+	var front := -0.12
 	if _wears(&"vest"):
-		front = -0.14
+		front = -0.155
 		var vest := _pivot(_torso, Vector3.ZERO, "Vest")
-		# Porte-plaques.
-		_box(vest, Vector3(0.36, 0.36, 0.28), Vector3(0.0, 0.33, 0.0), _m_gear)
-		_box(vest, Vector3(0.41, 0.14, 0.20), Vector3(0.0, 0.22, 0.0), _m_gear)
-		# Bretelles.
+		# Porte-plaques : ceinture élastique, plaques avant et arrière, bretelles.
+		_tapered(vest, 0.205, 0.2, 0.15, Vector3(0.0, 0.22, 0.0), _m_gear).scale.z = 0.7
+		_box(vest, Vector3(0.3, 0.29, 0.035), Vector3(0.0, 0.4, -0.137), _m_gear)
+		_box(vest, Vector3(0.31, 0.33, 0.035), Vector3(0.0, 0.38, 0.135), _m_gear)
 		for side: float in [-1.0, 1.0]:
-			_box(vest, Vector3(0.08, 0.07, 0.26), Vector3(0.12 * side, 0.545, 0.0), _m_gear)
-		# Trois porte-chargeurs.
+			_box(vest, Vector3(0.075, 0.028, 0.29), Vector3(0.12 * side, 0.556, 0.0), _m_gear)
+		# Trois porte-chargeurs à rabat.
 		for i in 3:
-			var x := (float(i) - 1.0) * 0.105
-			_box(vest, Vector3(0.09, 0.17, 0.05), Vector3(x, 0.24, -0.16), _m_gear)
-			_box(vest, Vector3(0.06, 0.04, 0.035), Vector3(x, 0.34, -0.155), _m_weapon)
+			var x := (float(i) - 1.0) * 0.1
+			_box(vest, Vector3(0.088, 0.16, 0.05), Vector3(x, 0.27, -0.177), _m_gear)
+			_box(vest, Vector3(0.06, 0.035, 0.035), Vector3(x, 0.365, -0.17), _m_weapon)
+			_box(vest, Vector3(0.09, 0.012, 0.054), Vector3(x, 0.35, -0.178), _m_gear)
 		# Poche utilitaire et écusson de poitrine.
-		_box(vest, Vector3(0.14, 0.07, 0.03), Vector3(0.0, 0.44, -0.15), _m_gear)
-		_box(vest, Vector3(0.08, 0.035, 0.01), Vector3(0.0, 0.445, -0.168), _m_team)
+		_box(vest, Vector3(0.14, 0.07, 0.03), Vector3(0.0, 0.46, -0.168), _m_gear)
+		_box(vest, Vector3(0.08, 0.035, 0.01), Vector3(0.0, 0.465, -0.186), _m_team)
 	else:
 		# Sans gilet : poche de poitrine et écusson sur la veste, chargeurs au
 		# ceinturon.
-		_box(_torso, Vector3(0.1, 0.09, 0.02), Vector3(0.09, 0.4, -0.115), _m_top)
-		_box(_torso, Vector3(0.07, 0.03, 0.01), Vector3(0.09, 0.47, -0.115), _m_team)
+		_box(_torso, Vector3(0.1, 0.09, 0.02), Vector3(0.09, 0.4, -0.122), _m_top)
+		_box(_torso, Vector3(0.07, 0.03, 0.01), Vector3(0.09, 0.465, -0.122), _m_team)
 		for x: float in [-0.07, 0.07]:
-			_box(_torso, Vector3(0.07, 0.12, 0.05), Vector3(x, 0.03, -0.14), _m_gear)
-			_box(_torso, Vector3(0.05, 0.03, 0.03), Vector3(x, 0.1, -0.14), _m_weapon)
-	var back := 0.14 if _wears(&"vest") else 0.11
+			_box(_torso, Vector3(0.07, 0.12, 0.05), Vector3(x, 0.03, -0.145), _m_gear)
+			_box(_torso, Vector3(0.05, 0.03, 0.03), Vector3(x, 0.1, -0.145), _m_weapon)
+	var back := 0.15 if _wears(&"vest") else 0.12
 	if _wears(&"backpack"):
 		# Sac d'assaut.
 		var pack := _pivot(_torso, Vector3.ZERO, "Backpack")
@@ -1512,13 +1544,13 @@ func _cloth(color: Color) -> StandardMaterial3D:
 func _build_head() -> void:
 	_head = _pivot(_torso, Vector3(0.0, 0.57, 0.0), "Head")
 	var masked := _wears(&"balaclava")
-	_cylinder(_head, 0.06, 0.10, Vector3(0.0, 0.03, 0.0), _m_gear if masked else _m_skin)
+	_tapered(_head, 0.05, 0.057, 0.12, Vector3(0.0, 0.035, 0.008), _m_gear if masked else _m_skin)
 	if masked:
-		# Tête sous cagoule, bande des yeux.
-		var head := _sphere(_head, 0.112, Vector3(0.0, 0.17, 0.0), _m_gear)
-		head.name = "Balaclava"
-		head.scale = Vector3(1.0, 1.12, 1.05)
-		_box(_head, Vector3(0.15, 0.04, 0.03), Vector3(0.0, 0.185, -0.105), _m_skin)
+		# Tête sous cagoule : seuls les yeux et l'arête du nez se voient.
+		_head_shape(_m_gear).name = "Balaclava"
+		var opening := _ellipsoid(_head, 0.06, Vector3(1.05, 0.36, 0.5), Vector3(0.0, 0.192, -0.078), _m_skin)
+		opening.name = "EyeOpening"
+		_build_eyes()
 	else:
 		_build_face()
 	if outfit:
@@ -1562,42 +1594,108 @@ func _build_head() -> void:
 
 ## Visage découvert : tête, yeux, sourcils, nez, cheveux et barbe d'`outfit`.
 func _build_face() -> void:
-	var head := _sphere(_head, 0.112, Vector3(0.0, 0.17, 0.0), _m_skin)
-	head.name = "Face"
-	head.scale = Vector3(1.0, 1.12, 1.05)
+	_head_shape(_m_skin).name = "Face"
 	for side: float in [-1.0, 1.0]:
-		_box(_head, Vector3(0.026, 0.012, 0.01), Vector3(0.04 * side, 0.19, -0.114), _m_dark)
-		_box(_head, Vector3(0.036, 0.009, 0.012), Vector3(0.04 * side, 0.207, -0.112), _m_hair)
-	_box(_head, Vector3(0.024, 0.04, 0.025), Vector3(0.0, 0.163, -0.12), _m_skin)
+		# Oreille.
+		_ellipsoid(_head, 0.024, Vector3(0.45, 1.0, 0.75), Vector3(0.1 * side, 0.18, 0.014), _m_skin)
+	_build_eyes()
+	# Nez : arête et bout, bouche.
+	var bridge := _box(_head, Vector3(0.02, 0.048, 0.022), Vector3(0.0, 0.168, -0.1), _m_skin)
+	bridge.rotation.x = -0.3
+	_ellipsoid(_head, 0.014, Vector3(1.25, 0.9, 1.0), Vector3(0.0, 0.147, -0.111), _m_skin)
+	var beard := &"none" if outfit == null else outfit.beard
+	var lips_depth := {&"none": -0.108, &"stubble": -0.116, &"full": -0.131}[beard] as float
+	_ellipsoid(_head, 0.02, Vector3(1.5, 0.32, 0.5), Vector3(0.0, 0.119, lips_depth), _m_lip).name = "Mouth"
 	var style := &"short" if outfit == null else outfit.hair_style
 	# Sous un couvre-chef, seuls l'arrière du crâne et la queue de cheval
 	# dépassent.
 	var covered := outfit != null and outfit.headwear != &"none"
-	if style != &"shaved" and covered:
-		_box(_head, Vector3(0.18, 0.08, 0.03), Vector3(0.0, 0.18, 0.105), _m_hair)
-	elif style != &"shaved":
-		var cap := SphereMesh.new()
-		cap.radius = 0.118
-		cap.height = 0.118
-		cap.is_hemisphere = true
-		var hair := _mesh(_head, cap, Vector3(0.0, 0.215, 0.006), _m_hair)
-		hair.name = "Hair"
-		hair.scale = Vector3(1.0, 0.75, 1.08)
-		# Arrière du crâne.
-		_box(_head, Vector3(0.18, 0.08, 0.03), Vector3(0.0, 0.18, 0.105), _m_hair)
+	if style != &"shaved":
+		# Arrière et côtés du crâne.
+		_ellipsoid(_head, 0.1, Vector3(0.96, 0.72, 0.92), Vector3(0.0, 0.2, 0.042), _m_hair)
+		if not covered:
+			var cap := SphereMesh.new()
+			cap.radius = 0.11
+			cap.height = 0.11
+			cap.is_hemisphere = true
+			var hair := _mesh(_head, cap, Vector3(0.0, 0.212, 0.012), _m_hair)
+			hair.name = "Hair"
+			hair.scale = Vector3(0.96, 0.92, 1.05)
+			hair.rotation.x = 0.3
 	match style:
 		&"ponytail":
-			var tail := _cylinder(_head, 0.024, 0.14, Vector3(0.0, 0.15, 0.135), _m_hair)
+			var tail := _capsule(_head, 0.024, 0.15, Vector3(0.0, 0.15, 0.135), _m_hair)
 			tail.rotation.x = 0.45
+			_sphere(_head, 0.018, Vector3(0.0, 0.195, 0.12), _m_gear)
 		&"mohawk":
 			if not covered:
-				_box(_head, Vector3(0.035, 0.05, 0.23), Vector3(0.0, 0.3, 0.0), _m_hair)
-	match &"none" if outfit == null else outfit.beard:
+				_box(_head, Vector3(0.032, 0.05, 0.22), Vector3(0.0, 0.31, 0.005), _m_hair)
+	match beard:
 		&"stubble":
-			_box(_head, Vector3(0.15, 0.06, 0.05), Vector3(0.0, 0.105, -0.085), _m_hair).name = "Beard"
+			_ellipsoid(_head, 0.082, Vector3(1.07, 0.9, 1.12), Vector3(0.0, 0.124, -0.022), _m_stubble).name = "Beard"
 		&"full":
-			_box(_head, Vector3(0.18, 0.09, 0.07), Vector3(0.0, 0.1, -0.07), _m_hair).name = "Beard"
-			_box(_head, Vector3(0.1, 0.05, 0.05), Vector3(0.0, 0.065, -0.08), _m_hair)
+			_ellipsoid(_head, 0.088, Vector3(1.1, 1.0, 1.15), Vector3(0.0, 0.11, -0.028), _m_hair).name = "Beard"
+			_ellipsoid(_head, 0.022, Vector3(1.8, 0.45, 0.6), Vector3(0.0, 0.132, -0.128), _m_hair)
+
+
+## Volume de la tête : un seul maillage lissé, crâne arrondi et mâchoire
+## plus étroite jusqu'au menton (partagé par tous les modèles).
+func _head_shape(material: Material) -> MeshInstance3D:
+	var head := MeshInstance3D.new()
+	head.mesh = _head_mesh()
+	head.material_override = material
+	_head.add_child(head)
+	return head
+
+
+const HEAD_CENTER := Vector3(0.0, 0.195, 0.008)
+## Demi-largeur, demi-hauteurs (au-dessus et au-dessous du centre) et
+## demi-profondeur de la tête.
+const HEAD_RADII := Vector4(0.0998, 0.1134, 0.141, 0.11)
+
+static var _head_cache: ArrayMesh
+
+
+static func _head_mesh() -> ArrayMesh:
+	if _head_cache:
+		return _head_cache
+	var rings := 18
+	var segments := 28
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in rings + 1:
+		var theta := PI * i / rings
+		for j in segments + 1:
+			var phi := TAU * j / segments
+			var d := Vector3(sin(theta) * sin(phi), cos(theta), -sin(theta) * cos(phi))
+			# Sous le centre, la tête se resserre (mâchoire) et le menton avance.
+			var t := maxf(-d.y, 0.0)
+			var x := d.x * HEAD_RADII.x * (1.0 - 0.2 * t * t)
+			var y := d.y * (HEAD_RADII.y if d.y > 0.0 else HEAD_RADII.z)
+			var z := d.z * HEAD_RADII.w * (1.0 - 0.12 * t * t)
+			if d.z < 0.0:
+				z *= 1.0 + 0.08 * t
+			tool.set_uv(Vector2(float(j) / segments, float(i) / rings))
+			tool.add_vertex(HEAD_CENTER + Vector3(x, y, z))
+	for i in rings:
+		for j in segments:
+			var a := i * (segments + 1) + j
+			var b := a + segments + 1
+			# Faces avant dans le sens horaire, vues de l'extérieur.
+			for index: int in [a, b, a + 1, a + 1, b, b + 1]:
+				tool.add_index(index)
+	tool.generate_normals()
+	_head_cache = tool.commit()
+	return _head_cache
+
+
+## Yeux (blanc et iris) et sourcils.
+func _build_eyes() -> void:
+	for side: float in [-1.0, 1.0]:
+		_ellipsoid(_head, 0.013, Vector3(1.1, 0.6, 0.5), Vector3(0.037 * side, 0.192, -0.094), _m_eye)
+		_sphere(_head, 0.0062, Vector3(0.036 * side, 0.192, -0.098), _m_iris)
+		var brow := _box(_head, Vector3(0.036, 0.008, 0.012), Vector3(0.038 * side, 0.211, -0.097), _m_hair)
+		brow.rotation.z = -0.12 * side
 
 
 ## Casquette, chapeau de brousse ou bonnet, dans la couleur du couvre-chef.
@@ -1995,14 +2093,18 @@ func _shoulder_position(side: float) -> Vector3:
 ## Au repos (rotations nulles), le bras pend vers le bas.
 func _build_arm(side: float) -> void:
 	var shoulder := _pivot(_torso, _shoulder_position(side), "ShoulderL" if side < 0.0 else "ShoulderR")
-	_sphere(shoulder, 0.078, Vector3.ZERO, _m_top)
-	_box(shoulder, Vector3(0.115, UPPER_ARM_LENGTH, 0.125), Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_top)
-	# Écusson d'équipe sur l'épaule.
-	_box(shoulder, Vector3(0.012, 0.075, 0.075), Vector3(0.064 * side, -0.09, 0.0), _m_team)
+	# Épaule, bras effilé, écusson d'équipe.
+	_sphere(shoulder, 0.072, Vector3.ZERO, _m_top)
+	_tapered(shoulder, 0.064, 0.052, UPPER_ARM_LENGTH, Vector3(0.0, -UPPER_ARM_LENGTH * 0.5, 0.0), _m_top)
+	_box(shoulder, Vector3(0.012, 0.07, 0.07), Vector3(0.063 * side, -0.085, 0.0), _m_team)
+	# Coude, avant-bras, manchette et main gantée (pouce vers l'avant).
 	var elbow := _pivot(shoulder, Vector3(0.0, -UPPER_ARM_LENGTH, 0.0), "Elbow")
-	_sphere(elbow, 0.062, Vector3.ZERO, _m_gear)
-	_box(elbow, Vector3(0.095, FOREARM_LENGTH, 0.105), Vector3(0.0, -FOREARM_LENGTH * 0.5, 0.0), _m_top)
-	_sphere(elbow, 0.058, Vector3(0.0, -FOREARM_LENGTH, 0.0), _m_gear)
+	_sphere(elbow, 0.053, Vector3.ZERO, _m_top)
+	_tapered(elbow, 0.052, 0.043, FOREARM_LENGTH - 0.04, Vector3(0.0, -(FOREARM_LENGTH - 0.04) * 0.5, 0.0), _m_top)
+	_tapered(elbow, 0.047, 0.045, 0.04, Vector3(0.0, -FOREARM_LENGTH + 0.03, 0.0), _m_glove)
+	_ellipsoid(elbow, 0.044, Vector3(0.72, 1.15, 1.0), Vector3(0.0, -FOREARM_LENGTH - 0.012, 0.0), _m_glove).name = "Hand"
+	var thumb := _capsule(elbow, 0.014, 0.06, Vector3(-0.018 * side, -FOREARM_LENGTH + 0.005, -0.03), _m_glove)
+	thumb.rotation.x = 0.6
 	_arm_joints.append(shoulder)
 	_arm_joints.append(elbow)
 	if side < 0.0:
@@ -2094,6 +2196,33 @@ func _sphere(parent: Node3D, radius: float, at: Vector3, material: Material) -> 
 	mesh.radial_segments = 16
 	mesh.rings = 8
 	return _mesh(parent, mesh, at, material)
+
+
+## Tronc de cône (membres, buste) : rayons du haut et du bas.
+func _tapered(parent: Node3D, top: float, bottom: float, height: float, at: Vector3, material: Material) -> MeshInstance3D:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = top
+	mesh.bottom_radius = bottom
+	mesh.height = height
+	mesh.radial_segments = 20
+	mesh.rings = 1
+	return _mesh(parent, mesh, at, material)
+
+
+func _capsule(parent: Node3D, radius: float, height: float, at: Vector3, material: Material) -> MeshInstance3D:
+	var mesh := CapsuleMesh.new()
+	mesh.radius = radius
+	mesh.height = height
+	mesh.radial_segments = 16
+	mesh.rings = 6
+	return _mesh(parent, mesh, at, material)
+
+
+## Sphère déformée (`proportions` : facteurs par axe).
+func _ellipsoid(parent: Node3D, radius: float, proportions: Vector3, at: Vector3, material: Material) -> MeshInstance3D:
+	var piece := _sphere(parent, radius, at, material)
+	piece.scale = proportions
+	return piece
 
 
 func _cylinder(parent: Node3D, radius: float, height: float, at: Vector3, material: Material) -> MeshInstance3D:
