@@ -25,7 +25,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 ## 2. Gameplay d'infiltration
 
-- **2.1 Ouïe des ennemis** (§5.2) : beaucoup d'actions émettent déjà `noise_emitted`, mais personne n'écoute. C'est le cas des tirs, des coups, du cri d'une victime poignardée de face, du couteau raté, des explosions et de l'équipement d'un opérateur trop chargé qui court.
+- **2.1 Ouïe des ennemis** (§5.2) : beaucoup d'actions émettent déjà `noise_emitted`, mais personne n'écoute. C'est le cas des tirs, des coups, du cri d'une victime poignardée de face, du couteau raté, des explosions et de l'équipement d'un opérateur trop chargé qui court. *Amorcé avec 3.12 : `Enemy._on_noise` écoute le bus, mais ne réagit qu'à l'appel à l'aide (`&"help"`) ; les autres bruits restent à brancher.*
   - **a)** ajouter un `HearingComponent` et le bruit de la course ;
   - **b)** ajouter un état `Investigate`, qui envoie l'ennemi voir la source ;
   - **c)** remplacer `Enemy.startle` (couteau raté, ennemis épargnés par une explosion), qui n'est qu'un palliatif.
@@ -80,7 +80,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
 - **3.9 ~~Garde de l'ennemi~~** (fait) : un ennemi en alerte lève les bras, ce qui impose un contre ou une prise par derrière.
 - **3.10 ~~Riposte au corps à corps~~** (fait) des ennemis à court de munitions (les ennemis frappent déjà au contact).
 - **3.11 ~~Parade au choix du joueur~~** (fait) : une touche de défense, à presser au bon moment, au lieu du tirage au sort.
-- **3.12 Appel à l'aide** : un ennemi saisi mais pas encore neutralisé crie, et ce bruit attire les autres. Dépend de l'ouïe des ennemis (2.1).
+- **3.12 ~~Appel à l'aide~~** (fait) : un ennemi saisi mais pas encore neutralisé crie, et ce bruit attire les autres. Dépend de l'ouïe des ennemis (2.1).
 - **3.13 ~~Esquive contre les obstacles~~** (fait) : le pas de côté est tiré au hasard à gauche ou à droite, même si un mur ou une caisse se trouve de ce côté. Il faudrait choisir le côté libre.
 - **3.14 Corps à corps à plusieurs** : aujourd'hui, un seul ennemi frappe à la fois et l'opérateur ne se défend que contre lui. Il faudrait gérer deux assaillants (le second profite de la parade) et les coéquipiers qui viennent aider.
 

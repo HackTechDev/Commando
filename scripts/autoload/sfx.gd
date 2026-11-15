@@ -162,6 +162,11 @@ func _build_library() -> void:
 		_tone([1320.0, 1320.0], 0.16, 0.5, 0.005, 0.05),
 	]))
 	_streams[&"suspicious"] = _wav(_tone([600.0, 900.0], 0.18, 0.35, 0.01, 0.05))
+	# Appel à l'aide d'un ennemi saisi : deux syllabes criées, rauques.
+	_streams[&"cry"] = _wav(_mix([
+		_concat([_tone([380.0, 520.0], 0.22, 0.4, 0.02, 0.12), _tone([520.0, 340.0], 0.32, 0.4, 0.02, 0.18)]),
+		_noise(0.54, 0.02, 0.3, 0.3, 0.12),
+	]))
 	# Interface : sélection, ordre, action armée.
 	_streams[&"select"] = _wav(_tone([1000.0, 1000.0], 0.05, 0.3, 0.003, 0.02))
 	_streams[&"order"] = _wav(_concat([

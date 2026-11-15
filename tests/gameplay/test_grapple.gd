@@ -58,7 +58,7 @@ func test_choke_from_behind_knocks_out_silently() -> void:
 	assert_almost_eq(result[1], 0.45, 0.05, "l'opérateur se colle dans son dos")
 	assert_true(dummy.is_stunned(), "assommé")
 	assert_false(dummy.is_dead)
-	assert_eq(_noises, [] as Array[StringName], "aucun bruit")
+	assert_eq(_noises, [&"help"] as Array[StringName], "rien qu'un cri étouffé")
 	assert_eq(node("Units/Alpha").get_collision_exceptions().size(), 0, "exception de collision retirée")
 
 

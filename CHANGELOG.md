@@ -581,3 +581,8 @@
 - L'otage reste devant lui, tourné comme lui. L'opérateur avance à pas lents (45 % de la marche, même en courant), reste debout, tire au pistolet ; grenades, couteaux, escalade, caisses, soins, bouclier et autres corps à corps attendent qu'il lâche l'otage.
 - Les ennemis retiennent leur tir tant que l'otage couvre la ligne de tir.
 - Clic du milieu sur l'otage : « Relâcher » (il se dégage et donne l'alerte) ou « Assommer » (V sur l'otage fait de même). Si l'opérateur est tué, l'otage se libère.
+
+## Appel à l'aide (3.12)
+
+- Un ennemi saisi crie à l'aide après 1,2 s, puis toutes les 2,5 s : à pleine voix (12 m) s'il est tenu en otage, étouffé (4 m) s'il est étranglé. Une victime égorgée n'a pas le temps de crier.
+- Première ouïe des ennemis : ceux qui entendent l'appel passent en alerte et courent vers le cri.

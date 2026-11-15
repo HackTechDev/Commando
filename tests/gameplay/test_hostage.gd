@@ -122,3 +122,44 @@ func test_the_hostage_escapes_when_the_operator_dies() -> void:
 	alpha.health.take_damage(alpha.health.health)
 	assert_null(dummy.captor)
 	assert_eq(dummy.state, Enemy.State.ALERT)
+
+
+func test_the_hostage_cries_for_help_and_draws_the_others() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var dummy: Enemy = node("Enemies/TrainingDummy")
+	var soldier: Enemy = node("Enemies/Soldier1")
+	hide_from_enemies(alpha)
+	dummy.global_position = Vector3(-14, 0, -6)
+	dummy.rotation.y = 0.0
+	alpha.global_position = dummy.global_position + dummy.global_basis.z * 0.5
+	# Le soldat à 8 m, dos tourné : il ne voit rien, mais il entend.
+	soldier.global_position = dummy.global_position + Vector3(8, 0, 0)
+	soldier.look_at(soldier.global_position + Vector3(1, 0, 0), Vector3.UP)
+	alpha.take_hostage(dummy)
+	assert_eq(dummy.cries, 0, "pas tout de suite")
+	assert_gt(await frames_until(func() -> bool: return dummy.cries > 0, int(Enemy.HELP_DELAY * 60) + 20), -1, "il appelle à l'aide")
+	assert_gt(await frames_until(func() -> bool: return soldier.state == Enemy.State.ALERT, 10), -1, "le soldat accourt")
+	assert_lt(flat_distance(soldier._agent.target_position, dummy.global_position), 0.5, "il court vers le cri")
+	var start := soldier.global_position
+	await frames(60)
+	assert_gt(flat_distance(soldier.global_position, start), 2.0, "en courant")
+
+
+func test_a_choked_victim_only_muffles_a_cry() -> void:
+	var alpha: Commando = node("Units/Alpha")
+	var dummy: Enemy = node("Enemies/TrainingDummy")
+	var soldier: Enemy = node("Enemies/Soldier1")
+	hide_from_enemies(alpha)
+	dummy.global_position = Vector3(-14, 0, -6)
+	dummy.rotation.y = 0.0
+	alpha.global_position = dummy.global_position + dummy.global_basis.z * 1.0
+	soldier.global_position = dummy.global_position + Vector3(8, 0, 0)
+	soldier.look_at(soldier.global_position + Vector3(1, 0, 0), Vector3.UP)
+	soldier.set_physics_process(false)
+	await frames(2)
+	assert_true(alpha.melee(dummy, Commando.MeleeKind.KNOCKOUT))
+	assert_gt(await frames_until(dummy.is_stunned, 300), -1, "étranglé")
+	assert_eq(dummy.cries, 1, "un cri étouffé pendant l'étranglement")
+	soldier.set_physics_process(true)
+	await frames(5)
+	assert_ne(soldier.state, Enemy.State.ALERT, "à 8 m, personne n'a entendu")

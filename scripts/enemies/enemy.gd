@@ -58,6 +58,14 @@ const DROP_DISTANCE := 0.6
 ## Un otage à moins de cette distance (m) de la ligne de tir la couvre :
 ## l'ennemi retient son tir.
 const HOSTAGE_COVER_RADIUS := 0.45
+## Appel à l'aide d'un ennemi saisi : premier cri après `HELP_DELAY`
+## secondes, puis toutes les `HELP_INTERVAL` secondes. Tenu en otage, il
+## crie à pleine voix (`HELP_RADIUS`) ; étranglé, son cri est étouffé
+## (`HELP_RADIUS_MUFFLED`).
+const HELP_DELAY := 1.2
+const HELP_INTERVAL := 2.5
+const HELP_RADIUS := 12.0
+const HELP_RADIUS_MUFFLED := 4.0
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -67,6 +75,9 @@ var is_dead: bool = false
 var detection: float = 0.0
 ## Balles arrêtées par un bouclier.
 var shots_blocked: int = 0
+## Cris d'appel à l'aide poussés.
+var cries: int = 0
+var _help_left: float = 0.0
 ## Tirs retenus parce qu'un otage couvrait la cible.
 var hesitations: int = 0
 ## Cartouches restantes (négatif : sans limite).
@@ -126,6 +137,7 @@ func _ready() -> void:
 	health.reset(stats.max_health)
 	ammo = stats.ammo
 	health.died.connect(_on_died)
+	EventBus.noise_emitted.connect(_on_noise)
 	_model.set_armed(armed)
 	_agent.velocity_computed.connect(_apply_velocity)
 	_traversal = LinkTraversal.new(self, _model)
@@ -148,6 +160,10 @@ func _physics_process(delta: float) -> void:
 		return
 	if state == State.GRABBED:
 		velocity = Vector3.ZERO
+		_help_left -= delta
+		if _help_left <= 0.0:
+			_help_left = HELP_INTERVAL
+			_cry_for_help()
 		return
 	if disarmed:
 		# Mains en l'air, il ne quitte pas des yeux celui qui l'a désarmé.
@@ -469,12 +485,44 @@ func startle(at: Vector3) -> void:
 	_update_feedback()
 
 
+## Appel à l'aide : les ennemis qui l'entendent accourent.
+func _cry_for_help() -> void:
+	cries += 1
+	var muffled := captor == null
+	Sfx.play_at(&"cry", global_position + Vector3.UP * 1.6, -10.0 if muffled else 0.0)
+	EventBus.noise_emitted.emit(global_position, HELP_RADIUS_MUFFLED if muffled else HELP_RADIUS, &"help")
+
+
+## Ouïe : réaction aux bruits entendus (dans leur rayon). Seul l'appel à
+## l'aide d'un camarade est écouté pour l'instant : il passe en alerte et
+## court vers lui.
+func _on_noise(at: Vector3, radius: float, type: StringName) -> void:
+	if is_dead or disarmed or state == State.STUNNED or state == State.GRABBED:
+		return
+	if global_position.distance_to(at) > radius:
+		return
+	match type:
+		&"help":
+			hear_alarm(at)
+
+
+## Alerte donnée par un bruit en `at` : il y court.
+func hear_alarm(at: Vector3) -> void:
+	_last_seen = at
+	_memory_left = stats.alert_memory
+	_chase_arrived = false
+	detection = 1.0
+	_update_state()
+	_update_feedback()
+
+
 ## Saisi par derrière : immobile, aveugle, il se débat (animation).
 func grab() -> void:
 	_traversal.cancel()
 	if is_dead or state == State.STUNNED or state == State.GRABBED:
 		return
 	_cancel_melee()
+	_help_left = HELP_DELAY
 	state = State.GRABBED
 	_target = null
 	velocity = Vector3.ZERO
