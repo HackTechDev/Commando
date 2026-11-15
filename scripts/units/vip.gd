@@ -1,11 +1,12 @@
 class_name Vip
 extends Unit
-## Personnage non joueur à protéger (VIP, otage) : il ne reçoit pas d'ordres,
-## il suit un opérateur.
-##
-## - Ralliement : un opérateur vivant à moins de `rally_range` et en vue
-##   devient son guide. Il le garde tant qu'il ne s'éloigne pas au-delà de
-##   `lose_range` ; sinon il attend sur place qu'un opérateur revienne.
+## Personnage non joueur à protéger (VIP, otage). Il attend sur place
+## jusqu'à ce que le joueur lui donne un ordre par son menu circulaire (clic
+## du milieu sur lui, `VipMenu`) :
+## - « Suivre l'opérateur » (`follow`) : l'opérateur sélectionné devient son
+##   guide, jusqu'à un nouvel ordre ou la mort du guide ;
+## - « Attendre ici » (`stay`) : il reste où il est.
+## Comportement :
 ## - Suite : il se tient à `follow_distance` derrière son guide et prend sa
 ##   posture (accroupi, couché) pour rester aussi discret que lui. Il court si
 ##   son guide court ou s'il est distancé.
@@ -21,7 +22,6 @@ signal killed
 ## Nouveau guide (null : il attend seul).
 signal leader_changed(leader: Commando)
 
-const MASK_OCCLUDERS := 0b10
 ## Distance de son guide au-delà de laquelle il court pour le rattraper.
 const CATCH_UP_DISTANCE := 4.0
 ## Déplacement du guide (m) qui relance le calcul du chemin.
@@ -29,10 +29,6 @@ const RETARGET_DISTANCE := 0.5
 
 @export var stats: UnitStats
 @export var display_name: String = "VIP"
-## Un opérateur plus proche que cette distance, et en vue, le prend en charge.
-@export var rally_range: float = 6.0
-## Au-delà de cette distance, il perd son guide et l'attend.
-@export var lose_range: float = 14.0
 ## Distance à laquelle il suit son guide.
 @export var follow_distance: float = 1.8
 ## Tenue (couleurs, visage) ; le modèle est celui d'un civil, sans arme.
@@ -65,6 +61,7 @@ func _ready() -> void:
 	health.health_changed.connect(_on_health_changed)
 	health.died.connect(_on_died)
 	_agent.velocity_computed.connect(_apply_velocity)
+	_update_status()
 
 
 ## Tenue civile : costume, tête nue, sans aucun équipement militaire.
@@ -107,31 +104,51 @@ func _physics_process(delta: float) -> void:
 		_apply_velocity(horizontal)
 
 
-## Garde son guide tant qu'il est vivant et assez proche, sinon se rallie à
-## l'opérateur en vue le plus proche.
+## Ordre « Suivre l'opérateur » : `unit` devient son guide. Renvoie faux si
+## l'ordre ne peut pas être suivi (VIP mort ou évacué, guide absent ou mort).
+func follow(unit: Commando) -> bool:
+	if is_dead or is_evacuated or unit == null or unit.is_dead:
+		return false
+	_set_leader(unit)
+	return true
+
+
+## Ordre « Attendre ici » : il quitte son guide et reste sur place.
+func stay() -> bool:
+	if is_dead or is_evacuated:
+		return false
+	_set_leader(null)
+	_agent.target_position = global_position
+	return true
+
+
+## Vrai s'il peut recevoir des ordres (vivant, pas encore évacué).
+func takes_orders() -> bool:
+	return not is_dead and not is_evacuated
+
+
+## Son guide mort (ou retiré), il attend sur place.
 func _update_leader() -> void:
-	if leader and (not is_instance_valid(leader) or leader.is_dead or _flat_distance(leader) > lose_range):
+	if leader and (not is_instance_valid(leader) or leader.is_dead):
 		_set_leader(null)
-	if leader:
-		return
-	var best: Commando = null
-	var best_distance := rally_range
-	for node in get_tree().get_nodes_in_group(&"commandos"):
-		var unit := node as Commando
-		if unit == null or unit.is_dead:
-			continue
-		var distance := _flat_distance(unit)
-		if distance <= best_distance and _sees(unit):
-			best = unit
-			best_distance = distance
-	_set_leader(best)
 
 
 func _set_leader(unit: Commando) -> void:
 	if unit == leader:
 		return
 	leader = unit
+	_update_status()
 	leader_changed.emit(leader)
+
+
+## Étiquette au-dessus de sa tête : qui il suit, ou qu'il attend.
+func _update_status() -> void:
+	var label := get_node_or_null(^"Status") as Label3D
+	if label == null:
+		return
+	label.visible = not is_dead and not is_evacuated
+	label.text = "Suit %s" % leader.display_name if leader else "Attend"
+	label.modulate = Color(0.55, 0.85, 1.0) if leader else Color(1.0, 0.85, 0.35)
 
 
 func _follow(delta: float) -> Vector3:
@@ -178,6 +195,7 @@ func evacuate(shelter: Vector3) -> void:
 	_set_leader(null)
 	# À l'abri : les ennemis ne le prennent plus pour cible.
 	remove_from_group(&"vips")
+	_update_status()
 	evacuated.emit()
 
 
@@ -214,11 +232,6 @@ func _face(direction: Vector3, delta: float) -> void:
 	rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), 1.0 - exp(-stats.turn_speed * delta))
 
 
-func _sees(unit: Node3D) -> bool:
-	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.5, unit.global_position + Vector3.UP * 1.2, MASK_OCCLUDERS)
-	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
-
-
 func _flat_distance(unit: Node3D) -> float:
 	return Vector2(unit.global_position.x - global_position.x, unit.global_position.z - global_position.z).length()
 
@@ -241,4 +254,5 @@ func _on_died() -> void:
 	_model.is_dead = true
 	_model.move_ratio = 0.0
 	$Marker.visible = false
+	_update_status()
 	killed.emit()

@@ -19,7 +19,7 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Escorte",
 		"scene": "res://scenes/levels/escort/escort.tscn",
-		"description": "Carte d'essai : un VIP à ramener jusqu'à la zone d'extraction, au nord-est, à travers deux lignes de murs gardées par deux patrouilles et une sentinelle. Il suit l'opérateur le plus proche et imite sa posture ; s'il meurt, la mission échoue.",
+		"description": "Carte d'essai : un VIP à ramener jusqu'à la zone d'extraction, au nord-est, à travers deux lignes de murs gardées par deux patrouilles et une sentinelle. Clic du milieu sur lui : « Suivre l'opérateur » sélectionné (il imite alors sa posture) ou « Attendre ici ». S'il meurt, la mission échoue.",
 		"camo": "woodland",
 	},
 	{

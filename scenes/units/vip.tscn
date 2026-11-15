@@ -39,6 +39,16 @@ cast_shadow = 0
 mesh = SubResource("ring")
 surface_material_override/0 = SubResource("ring_mat")
 
+[node name="Status" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+fixed_size = false
+text = "Attend"
+font_size = 48
+outline_size = 12
+
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 path_desired_distance = 0.4
 path_height_offset = 0.5

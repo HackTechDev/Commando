@@ -1,6 +1,6 @@
 extends LevelTest
-## VIP à escorter (carte « Escorte ») : ralliement, suite, posture, cible des
-## ennemis, évacuation et fin de mission.
+## VIP à escorter (carte « Escorte ») : ordres (menu circulaire), suite,
+## posture, cible des ennemis, évacuation et fin de mission.
 
 const ESCORT := "res://scenes/levels/escort/escort.tscn"
 
@@ -29,22 +29,21 @@ func _park_enemies() -> void:
 		spot += 1
 
 
-func test_vip_follows_the_nearest_operator_and_copies_his_posture() -> void:
+func test_vip_waits_until_told_to_follow_and_copies_the_posture() -> void:
 	await load_level(ESCORT)
 	_park_enemies()
 	var vip: Vip = node("Units/Vip")
 	var alpha: Commando = node("Units/Alpha")
-	await frames(5)
-	assert_not_null(vip.leader, "rallié à un opérateur proche")
+	await frames(30)
+	assert_null(vip.leader, "il attend un ordre")
+	assert_eq((vip.get_node("Status") as Label3D).text, "Attend")
 	assert_false(vip.is_in_group(&"commandos"), "le VIP n'est pas un opérateur")
 	assert_true(vip.find_child("Suit", true, false) != null, "tenue civile")
 	assert_false(vip._model.is_armed, "sans arme")
-	# Les deux autres partent loin : Alpha reste le seul guide possible.
-	for other: Commando in [node("Units/Bravo"), node("Units/Charlie")]:
-		other.global_position += Vector3(-24, 0, 0)
-	vip.leader = null
-	await frames(2)
+	assert_false(vip.follow(null))
+	assert_true(vip.follow(alpha))
 	assert_eq(vip.leader, alpha)
+	assert_string_contains((vip.get_node("Status") as Label3D).text, alpha.display_name)
 	alpha.move_to(Vector3(0, 0, 13), false)
 	var arrived := await frames_until(func() -> bool:
 		return flat_distance(alpha.global_position, Vector3(0, 0, 13)) < 0.5 and vip.velocity.length() < 0.1, 600)
@@ -56,18 +55,70 @@ func test_vip_follows_the_nearest_operator_and_copies_his_posture() -> void:
 	assert_eq(vip.posture, SoldierModel.Posture.CROUCHED, "accroupi comme son guide")
 
 
-func test_vip_waits_alone_when_operators_leave() -> void:
+func test_vip_stays_when_told_or_when_his_guide_dies() -> void:
 	await load_level(ESCORT)
 	_park_enemies()
 	var vip: Vip = node("Units/Vip")
+	var alpha: Commando = node("Units/Alpha")
 	await frames(5)
+	vip.follow(alpha)
+	assert_true(vip.stay())
+	assert_null(vip.leader)
 	var start := vip.global_position
-	for name in ["Alpha", "Bravo", "Charlie"]:
-		var unit: Commando = node("Units/" + name)
-		unit.global_position += Vector3(0, 0, -20)
-	await frames(60)
-	assert_null(vip.leader, "guide perdu")
+	alpha.move_to(alpha.global_position + Vector3(0, 0, 8), true)
+	await frames(90)
 	assert_lt(flat_distance(vip.global_position, start), 0.3, "il attend sur place")
+	vip.follow(alpha)
+	alpha.health.take_damage(1000.0)
+	await frames(3)
+	assert_null(vip.leader, "guide mort : il attend")
+	assert_false(vip.follow(alpha), "on ne suit pas un mort")
+
+
+func test_middle_click_on_the_vip_opens_his_orders_menu() -> void:
+	await load_level(ESCORT)
+	_park_enemies()
+	var vip: Vip = node("Units/Vip")
+	var alpha: Commando = node("Units/Alpha")
+	var controller: PlayerController = node("HUD/PlayerController")
+	var menu := controller.radial_menu()
+	var camera := get_viewport().get_camera_3d()
+	await frames(5)
+	var at := camera.unproject_position(vip.global_position + Vector3.UP * 0.9)
+	SelectionManager.select([] as Array[Commando], false)
+	_middle_click(controller, at)
+	assert_true(menu.is_open(), "menu ouvert sur le VIP")
+	assert_false(menu.choose(&"follow"), "aucun opérateur sélectionné")
+	menu.close()
+	SelectionManager.select([alpha] as Array[Commando], false)
+	_middle_click(controller, at)
+	assert_true(menu.is_open())
+	var option := menu.option_position(&"follow")
+	assert_ne(option, Vector2.INF)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = option
+	menu._gui_input(click)
+	assert_false(menu.is_open(), "refermé après le choix")
+	assert_eq(vip.leader, alpha, "il suit l'opérateur sélectionné")
+	# Ailleurs que sur le VIP, ou en glissant (caméra) : pas de menu.
+	_middle_click(controller, at + Vector2(300, 0))
+	assert_false(menu.is_open())
+	_middle_click(controller, at, Vector2(40, 0))
+	assert_false(menu.is_open(), "glisser déplace la caméra")
+
+
+func _middle_click(controller: PlayerController, at: Vector2, drag := Vector2.ZERO) -> void:
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_MIDDLE
+	press.pressed = true
+	press.position = at
+	controller._unhandled_input(press)
+	var release := press.duplicate() as InputEventMouseButton
+	release.pressed = false
+	release.position = at + drag
+	controller._unhandled_input(release)
 
 
 func test_enemies_target_the_vip_and_his_death_fails_the_mission() -> void:
@@ -100,7 +151,7 @@ func test_vip_led_into_the_zone_completes_the_mission() -> void:
 	alpha.global_position = Vector3(18, 0, -11)
 	vip.global_position = Vector3(18, 0, -9)
 	await frames(5)
-	assert_eq(vip.leader, alpha)
+	assert_true(vip.follow(alpha))
 	assert_eq(zone.progress(), Vector2i(0, 1))
 	alpha.move_to(zone.global_position + Vector3(-2, 0, 0), true)
 	var evacuated := await frames_until(func() -> bool: return vip.is_evacuated, 900)

@@ -409,3 +409,12 @@
   - le pistolet sort de l'étui de cuisse jusqu'à la main ;
   - pour revenir, le pistolet rentre dans l'étui, puis l'arme principale remonte de la bretelle.
 - Avec le bouclier, celui-ci ne passe du dos à l'avant qu'une fois le fusil lâché. Le tout prend environ 1,2 s, pendant lequel l'opérateur ne tire pas.
+
+## Ordres au VIP : menu circulaire
+
+- Le VIP ne suit plus d'office l'opérateur le plus proche : il attend un ordre.
+- Clic du milieu sur le VIP (sans glisser, sinon la caméra se déplace) : un menu circulaire s'ouvre autour du curseur.
+  - « Suivre l'opérateur » : le VIP suit l'opérateur sélectionné (le plus proche de lui si plusieurs le sont) et imite sa posture. L'option est grisée sans sélection.
+  - « Attendre ici » : il quitte son guide et reste sur place.
+- Survol pour mettre une option en évidence, clic gauche pour la choisir ; clic droit, clic du milieu, Échap ou clic hors de la couronne pour fermer.
+- Au-dessus du VIP, une étiquette indique « Suit <opérateur> » ou « Attend ». Son guide mort, il attend sur place.

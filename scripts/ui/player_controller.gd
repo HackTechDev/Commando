@@ -7,6 +7,9 @@ extends Control
 ## ou le bouton arme l'action, puis un clic gauche sur un ennemi (ou une
 ## caisse) la confie à l'opérateur sélectionné le plus proche. Un clic droit,
 ## ou un clic ailleurs que sur une cible valable, l'annule.
+##
+## Clic du milieu (sans glisser, sinon c'est la caméra) sur un VIP : son menu
+## circulaire d'ordres (« Suivre l'opérateur », « Attendre ici »).
 
 signal pending_action_changed(action: StringName)
 
@@ -39,9 +42,20 @@ var pending_action: StringName = ACTION_NONE
 var _dragging: bool = false
 var _drag_start: Vector2
 var _drag_end: Vector2
+## Clic du milieu en cours (position de l'appui), pour le distinguer d'un
+## glissé de caméra.
+var _middle_start: Vector2 = Vector2.INF
+## Menu circulaire des ordres au VIP, et le VIP concerné.
+var _radial: RadialMenu
+var _menu_vip: Vip
 
 
 func _ready() -> void:
+	_radial = RadialMenu.new()
+	_radial.name = "RadialMenu"
+	add_child(_radial)
+	_radial.chosen.connect(_on_vip_order)
+	_radial.closed.connect(func() -> void: _menu_vip = null)
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
 			cancel_pending_action()
@@ -79,6 +93,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			cancel_pending_action()
 			get_viewport().set_input_as_handled()
 			return
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_MIDDLE:
+		var middle := event as InputEventMouseButton
+		if middle.pressed:
+			_middle_start = middle.position
+		elif _middle_start != Vector2.INF:
+			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
+				if open_vip_menu(middle.position):
+					get_viewport().set_input_as_handled()
+			_middle_start = Vector2.INF
+		return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if event.is_action_pressed(&"select"):
@@ -204,6 +228,61 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	target.y = 0.0
 	SelectionManager.order_move(target, run)
 	_spawn_marker(target, marker_run_color if run else marker_color)
+
+
+## Ouvre le menu d'ordres du VIP sous `screen_position`. Renvoie faux s'il
+## n'y en a pas (ou s'il ne peut plus recevoir d'ordres).
+func open_vip_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_COMMANDOS)
+	var vip := hit.get("collider") as Vip
+	if vip == null or not vip.takes_orders():
+		return false
+	cancel_pending_action()
+	_menu_vip = vip
+	var guide := _guide_for(vip)
+	var options: Array[Dictionary] = [
+		{"id": &"follow", "label": "Suivre l'opérateur",
+			"detail": guide.display_name if guide else "Sélectionnez un opérateur",
+			"enabled": guide != null},
+		{"id": &"stay", "label": "Attendre ici", "enabled": vip.leader != null},
+	]
+	_radial.open(screen_position, options, vip.display_name)
+	Sfx.play_ui(&"select")
+	return true
+
+
+## Menu d'ordres du VIP (pour l'interface et les tests).
+func radial_menu() -> RadialMenu:
+	return _radial
+
+
+## Opérateur que suivra le VIP : le sélectionné, ou le sélectionné le plus
+## proche de lui s'il y en a plusieurs.
+func _guide_for(vip: Vip) -> Commando:
+	var best: Commando = null
+	for unit: Commando in SelectionManager.selected:
+		if not is_instance_valid(unit) or unit.is_dead:
+			continue
+		if best == null or unit.global_position.distance_squared_to(vip.global_position) \
+				< best.global_position.distance_squared_to(vip.global_position):
+			best = unit
+	return best
+
+
+func _on_vip_order(id: StringName) -> void:
+	var vip := _menu_vip
+	_menu_vip = null
+	if vip == null or not is_instance_valid(vip):
+		return
+	var accepted := false
+	match id:
+		&"follow":
+			accepted = vip.follow(_guide_for(vip))
+		&"stay":
+			accepted = vip.stay()
+	Sfx.play_ui(&"order" if accepted else &"denied")
+	if accepted:
+		_spawn_marker(vip.global_position, marker_color)
 
 
 ## Bip d'ordre reçu, ou de refus.
