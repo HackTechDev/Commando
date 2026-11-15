@@ -56,6 +56,9 @@ extends Resource
 ## Intervalle entre deux tirs, en secondes.
 @export var fire_interval: float = 0.5
 @export var fire_damage: float = 34.0
+## Dégâts à portée maximale (plombs dispersés) ; négatif : les mêmes qu'à bout
+## portant. Entre les deux, ils baissent avec la distance (`damage_at`).
+@export var fire_damage_far: float = -1.0
 ## Probabilité de toucher à bout portant et à portée maximale.
 @export_range(0.0, 1.0) var hit_chance_near: float = 0.95
 @export_range(0.0, 1.0) var hit_chance_far: float = 0.6
@@ -99,3 +102,10 @@ extends Resource
 ## intervalle entre deux bruits (charge lourde).
 @export var gear_noise_radius: float = 0.0
 @export var gear_noise_interval: float = 0.6
+
+
+## Dégâts d'un tir qui touche à `distance` mètres.
+func damage_at(distance: float) -> float:
+	if fire_damage_far < 0.0:
+		return fire_damage
+	return lerpf(fire_damage, fire_damage_far, clampf(distance / fire_range, 0.0, 1.0))

@@ -1148,16 +1148,21 @@ func _fire(enemy: Enemy, distance: float) -> void:
 		# La balle manquée file jusqu'au premier obstacle derrière la cible.
 		aim = ShotImpact.land(scene, muzzle, aim + side, [get_rid(), enemy.get_rid()] as Array[RID])
 	else:
-		ShotImpact.hit(scene, enemy, aim, muzzle, stats.fire_damage, false)
+		ShotImpact.hit(scene, enemy, aim, muzzle, stats.damage_at(distance), false)
 	Tracer.spawn(scene, muzzle, aim, Color(0.6, 0.9, 1.0))
 	_model.play_shot()
+	if _model.has_pump():
+		# Bruit de la pompe, manœuvrée juste après le coup.
+		get_tree().create_timer(SoldierModel.PUMP_DELAY, false).timeout.connect(func() -> void:
+			if is_instance_valid(self) and not is_dead:
+				Sfx.play_at(&"reload", global_position + Vector3.UP, -6.0))
 	if stats.suppressed:
 		Sfx.play_at(&"shot_suppressed", muzzle, -4.0)
 	else:
 		Sfx.play_at(&"shot", muzzle)
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if hit:
-		enemy.take_hit(stats.fire_damage, global_position)
+		enemy.take_hit(stats.damage_at(distance), global_position)
 
 
 func _current_speed() -> float:

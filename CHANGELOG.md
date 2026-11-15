@@ -520,3 +520,10 @@
 - Journal d'objectifs en haut à droite (O), affiché quelques secondes au début de la partie.
 - Minicarte en haut à gauche (touche à droite de L : M sur AZERTY) : aperçu de la carte, opérateurs, VIP, ennemis (gris s'ils sont assommés), champ de la caméra ; un clic y centre la caméra.
 - Menu pause : bouton « Options » (volumes général, musique, effets ; plein écran ; défilement aux bords de l'écran), enregistrées dans `user://settings.cfg`.
+
+## Fusil à pompe
+
+- Nouvelle arme principale « Fusil à pompe » : 95 points de dégâts à bout portant, 20 à 9 m (les dégâts baissent avec la distance), magasin tubulaire de 5 cartouches (+15), sans silencieux.
+- Modèle : long canon, magasin tubulaire, garde-main mobile ; après chaque tir, la main gauche manœuvre la pompe (avec son bruit). Le rechargement se fait cartouche par cartouche, sans chargeur qui tombe.
+- `UnitStats.fire_damage_far` et `damage_at(distance)` : dégâts selon la distance, pour toute arme qui le souhaite. La comparaison des armes affiche « 95 → 20 ».
+

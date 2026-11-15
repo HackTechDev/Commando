@@ -98,6 +98,11 @@ const CRAWL_PHASE_RATE := 24.0
 const PRONE_ELBOW_POLE := Vector3(0.8, -0.4, -0.8)
 const FLASH_DURATION := 0.05
 const RECOIL_DECAY := 0.07
+## Fusil à pompe : après le tir, le garde-main recule de `PUMP_TRAVEL` (m) puis
+## revient, en `PUMP_TIME` secondes, `PUMP_DELAY` après le coup.
+const PUMP_DELAY := 0.12
+const PUMP_TIME := 0.45
+const PUMP_TRAVEL := 0.1
 const HIT_DURATION := 0.4
 ## Durée pendant laquelle l'arme reste épaulée après un tir.
 const AIM_HOLD := 1.5
@@ -464,6 +469,13 @@ var _rifle_dropped_prone: Transform3D
 ## Position lissée de l'arme, avant le recul.
 var _rifle_base: Transform3D
 var _rifle_mag: Node3D
+## Garde-main mobile du fusil à pompe en main (null pour les autres armes),
+## et sa position de repos.
+var _pump: Node3D
+var _pump_rest: Vector3
+## Arme à magasin tubulaire : rechargée cartouche par cartouche, sans
+## chargeur qui sort ni qui tombe.
+var _tube_fed: bool = false
 var _hand_mag: Node3D
 var _flash: Node3D
 var _knife: Node3D
@@ -1231,11 +1243,14 @@ func _animate_alive(delta: float) -> void:
 	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-(40.0 if butt or shove or block else 14.0) * delta))
 	var recoil := exp(-_shot_time / RECOIL_DECAY)
 	_rifle.transform = _rifle_base * Transform3D(Basis(Vector3.RIGHT, 0.12 * recoil), Vector3(0.0, 0.0, 0.06 * recoil))
+	var pump := pump_offset(_shot_time) if _pump else 0.0
+	if _pump:
+		_pump.position = _pump_rest + Vector3(0.0, 0.0, pump)
 
 	# Bras : mains sur l'arme (IK), ou le long du corps sans arme.
 	var target: Array
 	if is_armed:
-		var left := _rifle.transform * (LEFT_GRIP_PRONE if prone else _left_grip)
+		var left := _rifle.transform * ((LEFT_GRIP_PRONE if prone else _left_grip) + Vector3(0.0, 0.0, pump))
 		var right := _rifle.transform * RIGHT_GRIP
 		if reloading:
 			left = _reload_hand(reload_progress)
@@ -1489,6 +1504,11 @@ func _reload_hand(t: float) -> Vector3:
 ## rechargement ; le chargeur vide tombe au sol.
 func _update_magazines() -> void:
 	var t := reload_progress if is_armed and not is_dead else -1.0
+	if _tube_fed:
+		# Cartouche par cartouche : rien ne sort de l'arme, rien ne tombe.
+		_rifle_mag.visible = true
+		_hand_mag.visible = false
+		return
 	var out := t >= RELOAD_MAG_OUT and t < RELOAD_MAG_IN
 	_rifle_mag.visible = not out
 	_hand_mag.visible = out and (t < RELOAD_MAG_DROP or t >= RELOAD_MAG_TAKEN)
@@ -2844,7 +2864,11 @@ func _build_rifle_and_arms() -> void:
 	_rifle_sling_mid = Transform3D(Basis.from_euler(Vector3(-PI / 2.0 + 0.45, 0.35, 0.0)), Vector3(0.16, 0.24, -0.24))
 	var primary := (&"carbine" if _guard_look.is_empty() else &"rifle") if outfit == null else outfit.primary
 	var drawn := _sidearm_built and outfit != null and outfit.secondary != &"none"
+	_pump = null
+	_tube_fed = false
 	var muzzle := _build_weapon(rifle, outfit.secondary if drawn else primary)
+	var pump := _pump
+	var tube_fed := _tube_fed
 	_left_grip = PISTOL_LEFT_GRIP if drawn else LEFT_GRIP
 	if drawn:
 		# Arme principale pendue à sa bretelle 3 points, sur le flanc droit,
@@ -2855,6 +2879,8 @@ func _build_rifle_and_arms() -> void:
 		_build_weapon(back, primary)
 		back.name = "SlungPrimary"
 		_rifle_mag = magazine
+		_pump = pump
+		_tube_fed = tube_fed
 	# Flash de bouche (discret : arme à silencieux).
 	var flash_material := StandardMaterial3D.new()
 	flash_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -2966,6 +2992,8 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 			_box(rifle, Vector3(0.03, 0.025, 0.015), Vector3(0.0, 0.1, 0.0), _m_weapon)
 			return -0.61
 	match kind:
+		&"pump_shotgun":
+			return _build_pump_shotgun(rifle)
 		&"famas":
 			return _build_famas(rifle)
 		&"scar_l", &"scar_h":
@@ -3020,6 +3048,55 @@ func _barrel(rifle: Node3D, radius: float, length: float, at: Vector3, material:
 	var tube := _cylinder(rifle, radius, length, at, material)
 	tube.rotation.x = PI / 2.0
 	return tube
+
+
+## Fusil à pompe : crosse et garde-main noirs, long canon, magasin tubulaire
+## dessous, garde-main mobile (`_pump`) que la main gauche manœuvre après
+## chaque tir.
+func _build_pump_shotgun(rifle: Node3D) -> float:
+	var furniture := _mat(Color(0.12, 0.12, 0.11), 0.85)
+	_box(rifle, Vector3(0.048, 0.085, 0.22), Vector3(0.0, 0.045, -0.06), _m_weapon)
+	var stock := _box(rifle, Vector3(0.04, 0.085, 0.26), Vector3(0.0, 0.015, 0.18), furniture)
+	stock.rotation.x = deg_to_rad(-7.0)
+	_box(rifle, Vector3(0.045, 0.1, 0.03), Vector3(0.0, 0.0, 0.32), _m_gear)
+	# Pontet et fenêtre d'éjection.
+	_box(rifle, Vector3(0.012, 0.03, 0.07), Vector3(0.0, -0.01, 0.0), _m_weapon)
+	_box(rifle, Vector3(0.002, 0.025, 0.06), Vector3(0.025, 0.06, -0.08), _m_lens)
+	_barrel(rifle, 0.016, 0.56, Vector3(0.0, 0.065, -0.45), _m_weapon)
+	var tube := _barrel(rifle, 0.014, 0.44, Vector3(0.0, 0.028, -0.39), _m_weapon)
+	tube.name = "TubeMagazine"
+	_box(rifle, Vector3(0.03, 0.05, 0.02), Vector3(0.0, 0.045, -0.62), _m_weapon)
+	# Guidon.
+	_box(rifle, Vector3(0.006, 0.014, 0.006), Vector3(0.0, 0.086, -0.71), _m_lens)
+	# Garde-main mobile, sur le magasin, sous la main gauche.
+	_pump = _pivot(rifle, Vector3(0.0, 0.03, LEFT_GRIP.z), "Pump")
+	_pump_rest = _pump.position
+	var grip := _box(_pump, Vector3(0.05, 0.05, 0.17), Vector3.ZERO, furniture)
+	grip.name = "PumpGrip"
+	for i in 4:
+		_box(_pump, Vector3(0.052, 0.006, 0.012), Vector3(0.0, -0.012, -0.06 + 0.04 * i), _m_weapon)
+	# Porte de chargement sous le boîtier : c'est là que glissent les cartouches.
+	_rifle_mag = _box(rifle, Vector3(0.026, 0.012, 0.07), Vector3(0.0, 0.0, -0.08), _m_weapon)
+	_tube_fed = true
+	return -0.73
+
+
+## Recul (m) du garde-main du fusil à pompe, `since` secondes après le tir.
+static func pump_offset(since: float) -> float:
+	var t := (since - PUMP_DELAY) / PUMP_TIME
+	if t <= 0.0 or t >= 1.0:
+		return 0.0
+	return PUMP_TRAVEL * sin(PI * t)
+
+
+## Vrai si l'arme en main est un fusil à pompe.
+func has_pump() -> bool:
+	return _pump != null
+
+
+## Vrai pendant qu'il manœuvre la pompe.
+func is_pumping() -> bool:
+	return _pump != null and pump_offset(_shot_time) > 0.0
 
 
 ## FAMAS : bullpup, chargeur derrière la poignée, longue poignée de

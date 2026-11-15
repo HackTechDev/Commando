@@ -141,6 +141,16 @@ const PRIMARY: Dictionary = {
 			"reload_time": 2.8, "gunshot_noise_radius": 18.0, "suppressed": false,
 		},
 	},
+	&"pump_shotgun": {
+		"short": "Pompe",
+		"name": "Fusil à pompe",
+		"description": "Une gerbe de plombs qui fauche à bout portant mais se disperse vite : dégâts en chute avec la distance, pompe à manœuvrer après chaque tir, magasin tubulaire de 5 cartouches. Bruyant.",
+		"stats": {
+			"fire_range": 9.0, "aim_time": 0.35, "fire_interval": 1.0, "fire_damage": 95.0, "fire_damage_far": 20.0,
+			"hit_chance_near": 0.99, "hit_chance_far": 0.7, "magazine_size": 5, "reserve_ammo": 15,
+			"reload_time": 3.2, "gunshot_noise_radius": 18.0, "suppressed": false,
+		},
+	},
 	&"famas": {
 		"short": "FAMAS",
 		"name": "FAMAS",
@@ -232,7 +242,7 @@ const EQUIPMENT: Dictionary = {
 ## (casque compris) et équipement (à l'unité).
 const BASE_WEIGHT := 2.0
 const WEIGHTS: Dictionary = {
-	&"carbine": 3.5, &"smg": 2.8, &"dmr": 6.0, &"shotgun": 4.0,
+	&"carbine": 3.5, &"smg": 2.8, &"dmr": 6.0, &"shotgun": 4.0, &"pump_shotgun": 3.6,
 	&"famas": 3.8, &"scar_l": 3.6, &"scar_h": 4.3, &"hk417": 5.0, &"m249": 8.0,
 	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
 	&"helmet": 1.4, &"nvg": 0.6, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,

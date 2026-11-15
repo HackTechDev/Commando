@@ -690,7 +690,7 @@ static func _comparison_values() -> Array:
 		var noise: float = stats["gunshot_noise_radius"]
 		raw.append([
 			[float(stats["fire_range"]), "%d m" % stats["fire_range"]],
-			[float(stats["fire_damage"]), "%d" % stats["fire_damage"]],
+			[float(stats["fire_damage"]), "%d" % stats["fire_damage"] if float(stats.get("fire_damage_far", -1.0)) < 0.0 else "%d → %d" % [stats["fire_damage"], stats["fire_damage_far"]]],
 			[1.0 / float(stats["fire_interval"]), "%.1f tirs/s" % (1.0 / float(stats["fire_interval"]))],
 			[float(stats["magazine_size"]), "%d (+%d)" % [stats["magazine_size"], stats["reserve_ammo"]]],
 			[maxf(LOUDEST - noise, 1.0), "bruit à %d m%s" % [noise, "" if stats["suppressed"] else ", sans silencieux"]],
