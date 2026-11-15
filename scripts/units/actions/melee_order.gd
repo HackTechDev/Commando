@@ -44,7 +44,8 @@ func update(delta: float) -> Vector3:
 			unit._face(to_enemy, delta)
 			return Vector3.ZERO
 		if enemy.resists(unit.global_position):
-			# Il l'a vu venir : il le repousse, le coup échoue.
+			# Il l'a vu venir, garde levée : il le repousse, le coup échoue.
+			unit.flash_message("En garde : parer son coup pour contrer, ou le prendre à revers")
 			enemy.shove(unit)
 			finish(PushGesture.new(unit, -to_enemy.normalized() * REPEL_DISTANCE, REPEL_TIME, enemy.stats.shove_time * 0.5, enemy.global_position))
 			return Vector3.ZERO

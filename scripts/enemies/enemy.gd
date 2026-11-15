@@ -42,6 +42,10 @@ const LAYER_DOWN := 0b10000
 ## Au-delà de cet angle (degrés) entre son regard et la direction d'une
 ## position, celle-ci est considérée comme dans son dos.
 const BEHIND_ANGLE := 110.0
+## Distance (m) en deçà de laquelle un ennemi en alerte lève sa garde face
+## à sa cible (bras levés, arme en travers) : seuls un contre ou une prise
+## par derrière passent alors.
+const GUARD_RANGE := 2.2
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -123,9 +127,11 @@ func _physics_process(delta: float) -> void:
 	if _traversal.update(delta):
 		_model.aiming = false
 		return
-	_model.aiming = armed and state == State.ALERT and _target != null
-	# Sans arme, en alerte : en garde entre deux coups.
-	_model.guard_up = not armed and state == State.ALERT
+	var guarding := is_guarding()
+	_model.aiming = armed and state == State.ALERT and _target != null and not guarding
+	# En alerte : en garde entre deux coups sans arme, ou face à une cible
+	# toute proche.
+	_model.guard_up = state == State.ALERT and (not armed or guarding)
 	# Il suit des yeux sa cible, ou regarde vers ce qui l'a intrigué.
 	if is_instance_valid(_target):
 		_model.look_target = _target.global_position + Vector3.UP * 1.4
@@ -234,6 +240,19 @@ func is_behind(world_position: Vector3) -> bool:
 	if to.length_squared() < 0.0001:
 		return false
 	return rad_to_deg((-global_basis.z).angle_to(to)) > BEHIND_ANGLE
+
+
+## Vrai s'il a la garde levée : en alerte, sa cible à moins de
+## `GUARD_RANGE` devant lui, et libre de ses mouvements (ni coup en cours, ni
+## déséquilibre).
+func is_guarding() -> bool:
+	if is_dead or state != State.ALERT or not is_instance_valid(_target) or _target.is_dead:
+		return false
+	if _attack_left > 0.0 or _shove_left > 0.0 or _off_balance_left > 0.0:
+		return false
+	var to := _target.global_position - global_position
+	to.y = 0.0
+	return to.length() <= GUARD_RANGE and rad_to_deg((-global_basis.z).angle_to(to)) < stats.resist_angle
 
 
 ## Vrai s'il repousse un assaillant venant de `from` : en alerte, il le voit
@@ -538,10 +557,13 @@ func _alert(delta: float) -> Vector3:
 			# Au contact : il frappe au lieu de tirer.
 			_try_melee(to_target)
 			return Vector3.ZERO
-		_try_fire(delta, to_target)
-		# Sans arme, il vient au contact. Armé, face à une cible perchée, il
-		# tire d'où il est plutôt que de chercher à passer dessous.
-		var hold := stats.hold_range if armed else stats.melee_range * 0.8
+		# Garde levée, il ne tire pas : il avance pour frapper.
+		var guarding := is_guarding() and not perched
+		if not guarding:
+			_try_fire(delta, to_target)
+		# Sans arme (ou en garde), il vient au contact. Armé, face à une cible
+		# perchée, il tire d'où il est plutôt que de chercher à passer dessous.
+		var hold := stats.hold_range if armed and not guarding else stats.melee_range * 0.8
 		if armed and perched:
 			hold = maxf(hold, stats.fire_range * 0.9)
 		if to_target.length() <= hold:

@@ -542,3 +542,8 @@
 - Touche de parade (I) : un coup qui porte dans les 0,45 s qui suivent l'appui est paré à coup sûr, et l'assaillant est déséquilibré (contre possible). On ne peut rappuyer qu'au bout de 0,9 s.
 - Sans la touche, l'opérateur encaisse. L'ancienne défense au hasard (parade ou esquive) reste disponible : option « Parade automatique » du menu pause.
 
+## Garde de l'ennemi (3.9)
+
+- Un ennemi en alerte dont la cible est à moins de 2,2 m devant lui lève sa garde : arme en travers de la poitrine (poings levés sans arme), genoux fléchis. En garde, il ne tire plus : il avance pour frapper.
+- Un coup de face sur un ennemi en garde est repoussé ; l'opérateur affiche « En garde : parer son coup pour contrer, ou le prendre à revers ». Parer (touche I) le déséquilibre et ouvre le contre ; par derrière, la prise reste possible.
+

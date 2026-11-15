@@ -427,7 +427,8 @@ var staggered: bool = false
 ## Point regardé (repère du monde) : la tête et les yeux s'y tournent.
 ## `Vector3.INF` : rien de particulier.
 var look_target: Vector3 = Vector3.INF
-## Garde de boxe (sans arme) : poings levés, genoux fléchis, entre deux coups.
+## Garde : poings levés (sans arme) ou arme en travers de la poitrine,
+## genoux fléchis. Un ennemi en alerte la lève face à un assaillant proche.
 var guard_up: bool = false
 
 var _body: Node3D
@@ -1011,8 +1012,9 @@ func _animate_alive(delta: float) -> void:
 		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
 		lean -= 0.85 * pickup
 		head_pitch += 0.35 * pickup
-	# Garde : poids sur l'avant des pieds, genoux souples, léger rebond.
-	_guard = move_toward(_guard, 1.0 if guard_up and not is_armed and not prone else 0.0, delta * 4.0)
+	# Garde : poids sur l'avant des pieds, genoux souples, léger rebond ;
+	# poings levés sans arme, arme en travers de la poitrine avec.
+	_guard = move_toward(_guard, 1.0 if guard_up and not prone and (not is_armed or _sling < 0.5) else 0.0, delta * 4.0)
 	var guard := smoothstep(0.0, 1.0, _guard)
 	if guard > 0.0:
 		var bounce := (0.05 + 0.015 * sin(_time * 6.0) * (1.0 - moving)) * guard
@@ -1238,6 +1240,8 @@ func _animate_alive(delta: float) -> void:
 		rifle_target = _butt_transform(rifle_target, punch_t)
 	if shove and _sling < 0.5:
 		rifle_target = _shove_transform(rifle_target, shove_t)
+	if is_armed and guard > 0.0 and not butt and not shove:
+		rifle_target = rifle_target.interpolate_with(_rifle_block, guard)
 	if block:
 		rifle_target = rifle_target.interpolate_with(_rifle_block, defend_w)
 	_rifle_base = _rifle_base.interpolate_with(rifle_target, 1.0 - exp(-(40.0 if butt or shove or block else 14.0) * delta))
