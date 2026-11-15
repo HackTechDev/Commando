@@ -1640,50 +1640,191 @@ func _build_ear_cups(offset: float) -> void:
 
 
 ## Casque balistique « high cut » d'opérateur : coque découpée au-dessus des
-## oreilles, rails RIS latéraux (avec lampe et adaptateurs), protection
-## auditive électronique à micro, support et JVN relevées, contrepoids.
+## oreilles et descendant sur la nuque, bordure caoutchouc et doublure,
+## rails latéraux courbes (lampe, adaptateurs du casque audio), support de
+## JVN, scratchs, contrepoids et jugulaire. Les accessoires sont
+## posés sur la coque (`_shell_frame`) pour en épouser la forme.
 func _build_operator_helmet(nvg: bool, headset: bool) -> void:
-	var dome := SphereMesh.new()
-	dome.radius = 0.142
-	dome.height = 0.145
-	dome.is_hemisphere = true
-	var shell := _mesh(_head, dome, Vector3(0.0, 0.19, 0.005), _m_helmet)
+	var shell := MeshInstance3D.new()
 	shell.name = "Helmet"
-	shell.scale = Vector3(1.0, 1.0, 1.1)
-	# Bord de la coque (garniture caoutchouc).
-	var rim := _cylinder(_head, 0.144, 0.014, Vector3(0.0, 0.192, 0.005), _m_gear)
-	rim.scale = Vector3(1.0, 1.0, 1.1)
-	# Visière avant courte.
-	_box(_head, Vector3(0.17, 0.02, 0.03), Vector3(0.0, 0.2, -0.148), _m_helmet)
+	shell.mesh = _helmet_mesh()
+	shell.set_surface_override_material(0, _m_helmet)
+	shell.set_surface_override_material(1, _m_weapon)
+	shell.set_surface_override_material(2, _m_dark)
+	_head.add_child(shell)
+	# Scratchs du dessus (avec le marqueur d'équipe) et de l'arrière.
+	_shell_box(Vector3(0.085, 0.005, 0.07), 0.42, 0.0, 0.002, _m_gear)
+	_shell_box(Vector3(0.03, 0.012, 0.03), 0.42, 0.0, 0.01, _m_team)
+	_shell_box(Vector3(0.1, 0.005, 0.05), 1.05, PI, 0.002, _m_gear, false)
 	for side: float in [-1.0, 1.0]:
-		# Rail RIS épousant le flanc de la coque, avec ses crans.
-		var rail := _pivot(_head, Vector3(0.142 * side, 0.232, 0.0), "Rail")
-		rail.rotation.z = -0.32 * side
-		_box(rail, Vector3(0.016, 0.034, 0.16), Vector3.ZERO, _m_weapon)
-		for i in 6:
-			_box(rail, Vector3(0.022, 0.026, 0.01), Vector3(0.0, 0.0, -0.065 + 0.026 * i), _m_weapon)
+		# Rail latéral courbe, crénelé, au-dessus de la découpe.
+		_shell_band(1.08, side * 0.95, side * 2.05, 0.026, 0.012, 0.006, _m_weapon, 9, true)
 		if headset:
-			# Adaptateur qui relie la coquille auditive au rail.
-			_box(_head, Vector3(0.014, 0.06, 0.022), Vector3(0.143 * side, 0.2, 0.0), _m_weapon)
-		if nvg:
-			# Tubes des jumelles de vision nocturne, relevées.
-			var tube := _cylinder(_head, 0.022, 0.10, Vector3(0.032 * side, 0.335, -0.14), _m_weapon)
-			tube.name = "NvgTube"
-			tube.rotation.x = deg_to_rad(-65.0)
-			var lens := _cylinder(_head, 0.018, 0.012, Vector3(0.032 * side, 0.358, -0.188), _m_lens)
-			lens.rotation.x = deg_to_rad(-65.0)
+			# Bras qui relie la coquille auditive au rail.
+			var top := _helmet_point(1.12, side * PI / 2.0) + _helmet_normal(1.12, side * PI / 2.0) * 0.012
+			_strap(top, Vector3((0.133 + 0.01) * side, 0.185, 0.005), 0.016, 0.01, _m_weapon)
+		# Jugulaire : sangles devant et derrière l'oreille, jusqu'au menton.
+		var chin := Vector3(0.05 * side, 0.072, -0.075)
+		for phi: float in [side * 1.15, side * 2.05]:
+			var anchor := _helmet_point(_helmet_edge(phi) - 0.04, phi)
+			_strap(anchor, chin, 0.012, 0.004, _m_weapon)
+	_box(_head, Vector3(0.1, 0.012, 0.03), Vector3(0.0, 0.066, -0.076), _m_weapon).name = "ChinCup"
 	if headset:
 		_build_ear_cups(0.12)
-	# Lampe tactique sur le rail droit.
-	var lamp := _cylinder(_head, 0.016, 0.07, Vector3(0.168, 0.25, -0.03), _m_weapon)
-	lamp.rotation.x = PI / 2.0
-	_box(_head, Vector3(0.02, 0.02, 0.02), Vector3(0.158, 0.245, -0.03), _m_weapon)
-	# Support de JVN (plaque frontale), contrepoids à l'arrière, marqueur IR.
-	_box(_head, Vector3(0.06, 0.06, 0.03), Vector3(0.0, 0.27, -0.14), _m_weapon)
+	# Lampe tactique sur l'avant du rail droit.
+	var lamp := _pivot(_head, Vector3.ZERO, "Lamp")
+	lamp.transform = _shell_frame(1.08, 1.12, 0.03, false)
+	var body := _cylinder(lamp, 0.015, 0.075, Vector3.ZERO, _m_weapon)
+	body.rotation.x = PI / 2.0
+	var glass := _cylinder(lamp, 0.013, 0.004, Vector3(0.0, 0.0, -0.039), _m_steel)
+	glass.rotation.x = PI / 2.0
+	_box(lamp, Vector3(0.016, 0.02, 0.02), Vector3(0.0, -0.016, 0.0), _m_weapon)
+	# Support de JVN : platine épousant le front, réceptacle.
+	var shroud := _pivot(_head, Vector3.ZERO, "Shroud")
+	shroud.transform = _shell_frame(1.2, 0.0, 0.004)
+	_box(shroud, Vector3(0.075, 0.008, 0.06), Vector3.ZERO, _m_weapon)
+	_box(shroud, Vector3(0.042, 0.02, 0.03), Vector3(0.0, 0.012, 0.0), _m_weapon)
 	if nvg:
-		_box(_head, Vector3(0.05, 0.05, 0.035), Vector3(0.0, 0.29, -0.155), _m_weapon)
-		_box(_head, Vector3(0.11, 0.06, 0.035), Vector3(0.0, 0.235, 0.16), _m_gear)
-	_box(_head, Vector3(0.05, 0.012, 0.05), Vector3(0.0, 0.337, 0.06), _m_team)
+		# Bras articulé, boîtier et tubes des jumelles relevées.
+		_strap(shroud.transform * Vector3(0.0, 0.02, 0.0), Vector3(0.0, 0.3, -0.13), 0.026, 0.018, _m_weapon)
+		var housing := _box(_head, Vector3(0.105, 0.03, 0.04), Vector3(0.0, 0.314, -0.125), _m_weapon)
+		housing.rotation.x = deg_to_rad(-65.0)
+		for side: float in [-1.0, 1.0]:
+			var tube := _cylinder(_head, 0.021, 0.10, Vector3(0.033 * side, 0.335, -0.145), _m_weapon)
+			tube.name = "NvgTube"
+			tube.rotation.x = deg_to_rad(-65.0)
+			var ring := _cylinder(_head, 0.023, 0.014, Vector3(0.033 * side, 0.352, -0.181), _m_gear)
+			ring.rotation.x = deg_to_rad(-65.0)
+			var lens := _cylinder(_head, 0.017, 0.006, Vector3(0.033 * side, 0.36, -0.198), _m_lens)
+			lens.rotation.x = deg_to_rad(-65.0)
+		# Contrepoids (pochette) sur la nuque.
+		_shell_box(Vector3(0.11, 0.035, 0.055), 1.42, PI, 0.016, _m_gear, false)
+		_shell_box(Vector3(0.112, 0.008, 0.02), 1.32, PI, 0.032, _m_gear, false)
+
+
+## Coque du casque : ellipsoïde de centre et rayons donnés, épaisseur de la
+## doublure (part du rayon), et nombre d'anneaux et de secteurs du maillage.
+const HELMET_CENTER := Vector3(0.0, 0.19, 0.005)
+const HELMET_RADII := Vector3(0.145, 0.148, 0.158)
+const HELMET_INNER := 0.9
+const HELMET_RINGS := 14
+const HELMET_SEGMENTS := 56
+
+static var _helmet_cache: ArrayMesh
+
+
+## Angle (depuis le sommet) du bord de la coque dans la direction `phi`
+## (0 : avant, ±π/2 : côtés, π : arrière) : au ras des sourcils devant,
+## découpé au-dessus des oreilles, plus bas sur la nuque.
+static func _helmet_edge(phi: float) -> float:
+	return 1.67 - 0.17 * cos(phi) - 0.38 * exp(-pow((absf(wrapf(phi, -PI, PI)) - PI / 2.0) / 0.5, 2.0))
+
+
+static func _helmet_point(theta: float, phi: float, factor: float = 1.0) -> Vector3:
+	var direction := Vector3(sin(theta) * sin(phi), cos(theta), -sin(theta) * cos(phi))
+	return HELMET_CENTER + HELMET_RADII * factor * direction
+
+
+static func _helmet_normal(theta: float, phi: float) -> Vector3:
+	var direction := Vector3(sin(theta) * sin(phi), cos(theta), -sin(theta) * cos(phi))
+	return (direction / HELMET_RADII).normalized()
+
+
+## Maillage de la coque (partagé par tous les modèles) : surface extérieure,
+## bordure (épaisseur au bord) et doublure intérieure.
+static func _helmet_mesh() -> ArrayMesh:
+	if _helmet_cache:
+		return _helmet_cache
+	var outer := SurfaceTool.new()
+	var trim := SurfaceTool.new()
+	var liner := SurfaceTool.new()
+	for tool: SurfaceTool in [outer, trim, liner]:
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for j in HELMET_SEGMENTS:
+		var phis: Array[float] = [-PI + TAU * j / HELMET_SEGMENTS, -PI + TAU * (j + 1) / HELMET_SEGMENTS]
+		var edges: Array[float] = [_helmet_edge(phis[0]), _helmet_edge(phis[1])]
+		for i in HELMET_RINGS:
+			var t0 := float(i) / HELMET_RINGS
+			var t1 := float(i + 1) / HELMET_RINGS
+			var angles := [[t0 * edges[0], phis[0]], [t1 * edges[0], phis[0]], [t1 * edges[1], phis[1]], [t0 * edges[1], phis[1]]]
+			var points: Array[Vector3] = []
+			var inner: Array[Vector3] = []
+			var normals: Array[Vector3] = []
+			var inward: Array[Vector3] = []
+			for a: Array in angles:
+				points.append(_helmet_point(a[0], a[1]))
+				inner.append(_helmet_point(a[0], a[1], HELMET_INNER))
+				normals.append(_helmet_normal(a[0], a[1]))
+				inward.append(-_helmet_normal(a[0], a[1]))
+			_add_quad(outer, points, normals)
+			_add_quad(liner, inner, inward)
+		# Bordure : du bord extérieur au bord intérieur, tournée vers le bas.
+		var rim: Array[Vector3] = [_helmet_point(edges[0], phis[0]), _helmet_point(edges[0], phis[0], HELMET_INNER),
+				_helmet_point(edges[1], phis[1], HELMET_INNER), _helmet_point(edges[1], phis[1])]
+		var down: Array[Vector3] = []
+		for k in 2:
+			var along := (_helmet_point(edges[k] + 0.02, phis[k]) - _helmet_point(edges[k], phis[k])).normalized()
+			down.append(along)
+		_add_quad(trim, rim, [down[0], down[0], down[1], down[1]] as Array[Vector3])
+	var mesh := ArrayMesh.new()
+	for tool: SurfaceTool in [outer, trim, liner]:
+		tool.commit(mesh)
+	_helmet_cache = mesh
+	return mesh
+
+
+## Quadrilatère (deux triangles) dont les faces avant regardent du côté des
+## normales données (Godot : faces avant dans le sens horaire).
+static func _add_quad(tool: SurfaceTool, points: Array[Vector3], normals: Array[Vector3]) -> void:
+	for triangle: Array in [[0, 1, 2], [0, 2, 3]]:
+		var a := points[triangle[0]]
+		var face := (points[triangle[1]] - a).cross(points[triangle[2]] - a)
+		if face.length_squared() < 1e-14:
+			continue
+		var reference := normals[triangle[0]] + normals[triangle[1]] + normals[triangle[2]]
+		var order: Array = triangle if face.dot(reference) < 0.0 else [triangle[0], triangle[2], triangle[1]]
+		for k: int in order:
+			tool.set_normal(normals[k])
+			tool.add_vertex(points[k])
+
+
+## Repère posé sur la coque en (`theta`, `phi`), décollé de `lift` : Y selon
+## la normale, -Z vers le bas de la coque (`along_meridian`) ou dans le sens
+## de `phi` croissant.
+static func _shell_frame(theta: float, phi: float, lift: float, along_meridian: bool = true) -> Transform3D:
+	var normal := _helmet_normal(theta, phi)
+	var next := _helmet_point(theta + 0.01, phi) if along_meridian else _helmet_point(theta, phi + 0.01)
+	var tangent := next - _helmet_point(theta, phi)
+	tangent = (tangent - normal * tangent.dot(normal)).normalized()
+	return Transform3D(Basis.looking_at(tangent, normal), _helmet_point(theta, phi) + normal * lift)
+
+
+## Pièce plate posée sur la coque.
+func _shell_box(size: Vector3, theta: float, phi: float, lift: float, material: Material, along_meridian: bool = true) -> MeshInstance3D:
+	var piece := _box(_head, size, Vector3.ZERO, material)
+	piece.transform = _shell_frame(theta, phi, lift + size.y * 0.5, along_meridian)
+	return piece
+
+
+## Bande qui suit la coque à hauteur `theta`, de `from` à `to` (en `phi`), en
+## `segments` morceaux ; `notched` : crans d'un rail.
+func _shell_band(theta: float, from: float, to: float, width: float, thickness: float, lift: float, material: Material, segments: int, notched: bool = false) -> void:
+	for i in segments:
+		var a := lerpf(from, to, float(i) / segments)
+		var b := lerpf(from, to, float(i + 1) / segments)
+		var length := _helmet_point(theta, a).distance_to(_helmet_point(theta, b))
+		_shell_box(Vector3(width, thickness, length * 1.08), theta, (a + b) * 0.5, lift, material, false)
+		if notched:
+			_shell_box(Vector3(width * 1.1, thickness * 0.4, length * 0.3), theta, (a + b) * 0.5, lift + thickness * 0.8, material, false)
+
+
+## Sangle plate de `from` à `to` (repère de la tête).
+func _strap(from: Vector3, to: Vector3, width: float, thickness: float, material: Material) -> MeshInstance3D:
+	var strap := _box(_head, Vector3(width, thickness, from.distance_to(to)), Vector3.ZERO, material)
+	var direction := (to - from).normalized()
+	var up := Vector3.UP if absf(direction.dot(Vector3.UP)) < 0.95 else Vector3.FORWARD
+	strap.transform = Transform3D(Basis.looking_at(direction, up), (from + to) * 0.5)
+	return strap
 
 
 func _build_rifle_and_arms() -> void:

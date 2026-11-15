@@ -308,3 +308,9 @@
   - jauge de charge ;
   - jusqu'à 6 tenues enregistrées par opérateur (onglet « Tenues enregistrées »).
 - « Jouer » ouvre une préparation de mission : le camouflage conseillé pour la carte (un bouton pour toute l'équipe, un par opérateur), le choix d'une tenue enregistrée par opérateur, puis « Lancer la mission ».
+
+## Casque des opérateurs retravaillé
+
+- La coque est maintenant un vrai casque « high cut » : découpée au-dessus des oreilles, ras des sourcils devant et plus basse sur la nuque, avec une bordure caoutchouc et une doublure visibles.
+- Rails latéraux courbes et crantés, lampe sur le rail droit, platine de JVN épousant le front, bras articulé et bagues des jumelles, scratchs sur le dessus et l'arrière, contrepoids sur la nuque.
+- Jugulaire : sangles devant et derrière l'oreille jusqu'à la mentonnière, avec ou sans cagoule.
