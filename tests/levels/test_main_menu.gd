@@ -4,12 +4,21 @@ extends GutTest
 var _saved_maps_env := ""
 
 
+## Réglages propres aux tests : la dernière carte jouée du joueur ne
+## change pas l'ordre des cartes.
+const SETTINGS_FILE := "user://test_settings.cfg"
+
+
 func before_each() -> void:
 	_saved_maps_env = OS.get_environment("COMMANDO_MAPS")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_FILE))
+	Settings.use_file(SETTINGS_FILE)
 
 
 func after_each() -> void:
 	OS.set_environment("COMMANDO_MAPS", _saved_maps_env)
+	Settings.use_file(Settings.PATH)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_FILE))
 	get_tree().paused = false
 	var scene := get_tree().current_scene
 	if is_instance_valid(scene):
@@ -58,7 +67,8 @@ func test_catalog_scenes_exist() -> void:
 
 func test_menu_lists_every_level() -> void:
 	var menu := await _open_menu()
-	assert_eq(_play_buttons(menu).size(), LevelCatalog.LEVELS.size())
+	# Catalogue, puis les autres cartes UFO:AI du dossier.
+	assert_eq(_play_buttons(menu).size(), LevelCatalog.all_levels().size())
 
 
 func test_missing_map_greys_out_its_level() -> void:

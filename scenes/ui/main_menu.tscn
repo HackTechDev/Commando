@@ -31,7 +31,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Column" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(620, 0)
+custom_minimum_size = Vector2(760, 0)
 layout_mode = 2
 theme_override_constants/separation = 14
 
@@ -58,9 +58,15 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "CHOISIR UNE CARTE"
 
-[node name="Levels" type="VBoxContainer" parent="Center/Column"]
+[node name="LevelScroll" type="ScrollContainer" parent="Center/Column"]
+custom_minimum_size = Vector2(760, 470)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Levels" type="VBoxContainer" parent="Center/Column/LevelScroll"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
 [node name="Status" type="Label" parent="Center/Column"]

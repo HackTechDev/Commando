@@ -56,6 +56,12 @@ func _ready() -> void:
 	_navigation.bake_navigation_mesh(true)
 
 
+## Clé de ce niveau (aperçu, dernière carte jouée : `LevelCatalog.key_of`).
+func level_key() -> String:
+	var map := find_child("Map", true, false) as UfoMapLevel
+	return LevelCatalog.key_for(scene_file_path, map.map_file if map else "")
+
+
 func _exit_tree() -> void:
 	TextureLibrary.clear()
 	# Niveau quitté pendant le chargement : ne pas laisser le jeu en pause.
@@ -84,6 +90,7 @@ func _on_bake_finished() -> void:
 		_loading_screen.queue_free()
 		_loading_screen = null
 		level_ready.emit()
+		LevelPreview.capture_if_missing(self, level_key())
 	if _bake_pending:
 		_bake_pending = false
 		_rebake()

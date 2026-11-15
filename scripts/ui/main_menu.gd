@@ -1,8 +1,13 @@
 class_name MainMenu
 extends Control
-## Menu de démarrage : choix de la carte (`LevelCatalog`), préparation de la
-## mission (tenues et camouflage conseillé), chargement en arrière-plan puis
-## lancement du niveau ; accès à l'écran « Opérateurs ».
+## Menu de démarrage : choix de la carte (`LevelCatalog`, puis les autres
+## cartes UFO:AI du dossier), avec aperçu et dernière carte jouée en tête de
+## liste ; préparation de la mission (tenues et camouflage conseillé),
+## chargement en arrière-plan puis lancement du niveau ; accès à l'écran
+## « Opérateurs ».
+
+## Taille des vignettes d'aperçu.
+const THUMB_SIZE := Vector2(150, 96)
 
 @onready var _levels: VBoxContainer = %Levels
 @onready var _status: Label = %Status
@@ -30,25 +35,51 @@ func _ready() -> void:
 	_quit.pressed.connect(quit_dialog.ask)
 	_operators.pressed.connect(open_operators)
 	var first: Button = null
-	for level in LevelCatalog.LEVELS:
-		var button := _add_level(level)
+	var last: Button = null
+	var last_key := Settings.last_level()
+	var extras_shown := false
+	for level in LevelCatalog.all_levels():
+		if level.get("extra", false) and not extras_shown:
+			extras_shown = true
+			var heading := Label.new()
+			heading.name = "ExtraHeading"
+			heading.text = "AUTRES CARTES UFO:AI DU DOSSIER (non adaptées)"
+			heading.add_theme_font_size_override(&"font_size", 16)
+			_levels.add_child(heading)
+		var button := _add_level(level, LevelCatalog.key_of(level) == last_key)
 		if first == null and not button.disabled:
 			first = button
+		if LevelCatalog.key_of(level) == last_key and not button.disabled:
+			last = button
+	# La dernière carte jouée passe en tête de liste, sélectionnée.
+	if last:
+		_levels.move_child(last.get_parent().get_parent(), 0)
+		first = last
 	if first:
 		first.grab_focus()
 
 
-func _add_level(level: Dictionary) -> Button:
+## Bouton « Jouer » de la carte de clé `key` (tests), ou null.
+func play_button(key: String) -> Button:
+	for card in _levels.get_children():
+		if card.get_meta(&"key", "") == key:
+			return card.find_child("Play", true, false) as Button
+	return null
+
+
+func _add_level(level: Dictionary, is_last: bool = false) -> Button:
 	var card := PanelContainer.new()
+	card.set_meta(&"key", LevelCatalog.key_of(level))
 	_levels.add_child(card)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override(&"separation", 16)
 	card.add_child(row)
+	row.add_child(preview_of(level, THUMB_SIZE))
 	var texts := VBoxContainer.new()
 	texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(texts)
 	var title := Label.new()
-	title.text = level["title"]
+	title.text = level["title"] + ("   — dernière partie" if is_last else "")
 	title.add_theme_font_size_override(&"font_size", 22)
 	texts.add_child(title)
 	var description := Label.new()
@@ -57,6 +88,7 @@ func _add_level(level: Dictionary) -> Button:
 	description.modulate = Color(1, 1, 1, 0.75)
 	texts.add_child(description)
 	var button := Button.new()
+	button.name = "Play"
 	button.text = "Jouer"
 	button.custom_minimum_size = Vector2(110, 0)
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -74,6 +106,31 @@ func _add_level(level: Dictionary) -> Button:
 		warning.add_theme_font_size_override(&"font_size", 13)
 		texts.add_child(warning)
 	return button
+
+
+## Vignette d'aperçu du niveau `level` (vue du dessus enregistrée après une
+## première partie), ou cadre d'attente.
+static func preview_of(level: Dictionary, size: Vector2) -> Control:
+	var texture := LevelPreview.load_texture(LevelCatalog.key_of(level))
+	if texture:
+		var picture := TextureRect.new()
+		picture.name = "Preview"
+		picture.texture = texture
+		picture.custom_minimum_size = size
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		return picture
+	var frame := PanelContainer.new()
+	frame.name = "NoPreview"
+	frame.custom_minimum_size = size
+	var hint := Label.new()
+	hint.text = "Aperçu après\nune première partie"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override(&"font_size", 12)
+	hint.modulate = Color(1, 1, 1, 0.5)
+	frame.add_child(hint)
+	return frame
 
 
 ## Ouvre l'écran de personnalisation des opérateurs.
@@ -236,6 +293,9 @@ func _start(level: Dictionary) -> void:
 	if not _loading.is_empty():
 		return
 	_loading = level["scene"]
+	if level.get("extra", false):
+		UfoMapLevel.requested_map = level["map"]
+	Settings.set_last_level(LevelCatalog.key_of(level))
 	Sfx.play_ui(&"order")
 	_status.text = "Chargement de « %s »…" % level["title"]
 	for button in _levels.find_children("*", "Button", true, false):

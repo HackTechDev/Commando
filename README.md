@@ -55,6 +55,7 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Ordres simultanés | Tab (préparer / abandonner), Entrée (exécuter) |
 | Étage affiché (cartes à bâtiments) | Page suiv. (descendre), Page préc. (monter ; au-dessus du dernier étage, tout s'affiche) |
 | Aide (toutes les commandes, jeu en pause) | H (Échap ou clic pour fermer) |
+| Menu pause (reprendre, recommencer, aide, menu, quitter) | Échap (annule d'abord une action V / B / T… armée) |
 | Quitter | Bouton « Quitter » en haut à droite |
 
 Les touches sont définies par position physique dans l'InputMap : sur un clavier QWERTY, ZQSD devient WASD et A/E devient Q/E.

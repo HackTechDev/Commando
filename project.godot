@@ -21,6 +21,7 @@ EventBus="*res://scripts/autoload/event_bus.gd"
 GameState="*res://scripts/autoload/game_state.gd"
 SelectionManager="*res://scripts/autoload/selection_manager.gd"
 Sfx="*res://scripts/autoload/sfx.gd"
+Settings="*res://scripts/autoload/settings.gd"
 
 [commando]
 

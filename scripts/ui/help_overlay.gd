@@ -40,6 +40,7 @@ const SECTIONS: Array = [
 		[[&"tactical_pause"], "Pause tactique (les ordres restent possibles)"],
 		[[&"plan_orders"], "Ordres simultanés : préparer"],
 		[[&"execute_orders"], "Ordres simultanés : exécuter"],
+		[[&"ui_cancel"], "Menu pause (reprendre, recommencer…)"],
 	]],
 	["Caméra", [
 		[[&"camera_forward", &"camera_left", &"camera_back", &"camera_right"], "Déplacer (aussi : flèches, bord d'écran)"],
@@ -53,6 +54,8 @@ const SECTIONS: Array = [
 ]
 
 const KEY_COLOR := Color(1.0, 0.85, 0.4)
+
+signal closed
 
 var _was_paused: bool = false
 
@@ -87,6 +90,7 @@ func close() -> void:
 		return
 	visible = false
 	get_tree().paused = _was_paused
+	closed.emit()
 
 
 func is_open() -> bool:

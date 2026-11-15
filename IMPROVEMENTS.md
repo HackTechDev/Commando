@@ -112,11 +112,11 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **c)** munitions de l'arme secondaire visibles en même temps que celles de la principale ;
   - **d)** effet visuel de soin.
 - **5.4 Préparation de mission, suite** : aperçu de la carte, objectifs, et modification complète de la tenue sans passer par l'écran « Opérateurs ».
-- **5.5 Menu, suite** :
-  - **a)** menu pause sur Échap ;
-  - **b)** aperçu de chaque carte ;
-  - **c)** mémoriser la dernière carte jouée ;
-  - **d)** proposer automatiquement les autres cartes UFO:AI du dossier.
+- **5.5 ~~Menu, suite~~** (fait) :
+  - **a)** ~~menu pause sur Échap~~ ;
+  - **b)** ~~aperçu de chaque carte~~ (vue du dessus enregistrée à la première partie) ;
+  - **c)** ~~mémoriser la dernière carte jouée~~ ;
+  - **d)** ~~proposer automatiquement les autres cartes UFO:AI du dossier~~.
 - **5.6 Écran de fin et redémarrage** : après « ÉCHEC — opérateur tué », la partie continue. Proposer de recommencer.
 - **5.7 Journal d'objectifs, minimap, menu pause, options** (§6).
 - **5.8 Traduction** : passer tous les textes par `tr()` (français et anglais, M10).

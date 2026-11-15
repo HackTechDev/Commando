@@ -497,3 +497,10 @@
 
 - Sous l'indicatif, un court message orangé dit pourquoi l'opérateur ne tire pas ou ne lance pas encore : « Hors de portée » ou « Obstacle : pas de ligne de tir » pendant qu'il s'approche, pour un tir, un couteau ou une grenade.
 - Un ordre refusé s'explique un instant : « À sec », « Plus de couteau », « Plus de grenade ».
+
+## Menu, suite
+
+- Échap ouvre un menu pause : reprendre, recommencer la mission, aide, menu principal, quitter. Il annule d'abord une action armée (couteau, grenade…). L'aide et les confirmations ouvertes depuis lui y ramènent.
+- Chaque carte du menu a une vignette : une vue du dessus, enregistrée à la fin du premier chargement (`user://previews`).
+- La dernière carte jouée passe en tête de liste, sélectionnée (`user://settings.cfg`, autoload `Settings`).
+- Les autres cartes UFO:AI du dossier (`.map` hors catalogue) sont proposées à la suite, jouables dans un niveau générique : opérateurs sur les points de départ, sentinelles sur les positions des aliens, camouflage deviné d'après le nom.

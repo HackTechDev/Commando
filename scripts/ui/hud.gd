@@ -30,6 +30,8 @@ var quit_dialog: ConfirmDialog
 var menu_dialog: ConfirmDialog
 ## Page d'aide (touche H), ouverte par le contrôleur.
 var help: HelpOverlay
+## Menu pause (Échap).
+var pause_menu: PauseMenu
 
 
 func _ready() -> void:
@@ -76,9 +78,33 @@ func _ready() -> void:
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
 	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")
+	pause_menu = PauseMenu.new()
+	add_child(pause_menu)
+	pause_menu.restart_requested.connect(restart_mission)
+	pause_menu.menu_requested.connect(menu_dialog.ask)
+	pause_menu.quit_requested.connect(quit_dialog.ask)
+	menu_dialog.canceled.connect(_back_to_pause_menu)
+	quit_dialog.canceled.connect(_back_to_pause_menu)
+	# Ajoutée après le menu : elle reçoit Échap la première.
 	help = HelpOverlay.new()
 	add_child(help)
+	pause_menu.help_requested.connect(help.open)
+	help.closed.connect(_back_to_pause_menu)
 	_refresh_actions()
+
+
+## Recommence la mission : la scène du niveau est rechargée.
+func restart_mission() -> void:
+	pause_menu.abandon()
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
+## Une page ouverte depuis le menu pause (aide, confirmation annulée) se
+## referme : le menu revient.
+func _back_to_pause_menu() -> void:
+	if pause_menu.is_suspended():
+		pause_menu.open()
 
 
 ## Active la barre d'actions selon la sélection et reflète la posture commune.

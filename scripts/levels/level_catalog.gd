@@ -8,6 +8,15 @@ extends RefCounted
 ## camouflage conseillé par l'écran de préparation (`GearCatalog.CAMOS`).
 
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
+## Niveau générique qui construit n'importe quelle carte UFO:AI
+## (`UfoMapLevel.requested_map`) : il sert aux cartes hors catalogue.
+const GENERIC_SCENE := "res://scenes/levels/ufo_map/ufo_map.tscn"
+## Camouflage deviné d'après le nom d'une carte hors catalogue.
+const CAMO_HINTS: Dictionary = {
+	"desert": "desert", "dam": "desert", "excavation": "desert", "mine": "desert",
+	"city": "urban", "office": "urban", "subway": "urban", "neighbourhood": "urban",
+	"harbour": "urban", "ferry": "urban", "resort": "urban", "bunker": "urban", "pipes": "urban",
+}
 
 const LEVELS: Array[Dictionary] = [
 	{
@@ -46,9 +55,71 @@ const LEVELS: Array[Dictionary] = [
 ]
 
 
+## Cartes UFO:AI du dossier des cartes qui n'ont pas de niveau au
+## catalogue : elles se jouent dans le niveau générique, avec les sentinelles
+## de la carte (non testées une à une).
+static func extra_levels() -> Array[Dictionary]:
+	var known: Array[String] = []
+	for level in LEVELS:
+		if level.has("map"):
+			known.append(level["map"])
+	var extras: Array[Dictionary] = []
+	var dir := AssetPaths.maps_dir()
+	if not DirAccess.dir_exists_absolute(dir):
+		return extras
+	var files := Array(DirAccess.get_files_at(dir))
+	files.sort()
+	for file: String in files:
+		if file.get_extension() != "map" or known.has(file):
+			continue
+		var base := file.get_basename()
+		var camo := "woodland"
+		for hint: String in CAMO_HINTS:
+			if base.contains(hint):
+				camo = CAMO_HINTS[hint]
+		extras.append({
+			"title": base.replace("_", " ").capitalize(),
+			"scene": GENERIC_SCENE,
+			"description": "Carte UFO:AI « %s », trouvée dans le dossier des cartes. Non adaptée au jeu : sentinelles placées sur les positions des aliens, toits repérés automatiquement." % file,
+			"map": file,
+			"camo": camo,
+			"extra": true,
+		})
+	return extras
+
+
+## Tous les niveaux proposés : catalogue, puis cartes UFO:AI en plus.
+static func all_levels() -> Array[Dictionary]:
+	var levels: Array[Dictionary] = LEVELS.duplicate()
+	levels.append_array(extra_levels())
+	return levels
+
+
+## Clé d'un niveau (dernière carte jouée, aperçus) : la carte pour le niveau
+## générique, la scène sinon.
+static func key_of(level: Dictionary) -> String:
+	return level["map"] if level.get("extra", false) else level["scene"]
+
+
+## Clé du niveau en cours : scène `scene_path` construisant la carte
+## `map_file` (voir `key_of`).
+static func key_for(scene_path: String, map_file: String) -> String:
+	return map_file if scene_path == GENERIC_SCENE else scene_path
+
+
+## Niveau de clé `key` (voir `key_of`), ou vide.
+static func find(key: String) -> Dictionary:
+	for level in all_levels():
+		if key_of(level) == key:
+			return level
+	return {}
+
+
 ## Titre du niveau dont la scène est `scene_path`, ou vide s'il n'est pas au
-## catalogue.
+## catalogue. Pour le niveau générique : le nom de la carte demandée.
 static func title_of(scene_path: String) -> String:
+	if scene_path == GENERIC_SCENE:
+		return find(UfoMapLevel.requested_map).get("title", "")
 	for level in LEVELS:
 		if level["scene"] == scene_path:
 			return level["title"]

@@ -54,6 +54,8 @@ func _ready() -> void:
 	instance.mesh = _mesh
 	instance.material_override = _material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Pas dans l'aperçu de la carte (`LevelPreview`).
+	instance.layers = LevelPreview.OVERLAY_LAYER
 	add_child(instance)
 	EventBus.navigation_obstacle_moved.connect(invalidate)
 

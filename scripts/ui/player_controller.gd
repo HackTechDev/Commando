@@ -297,6 +297,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	# aide) : aucun ordre.
 	if get_tree().paused and not tactical_paused:
 		return
+	if event.is_action_pressed(&"ui_cancel"):
+		# Échap annule d'abord une action armée, sinon ouvre le menu pause.
+		if pending_action != ACTION_NONE:
+			cancel_pending_action()
+		else:
+			var menu := get_node_or_null(^"../PauseMenu") as PauseMenu
+			if menu:
+				menu.open()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(&"toggle_help"):
 		var help := get_node_or_null(^"../HelpOverlay") as HelpOverlay
 		if help:

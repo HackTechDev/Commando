@@ -69,6 +69,9 @@ const BASE_AXES: Array = [
 
 ## Fichier de la carte, relatif au dossier des cartes.
 @export var map_file: String = "training_a.map"
+## Carte à construire quand `map_file` est vide (niveau générique
+## `ufo_map.tscn`, lancé depuis le menu pour une carte hors catalogue).
+static var requested_map: String = ""
 ## Échelle : unités UFO:AI par mètre. Par défaut, une case de 32 unités fait
 ## 1,2 m, comme les caisses du jeu (animations d'escalade) ; un étage de
 ## 64 unités fait 2,4 m.
@@ -146,6 +149,8 @@ func _update_see_through() -> void:
 ## maillages et collisions par tranches de `SLICE_USEC`.
 func _build_level() -> void:
 	build_stage = "Lecture de la carte"
+	if map_file.is_empty():
+		map_file = requested_map
 	var path := AssetPaths.maps_dir().path_join(map_file)
 	var loaded: Dictionary = await _run_in_thread(func() -> Dictionary:
 		var parsed := UfoMap.load_file(path)
