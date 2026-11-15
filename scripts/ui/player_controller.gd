@@ -176,8 +176,34 @@ func _update_banner() -> void:
 	if SelectionManager.planning:
 		lines.append("ORDRES SIMULTANÉS (%d) — %s : exécuter, %s : annuler" % [
 			SelectionManager.planned_orders().size(), KeyNames.label(&"execute_orders"), KeyNames.label(&"plan_orders")])
+	if Roof.view_level >= 0:
+		lines.append("VUE : %s — %s / %s : changer d'étage" % [
+			view_level_name(Roof.view_level), KeyNames.label(&"view_level_down"), KeyNames.label(&"view_level_up")])
 	_banner.text = "\n".join(lines)
 	_banner.visible = not lines.is_empty()
+
+
+## Change d'étage de vue (`direction` : -1 pour descendre, 1 pour monter) :
+## au-dessus du dernier étage, tout est de nouveau affiché. Sans toit, rien.
+func step_view_level(direction: int) -> void:
+	var count := Roof.storey_count(get_tree())
+	if count == 0:
+		return
+	var level := Roof.view_level
+	if direction < 0:
+		level = count - 1 if level < 0 else maxi(level - 1, 0)
+	elif level >= 0:
+		level = -1 if level + 1 >= count else level + 1
+	if level == Roof.view_level:
+		return
+	Roof.view_level = level
+	Sfx.play_ui(&"select")
+	_update_banner()
+
+
+## Nom de l'étage de vue `level`.
+static func view_level_name(level: int) -> String:
+	return "rez-de-chaussée" if level == 0 else "étage %d" % level
 
 
 ## Curseur à afficher au point `screen_position` de l'écran.
@@ -264,6 +290,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(&"execute_orders"):
 		execute_plans()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"view_level_down") or event.is_action_pressed(&"view_level_up"):
+		step_view_level(-1 if event.is_action_pressed(&"view_level_down") else 1)
 		get_viewport().set_input_as_handled()
 		return
 	if pending_action != ACTION_NONE and event is InputEventMouseButton:

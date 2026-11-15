@@ -6,6 +6,10 @@ extends Node3D
 ## Effacé, il ne masque plus les clics destinés au sol de l'intérieur
 ## (`is_revealed_body`), mais son corps reste solide : on peut toujours s'y
 ## tenir et il masque toujours la vue.
+##
+## Étages : le joueur peut aussi choisir un niveau de vue (`view_level`) ;
+## les toits de cet étage et des étages supérieurs sont alors effacés, qu'il y
+## ait quelqu'un dessous ou non.
 
 ## Durée du fondu, en secondes.
 const FADE_TIME := 0.3
@@ -35,6 +39,28 @@ var _occupied: bool = false
 ## Un opérateur est directement sous ce toit.
 var _inside: bool = false
 var _check_left: float = 0.0
+
+## Niveau de vue choisi par le joueur : les toits d'étage (`storey`) égal ou
+## supérieur sont effacés. -1 : aucun effacement imposé.
+static var view_level: int = -1
+
+
+func _ready() -> void:
+	add_to_group(&"roofs")
+
+
+## Étage que ce toit couvre : 0 pour le rez-de-chaussée, 1 pour le premier
+## étage (un toit plus bas dessous), etc.
+func storey() -> int:
+	return below.size()
+
+
+## Nombre d'étages couverts par les toits de la partie (0 sans toit).
+static func storey_count(tree: SceneTree) -> int:
+	var count := 0
+	for node in tree.get_nodes_in_group(&"roofs"):
+		count = maxi(count, (node as Roof).storey() + 1)
+	return count
 
 
 ## Vrai si `point` (pieds d'une unité) est sous ce toit.
@@ -74,7 +100,8 @@ func _process(delta: float) -> void:
 	if _check_left <= 0.0:
 		_check_left = CHECK_INTERVAL
 		_inside = _has_operator_below()
-		_occupied = _inside or below.any(func(roof: Roof) -> bool: return roof._inside)
+		_occupied = _inside or below.any(func(roof: Roof) -> bool: return roof._inside) \
+				or (view_level >= 0 and storey() >= view_level)
 	var target := 1.0 if _occupied else 0.0
 	if is_equal_approx(_fade, target):
 		return

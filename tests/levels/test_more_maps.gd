@@ -185,3 +185,51 @@ func test_station_roofs_fade_floor_by_floor() -> void:
 	assert_true(upper.covers(alpha.global_position), "opérateur à l'étage (%s)" % alpha.global_position)
 	assert_true(upper.is_revealed(), "toit de l'étage effacé")
 	assert_false(lower.is_revealed(), "plancher de l'étage affiché")
+
+
+func test_view_level_hides_the_upper_floors() -> void:
+	# Niveau de vue choisi au clavier : l'étage, puis le rez-de-chaussée de la
+	# gare de fighter_crash s'affichent sans personne dedans.
+	if not await _load("fighter_crash.map"):
+		return
+	for enemy in node("Enemies").get_children():
+		enemy.free()
+	var roofs := level.find_children("Roof*", "Roof", true, false)
+	var lower: Roof = null
+	for roof: Roof in roofs:
+		if roof.covers(Vector3(10.35, -2.9, 3.9)):
+			lower = roof
+	var upper: Roof = null
+	for roof: Roof in roofs:
+		if lower and roof.below.has(lower):
+			upper = roof
+	assert_not_null(upper, "gare à étage")
+	if upper == null:
+		return
+	assert_eq(lower.storey(), 0)
+	assert_eq(upper.storey(), 1)
+	var count := Roof.storey_count(get_tree())
+	assert_gte(count, 2)
+	var controller: PlayerController = node("HUD/PlayerController")
+	await frames(20)
+	assert_false(upper.is_revealed(), "personne dans la gare")
+	controller.step_view_level(-1)
+	assert_eq(Roof.view_level, count - 1, "dernier étage")
+	while Roof.view_level > 1:
+		controller.step_view_level(-1)
+	await frames(20)
+	assert_true(upper.is_revealed(), "toit de l'étage effacé")
+	assert_false(lower.is_revealed(), "plancher de l'étage affiché")
+	assert_true(controller.get_node("Banner").visible, "étage annoncé")
+	controller.step_view_level(-1)
+	assert_eq(Roof.view_level, 0)
+	controller.step_view_level(-1)
+	assert_eq(Roof.view_level, 0, "on ne descend pas plus bas")
+	await frames(20)
+	assert_true(lower.is_revealed(), "rez-de-chaussée visible")
+	for i in count:
+		controller.step_view_level(1)
+	assert_eq(Roof.view_level, -1, "au-dessus du dernier étage : tout affiché")
+	await frames(40)
+	assert_false(upper.is_revealed())
+	assert_false(controller.get_node("Banner").visible)

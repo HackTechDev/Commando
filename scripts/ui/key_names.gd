@@ -11,6 +11,7 @@ const FRENCH := {
 	"Home": "Origine", "End": "Fin", "Shift": "Maj", "Ctrl": "Ctrl", "Escape": "Échap",
 	"Up": "Haut", "Down": "Bas", "Left": "Gauche", "Right": "Droite",
 	"Backspace": "Retour", "Delete": "Suppr", "Insert": "Inser",
+	"PageUp": "Page préc.", "PageDown": "Page suiv.",
 }
 
 

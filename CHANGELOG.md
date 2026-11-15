@@ -465,3 +465,8 @@
 - Hors de l'écran, le cône attend d'y revenir pour être recalculé.
 - Caméra très dézoomée, le cône a moins de segments (jusqu'à 16 au lieu de 48).
 - La détection des opérateurs, elle, ne change pas : un rayon par cible, à chaque image.
+
+## Étages affichés au choix
+
+- Page suiv. / Page préc. choisissent l'étage affiché : les toits de cet étage et des étages supérieurs s'effacent, même sans opérateur dessous. On voit ainsi l'intérieur d'un bâtiment avant d'y entrer, étage par étage.
+- Au-dessus du dernier étage, l'affichage normal revient (seuls les toits au-dessus d'un opérateur s'effacent). Un bandeau rappelle l'étage choisi.

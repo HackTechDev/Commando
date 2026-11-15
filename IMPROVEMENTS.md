@@ -157,7 +157,7 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **a)** caisses restées fixes : piles de deux caisses, caisses à couvercle, caisses blanches surmontées, palettes basses. Il faut les escalader à d'autres hauteurs (2,4 m pour une pile, 0,6 m pour une palette, avec de nouvelles animations) et pouvoir déplacer une pile entière ;
   - **b)** lumières (`light`) ;
   - **c)** portes (`func_door`) et objets destructibles (`func_breakable`) ;
-  - **d)** étages : masquer les niveaux supérieurs (cf. l'occlusion, 7.5). Les toits d'un seul niveau s'effacent déjà ;
+  - **d)** ~~étages : masquer les niveaux supérieurs (cf. l'occlusion, 7.5). Les toits d'un seul niveau s'effacent déjà~~ (fait) ;
   - **e)** toits, suite :
     - effacer aussi les murs qui masquent un opérateur côté caméra ;
     - ne pas effacer les surplombs de terrain ;
