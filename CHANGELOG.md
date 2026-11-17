@@ -647,3 +647,8 @@
 - Sur les cartes UFO:AI, une sentinelle sur deux (`UfoMapLevel.patrol_ratio`) fait une ronde autour de son poste ; les autres restent fixes.
 - La ronde est tracée une fois la navigation prête (`UfoMapLevel.patrol_route`) : deux points atteignables à 6 à 12 m, de part et d'autre du poste (le premier du côté où regarde la sentinelle), au même étage et sans grand détour ; la sentinelle repasse par son poste entre les deux. Un seul point trouvé : un aller-retour ; aucun : elle reste fixe.
 - Une sentinelle en ronde n'est plus fixe : en alerte, elle poursuit comme un soldat.
+
+## Coiffures des opératrices
+
+- Chignon refait : boule enroulée sur elle-même (torsade) tenue par un élastique, haut sur l'arrière du crâne tête nue, plus bas sous un casque ou une casquette pour dépasser sous le bord.
+- Cheveux longs refaits : sept mèches effilées qui épousent l'arrière de la tête et tombent sur la nuque, deux mèches qui encadrent le visage, frange de côté tête nue.

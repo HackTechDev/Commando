@@ -2611,15 +2611,9 @@ func _build_face() -> void:
 			tail.rotation.x = 0.45
 			_sphere(_head, 0.018, Vector3(0.0, 0.195, 0.12), _m_gear)
 		&"bun":
-			_sphere(_head, 0.045, Vector3(0.0, 0.2, 0.125), _m_hair).name = "Bun"
+			_build_bun(covered)
 		&"long":
-			# Mèches qui encadrent le visage et tombent sur la nuque et les
-			# épaules (visibles sous un casque).
-			var back := _ellipsoid(_head, 0.1, Vector3(1.0, 1.45, 0.5), Vector3(0.0, 0.07, 0.075), _m_hair)
-			back.name = "LongHair"
-			back.rotation.x = -0.15
-			for side: float in [-1.0, 1.0]:
-				_ellipsoid(_head, 0.06, Vector3(0.38, 1.6, 0.9), Vector3(0.092 * side, 0.115, 0.01), _m_hair)
+			_build_long_hair(covered)
 		&"mohawk":
 			if not covered:
 				_box(_head, Vector3(0.032, 0.05, 0.22), Vector3(0.0, 0.31, 0.005), _m_hair)
@@ -2630,6 +2624,53 @@ func _build_face() -> void:
 			_mesh(_head, _beard_mesh(true), Vector3.ZERO, _m_hair).name = "Beard"
 			# Moustache, entre le nez et la lèvre.
 			_ellipsoid(_head, 0.022, Vector3(1.7, 0.4, 0.55), Vector3(0.0, 0.131, face_depth(0.0, 0.131) - 0.004), _m_hair)
+
+
+## Chignon : boule
+## enroulée sur elle-même et tenue par un élastique. Plus bas sous un
+## couvre-chef, pour dépasser sous le bord.
+func _build_bun(covered: bool) -> void:
+	var bun := _pivot(_head, Vector3(0.0, 0.165, 0.112) if covered else Vector3(0.0, 0.232, 0.108), "Bun")
+	bun.rotation.x = 0.35 if covered else -0.55
+	_ellipsoid(bun, 0.04, Vector3(1.0, 0.9, 0.85), Vector3(0.0, 0.0, 0.03), _m_hair)
+	# Torsade : anneau de cheveux autour du cœur, légèrement de biais.
+	var twist := TorusMesh.new()
+	twist.inner_radius = 0.016
+	twist.outer_radius = 0.046
+	twist.rings = 20
+	twist.ring_segments = 10
+	var wrap := _mesh(bun, twist, Vector3(0.0, 0.0, 0.022), _m_hair)
+	wrap.rotation = Vector3(PI / 2.0, 0.0, 0.3)
+	wrap.scale = Vector3(1.0, 0.75, 1.0)
+	var band := TorusMesh.new()
+	band.inner_radius = 0.026
+	band.outer_radius = 0.034
+	band.rings = 16
+	band.ring_segments = 6
+	var elastic := _mesh(bun, band, Vector3(0.0, 0.0, -0.004), _m_gear)
+	elastic.rotation.x = PI / 2.0
+
+
+## Cheveux longs : mèches effilées qui partent du crâne, épousent l'arrière
+## de la tête et tombent sur la nuque et les épaules, deux mèches qui encadrent le
+## visage et, tête nue, une frange de côté. Visibles sous un casque.
+func _build_long_hair(covered: bool) -> void:
+	var root := _pivot(_head, Vector3.ZERO, "LongHair")
+	var count := 7
+	for i in count:
+		var u := float(i) / float(count - 1) * 2.0 - 1.0
+		var angle := u * 1.25
+		var length := 4.3 - 0.9 * absf(u)
+		var lock := _ellipsoid(root, 0.034, Vector3(0.95, length, 0.55), Vector3(sin(angle) * 0.088, 0.205 - 0.034 * length, 0.036 + cos(angle) * 0.072), _m_hair)
+		lock.rotation = Vector3(-0.12 - 0.08 * (1.0 - absf(u)), angle, -u * 0.08)
+	# Mèches qui encadrent le visage, derrière les joues.
+	for side: float in [-1.0, 1.0]:
+		var frame := _ellipsoid(root, 0.03, Vector3(0.7, 3.4, 1.1), Vector3(0.094 * side, 0.135, 0.0), _m_hair)
+		frame.rotation = Vector3(0.05, 0.0, 0.06 * side)
+	if not covered:
+		var fringe := _ellipsoid(root, 0.05, Vector3(1.5, 0.42, 0.65), Vector3(0.025, 0.262, -0.075), _m_hair)
+		fringe.name = "Fringe"
+		fringe.rotation = Vector3(0.35, 0.0, 0.22)
 
 
 ## Volume de la tête : un seul maillage lissé, crâne arrondi et mâchoire
