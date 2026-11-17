@@ -41,6 +41,8 @@ var handler: Commando
 ## Détruite par une explosion (invisible, sans collision).
 var is_broken: bool = false
 var _layer_before_break: int = 0
+## Dégâts de balles encaissés (tir libre), jusqu'à `toughness()`.
+var damage_taken: float = 0.0
 
 ## Souffle d'une explosion : en deçà de cette part du rayon, l'objet est
 ## détruit ; au-delà (jusqu'au rayon), il est projeté d'au plus `BLAST_PUSH` m.
@@ -228,6 +230,24 @@ func blast(from: Vector3, radius: float) -> bool:
 	return true
 
 
+## Points de résistance aux balles : une caisse tient plus qu'un bidon.
+func toughness() -> float:
+	return 220.0 if can_stand_on else 110.0
+
+
+## Balle qui frappe l'objet (tir libre) : détruit une fois `toughness()`
+## atteint. Un objet fixe (corniche) ou occupé n'est pas touché.
+func take_shot(damage: float, at: Vector3, from: Vector3) -> void:
+	if not movable or is_broken or occupant != null or handler != null:
+		return
+	damage_taken += damage
+	if damage_taken >= toughness():
+		var box := AABB(global_position - Vector3(half_extent, 0.0, half_extent), Vector3(half_extent * 2.0, top_height, half_extent * 2.0))
+		Debris.burst(get_parent(), box, from, _color(), 12)
+		Sfx.play_at(&"fall", global_position + Vector3.UP * 0.5, -2.0)
+		_set_broken(true)
+
+
 ## Couleur des éclats : bois d'une caisse, tôle d'un bidon.
 func _color() -> Color:
 	return Color(0.45, 0.33, 0.2) if can_stand_on else Color(0.32, 0.36, 0.3)
@@ -258,11 +278,12 @@ func _set_broken(broken: bool) -> void:
 ## Sauvegarde rapide (`QuickSave`) : place et orientation (caisses
 ## déplacées), objet détruit.
 func save_state() -> Dictionary:
-	return {"transform": global_transform, "broken": is_broken}
+	return {"transform": global_transform, "broken": is_broken, "damage": damage_taken}
 
 
 func load_state(data: Dictionary) -> void:
 	_set_broken(data.get("broken", false))
+	damage_taken = data.get("damage", 0.0)
 	var saved: Transform3D = data.get("transform", global_transform)
 	if saved.is_equal_approx(global_transform):
 		return

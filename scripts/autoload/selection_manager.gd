@@ -2,7 +2,7 @@ extends Node
 ## Unités sélectionnées et transmission des ordres.
 ##
 ## Ordres simultanés : en mode préparation (`planning`), les ordres donnés
-## (déplacement, attaque, couteau, lancer, grenade, fumigène, grappin,
+## (déplacement, attaque, tir libre, couteau, lancer, grenade, fumigène, grappin,
 ## caisse, escalade, pose et mise à feu d'une charge, soins, roulade) ne
 ## partent pas : chaque unité garde le dernier reçu, et
 ## `execute_plans` les lance tous ensemble. Les gestes immédiats (posture,
@@ -110,6 +110,15 @@ func order_move(target: Vector3, run: bool) -> void:
 		# Une unité qui tient une caisse la déplace vers le point visé.
 		var point := target if selected[i].is_handling_crate() else target + offset
 		_issue(selected[i], selected[i].move_to.bind(point, run), point, &"move")
+
+
+## Ordonne aux unités sélectionnées une rafale de tir libre sur `target`
+## (mur, objet, sol). Renvoie vrai si au moins une a obéi.
+func order_fire_at(target: Vector3, run: bool = false) -> bool:
+	var any := false
+	for unit in selected:
+		any = _issue(unit, unit.fire_at.bind(target, run), target, &"attack") or any
+	return any
 
 
 ## Ordonne aux unités sélectionnées d'attaquer `enemy`.

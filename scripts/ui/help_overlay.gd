@@ -27,6 +27,7 @@ const SECTIONS: Array = [
 		[[&"parry"], "Parer : au moment où l'ennemi frappe"],
 		[[&"action_grenade"], "Grenade, puis clic au sol"],
 		[[&"action_smoke"], "Fumigène, puis clic au sol"],
+		[[&"action_fire_at"], "Tir libre, puis clic sur un mur ou un objet"],
 		[[&"reload"], "Recharger"],
 		[[&"switch_weapon"], "Arme secondaire / principale"],
 		[[&"action_sling"], "Arme à la bretelle"],

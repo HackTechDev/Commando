@@ -14,8 +14,11 @@ const COLOR := Color(0.55, 0.42, 0.34)
 ## Une explosion casse le mur si son centre est à moins de cette part de son
 ## rayon d'effet (mesurée jusqu'au point le plus proche du mur).
 @export var break_ratio: float = 0.8
+## Points de résistance aux balles (tir libre) : à zéro, le mur tombe.
+@export var toughness: float = 300.0
 
 var is_broken: bool = false
+var damage_taken: float = 0.0
 var _shape: CollisionShape3D
 var _mesh: MeshInstance3D
 
@@ -73,6 +76,16 @@ func is_breached_by(at: Vector3, radius: float) -> bool:
 	return local.distance_to(nearest) <= radius * break_ratio
 
 
+## Balle tirée depuis `from` qui frappe le mur en `at` : il s'effrite, et
+## tombe une fois `toughness` atteint.
+func take_shot(damage: float, at: Vector3, from: Vector3) -> void:
+	if is_broken:
+		return
+	damage_taken += damage
+	if damage_taken >= toughness:
+		break_apart(at + (at - from).normalized() * -0.5)
+
+
 ## Le mur tombe en morceaux (éclats projetés loin de `from`).
 func break_apart(from: Vector3) -> void:
 	if is_broken:
@@ -85,11 +98,12 @@ func break_apart(from: Vector3) -> void:
 
 ## Sauvegarde rapide (`QuickSave`) : mur debout ou effondré.
 func save_state() -> Dictionary:
-	return {"broken": is_broken}
+	return {"broken": is_broken, "damage": damage_taken}
 
 
 func load_state(data: Dictionary) -> void:
 	_set_broken(data.get("broken", is_broken))
+	damage_taken = data.get("damage", 0.0)
 
 
 func _set_broken(broken: bool) -> void:

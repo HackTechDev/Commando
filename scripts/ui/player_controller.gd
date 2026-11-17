@@ -31,6 +31,8 @@ const ACTION_CRATE := &"crate"
 const ACTION_GRENADE := &"grenade"
 ## Fumigène : puis clic gauche au sol.
 const ACTION_SMOKE := &"smoke"
+## Tir libre : puis clic gauche sur un mur, un objet ou le sol.
+const ACTION_FIRE_AT := &"fire_at"
 ## Grappin : puis clic gauche sur un point en hauteur.
 const ACTION_GRAPPLE := &"grapple"
 
@@ -257,6 +259,8 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 	match pending_action:
 		ACTION_GRENADE, ACTION_SMOKE:
 			return GameCursor.Kind.GRENADE
+		ACTION_FIRE_AT:
+			return GameCursor.Kind.ATTACK
 		ACTION_GRAPPLE:
 			return _grapple_cursor(screen_position)
 		ACTION_CRATE:
@@ -400,6 +404,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_pending_action(ACTION_GRENADE)
 	elif event.is_action_pressed(&"action_smoke"):
 		toggle_pending_action(ACTION_SMOKE)
+	elif event.is_action_pressed(&"action_fire_at"):
+		toggle_pending_action(ACTION_FIRE_AT)
 	elif event.is_action_pressed(&"action_grapple"):
 		if pending_action == ACTION_GRAPPLE or _has_grapnel():
 			toggle_pending_action(ACTION_GRAPPLE)
@@ -670,6 +676,16 @@ func _use_pending_action(screen_position: Vector2) -> void:
 			var point: Vector3 = spot["position"]
 			if SelectionManager.order_grapple(point):
 				_spawn_marker(point, marker_color)
+			else:
+				Sfx.play_ui(&"denied")
+		cancel_pending_action()
+		return
+	if pending_action == ACTION_FIRE_AT:
+		var spot := _raycast(screen_position, MASK_GROUND)
+		if not spot.is_empty():
+			var aim: Vector3 = spot["position"]
+			if SelectionManager.order_fire_at(aim):
+				_spawn_marker(aim, marker_attack_color)
 			else:
 				Sfx.play_ui(&"denied")
 		cancel_pending_action()

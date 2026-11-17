@@ -211,6 +211,14 @@ tooltip_text = "Lancer le couteau : puis clic gauche sur un ennemi. L'opérateur
 toggle_mode = true
 text = "Lancer  [T]"
 
+[node name="FireAt" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Tir libre : puis clic gauche sur un mur, un objet ou le sol. Les opérateurs sélectionnés tirent une rafale de 5 coups sur ce point (ils s'approchent à portée s'il le faut). Un mur fragile, une caisse ou un bidon finit par céder sous les balles. Bruyant comme tout tir."
+toggle_mode = true
+text = "Tir libre"
+
 [node name="Crate" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2

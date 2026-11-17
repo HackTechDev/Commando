@@ -305,7 +305,7 @@ func _physics_process(delta: float) -> void:
 	var hands_free := (_order != null and _order.hands_free()) or (_gesture != null and _gesture.hands_free())
 	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or hands_free or is_traversing())
 	_update_reload(delta)
-	_model.aiming = not is_dead and _order is AttackOrder and (_order as AttackOrder).is_aiming()
+	_model.aiming = not is_dead and ((_order is AttackOrder and (_order as AttackOrder).is_aiming()) or (_order is FireAtOrder and (_order as FireAtOrder).is_aiming()))
 	_model.look_target = _look_point()
 	_model.shield_raised = is_shield_up()
 	_model.hostage_hold = hostage != null
@@ -1439,6 +1439,72 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 	if hit:
 		enemy.take_hit(stats.damage_at(distance), global_position)
+
+
+## Ordonne une rafale de tir libre sur `target` (mur, objet, sol) : l'unité
+## s'approche à portée, puis tire `FireAtOrder.BURST` coups. Renvoie faux si
+## elle ne peut pas tirer.
+func fire_at(target: Vector3, run: bool = false) -> bool:
+	if is_dead or _hopping:
+		return false
+	if not _ready_to_fire():
+		flash_hint(Hint.NO_AMMO)
+		return false
+	weapon_slung = false
+	_set_order(FireAtOrder.new(self, target, run))
+	return true
+
+
+## Obstacles et cibles qu'une balle tirée librement peut frapper : sol, murs
+## et caisses, ennemis debout ou au sol.
+const MASK_FREE_FIRE := 0b11011
+## Écart (m, à 10 m) d'une balle tirée librement, selon la précision.
+const FREE_FIRE_SPREAD := 0.35
+
+
+## Un coup de tir libre vers `point` : la balle file jusqu'au premier
+## obstacle ; un ennemi est blessé, un objet destructible (`take_shot`)
+## encaisse les dégâts.
+func _fire_at_point(point: Vector3) -> void:
+	_fire_cooldown = stats.fire_interval
+	ammo_in_magazine -= 1
+	EventBus.unit_ammo_changed.emit(self)
+	var forward := -global_basis.z
+	var muzzle := global_position + Vector3.UP * _weapon_height() + forward * 0.7
+	var aim := point
+	if aim.distance_to(muzzle) < 1.0:
+		aim = muzzle + forward * 2.0
+	var distance := Vector2(aim.x - muzzle.x, aim.z - muzzle.z).length()
+	# Écart aléatoire, plus grand de loin et avec une arme peu précise.
+	var sloppiness := 1.0 - lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / stats.fire_range, 0.0, 1.0))
+	var spread := FREE_FIRE_SPREAD * (0.3 + sloppiness) * distance / 10.0
+	aim += Vector3(randf_range(-spread, spread), randf_range(-spread, spread) * 0.6, randf_range(-spread, spread))
+	var direction := (aim - muzzle).normalized()
+	var excluded: Array[RID] = [get_rid()]
+	if hostage:
+		excluded.append(hostage.get_rid())
+	var query := PhysicsRayQueryParameters3D.create(muzzle, aim + direction * ShotImpact.MISS_RANGE, MASK_FREE_FIRE, excluded)
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var scene := get_tree().current_scene as Node3D
+	var end := aim + direction * 4.0
+	if not hit.is_empty():
+		end = hit["position"]
+		var damage := stats.damage_at(distance)
+		var target := hit["collider"] as Node
+		if target is Enemy and not (target as Enemy).is_dead:
+			ShotImpact.hit(scene, target as Node3D, end, muzzle, damage, false)
+			(target as Enemy).take_hit(damage, global_position)
+		else:
+			ShotImpact.burst(scene, end, hit["normal"], ShotImpact.DUST, 10, 2.2)
+			if target and target.has_method(&"take_shot"):
+				target.call(&"take_shot", damage, end, muzzle)
+	Tracer.spawn(scene, muzzle, end, Color(0.6, 0.9, 1.0))
+	_model.play_shot()
+	if stats.suppressed:
+		Sfx.play_at(&"shot_suppressed", muzzle, -4.0)
+	else:
+		Sfx.play_at(&"shot", muzzle)
+	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 
 
 func _current_speed() -> float:

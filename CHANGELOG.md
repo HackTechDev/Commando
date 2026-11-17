@@ -665,3 +665,10 @@
 - Une explosion (grenade, charge) détruit les caisses et bidons tout près (moins de 45 % de son rayon) et projette les autres, jusqu'à 2,5 m, dans l'axe du souffle et jusqu'au premier obstacle. Un objet sur lequel se tient un opérateur, ou qu'il pousse, ne bouge pas.
 - Murs fragiles (`FragileWall`, briques fissurées) : ils arrêtent la vue et les balles, mais une explosion proche les abat et ouvre un passage. Le terrain d'essai en a un, au sud-ouest.
 - Éclats projetés qui retombent et restent quelques secondes au sol (`Debris`). La navigation est recalculée ; l'état (détruit, abattu) est sauvegardé par la sauvegarde rapide.
+
+## Tir libre
+
+- Touche « : » (AZERTY, à droite de « ; ») ou bouton « Tir libre », puis clic gauche sur un mur, un objet ou le sol : chaque opérateur sélectionné s'approche à portée s'il le faut, épaule et tire une rafale de 5 coups sur ce point (rechargement compris). Se prépare aussi en ordres simultanés.
+- Chaque balle part avec un écart qui dépend de la distance et de la précision de l'arme, et s'arrête sur le premier obstacle (gerbe de poussière) ; un ennemi sur la trajectoire est touché.
+- Les objets destructibles cèdent sous les balles : mur fragile (environ 9 coups de carabine), caisse (7), bidon (4). Un objet sur lequel se tient un opérateur, ou qu'il pousse, ne cède pas.
+- Bruyant comme tout tir.
