@@ -96,6 +96,8 @@ func _refresh() -> void:
 	var gear: Array[String] = []
 	if _unit.grenades > 0:
 		gear.append("Grenades %d" % _unit.grenades)
+	if _unit.smoke_grenades > 0:
+		gear.append("Fumigènes %d" % _unit.smoke_grenades)
 	if _unit.explosives > 0:
 		gear.append("Charges %d" % _unit.explosives)
 	if _unit.medkits > 0:

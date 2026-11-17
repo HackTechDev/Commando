@@ -638,7 +638,7 @@ func _build_armament() -> Control:
 		row.add_child(spin)
 		box.add_child(row)
 		_spins[key] = spin
-	_note(box, "En mission : H change d'arme (l'opérateur dégaine seul son arme secondaire quand l'autre est à sec), N lance une grenade, K pose une charge et L la fait sauter, J soigne le blessé le plus proche, U lève le bouclier (il faut une arme secondaire). Le couteau de combat est toujours emporté.")
+	_note(box, "En mission : H change d'arme (l'opérateur dégaine seul son arme secondaire quand l'autre est à sec), N lance une grenade, ; un fumigène, K pose une charge et L la fait sauter, J soigne le blessé le plus proche, U lève le bouclier (il faut une arme secondaire). Le couteau de combat est toujours emporté.")
 	return box
 
 

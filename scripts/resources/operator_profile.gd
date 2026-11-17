@@ -46,6 +46,8 @@ const DEFAULTS: Array[Dictionary] = [
 @export var secondary: StringName = &"pistol"
 @export var throwing_knives: int = 1
 @export var grenades: int = 0
+## Grenades fumigènes : un nuage qui coupe la vue des ennemis.
+@export var smoke_grenades: int = 0
 @export var explosives: int = 0
 @export var medkit: int = 0
 ## Bouclier balistique (0 ou 1) : levé, il arrête les balles venant de face.
@@ -64,7 +66,7 @@ const MAX_SAVED_OUTFITS := 6
 const OUTFIT_KEYS: Array[String] = [
 	"camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
-	"primary", "secondary", "throwing_knives", "grenades", "explosives", "medkit", "shield", "grapnel",
+	"primary", "secondary", "throwing_knives", "grenades", "smoke_grenades", "explosives", "medkit", "shield", "grapnel",
 ]
 ## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
 ## couleurs, couvre-chef et accessoires, sans l'armement.
@@ -76,7 +78,7 @@ const LOOK_KEYS: Array[String] = [
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
 const _NAME_KEYS: Array[String] = ["body", "camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads"]
-const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "explosives", "medkit", "shield", "grapnel"]
+const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "explosives", "medkit", "shield", "grapnel"]
 
 
 ## Profil par défaut de l'opérateur numéro `index` (0 à 2).
@@ -201,6 +203,7 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 	var limits := {
 		"skin": GearCatalog.SKINS.size() - 1, "hair_color": GearCatalog.HAIR_COLORS.size() - 1,
 		"throwing_knives": GearCatalog.EQUIPMENT[&"throwing_knives"]["max"], "grenades": GearCatalog.EQUIPMENT[&"grenades"]["max"],
+		"smoke_grenades": GearCatalog.EQUIPMENT[&"smoke_grenades"]["max"],
 		"explosives": GearCatalog.EQUIPMENT[&"explosives"]["max"], "medkit": GearCatalog.EQUIPMENT[&"medkit"]["max"],
 		"shield": GearCatalog.EQUIPMENT[&"shield"]["max"], "grapnel": GearCatalog.EQUIPMENT[&"grapnel"]["max"],
 	}

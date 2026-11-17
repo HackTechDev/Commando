@@ -13,6 +13,12 @@ enum Posture { STANDING, CROUCHED, PRONE }
 ## Défense au corps à corps : parade (avant-bras ou arme levés) ou esquive
 ## (pas de côté, buste baissé).
 enum DefendMove { PARRY, DODGE }
+## Gestes de lancer : couteau (vif, par-dessus l'épaule), grenade lancée
+## loin par-dessus l'épaule, grenade lobée à la cuillère (près), petit
+## lancer du poignet (caillou).
+enum ThrowStyle { KNIFE, OVERHAND, LOB, FLICK }
+## Objet tenu pendant un lancer.
+enum ThrowObject { KNIFE, GRENADE, SMOKE, PEBBLE, NONE }
 enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH, DISARM }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
@@ -339,6 +345,56 @@ const THROW_LEFT: Array[Vector3] = [Vector3.ZERO, Vector3(-0.1, 0.56, -0.44), Ve
 const THROW_LEAN: Array[float] = [0.0, 0.0, 0.35, 0.12, 0.55, -0.2, 0.75, -0.25, 1.0, 0.0]
 const THROW_TWIST: Array[float] = [0.0, 0.0, 0.35, -0.45, 0.55, 0.25, 0.75, 0.3, 1.0, 0.0]
 const THROW_LUNGE: Array[float] = [0.0, 0.0, 0.35, 0.05, 0.55, -0.15, 0.75, -0.18, 1.0, 0.0]
+## Gestes de lancer (`ThrowStyle`), au format de `MOVES` : mains (repère du
+## torse) aux instants `times`, pistes du corps ; jambes (`thigh_l`, `knee_l`,
+## `thigh_r`, `knee_r`) et flexion (`dip`) debout seulement. `release` :
+## instant où l'objet part ; `duration` : rapportée à `throw_time`.
+## Grenade : la main gauche vient dégoupiller (0,15 à 0,27), puis le bras
+## droit s'arme derrière la tête, le gauche montre la cible, pas en avant du
+## pied gauche, lâcher et accompagnement en travers du corps.
+const THROWS := {
+	ThrowStyle.KNIFE: {
+		"times": THROW_TIMES, "right": THROW_RIGHT, "left": THROW_LEFT,
+		"lean": THROW_LEAN, "torso_yaw": THROW_TWIST, "lunge": THROW_LUNGE,
+		"release": THROW_RELEASE, "duration": 1.0,
+	},
+	ThrowStyle.OVERHAND: {
+		"times": [0.0, 0.15, 0.27, 0.45, 0.58, 0.78, 1.0] as Array[float],
+		"right": [Vector3.ZERO, Vector3(0.06, 0.42, -0.3), Vector3(0.08, 0.44, -0.28), Vector3(0.32, 0.8, 0.3), Vector3(0.16, 0.82, -0.5), Vector3(-0.12, 0.32, -0.38), Vector3.ZERO] as Array[Vector3],
+		"left": [Vector3.ZERO, Vector3(0.0, 0.44, -0.3), Vector3(-0.2, 0.5, -0.34), Vector3(-0.12, 0.62, -0.58), Vector3(-0.24, 0.32, -0.14), Vector3(-0.26, 0.28, -0.06), Vector3.ZERO] as Array[Vector3],
+		"torso_yaw": [0.0, 0.0, 0.27, 0.0, 0.45, -0.7, 0.58, 0.35, 0.78, 0.5, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.27, -0.05, 0.45, 0.15, 0.58, -0.25, 0.78, -0.35, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.45, 0.08, 0.58, -0.15, 0.78, -0.22, 1.0, 0.0],
+		"head": [0.0, 0.0, 0.45, -0.15, 0.6, 0.0, 1.0, 0.0],
+		"thigh_l": [0.0, 0.0, 0.4, 0.05, 0.55, 0.45, 0.8, 0.45, 1.0, 0.0],
+		"knee_l": [0.0, 0.0, 0.4, -0.1, 0.55, -0.25, 0.8, -0.2, 1.0, 0.0],
+		"thigh_r": [0.0, 0.0, 0.45, 0.1, 0.6, -0.25, 0.8, -0.2, 1.0, 0.0],
+		"knee_r": [0.0, 0.0, 0.45, -0.15, 0.6, -0.35, 0.8, -0.3, 1.0, 0.0],
+		"release": 0.57, "duration": 1.5,
+	},
+	ThrowStyle.LOB: {
+		"times": [0.0, 0.15, 0.27, 0.45, 0.6, 0.75, 1.0] as Array[float],
+		"right": [Vector3.ZERO, Vector3(0.06, 0.42, -0.3), Vector3(0.08, 0.42, -0.28), Vector3(0.26, 0.02, 0.28), Vector3(0.14, 0.32, -0.5), Vector3(0.1, 0.5, -0.42), Vector3.ZERO] as Array[Vector3],
+		"left": [Vector3.ZERO, Vector3(0.0, 0.44, -0.3), Vector3(-0.2, 0.48, -0.34), Vector3(-0.18, 0.4, -0.4), Vector3(-0.22, 0.32, -0.25), Vector3(-0.24, 0.3, -0.12), Vector3.ZERO] as Array[Vector3],
+		"dip": [0.0, 0.0, 0.27, 0.0, 0.45, 0.14, 0.6, 0.08, 0.75, 0.02, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.27, -0.05, 0.45, -0.3, 0.6, -0.15, 0.75, -0.05, 1.0, 0.0],
+		"torso_yaw": [0.0, 0.0, 0.45, -0.25, 0.6, 0.1, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.45, -0.02, 0.6, -0.1, 0.75, -0.1, 1.0, 0.0],
+		"thigh_l": [0.0, 0.0, 0.3, 0.0, 0.45, 0.35, 0.75, 0.3, 1.0, 0.0],
+		"knee_l": [0.0, 0.0, 0.3, 0.0, 0.45, -0.35, 0.75, -0.25, 1.0, 0.0],
+		"release": 0.6, "duration": 1.3,
+	},
+	ThrowStyle.FLICK: {
+		"times": [0.0, 0.35, 0.5, 0.7, 1.0] as Array[float],
+		"right": [Vector3.ZERO, Vector3(0.3, 0.6, 0.12), Vector3(0.18, 0.58, -0.45), Vector3(0.0, 0.38, -0.35), Vector3.ZERO] as Array[Vector3],
+		"left": [Vector3.ZERO, Vector3(-0.12, 0.5, -0.35), Vector3(-0.2, 0.4, -0.2), Vector3(-0.24, 0.32, -0.08), Vector3.ZERO] as Array[Vector3],
+		"torso_yaw": [0.0, 0.0, 0.35, -0.35, 0.5, 0.2, 0.7, 0.25, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.35, 0.06, 0.5, -0.12, 1.0, 0.0],
+		"release": 0.5, "duration": 0.75,
+	},
+}
+## En deçà de cette distance (m), une grenade est lobée à la cuillère.
+const LOB_DISTANCE := 5.0
 ## Mains sur une caisse (repère du modèle, main droite ; la gauche est
 ## symétrique) : à plat sur le flanc pour pousser, agrippées au rebord
 ## supérieur pour tirer. L'unité se tient à `CRATE_GRIP_GAP` du flanc.
@@ -517,8 +573,9 @@ var crate_grip: bool = false
 var crate_pull: bool = false
 ## Avancement (0 à 1) d'un lancer de couteau ; -1 hors lancer.
 var throw_progress: float = -1.0
-## Le lancer est celui d'une grenade (au lieu d'un couteau).
-var throw_grenade: bool = false
+## Geste du lancer en cours, et objet tenu.
+var throw_style: ThrowStyle = ThrowStyle.KNIFE
+var throw_object: ThrowObject = ThrowObject.KNIFE
 ## Arme secondaire en main ; l'arme principale pend alors à sa bretelle
 ## 3 points, sur le flanc droit. Le changement est animé (`_update_weapon_switch`) :
 ## l'arme principale descend à la bretelle, puis le pistolet sort de l'étui
@@ -613,6 +670,8 @@ var _hand_mag: Node3D
 var _flash: Node3D
 var _knife: Node3D
 var _hand_grenade: Node3D
+var _hand_smoke: Node3D
+var _hand_pebble: Node3D
 ## Prise de la main gauche dans le repère de l'arme (garde-main, ou poignée
 ## du pistolet tenu à deux mains).
 var _left_grip: Vector3 = LEFT_GRIP
@@ -705,6 +764,9 @@ var _m_red: StandardMaterial3D
 var _m_white: StandardMaterial3D
 var _m_scrim: StandardMaterial3D
 var _m_grenade: StandardMaterial3D
+var _m_smoke: StandardMaterial3D
+var _m_smoke_band: StandardMaterial3D
+var _m_pebble: StandardMaterial3D
 var _m_explosive: StandardMaterial3D
 var _m_glove: StandardMaterial3D
 var _m_sole: StandardMaterial3D
@@ -775,6 +837,9 @@ func _build() -> void:
 	# Toile de camouflage du tireur d'élite (filet, écharpe).
 	_m_scrim = _cloth((_m_top.albedo_color as Color).lerp(Color(0.45, 0.42, 0.3), 0.5))
 	_m_grenade = _mat(Color(0.2, 0.24, 0.16), 0.6, 0.2)
+	_m_smoke = _mat(Color(0.42, 0.45, 0.4), 0.55, 0.3)
+	_m_smoke_band = _mat(Color(0.9, 0.9, 0.85), 0.6, 0.0)
+	_m_pebble = _mat(Color(0.45, 0.43, 0.4), 0.95, 0.0)
 	_m_explosive = _mat(Color(0.62, 0.55, 0.38), 0.85)
 	_m_team = _mat(team_color, 0.6)
 	_m_team.emission_enabled = true
@@ -1012,6 +1077,8 @@ func _animate_transition(delta: float) -> void:
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(target[i], arm_blend)
 	_knife.visible = false
 	_hand_grenade.visible = false
+	_hand_smoke.visible = false
+	_hand_pebble.visible = false
 	_update_magazines()
 	_animate_fingers(Vector2(lerpf(0.95, 0.1, hand), 1.0) if is_armed else Vector2(lerpf(0.35, 0.1, hand), lerpf(0.35, 0.1, hand)), delta)
 	if t >= 1.0:
@@ -1093,6 +1160,8 @@ func _animate_alive(delta: float) -> void:
 	var uppercut := unarmed_strike and kick.is_empty() and move.is_empty() and not butt
 	var throwing := throw_progress >= 0.0 and strike_progress < 0.0
 	var throw_t := clampf(throw_progress, 0.0, 1.0)
+	var toss: Dictionary = THROWS[throw_style] if throwing else {}
+	var released := throwing and throw_t >= throw_release(throw_style)
 	var punch_t := clampf(strike_progress, 0.0, 1.0)
 	var hip_yaw := 0.0
 	var side_lean := 0.0
@@ -1241,8 +1310,20 @@ func _animate_alive(delta: float) -> void:
 		thigh += Vector2.ONE * _knee_bend(dip)
 		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
 	elif throwing:
-		lean += sample_keys(THROW_LEAN, throw_t)
-		body_pos.z += sample_keys(THROW_LUNGE, throw_t)
+		if posture == Posture.STANDING:
+			var dip := _track(toss, "dip", throw_t)
+			hips_y -= dip
+			thigh += Vector2.ONE * _knee_bend(dip)
+			knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
+			if toss.has("thigh_l"):
+				thigh.x = sample_keys(toss["thigh_l"], throw_t)
+				knee.x = sample_keys(toss["knee_l"], throw_t)
+			if toss.has("thigh_r"):
+				thigh.y = sample_keys(toss["thigh_r"], throw_t)
+				knee.y = sample_keys(toss["knee_r"], throw_t)
+			body_pos.z += _track(toss, "lunge", throw_t)
+		lean += _track(toss, "lean", throw_t)
+		head_pitch += _track(toss, "head", throw_t)
 	else:
 		lean += -0.35 * strike
 	var shake := 0.0
@@ -1357,7 +1438,7 @@ func _animate_alive(delta: float) -> void:
 	elif butt:
 		punch_twist = sample_keys(BUTT_TWIST, punch_t)
 	elif throwing:
-		punch_twist = sample_keys(THROW_TWIST, throw_t)
+		punch_twist = _track(toss, "torso_yaw", throw_t)
 	_torso_yaw = lerp_angle(_torso_yaw, chest_roll * (1.0 - aim) + AIM_TWIST * aim + punch_twist, limbs)
 	_torso.rotation = Vector3(_lean, _torso_yaw, 0.12 * hit * _hit_side + chest_turn + side_lean + shake)
 	var head_yaw := sin(_time * 0.6) * 0.25 * (1.0 - moving) * (1.0 - aim) - AIM_TWIST * aim
@@ -1467,7 +1548,8 @@ func _animate_alive(delta: float) -> void:
 	elif throwing:
 		var free_left := _free_hand(-1.0, posture == Posture.PRONE, s, c, moving, 0.0)
 		var free_right := _free_hand(1.0, posture == Posture.PRONE, s, c, moving, 0.0)
-		target = _solve_arms(_path(THROW_TIMES, THROW_LEFT, free_left, throw_t), _path(THROW_TIMES, THROW_RIGHT, free_right, throw_t))
+		var times: Array[float] = toss["times"]
+		target = _solve_arms(_path(times, toss["left"], free_left, throw_t), _path(times, toss["right"], free_right, throw_t))
 	elif grip > 0.0:
 		# Mains sur la caisse : cibles fixes dans le repère du modèle,
 		# ramenées dans celui du torse (qui se penche).
@@ -1518,8 +1600,11 @@ func _animate_alive(delta: float) -> void:
 		if strike > 0.0 and not unarmed_strike:
 			goal = goal.slerp(_arm_poses[ArmPose.STRIKE][i], strike)
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
-	_hand_grenade.visible = throwing and throw_grenade and throw_t < THROW_RELEASE
-	_knife.visible = (strike > 0.0 and strike_with_knife) or (throwing and not throw_grenade and throw_t < THROW_RELEASE) or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
+	var held_object := throw_object if throwing and not released else ThrowObject.NONE
+	_hand_grenade.visible = held_object == ThrowObject.GRENADE
+	_hand_smoke.visible = held_object == ThrowObject.SMOKE
+	_hand_pebble.visible = held_object == ThrowObject.PEBBLE
+	_knife.visible = (strike > 0.0 and strike_with_knife) or held_object == ThrowObject.KNIFE or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
 	_update_magazines()
 
 	# Doigts : serrés sur l'arme, le couteau, la grenade ou en poing ; ouverts
@@ -1539,7 +1624,9 @@ func _animate_alive(delta: float) -> void:
 	elif grabbed:
 		curl = Vector2(0.7, 0.7)
 	elif throwing:
-		curl = Vector2(0.3, 1.0 if throw_t < THROW_RELEASE else 0.15)
+		# La main gauche se referme sur la goupille, puis s'ouvre.
+		var pin := 0.9 if throw_style in [ThrowStyle.OVERHAND, ThrowStyle.LOB] and throw_t > 0.12 and throw_t < 0.3 else 0.3
+		curl = Vector2(pin, 0.15 if released else 1.0)
 	elif hands_up and not is_armed:
 		curl = Vector2(0.1, 0.1)
 	elif grip > 0.0 or (shove and not is_armed) or (parry and not block):
@@ -1800,6 +1887,8 @@ func _animate_death(delta: float) -> void:
 	_rifle.transform = _rifle_base
 	_knife.visible = false
 	_hand_grenade.visible = false
+	_hand_smoke.visible = false
+	_hand_pebble.visible = false
 	_update_magazines()
 	_animate_fingers(Vector2(0.3, 0.3), delta)
 	# Grimace pendant la chute, puis visage détendu.
@@ -1835,6 +1924,16 @@ func set_armed(value: bool) -> void:
 
 
 ## Piste `name` du mouvement `move` à l'instant `t` (0 si elle manque).
+## Instant (0 à 1) où l'objet quitte la main, pour le geste `style`.
+static func throw_release(style: ThrowStyle) -> float:
+	return THROWS[style]["release"]
+
+
+## Durée du geste `style`, rapportée à `UnitStats.throw_time`.
+static func throw_duration(style: ThrowStyle) -> float:
+	return THROWS[style]["duration"]
+
+
 static func _track(move: Dictionary, name: String, t: float) -> float:
 	return sample_keys(move[name], t) if move.has(name) else 0.0
 
@@ -3446,7 +3545,18 @@ func _build_arm(side: float) -> void:
 		# Grenade tenue pendant le lancer.
 		_hand_grenade = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.04, -0.02), "HandGrenade")
 		_sphere(_hand_grenade, 0.036, Vector3.ZERO, _m_grenade)
+		_box(_hand_grenade, Vector3(0.012, 0.05, 0.02), Vector3(0.03, 0.02, 0.0), _m_steel)
 		_hand_grenade.visible = false
+		# Fumigène : boîte cylindrique grise à bande blanche.
+		_hand_smoke = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.04, -0.02), "HandSmoke")
+		var can := _tapered(_hand_smoke, 0.03, 0.03, 0.13, Vector3.ZERO, _m_smoke)
+		can.rotation.x = PI / 2.0
+		var band := _tapered(_hand_smoke, 0.031, 0.031, 0.025, Vector3(0.0, 0.0, -0.035), _m_smoke_band)
+		band.rotation.x = PI / 2.0
+		_hand_smoke.visible = false
+		_hand_pebble = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.04, -0.02), "HandPebble")
+		_sphere(_hand_pebble, 0.028, Vector3.ZERO, _m_pebble)
+		_hand_pebble.visible = false
 
 
 ## Main gantée articulée : paume, quatre doigts de deux phalanges et pouce,

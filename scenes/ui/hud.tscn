@@ -114,6 +114,14 @@ tooltip_text = "Grenade : puis clic gauche au sol. L'opérateur le plus proche q
 toggle_mode = true
 text = "Grenade  [N]"
 
+[node name="Smoke" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Fumigène : puis clic gauche au sol. L'opérateur le plus proche qui en a un le lance (12 m au plus) ; le nuage se forme en 2 s, fait 4 m de rayon et dure environ 15 s. Les ennemis ne voient ni à travers ni depuis l'intérieur."
+toggle_mode = true
+text = "Fumigène"
+
 [node name="Plant" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
 unique_name_in_owner = true
 layout_mode = 2

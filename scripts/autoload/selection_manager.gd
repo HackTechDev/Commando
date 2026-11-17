@@ -2,8 +2,8 @@ extends Node
 ## Unités sélectionnées et transmission des ordres.
 ##
 ## Ordres simultanés : en mode préparation (`planning`), les ordres donnés
-## (déplacement, attaque, couteau, lancer, grenade, grappin, caisse,
-## escalade) ne partent pas : chaque unité garde le dernier reçu, et
+## (déplacement, attaque, couteau, lancer, grenade, fumigène, grappin,
+## caisse, escalade) ne partent pas : chaque unité garde le dernier reçu, et
 ## `execute_plans` les lance tous ensemble. Les gestes immédiats (posture,
 ## rechargement, arrêt…) ne se préparent pas.
 
@@ -225,6 +225,18 @@ func order_grenade(target: Vector3, run: bool = false) -> bool:
 			if not unit.is_dead and unit.grenades > 0:
 				return _issue(unit, unit.throw_grenade.bind(target, run), target, &"attack")
 		elif unit.throw_grenade(target, run):
+			return true
+	return false
+
+
+## Confie un lancer de fumigène vers `target` à l'unité sélectionnée la plus
+## proche qui en a encore. Renvoie faux si aucune ne le peut.
+func order_smoke(target: Vector3, run: bool = false) -> bool:
+	for unit in _nearest_first(target):
+		if planning:
+			if not unit.is_dead and unit.smoke_grenades > 0:
+				return _issue(unit, unit.throw_smoke.bind(target, run), target, &"attack")
+		elif unit.throw_smoke(target, run):
 			return true
 	return false
 

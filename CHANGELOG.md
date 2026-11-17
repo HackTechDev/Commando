@@ -624,3 +624,15 @@
 ## Chargement des cartes UFO:AI
 
 - La lecture de la carte et le repérage des toits tournent chacun sur un fil dédié (`Thread`) au lieu du `WorkerThreadPool`, où la tâche restait parfois sans démarrer (suite de tests bloquée sur `test_roof_detection_is_cached_per_map`). Un niveau quitté en plein calcul attend la fin du fil.
+
+## Grenades fumigènes et gestes de lancer
+
+- Nouvel équipement « Grenades fumigènes » (3 au plus, 0,5 kg pièce), choisi dans l'écran Opérateurs ou la préparation de mission.
+- Touche « ; » (AZERTY, à droite de « , ») ou bouton « Fumigène » de la barre d'actions, puis clic au sol : l'opérateur le plus proche qui en a un s'approche à 12 m et le lance.
+- Le nuage (`SmokeCloud`) se forme en 2 s, fait 4 m de rayon et dure environ 16 s : un ennemi ne voit rien à travers ni depuis l'intérieur. Il ne blesse personne.
+- Gestes de lancer distincts (`SoldierModel.ThrowStyle`) :
+  - grenade lancée loin : la main gauche dégoupille, le bras droit s'arme derrière la tête, pas en avant, lâcher puis accompagnement ;
+  - grenade lobée à la cuillère sous 5 m, genoux fléchis ;
+  - caillou lancé d'un petit mouvement du poignet ;
+  - couteau : geste vif inchangé.
+- L'objet tenu (grenade, fumigène, caillou, couteau) est visible dans la main jusqu'au lâcher.

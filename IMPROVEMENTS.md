@@ -46,7 +46,8 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 - **2.14 Explosifs, suite** :
   - **a)** dégâts au décor : caisses et bidons projetés ou détruits, murs fragiles ;
   - **b)** charge à retardement, en plus de la mise à feu à distance ;
-  - **c)** grenades fumigènes ou assourdissantes pour l'infiltration.
+  - **c)** grenades assourdissantes pour l'infiltration (les fumigènes existent) ;
+  - **d)** fumée qui dérive avec le vent, et qui gêne aussi la visée des opérateurs.
 
 ## 4. Contrôles et lisibilité
 

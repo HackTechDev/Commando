@@ -76,6 +76,7 @@ extends Resource
 @export_group("Équipement")
 ## Grenades, charges explosives et trousses de soins emportées.
 @export var grenades: int = 0
+@export var smoke_grenades: int = 0
 @export var explosives: int = 0
 @export var medkits: int = 0
 ## Bouclier balistique (0 ou 1).

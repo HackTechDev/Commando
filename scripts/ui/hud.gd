@@ -16,6 +16,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _reload: Button = %Reload
 @onready var _stop: Button = %Stop
 @onready var _grenade: Button = %Grenade
+@onready var _smoke: Button = %Smoke
 @onready var _grapple: Button = %Grapple
 @onready var _plant: Button = %Plant
 @onready var _detonate: Button = %Detonate
@@ -70,6 +71,7 @@ func _ready() -> void:
 	_reload.pressed.connect(SelectionManager.reload)
 	_stop.pressed.connect(SelectionManager.stop)
 	_grenade.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_GRENADE))
+	_smoke.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_SMOKE))
 	_grapple.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_GRAPPLE))
 	_plant.pressed.connect(func() -> void: _controller._feedback(SelectionManager.plant_explosive()))
 	_detonate.pressed.connect(func() -> void: _controller._feedback(SelectionManager.detonate_explosives() > 0))
@@ -86,6 +88,7 @@ func _ready() -> void:
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
 	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")
+	_smoke.text = "Fumigène  [%s]" % KeyNames.label(&"action_smoke")
 	_build_mission_panels()
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
@@ -158,6 +161,7 @@ func _refresh_actions() -> void:
 	_action_bar.modulate.a = 0.5 if empty else 1.0
 	# Équipement : grisé si aucune unité sélectionnée n'en a.
 	_grenade.disabled = not selected.any(func(unit: Commando) -> bool: return unit.grenades > 0)
+	_smoke.disabled = not selected.any(func(unit: Commando) -> bool: return unit.smoke_grenades > 0)
 	_grapple.disabled = not selected.any(func(unit: Commando) -> bool: return unit.grapnels > 0)
 	_plant.disabled = not selected.any(func(unit: Commando) -> bool: return unit.explosives > 0)
 	_detonate.disabled = not selected.any(func(unit: Commando) -> bool: return not ExplosiveCharge.planted_by(get_tree(), unit).is_empty())
@@ -167,6 +171,7 @@ func _refresh_actions() -> void:
 	_shield.disabled = carriers.is_empty()
 	_shield.set_pressed_no_signal(not carriers.is_empty() and carriers.all(func(unit: Commando) -> bool: return unit.shield_raised))
 	_grenade.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_GRENADE)
+	_smoke.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_SMOKE)
 	_grapple.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_GRAPPLE)
 	_weapon.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.using_secondary))
 	_crouch.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.posture == SoldierModel.Posture.CROUCHED))

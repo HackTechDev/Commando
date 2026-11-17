@@ -46,7 +46,7 @@ func update(delta: float) -> Vector3:
 			unit.posture = SoldierModel.Posture.STANDING
 		if unit._model.is_weapon_slung() and not unit._model.is_changing_posture() \
 				and (-unit.global_basis.z).angle_to(to_anchor) < 0.2:
-			var gesture := ThrowGesture.new(unit, null, route["anchor"])
+			var gesture := ThrowGesture.new(unit, null, route["anchor"], SoldierModel.ThrowObject.NONE)
 			gesture.release = unit._release_grapnel.bind(route)
 			finish(gesture)
 		return Vector3.ZERO

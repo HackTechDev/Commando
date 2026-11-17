@@ -1,19 +1,22 @@
 class_name GrenadeOrder
 extends CommandoAction
 ## S'approcher à portée de `target` (un point au sol), puis lancer une
-## grenade (`ThrowGesture`) une fois les mains libres et face au point ;
-## ou un caillou pour faire diversion (`pebble`).
+## grenade (`ThrowGesture`) une fois les mains libres et face au point :
+## explosive, fumigène, ou un caillou pour faire diversion (`object`).
 
 var target: Vector3
 var run: bool
-var pebble: bool
+var object: SoldierModel.ThrowObject
+var pebble: bool:
+	get:
+		return object == SoldierModel.ThrowObject.PEBBLE
 
 
-func _init(owner: Commando, point: Vector3, running: bool, throw_pebble: bool = false) -> void:
+func _init(owner: Commando, point: Vector3, running: bool, thrown: SoldierModel.ThrowObject = SoldierModel.ThrowObject.GRENADE) -> void:
 	super(owner)
 	target = point
 	run = running
-	pebble = throw_pebble
+	object = thrown
 
 
 func start() -> void:
@@ -29,7 +32,7 @@ func look_point() -> Vector3:
 
 
 func update(delta: float) -> Vector3:
-	if unit.grenades <= 0 and not pebble:
+	if unit.throwables(object) <= 0:
 		finish()
 		return Vector3.ZERO
 	var to_target := target - unit.global_position
@@ -41,10 +44,7 @@ func update(delta: float) -> Vector3:
 			unit.posture = SoldierModel.Posture.CROUCHED
 		if unit._model.is_weapon_slung() and not unit._model.is_changing_posture() \
 				and (to_target.length() < 0.05 or (-unit.global_basis.z).angle_to(to_target) < 0.2):
-			var gesture := ThrowGesture.new(unit, null, target)
-			if pebble:
-				gesture.release = unit._release_pebble.bind(target)
-			finish(gesture)
+			finish(ThrowGesture.new(unit, null, target, object))
 		return Vector3.ZERO
 	unit.report_hint(Commando.Hint.OUT_OF_RANGE)
 	if unit._agent.target_position.distance_to(target) > 0.3:

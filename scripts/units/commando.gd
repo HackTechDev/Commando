@@ -27,13 +27,14 @@ const CALLSIGN_HEIGHTS: Array[float] = [2.05, 1.55, 0.85]
 ## Raison pour laquelle l'opérateur ne tire pas ou ne lance pas, affichée
 ## sous son indicatif (`report_hint` pendant un ordre, `flash_hint` pour un
 ## ordre refusé).
-enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE, NO_GRAPNEL, MESSAGE }
+enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE, NO_SMOKE, NO_GRAPNEL, MESSAGE }
 const HINT_TEXTS: Dictionary = {
 	Hint.OUT_OF_RANGE: "Hors de portée",
 	Hint.OBSTACLE: "Obstacle : pas de ligne de tir",
 	Hint.NO_AMMO: "À sec",
 	Hint.NO_KNIFE: "Plus de couteau",
 	Hint.NO_GRENADE: "Plus de grenade",
+	Hint.NO_SMOKE: "Plus de fumigène",
 	Hint.NO_GRAPNEL: "Pas de grappin (à équiper : écran Opérateurs)",
 	# Texte libre (`flash_message`).
 	Hint.MESSAGE: "",
@@ -111,6 +112,7 @@ var ammo_reserve: int = 0
 var throwing_knives: int = 0
 ## Grenades, charges explosives et trousses de soins restantes.
 var grenades: int = 0
+var smoke_grenades: int = 0
 var explosives: int = 0
 var medkits: int = 0
 ## Bouclier balistique emporté (0 ou 1).
@@ -196,6 +198,7 @@ func _ready() -> void:
 	ammo_reserve = stats.reserve_ammo
 	throwing_knives = stats.throwing_knives
 	grenades = stats.grenades
+	smoke_grenades = stats.smoke_grenades
 	explosives = stats.explosives
 	medkits = stats.medkits
 	shields = stats.shields
@@ -278,6 +281,7 @@ func _apply_profile(operator: OperatorProfile) -> void:
 func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.throwing_knives = operator.throwing_knives
 	weapon.grenades = operator.grenades
+	weapon.smoke_grenades = operator.smoke_grenades
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
 	weapon.shields = operator.shield
@@ -628,8 +632,44 @@ func throw_pebble(target: Vector3, run: bool = false) -> bool:
 		return false
 	if perched_on and not _in_grenade_range(target, PEBBLE_RANGE):
 		return _descend(target, throw_pebble.bind(target, run))
-	_set_order(GrenadeOrder.new(self, target, run, true))
+	_set_order(GrenadeOrder.new(self, target, run, SoldierModel.ThrowObject.PEBBLE))
 	return true
+
+
+## Ordonne de lancer une grenade fumigène vers `target` : un nuage qui coupe
+## la vue des ennemis (`SmokeCloud`). Renvoie faux sans fumigène.
+func throw_smoke(target: Vector3, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
+	if not is_dead and smoke_grenades <= 0:
+		flash_hint(Hint.NO_SMOKE)
+	if is_dead or _hopping or smoke_grenades <= 0:
+		return false
+	if perched_on and not _in_grenade_range(target):
+		return _descend(target, throw_smoke.bind(target, run))
+	_set_order(GrenadeOrder.new(self, target, run, SoldierModel.ThrowObject.SMOKE))
+	return true
+
+
+## Nombre d'objets `object` qu'il peut encore lancer (cailloux sans limite).
+func throwables(object: SoldierModel.ThrowObject) -> int:
+	match object:
+		SoldierModel.ThrowObject.GRENADE:
+			return grenades
+		SoldierModel.ThrowObject.SMOKE:
+			return smoke_grenades
+	return 1
+
+
+## Lâche `object` vers `target` (instant du lancer de `ThrowGesture`).
+func _release_throwable(object: SoldierModel.ThrowObject, target: Vector3) -> void:
+	match object:
+		SoldierModel.ThrowObject.GRENADE:
+			_release_grenade(target)
+		SoldierModel.ThrowObject.SMOKE:
+			_release_grenade(target, true)
+		SoldierModel.ThrowObject.PEBBLE:
+			_release_pebble(target)
 
 
 ## Vrai si `target` est à portée de lancer (`reach`, ou celle d'une grenade).
@@ -682,13 +722,16 @@ func _release_grapnel(route: Dictionary) -> void:
 
 
 ## Lâche une grenade vers `target` (instant du lancer de `ThrowGesture`).
-func _release_grenade(target: Vector3) -> void:
-	if grenades <= 0:
+func _release_grenade(target: Vector3, smoke: bool = false) -> void:
+	if (smoke_grenades if smoke else grenades) <= 0:
 		return
-	grenades -= 1
+	if smoke:
+		smoke_grenades -= 1
+	else:
+		grenades -= 1
 	EventBus.unit_ammo_changed.emit(self)
 	var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
-	Grenade.spawn(get_tree().current_scene, hand, target + Vector3.UP * 0.05, stats)
+	Grenade.spawn(get_tree().current_scene, hand, target + Vector3.UP * 0.05, stats, smoke)
 	Sfx.play_at(&"whoosh", hand, -8.0)
 
 
@@ -1436,7 +1479,7 @@ func save_state() -> Dictionary:
 	data.merge({
 		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
-		"throwing_knives": throwing_knives, "grenades": grenades, "explosives": explosives,
+		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 	})
 	return data
@@ -1458,6 +1501,7 @@ func load_state(data: Dictionary) -> void:
 	_holstered_ammo = data.get("holstered_ammo", _holstered_ammo)
 	throwing_knives = data.get("throwing_knives", throwing_knives)
 	grenades = data.get("grenades", grenades)
+	smoke_grenades = data.get("smoke_grenades", smoke_grenades)
 	explosives = data.get("explosives", explosives)
 	medkits = data.get("medkits", medkits)
 	shields = data.get("shields", shields)

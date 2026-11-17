@@ -1,7 +1,8 @@
 class_name Grenade
 extends Node3D
 ## Grenade lancée par un opérateur : vole en cloche jusqu'au point visé,
-## roule un instant, puis explose (`Explosion`).
+## roule un instant, puis explose (`Explosion`) ; fumigène (`smoke`), elle
+## libère à la place un nuage (`SmokeCloud`) qui coupe la vue des ennemis.
 
 ## Vitesse horizontale (m/s) et flèche de la cloche par mètre parcouru.
 const SPEED := 10.0
@@ -17,12 +18,14 @@ var _radius: float = 4.0
 var _damage: float = 150.0
 var _noise: float = 30.0
 var _landed: bool = false
+var smoke: bool = false
 var _ball: MeshInstance3D
 
 
 ## Lance une grenade de `from` vers `to`, avec les réglages de `stats`.
-static func spawn(parent: Node, from: Vector3, to: Vector3, stats: UnitStats) -> Grenade:
+static func spawn(parent: Node, from: Vector3, to: Vector3, stats: UnitStats, is_smoke: bool = false) -> Grenade:
 	var grenade := Grenade.new()
+	grenade.smoke = is_smoke
 	grenade._from = from
 	grenade._to = to
 	var flat := Vector2(to.x - from.x, to.z - from.z).length()
@@ -43,12 +46,20 @@ func has_landed() -> bool:
 
 func _ready() -> void:
 	_ball = MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.045
-	sphere.height = 0.09
-	_ball.mesh = sphere
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.2, 0.24, 0.16)
+	if smoke:
+		var can := CylinderMesh.new()
+		can.top_radius = 0.035
+		can.bottom_radius = 0.035
+		can.height = 0.14
+		_ball.mesh = can
+		material.albedo_color = Color(0.42, 0.45, 0.4)
+	else:
+		var sphere := SphereMesh.new()
+		sphere.radius = 0.045
+		sphere.height = 0.09
+		_ball.mesh = sphere
+		material.albedo_color = Color(0.2, 0.24, 0.16)
 	material.roughness = 0.6
 	_ball.material_override = material
 	add_child(_ball)
@@ -67,5 +78,8 @@ func _physics_process(delta: float) -> void:
 			Sfx.play_at(&"clink", global_position, -8.0)
 		return
 	if _time >= _fuse:
-		Explosion.detonate(get_parent(), global_position, _radius, _damage, _noise)
+		if smoke:
+			SmokeCloud.spawn(get_parent(), global_position)
+		else:
+			Explosion.detonate(get_parent(), global_position, _radius, _damage, _noise)
 		queue_free()

@@ -129,6 +129,8 @@ func check(target: Unit, ignore_posture: bool = false) -> Zone:
 	var query := PhysicsRayQueryParameters3D.create(eye, aim, MASK_OCCLUDERS)
 	if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
 		return Zone.NONE
+	if SmokeCloud.blocks_sight(get_tree(), eye, aim):
+		return Zone.NONE
 	return zone
 
 
