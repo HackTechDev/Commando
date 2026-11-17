@@ -1,0 +1,347 @@
+[gd_scene load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/units/commando.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/wall.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/ladder.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/props/low_wall.tscn" id="9"]
+[ext_resource type="Script" path="res://scripts/levels/tutorial_station.gd" id="10"]
+
+[sub_resource type="Curve3D" id="patrol_sentry"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -9, 0, -55, 0, 0, 0, 0, 0, 0, 9, 0, -55),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.2, 0.24, 0.27, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.72, 0.78, 0.9, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 2
+ssao_enabled = true
+
+[sub_resource type="NavigationMesh" id="nav"]
+resource_local_to_scene = true
+geometry_parsed_geometry_type = 1
+geometry_collision_mask = 3
+agent_height = 1.75
+agent_radius = 0.5
+
+[sub_resource type="BoxShape3D" id="ground_shape"]
+size = Vector3(50, 1, 124)
+
+[sub_resource type="StandardMaterial3D" id="ground_mat"]
+albedo_color = Color(0.85, 0.85, 0.8, 1)
+roughness = 1.0
+uv1_scale = Vector3(0.33, 0.33, 0.33)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_nature/grass_mowed_green_a.jpg"
+
+[sub_resource type="BoxMesh" id="ground_mesh"]
+material = SubResource("ground_mat")
+size = Vector3(50, 1, 124)
+
+[sub_resource type="StandardMaterial3D" id="dirt_mat"]
+roughness = 1.0
+uv1_scale = Vector3(0.4, 0.4, 0.4)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_nature/dirt002.png"
+
+[sub_resource type="PlaneMesh" id="dirt_path"]
+material = SubResource("dirt_mat")
+size = Vector2(3, 104)
+
+[sub_resource type="BoxShape3D" id="bunker_shape"]
+size = Vector3(5, 3, 5)
+
+[sub_resource type="StandardMaterial3D" id="bunker_mat"]
+albedo_color = Color(0.8, 0.78, 0.72, 1)
+roughness = 0.95
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_ctp1/concrete_g_1.jpg"
+
+[sub_resource type="BoxMesh" id="bunker_mesh"]
+material = SubResource("bunker_mat")
+size = Vector3(5, 3, 5)
+
+[node name="Tutorial" type="Node3D"]
+script = ExtResource("1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0.383, -0.3214, 0, 0.6428, 0.766, 0.5, -0.6634, 0.5567, 0, 10, 0)
+light_color = Color(1, 0.95, 0.85, 1)
+light_energy = 1.3
+shadow_enabled = true
+directional_shadow_max_distance = 120.0
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("nav")
+
+[node name="Ground" type="StaticBody3D" parent="NavigationRegion3D"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -8)
+shape = SubResource("ground_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -8)
+mesh = SubResource("ground_mesh")
+
+[node name="Decor" type="Node3D" parent="."]
+
+[node name="Path" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, -11)
+mesh = SubResource("dirt_path")
+
+[node name="LowWall" parent="NavigationRegion3D" instance=ExtResource("9")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 13)
+length = 8.0
+
+[node name="Bunker" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -8)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Bunker"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("bunker_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Bunker"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("bunker_mesh")
+
+[node name="BunkerLadder" parent="NavigationRegion3D" instance=ExtResource("8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -5.5)
+
+[node name="Crate1" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -6)
+
+[node name="Crate2" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -7.3)
+skin = "tex_base/ecrate_drty-fmtl3.jpg"
+
+[node name="Crate3" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3, 0, -6)
+
+[node name="Crate4" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0, -9)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="WallWestA" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -50)
+
+[node name="WallWestB" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -50)
+
+[node name="WallWestC" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19, 0, -50)
+
+[node name="WallEastA" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -50)
+
+[node name="WallEastB" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, -50)
+
+[node name="WallEastC" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, -50)
+
+[node name="Units" type="Node3D" parent="."]
+
+[node name="Alpha" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 38)
+unit_index = 1
+display_name = "Alpha"
+
+[node name="Bravo" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0, 39.2)
+unit_index = 2
+display_name = "Bravo"
+
+[node name="Charlie" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 39.2)
+unit_index = 3
+display_name = "Charlie"
+
+[node name="CameraRig" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 36)
+bounds = AABB(-24, 0, -68, 48, 0, 118)
+
+[node name="PatrolPaths" type="Node3D" parent="."]
+
+[node name="PatrolSentry" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_sentry")
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="DummyLeft" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -21)
+armed = false
+stationary = true
+blind = true
+
+[node name="DummyRight" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -21)
+armed = false
+stationary = true
+blind = true
+
+[node name="DummyFront" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -24)
+armed = false
+stationary = true
+blind = true
+
+[node name="TargetLeft" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -4, 0, -40)
+armed = false
+stationary = true
+blind = true
+
+[node name="TargetMiddle" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -42)
+armed = false
+stationary = true
+blind = true
+
+[node name="TargetRight" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 4, 0, -40)
+armed = false
+stationary = true
+blind = true
+
+[node name="Sentry" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -9, 0, -55)
+patrol_path = NodePath("../../PatrolPaths/PatrolSentry")
+armed = false
+
+[node name="Stations" type="Node3D" parent="."]
+
+[node name="Move" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 35)
+script = ExtResource("10")
+title = "Se déplacer"
+text = "Bienvenue. Clic gauche sur un opérateur (ou touches 1, 2, 3) pour le sélectionner ; un rectangle en sélectionne plusieurs. Clic droit au sol : il y marche.
+Caméra : {camera_forward} {camera_left} {camera_back} {camera_right} ou bord de l'écran, molette pour le zoom, {camera_rotate_left} / {camera_rotate_right} pour tourner, {camera_focus} pour recentrer.
+
+Amenez un opérateur dans le cercle bleu."
+done_text = "Suivez l'allée vers le nord : chaque « ? » jaune est un atelier. {toggle_help} affiche toutes les commandes."
+step = 1
+objective_id = &"tuto_move"
+size = Vector2(16, 10)
+goal = 1
+goal_offset = Vector3(0, 0, -8)
+goal_radius = 1.5
+show_at_start = true
+
+[node name="Run" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 22)
+script = ExtResource("10")
+title = "Courir et se baisser"
+text = "Double clic droit : courir. C'est rapide mais bruyant, et on ne court que debout.
+{posture_crouch} : accroupi, plus lent mais plus discret. {posture_prone} : couché, on rampe et on est plus difficile à toucher. {dive} : roulade vers le curseur, qui finit couché.
+Le muret bas s'enjambe tout seul.
+
+Courez jusqu'au cercle au bout de l'allée."
+done_text = "Plus loin : le terrain d'escalade."
+step = 2
+objective_id = &"tuto_run"
+size = Vector2(12, 6)
+goal = 1
+goal_offset = Vector3(0, 0, -16)
+goal_radius = 1.5
+
+[node name="Climb" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("10")
+title = "Grimper"
+text = "Clic droit sur une caisse : l'opérateur grimpe dessus, puis saute d'une caisse à l'autre. Clic droit sur le toit du bunker : il y monte par l'échelle.
+{action_crate} puis clic sur une caisse : la pousser ou la tirer pour s'en faire un marchepied. {action_grapple} : grappin, si l'opérateur en porte un.
+
+Montez sur le toit du bunker."
+done_text = "Redescendez (clic droit au sol) et continuez vers les mannequins."
+step = 3
+objective_id = &"tuto_climb"
+size = Vector2(14, 6)
+goal = 1
+goal_offset = Vector3(5, 3, -8)
+goal_radius = 1.6
+goal_min_height = 2.5
+
+[node name="Melee" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -16)
+script = ExtResource("10")
+title = "Corps à corps"
+text = "{action_knockout} puis clic gauche sur un ennemi : l'opérateur s'en approche et l'assomme ; par derrière, c'est un étranglement silencieux. {action_knife} : couteau, mortel.
+Clic du milieu sur un ennemi : menu des coups (balayage, projection, désarmement, bouclier humain).
+Un ennemi en alerte lève sa garde : prenez-le à revers, ou pressez {parry} quand il frappe pour parer et contrer.
+
+Neutralisez les trois mannequins."
+done_text = "Les mannequins se relèveront : direction le stand de tir."
+step = 4
+objective_id = &"tuto_melee"
+size = Vector2(14, 6)
+goal = 2
+targets = Array[NodePath]([NodePath("../../Enemies/DummyLeft"), NodePath("../../Enemies/DummyRight"), NodePath("../../Enemies/DummyFront")])
+
+[node name="Shoot" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -29)
+script = ExtResource("10")
+title = "Tirer"
+text = "Clic droit sur un ennemi : les opérateurs sélectionnés s'approchent à portée et tirent jusqu'à ce qu'il tombe. On vise mieux de près et immobile.
+Les munitions s'affichent sur les portraits, en bas : {reload} recharge, {switch_weapon} passe à l'arme de poing. {action_grenade} puis clic au sol : grenade. Un tir s'entend de loin.
+
+Abattez les trois cibles."
+done_text = "Dernier atelier : passer la sentinelle."
+step = 5
+objective_id = &"tuto_shoot"
+size = Vector2(14, 6)
+goal = 2
+targets = Array[NodePath]([NodePath("../../Enemies/TargetLeft"), NodePath("../../Enemies/TargetMiddle"), NodePath("../../Enemies/TargetRight")])
+
+[node name="Stealth" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -45)
+script = ExtResource("10")
+title = "Infiltration"
+text = "Une sentinelle garde le passage derrière le mur. Son cône de vision s'affiche au sol : vert, elle ne voit rien ; jaune, elle se méfie ; rouge, elle donne l'alerte. Celle-ci n'est pas armée, mais les vraies tirent.
+Restez hors du cône, accroupi, et prenez-la par derrière ({action_knockout} ou {action_knife}). {action_throw} puis clic au sol : un caillou détourne son attention. {tactical_pause} : pause tactique, pour donner ses ordres jeu arrêté.
+
+Neutralisez la sentinelle."
+done_text = "Rejoignez la zone de fin, au nord."
+step = 6
+objective_id = &"tuto_stealth"
+size = Vector2(14, 5)
+goal = 2
+targets = Array[NodePath]([NodePath("../../Enemies/Sentry")])
+
+[node name="Finish" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -62)
+script = ExtResource("10")
+title = "Fin du didacticiel"
+text = "Amenez un opérateur dans la zone de fin."
+done_text = "Bravo, vous connaissez l'essentiel. {toggle_help} affiche toutes les commandes en partie."
+step = 7
+objective_id = &"tuto_end"
+size = Vector2(10, 6)
+goal = 3
+goal_offset = Vector3(0, 0, 0)
+goal_radius = 2.5
+
+[node name="HUD" parent="." instance=ExtResource("6")]

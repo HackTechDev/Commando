@@ -7,12 +7,13 @@ Voir `CAHIER_DES_CHARGES.md` pour la vision, l'architecture et les jalons.
 
 ```sh
 godot --path .            # menu de démarrage : choix de la carte
+godot --path . scenes/levels/tutorial/tutorial.tscn        # lance directement le didacticiel
 godot --path . scenes/levels/sandbox/sandbox.tscn          # lance directement le terrain d'essai
 godot --path . scenes/levels/training_a/training_a.tscn   # lance directement la carte UFO:AI « training_a »
 godot --headless --path . --quit-after 60   # vérification sans affichage
 ```
 
-(`godot` = exécutable Godot 4.7.x.) Dans l'éditeur, F5 ouvre le menu ; F6 lance directement la scène ouverte. Le bouton « Menu » du HUD ramène au choix de la carte. Pour proposer un nouveau niveau dans le menu, l'ajouter à `LevelCatalog.LEVELS` (`scripts/levels/level_catalog.gd`).
+(`godot` = exécutable Godot 4.7.x.) Dans l'éditeur, F5 ouvre le menu ; F6 lance directement la scène ouverte. Le bouton « Menu » du HUD ramène au choix de la carte. Pour débuter : le niveau « Didacticiel », en tête du menu, enseigne les commandes en sept ateliers ; une petite fenêtre explique chacun quand un opérateur y entre (× pour la masquer, « ? Astuce » pour la rouvrir). Pour proposer un nouveau niveau dans le menu, l'ajouter à `LevelCatalog.LEVELS` (`scripts/levels/level_catalog.gd`).
 
 Les textures et les cartes ne sont pas dans le dépôt : elles sont lues au chargement de chaque niveau dans `../CommandoAsset/textures` et `../CommandoAsset/maps` (réglages de projet `commando/assets/texture_dir` et `commando/assets/map_dir`, ou variables d'environnement `COMMANDO_TEXTURES` et `COMMANDO_MAPS`). Voir `assets/TEXTURES.md`.
 
@@ -80,7 +81,7 @@ Le script renvoie un code non nul si un test échoue. Dans l'éditeur, le pannea
 
 - `tests/unit/` : logique pure, sans scène (cône de vision, points de vie, lecture des cartes UFO:AI, textures et dossiers externes, sons).
 - `tests/gameplay/` : parties jouées dans le terrain d'essai (escalade, fusillade, postures, corps à corps, prises par derrière, lutte, parade, lancer de couteau, caisses, sons).
-- `tests/levels/` : cartes `training_a`, `training_b` et `fighter_crash` (ignorées si le fichier de carte est absent) et menu de démarrage.
+- `tests/levels/` : didacticiel, cartes `training_a`, `training_b` et `fighter_crash` (ignorées si le fichier de carte est absent) et menu de démarrage.
 - `tests/helpers/level_test.gd` : classe de base `LevelTest` (chargement d'un niveau, attente en images de physique, mise à l'écart des ennemis).
 
 Les tests de jeu tournent en temps réel simulé : ils sont lents (quelques secondes chacun) mais vérifient le comportement réel. Les tirages au sort sont rendus reproductibles par `seed()` ; un test qui dépend d'une probabilité la fixe sur une copie des réglages de l'unité (`own_stats`).

@@ -25,6 +25,21 @@ const CAMO_HINTS: Dictionary = {
 
 const LEVELS: Array[Dictionary] = [
 	{
+		"title": "Didacticiel",
+		"scene": "res://scenes/levels/tutorial/tutorial.tscn",
+		"description": "Parcours d'apprentissage en sept ateliers, du sud au nord : se déplacer, courir et se baisser, grimper, corps à corps, tir, infiltration. Une petite fenêtre explique chaque atelier quand un opérateur y entre ; un « ? » jaune les signale, un « ✓ » vert marque ceux réussis.",
+		"camo": "woodland",
+		"objectives": [
+			{"id": "tuto_move", "text": "Se déplacer jusqu'au premier cercle"},
+			{"id": "tuto_run", "text": "Courir jusqu'au bout de l'allée"},
+			{"id": "tuto_climb", "text": "Monter sur le toit du bunker"},
+			{"id": "tuto_melee", "text": "Neutraliser les trois mannequins au corps à corps"},
+			{"id": "tuto_shoot", "text": "Abattre les trois cibles du stand de tir"},
+			{"id": "tuto_stealth", "text": "Neutraliser la sentinelle"},
+			{"id": "tuto_end", "text": "Rejoindre la zone de fin"},
+		],
+	},
+	{
 		"title": "Terrain d'essai",
 		"scene": "res://scenes/levels/sandbox/sandbox.tscn",
 		"description": "Petite carte d'exemple : une sentinelle en patrouille, une cible d'entraînement, des caisses à escalader et à déplacer.",

@@ -606,3 +606,17 @@
 - Un second ennemi qui vient frapper un opérateur déjà au contact d'un camarade le contourne pour l'attaquer de flanc (100° du premier).
 - Pendant que l'opérateur pare ou esquive, un autre assaillant frappe aussitôt, sans attendre sa récupération, et son coup passe.
 - Un opérateur attaqué au corps à corps appelle les coéquipiers inoccupés à moins de 8 m : ils accourent pour assommer l'assaillant (souvent par derrière, d'une prise).
+
+## Didacticiel
+
+- Nouveau niveau « Didacticiel », en tête du menu : une allée du sud au nord, sept ateliers signalés par un « ? » jaune (« ✓ » vert une fois réussis) :
+  1. se déplacer (sélection, marche, caméra) jusqu'à un cercle ;
+  2. courir et se baisser (course, postures, roulade, muret à enjamber) ;
+  3. grimper (caisses, échelle du bunker, déplacer une caisse) jusqu'au toit ;
+  4. corps à corps sur trois mannequins (assommer, couteau, menu des coups, parade) ;
+  5. stand de tir, trois cibles (tir, rechargement, arme de poing, grenade) ;
+  6. infiltration : une sentinelle non armée qui patrouille derrière un mur (cône de vision, caillou, pause tactique) ;
+  7. zone de fin, qui termine la mission une fois les autres ateliers réussis.
+- Petite fenêtre d'astuce à gauche de l'écran (`TutorialPanel`) : titre, étape « n / 7 », texte où les touches sont lues dans l'InputMap (AZERTY ou autre). Le jeu continue ; × la masque, « ? Astuce » la rouvre. À la réussite d'un atelier, elle l'annonce et indique la suite.
+- Chaque atelier est un objectif du journal.
+- `Enemy.blind` : ennemi qui ne voit rien (mannequins et cibles d'entraînement), sans cône affiché.

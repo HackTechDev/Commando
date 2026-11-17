@@ -33,6 +33,9 @@ const MELEE_MAX_HEIGHT := 0.8
 @export var armed: bool = true
 ## Ne se déplace jamais, même en alerte (sentinelle, cible d'entraînement).
 @export var stationary: bool = false
+## Ne voit rien (mannequin d'entraînement) : il ne passe jamais en alerte de
+## lui-même, et son cône n'est pas affiché.
+@export var blind: bool = false
 
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
@@ -156,6 +159,9 @@ func _ready() -> void:
 	if not _waypoints.is_empty():
 		_agent.target_position = _waypoints[0]
 	_update_feedback()
+	if blind:
+		_vision.visible = false
+		_vision.set_physics_process(false)
 
 
 func _physics_process(delta: float) -> void:
@@ -626,7 +632,7 @@ func release() -> void:
 		return
 	_model.grabbed = false
 	_agent.avoidance_enabled = true
-	_vision.visible = true
+	_vision.visible = not blind
 	_vision.set_physics_process(true)
 	state = State.PATROL
 	detection = 1.0
@@ -682,7 +688,7 @@ func _wake_up() -> void:
 	collision_layer = LAYER_ACTIVE
 	_agent.avoidance_enabled = true
 	_model.is_dead = false
-	_vision.visible = true
+	_vision.visible = not blind
 	_vision.set_physics_process(true)
 	state = State.PATROL
 	detection = 1.0
@@ -715,6 +721,9 @@ func _on_died() -> void:
 
 
 func _update_detection(delta: float) -> void:
+	if blind:
+		_target = null
+		return
 	var best_zone := VisionComponent.Zone.NONE
 	var best_distance := INF
 	_target = null
@@ -989,5 +998,5 @@ func _load_disarmed(value: bool) -> void:
 	_disarmer = null
 	_model.hands_up = false
 	_model.set_armed(true)
-	_vision.visible = true
+	_vision.visible = not blind
 	_vision.set_physics_process(true)
