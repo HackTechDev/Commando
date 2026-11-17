@@ -221,6 +221,10 @@ func _finish_build() -> void:
 ## l'affichage. Un fil dédié plutôt que le `WorkerThreadPool` : dans la suite
 ## de tests, une tâche du pool restait parfois sans jamais démarrer.
 func _run_in_thread(task: Callable) -> Variant:
+	# Export Web sans fils : la tâche tourne d'un bloc dans le fil principal.
+	if OS.has_feature("nothreads"):
+		await get_tree().process_frame
+		return task.call()
 	var thread := Thread.new()
 	_threads.append(thread)
 	thread.start(task)

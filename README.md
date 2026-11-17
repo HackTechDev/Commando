@@ -27,7 +27,16 @@ Les textures et les cartes ne sont pas dans le dépôt : elles sont lues au char
 
 Le script cherche Godot dans la variable `GODOT`, puis dans le PATH, puis à son emplacement par défaut.
 
-Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'ouvrir directement depuis le disque (`file://`) ne fonctionne pas. Les modèles d'export Web de Godot 4.7.2 doivent être installés. Le jeu Web n'a pas accès au disque : il tourne sans les textures ni les cartes externes (sandbox sans textures).
+Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'ouvrir directement depuis le disque (`file://`) ne fonctionne pas. Les modèles d'export Web de Godot 4.7.2 doivent être installés. Le jeu Web n'a pas accès au disque : sans paquet, il tourne sans les textures ni les cartes externes (sandbox sans textures). Pour les emporter :
+
+```sh
+tools/web_pack.py                          # training_a, training_b, fighter_crash et leurs textures
+tools/web_pack.py --maps dam harbour mine  # d'autres cartes
+tools/web_pack.py --export                 # prépare le paquet puis lance ./export_web.sh
+tools/web_pack.py --clean                  # retire le paquet
+```
+
+Le script copie les cartes choisies et les seules textures qu'elles utilisent (plus celles des scènes du jeu) dans `web_assets/` (non versionné, environ 14 Mo pour les trois cartes) et ajoute ce dossier au filtre d'inclusion du préréglage Web. Les licences des textures UFO:AI sont mélangées : à vérifier avant de publier le jeu (voir `assets/TEXTURES.md`).
 
 ## Contrôles
 

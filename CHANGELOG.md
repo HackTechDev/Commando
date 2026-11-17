@@ -680,3 +680,9 @@
 - Un ennemi qui voit un corps (mort ou assommé) pas encore découvert crie (les ennemis proches accourent) et passe en alerte vers lui. La fumée et les murs cachent le corps comme un opérateur.
 - Cachettes (`HidingSpot`) : buisson, eau (le corps s'y enfonce) et abri ; un corps sous un toit est aussi caché. Le terrain d'essai a un buisson et une mare à l'ouest.
 - Le corps porté et l'état « découvert » sont gardés par la sauvegarde rapide.
+
+## Paquet Web : cartes et textures embarquées
+
+- `tools/web_pack.py` copie trois cartes UFO:AI (par défaut celles du catalogue : `training_a`, `training_b`, `fighter_crash`) et les seules textures qu'elles utilisent, plus celles des scènes du jeu, dans `web_assets/` (images gardées telles quelles, importeur `keep`) ; il complète le filtre d'inclusion du préréglage Web. Options `--maps`, `--export`, `--clean`.
+- Sur le Web, `AssetPaths` lit `res://web_assets/maps` et `res://web_assets/textures` quand le paquet est présent.
+- Export Web sans fils : `UfoMapLevel._run_in_thread` exécute la tâche dans le fil principal.
