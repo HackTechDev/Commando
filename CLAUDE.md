@@ -5,7 +5,7 @@ Jeu d'infiltration tactique en temps réel, vue 3D isométrique, Godot 4.7.2, GD
 ## À lire
 
 - `CAHIER_DES_CHARGES.md` : vision, architecture, couches de collision, jalons, consignes (§11).
-- `IMPROVEMENTS.md` : liste numérotée des améliorations (« fais le point 4.1 »). Marquer un point fait : `**4.1 ~~Titre~~** (fait)`.
+- `IMPROVEMENTS.md` : liste numérotée des améliorations (« fais le point 4.1 »). Un point fait est retiré de la liste (le `CHANGELOG.md` en garde la trace) ; les autres gardent leur numéro.
 - `DECISIONS.md` : choix de conception, à compléter à chaque règle tranchée.
 - `CHANGELOG.md` : une section par fonctionnalité livrée.
 - `README.md` : lancement, contrôles (à tenir à jour avec l'InputMap), tests.

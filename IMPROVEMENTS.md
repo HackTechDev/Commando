@@ -1,6 +1,6 @@
 # Idées d'amélioration
 
-Pistes classées par priorité. Chaque point a un numéro (section.point, puis une lettre pour les sous-points) pour qu'on puisse y renvoyer. Les points faits sont barrés et gardent leur numéro. Les renvois « § » et « M » pointent vers `CAHIER_DES_CHARGES.md`.
+Pistes classées par priorité. Chaque point a un numéro (section.point, puis une lettre pour les sous-points) pour qu'on puisse y renvoyer. Les points faits sont retirés (voir `CHANGELOG.md`) ; les autres gardent leur numéro. Les renvois « § » et « M » pointent vers `CAHIER_DES_CHARGES.md`.
 
 ## 1. À faire en premier (fondations)
 
@@ -17,11 +17,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - la saisie et la perte de connaissance.
 
   Il deviendra ingérable avec les états `Investigate`, `Search` et `Return`.
-- **1.4 ~~Restructurer les actions de `Commando`~~** (fait) : un ordre en cours et un geste en cours (`CommandoAction`, dans `scripts/units/actions/`).
 - **1.5 Factoriser le code commun à `Commando` et `Enemy`** : déplacement par navigation, évitement, pas de côté, orientation et tir sont dupliqués. Extraire des composants (`MovementComponent`, `WeaponComponent`), comme le prévoit le §3.
-- **1.6 ~~Préparer la sauvegarde rapide~~** (fait) (M7) : donner dès maintenant à chaque composant un couple `save_state()` / `load_state()`, sinon il faudra tout reprendre plus tard.
-- **1.7 ~~Mettre à jour le cahier des charges~~** (fait) : univers militaire contemporain (§1), rotation libre de la caméra (§4, §10, §13).
-- **1.8 ~~Créer `CLAUDE.md`~~** (fait) : documents de référence, chemin de Godot, commandes de vérification, conventions.
 
 ## 2. Gameplay d'infiltration
 
@@ -52,48 +48,12 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** charge à retardement, en plus de la mise à feu à distance ;
   - **c)** grenades fumigènes ou assourdissantes pour l'infiltration.
 
-## 3. Combat rapproché
-
-Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits :
-- uppercut, coups de pied et coup de crosse ;
-- étranglement et égorgement par derrière ;
-- lutte de l'ennemi en alerte ;
-- parade, esquive et contre ;
-- lancer de couteau ;
-- arme secondaire.
-
-### Attaque
-
-- **3.1 ~~Coup de coude~~** et **~~coup de genou~~** (saisie par la nuque) (fait) : variantes à très courte portée.
-- **3.2 ~~Balayage~~** (fait) : coup de pied bas qui fauche les jambes. L'ennemi tombe et reste sonné moins longtemps.
-- **3.3 ~~Enchaînement direct + crochet~~** (fait) : plus lisible qu'un coup unique.
-- **3.4 ~~Projection~~** (fait) : saisir l'ennemi, le jeter au sol par-dessus la hanche, puis le frapper au sol.
-- **3.5 ~~Désarmement~~** (fait) : arracher l'arme d'un ennemi en alerte pris de court. Il devient inoffensif sans être neutralisé.
-- **3.6 ~~Bouclier humain~~** (fait) : saisir un ennemi par derrière et s'en couvrir. L'opérateur se déplace lentement et ne tire qu'à l'arme secondaire ; les autres ennemis hésitent à tirer.
-- **3.7 Lancer de couteau, suite** :
-  - **a) ~~Couteau sur le corps~~** (fait) : récupérer le couteau directement sur le corps (aujourd'hui, il tombe à côté) ;
-  - **b) ~~Diversion~~** (fait) : lancer un objet pour faire diversion (caillou, douille), une fois l'ouïe en place (2.1).
-
-### Défense
-
-- **3.8 ~~Roulade~~** (fait) : plonger au sol pour sortir d'un cône de vision ou d'une ligne de tir, et finir couché.
-- **3.9 ~~Garde de l'ennemi~~** (fait) : un ennemi en alerte lève les bras, ce qui impose un contre ou une prise par derrière.
-- **3.10 ~~Riposte au corps à corps~~** (fait) des ennemis à court de munitions (les ennemis frappent déjà au contact).
-- **3.11 ~~Parade au choix du joueur~~** (fait) : une touche de défense, à presser au bon moment, au lieu du tirage au sort.
-- **3.12 ~~Appel à l'aide~~** (fait) : un ennemi saisi mais pas encore neutralisé crie, et ce bruit attire les autres. Dépend de l'ouïe des ennemis (2.1).
-- **3.13 ~~Esquive contre les obstacles~~** (fait) : le pas de côté est tiré au hasard à gauche ou à droite, même si un mur ou une caisse se trouve de ce côté. Il faudrait choisir le côté libre.
-- **3.14 ~~Corps à corps à plusieurs~~** (fait) : aujourd'hui, un seul ennemi frappe à la fois et l'opérateur ne se défend que contre lui. Il faudrait gérer deux assaillants (le second profite de la parade) et les coéquipiers qui viennent aider.
-
 ## 4. Contrôles et lisibilité
 
-- **4.1 ~~Curseur contextuel~~** (fait) : viseur sur un ennemi, flèche d'escalade sur une caisse ou une corniche, ordres sur le VIP, cible de l'action armée (couteau, lancer, grenade, caisse), sens interdit sur un endroit inaccessible.
 - **4.2 Prévisualisation du chemin** (§5.1) : tracer l'itinéraire avant et pendant le déplacement.
 - **4.3 Cône à la demande** (§5.2) : n'afficher le cône qu'au survol ou avec Maj + clic, et montrer aussi la portée de tir des opérateurs.
-- **4.4 ~~Pause tactique et ordres simultanés~~** (fait) : Espace met le jeu en pause sans bloquer les ordres ; Tab prépare un ordre par unité (affiché à l'écran), Entrée les lance ensemble.
 - **4.5 Annulation propre pendant l'escalade** : l'opérateur n'accepte aucun ordre pendant 1 à 1,4 s. Il faudrait mettre l'ordre en file d'attente plutôt que de l'ignorer.
 - **4.6 Groupes de contrôle** (Ctrl + chiffre), et double appui sur un chiffre pour centrer la caméra.
-- **4.7 ~~Retour visuel des tirs~~** (fait) : impact des balles manquées sur le premier obstacle (gerbe de poussière), gerbe rouge et chiffre de dégâts sur la cible touchée, étincelles sur un bouclier.
-- **4.8 ~~Lignes de vue bloquées~~** (fait) : indiquer pourquoi un opérateur ne tire pas ou ne lance pas (hors de portée, obstacle, à sec, sans couteau).
 - **4.9 Portée des lancers** : quand T ou N est armé, afficher au sol autour de l'opérateur concerné :
   - **a)** pour le couteau, les cercles de 7 m et de 4 m (où le lancer porte toujours), et la trajectoire au survol d'un ennemi ;
   - **b)** pour la grenade, le cercle de 12 m, et la zone de l'explosion au survol du sol.
@@ -111,38 +71,18 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **b)** grenade qui rebondit et roule selon le relief ;
   - **c)** munitions de l'arme secondaire visibles en même temps que celles de la principale ;
   - **d)** effet visuel de soin.
-- **5.4 ~~Préparation de mission, suite~~** (fait) : aperçu de la carte, objectifs, et modification complète de la tenue sans passer par l'écran « Opérateurs ».
-- **5.5 ~~Menu, suite~~** (fait) :
-  - **a)** ~~menu pause sur Échap~~ ;
-  - **b)** ~~aperçu de chaque carte~~ (vue du dessus enregistrée à la première partie) ;
-  - **c)** ~~mémoriser la dernière carte jouée~~ ;
-  - **d)** ~~proposer automatiquement les autres cartes UFO:AI du dossier~~.
-- **5.6 ~~Écran de fin et redémarrage~~** (fait) : après « ÉCHEC — opérateur tué », la partie continue. Proposer de recommencer.
-- **5.7 ~~Journal d'objectifs, minimap, menu pause, options~~** (fait) (§6).
 - **5.8 Traduction** : passer tous les textes par `tr()` (français et anglais, M10).
-- **5.9 ~~Aide repliable~~** (fait : page d'aide sur H) : les lignes de contrôles en haut de l'écran sont de plus en plus longues (V, B, T, N, K…) et devraient se masquer avec une touche.
 - **5.10 Rendre les touches affichées dynamiques** : les boutons affichent « [C] » ou « [R] » en dur au lieu de lire l'InputMap.
 
 ## 6. Modèle et animation
 
-- **6.1 ~~Corps, suite~~** (fait) :
-  - **a)** ~~doigts articulés autour des armes et des objets~~ (fait) ;
-  - **b)** ~~clignement des yeux et regard qui suit la cible~~ (fait) ;
-  - **c)** ~~expressions (effort, douleur)~~ (fait) ;
-  - **d)** ~~plis et coutures sur les vêtements (texture)~~ (fait) ;
-  - **e)** ~~silhouette propre à chaque spécialité~~ (fait).
-- **6.2 ~~Silhouette des ennemis~~** (fait) : casque ancien, casquette ou béret, visage découvert et varié, gilet à chargeurs, fusil d'assaut à crosse en bois.
-- **6.3 ~~Pas pendant les déplacements subis~~** (fait) : marche à reculons, pas chassés sur le côté, pas en arrière quand il vacille.
-- **6.4 ~~Geste de ramassage~~** (fait).
-- **6.5 ~~Réaction des ennemis désarmés~~** (fait) : garde de boxe en alerte.
 - Ne pas implémenter : **6.6 Passer à des modèles et animations CC0** avec un `AnimationTree` (M10), quand le prototype sera stabilisé. `soldier_model.gd` dépasse 2 000 lignes de géométrie et d'images clés écrites à la main.
 
 ## 7. Niveau et technique
 
 - **7.1 Maillage de navigation** : il est généré 0,5 m au-dessus du sol, et un réglage sur chaque agent compense ce décalage. Il faudrait trouver la cause (taille des cellules) plutôt que compenser.
 - **7.2 Îlots de navigation sur les caisses** : le dessus des caisses collées reçoit un bout de maillage inutile. L'exclure à la génération.
-- **7.3 ~~Escalade généralisée~~** (fait) : échelles (`Ladder`) jusqu'aux toits plats, murets à enjamber (`LowWall`), par des liens de navigation (`TraversalLink`) qu'empruntent aussi les ennemis et le VIP. Un ennemi armé tire d'en bas sur un opérateur perché. Reste : placer échelles et murets sur les cartes UFO:AI.
-- **7.4 ~~Coût du cône de vision~~** (fait) : recalculé seulement si l'ennemi bouge ou tourne, si un obstacle est déplacé, ou une fois par seconde ; pas hors de l'écran ; moins de segments caméra très dézoomée.
+- **7.3 Escalade sur les cartes UFO:AI** : placer échelles (`Ladder`) et murets (`LowWall`) sur ces cartes (ils existent déjà sur les cartes faites main).
 - **7.5 Occlusion** (M8) : rendre transparents les murs entre la caméra et l'unité sélectionnée. Aujourd'hui, un opérateur derrière un mur est invisible.
 - **7.6 Structure de niveau** (§7) : `LevelRoot` avec `SpawnPoints`, `Objectives`, `CameraBounds` et `ExtractionZone`, et un premier objectif simple pour avoir une boucle de jeu complète.
 - **7.7 Grandes cartes** :
@@ -157,13 +97,6 @@ Idées restantes, classées par ordre de mise en œuvre conseillé. Déjà faits
   - **a)** caisses restées fixes : piles de deux caisses, caisses à couvercle, caisses blanches surmontées, palettes basses. Il faut les escalader à d'autres hauteurs (2,4 m pour une pile, 0,6 m pour une palette, avec de nouvelles animations) et pouvoir déplacer une pile entière ;
   - **b)** lumières (`light`) ;
   - **c)** portes (`func_door`) et objets destructibles (`func_breakable`) ;
-  - **d)** ~~étages : masquer les niveaux supérieurs (cf. l'occlusion, 7.5). Les toits d'un seul niveau s'effacent déjà~~ (fait) ;
-  - **e)** ~~toits, suite~~ (fait) :
-    - ~~effacer aussi les murs qui masquent un opérateur côté caméra~~ ;
-    - ~~ne pas effacer les surplombs de terrain~~ (seule la bande au-dessus du passage s'efface) ;
-    - ~~n'effacer que la partie d'une dalle qui couvre une tranchée~~ ;
-    - ~~voir l'intérieur au survol de la souris~~ ;
-    - ~~accélérer le repérage (2 s sur Entraînement B) ou le mettre en cache par carte~~ ;
   - **f)** remplacer les modèles absents (arbres, mobilier) par des modèles CC0 ;
   - **g)** patrouilles pour les sentinelles, aujourd'hui fixes ;
   - **h)** cartes aléatoires assemblées à partir des tuiles et des `.ump` ;
