@@ -672,3 +672,11 @@
 - Chaque balle part avec un écart qui dépend de la distance et de la précision de l'arme, et s'arrête sur le premier obstacle (gerbe de poussière) ; un ennemi sur la trajectoire est touché.
 - Les objets destructibles cèdent sous les balles : mur fragile (environ 9 coups de carabine), caisse (7), bidon (4). Un objet sur lequel se tient un opérateur, ou qu'il pousse, ne cède pas.
 - Bruyant comme tout tir.
+
+## Corps : porter, déposer, cacher (2.2)
+
+- Touche « ! » (AZERTY, à droite de « : ») ou bouton « Porter », puis clic gauche sur un ennemi mort ou assommé : l'opérateur sélectionné le plus proche va le prendre sur ses épaules. De nouveau « ! » : il le dépose le long de son flanc droit. Se prépare aussi en ordres simultanés.
+- Le porteur marche lentement (60 % de la marche), reste debout, arme à la bretelle : ni tir, ni lancer, ni escalade, ni corps à corps. Mort, il lâche le corps ; un ennemi assommé qui se réveille sur ses épaules lui échappe.
+- Un ennemi qui voit un corps (mort ou assommé) pas encore découvert crie (les ennemis proches accourent) et passe en alerte vers lui. La fumée et les murs cachent le corps comme un opérateur.
+- Cachettes (`HidingSpot`) : buisson, eau (le corps s'y enfonce) et abri ; un corps sous un toit est aussi caché. Le terrain d'essai a un buisson et une mare à l'ouest.
+- Le corps porté et l'état « découvert » sont gardés par la sauvegarde rapide.

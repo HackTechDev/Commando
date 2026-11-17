@@ -446,6 +446,10 @@ const DEATH_FWD_POS_Z: Array[float] = [0.0, 0.0, 0.35, 0.0, 0.85, 0.6, 1.1, 0.9]
 ## Garde des poings pendant un coup de pied (repère du torse).
 ## Main gauche autour du cou de l'otage, tenu à `GRAB_DISTANCE` devant.
 const HOSTAGE_LEFT := Vector3(0.06, 0.66, -0.36)
+## Corps porté sur les épaules : la main gauche tient son bras pendant sur
+## le devant, la droite enserre ses jambes (repère du torse).
+const CARRY_LEFT := Vector3(-0.2, 0.6, -0.2)
+const CARRY_RIGHT := Vector3(0.2, 0.64, -0.16)
 const HANDS_UP_LEFT := Vector3(-0.24, 0.98, -0.08)
 const HANDS_UP_RIGHT := Vector3(0.24, 0.98, -0.08)
 const GUARD_LEFT := Vector3(-0.12, 0.62, -0.28)
@@ -571,6 +575,8 @@ var is_armed: bool = true
 var hands_up: bool = false
 ## Bouclier humain : le bras gauche tient l'otage par le cou, l'arme de
 ## poing dans la main droite.
+## Porte un corps sur les épaules (pose des bras).
+var carrying: bool = false
 var hostage_hold: bool = false:
 	set(value):
 		# Au sortir de la saisie, le bras reste en place autour du cou.
@@ -668,6 +674,7 @@ var _female: bool = false
 var _shield_back: Transform3D
 var _shield_up: float = 0.0
 var _hostage: float = 0.0
+var _carry: float = 0.0
 var _rifle_aim: Transform3D
 var _rifle_prone: Transform3D
 var _rifle_dropped: Transform3D
@@ -983,6 +990,20 @@ func _free_hand(side: float, prone: bool, s: float, c: float, moving: float, cra
 		var planted := Vector3(0.27 * side, 0.88 + 0.15 * s * -side, -0.16 + 0.07 * maxf(c * -side, 0.0))
 		return rest.lerp(planted, crawl)
 	return Vector3(FREE_HAND.x * side, FREE_HAND.y, FREE_HAND.z + 0.12 * s * moving * -side)
+
+
+## Étendu au sol, face contre terre (chute en avant ou mort couché).
+func is_face_down() -> bool:
+	return _death_prone or _death_forward
+
+
+## Bassin et tête du modèle, pour placer un corps porté ou déposé.
+func hips_node() -> Node3D:
+	return _hips
+
+
+func head_node() -> Node3D:
+	return _head
 
 
 ## Vrai pendant qu'il se couche ou se relève : l'unité ne doit ni bouger ni tirer.
@@ -1485,6 +1506,7 @@ func _animate_alive(delta: float) -> void:
 	var rifle_target := _rifle_prone if prone else _rifle_hold.interpolate_with(_rifle_aim, aim)
 	var shield := _update_shield(delta, prone)
 	_hostage = move_toward(_hostage, 1.0 if hostage_hold and not is_dead else 0.0, delta / SHIELD_TIME)
+	_carry = move_toward(_carry, 1.0 if carrying and not is_dead else 0.0, delta / SHIELD_TIME)
 	# Bouclier levé : l'arme de poing passe à droite du bouclier.
 	rifle_target.origin += SHIELD_PISTOL_OFFSET * shield
 	# Pistolet qui sort de l'étui (ou y rentre).
@@ -1543,6 +1565,9 @@ func _animate_alive(delta: float) -> void:
 			left = left.lerp(_shield.transform * SHIELD_HANDLE, shield)
 		if _hostage > 0.0:
 			left = left.lerp(HOSTAGE_LEFT, smoothstep(0.0, 1.0, _hostage))
+		if _carry > 0.0:
+			left = left.lerp(CARRY_LEFT, smoothstep(0.0, 1.0, _carry))
+			right = right.lerp(CARRY_RIGHT, smoothstep(0.0, 1.0, _carry))
 		target = _solve_arms(left, right, PRONE_ELBOW_POLE if prone else ARM_POLE)
 	else:
 		target = _arm_poses[ArmPose.RIFLE]

@@ -134,6 +134,21 @@ func check(target: Unit, ignore_posture: bool = false) -> Zone:
 	return zone
 
 
+## Vrai si le point `point` (monde) est dans le cône, à portée de vue d'une
+## cible debout, sans obstacle ni fumée entre l'œil et lui (un corps au sol,
+## par exemple).
+func sees_point(point: Vector3) -> bool:
+	var offset := to_local(point)
+	offset.y = 0.0
+	if zone_for(offset, SoldierModel.Posture.STANDING, config) == Zone.NONE:
+		return false
+	var eye := global_position + Vector3.UP * config.eye_height
+	var query := PhysicsRayQueryParameters3D.create(eye, point, MASK_OCCLUDERS)
+	if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+		return false
+	return not SmokeCloud.blocks_sight(get_tree(), eye, point)
+
+
 ## Logique pure : zone pour une position exprimée dans le repère du cône
 ## (sans tenir compte des obstacles).
 static func zone_for(local_offset: Vector3, posture: SoldierModel.Posture, vision: VisionConfig) -> Zone:

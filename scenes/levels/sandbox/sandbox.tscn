@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/props/ladder.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/props/low_wall.tscn" id="9"]
 [ext_resource type="Script" path="res://scripts/props/fragile_wall.gd" id="fragile"]
+[ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
 
 [sub_resource type="Curve3D" id="patrol_a"]
 _data = {
@@ -214,6 +215,16 @@ length = 6.0
 [node name="FragileWall" type="StaticBody3D" parent="NavigationRegion3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 18)
 script = ExtResource("fragile")
+
+[node name="Bush" type="Node3D" parent="Decor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 6)
+script = ExtResource("hiding")
+
+[node name="Pond" type="Node3D" parent="Decor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 0)
+script = ExtResource("hiding")
+kind = 1
+size = Vector2(3, 2.4)
 
 [node name="TerraceHigh" type="StaticBody3D" parent="NavigationRegion3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, 10)

@@ -28,6 +28,7 @@ const SECTIONS: Array = [
 		[[&"action_grenade"], "Grenade, puis clic au sol"],
 		[[&"action_smoke"], "Fumigène, puis clic au sol"],
 		[[&"action_fire_at"], "Tir libre, puis clic sur un mur ou un objet"],
+		[[&"action_carry"], "Porter un corps (clic dessus) / le déposer"],
 		[[&"reload"], "Recharger"],
 		[[&"switch_weapon"], "Arme secondaire / principale"],
 		[[&"action_sling"], "Arme à la bretelle"],

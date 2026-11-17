@@ -80,6 +80,11 @@ const SHIELD_SPEED := 0.7
 ## action demande les deux mains.
 const HOSTAGE_SPEED := 0.45
 const HOSTAGE_BUSY := "Bouclier humain : relâchez d'abord l'otage"
+## Porteur d'un corps : vitesse (part de la marche), message des actions
+## refusées, hauteur (m) des épaules où repose le corps.
+const CARRY_SPEED := 0.6
+const CARRY_BUSY := "Mains prises : déposer d'abord le corps"
+const CARRY_SHOULDER := 1.42
 ## Portée (m) d'un caillou lancé pour faire diversion.
 const PEBBLE_RANGE := 14.0
 ## Corps à corps à plusieurs : un coéquipier inoccupé à moins de cette
@@ -114,6 +119,8 @@ var throwing_knives: int = 0
 var grenades: int = 0
 var smoke_grenades: int = 0
 var hatchets: int = 0
+## Corps porté sur les épaules (`carry_body`), ou null.
+var carried_body: Enemy
 var explosives: int = 0
 var medkits: int = 0
 ## Bouclier balistique emporté (0 ou 1).
@@ -309,6 +316,12 @@ func _physics_process(delta: float) -> void:
 	_model.look_target = _look_point()
 	_model.shield_raised = is_shield_up()
 	_model.hostage_hold = hostage != null
+	_model.carrying = carried_body != null
+	if carried_body:
+		_model.weapon_slung = true
+		if posture != SoldierModel.Posture.STANDING:
+			posture = SoldierModel.Posture.STANDING
+		_place_carried_body()
 	if not is_dead and _traversal.update(delta):
 		return
 	if _hopping:
@@ -447,6 +460,9 @@ func move_to(target: Vector3, run: bool) -> void:
 ## tir, puis tire jusqu'à ce que la cible soit neutralisée.
 func attack(enemy: Enemy, run: bool) -> void:
 	if is_dead or _hopping or enemy == null or enemy.is_dead:
+		return
+	if carried_body:
+		flash_message(CARRY_BUSY)
 		return
 	if not _ready_to_fire():
 		flash_hint(Hint.NO_AMMO)
@@ -587,7 +603,7 @@ func has_secondary() -> bool:
 ## Change d'arme (principale ↔ secondaire). Un rechargement en cours est
 ## interrompu. Renvoie faux sans arme secondaire.
 func switch_weapon() -> bool:
-	if is_dead or _secondary_stats == null:
+	if is_dead or _secondary_stats == null or carried_body:
 		return false
 	_reload_left = 0.0
 	_model.reload_progress = -1.0
@@ -910,10 +926,83 @@ func _hold_hostage() -> void:
 
 ## Vrai (et l'opérateur le signale) si l'otage lui occupe les mains.
 func _hostage_busy() -> bool:
+	if carried_body != null:
+		flash_message(CARRY_BUSY)
+		return true
 	if hostage == null:
 		return false
 	flash_message(HOSTAGE_BUSY)
 	return true
+
+
+## Ordonne d'aller prendre le corps `body` (mort ou assommé) sur l'épaule.
+## Renvoie faux si c'est impossible.
+func carry_body(body: Enemy, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
+	if is_dead or _hopping or body == null or not body.is_body() or body.carrier != null:
+		return false
+	if perched_on:
+		return _descend(body.body_center(), carry_body.bind(body, run))
+	_set_order(CarryOrder.new(self, body, run))
+	return true
+
+
+## Prend `body` sur les épaules (instant du geste de `CarryOrder`).
+func _lift_body(body: Enemy) -> void:
+	if not is_instance_valid(body) or not body.is_body() or body.carrier != null or carried_body != null:
+		return
+	carried_body = body
+	body.carry(self)
+	weapon_slung = true
+	_place_carried_body()
+
+
+## Reprend sur les épaules le corps d'une sauvegarde, dans sa pose relevée.
+func _relift_body(path: NodePath) -> void:
+	var body := get_node_or_null(path) as Enemy
+	if body == null or is_dead or not body.is_body():
+		return
+	carried_body = body
+	body.carry(self, false)
+	weapon_slung = true
+	_place_carried_body()
+
+
+## Dépose le corps porté au sol, le long de son flanc droit. Renvoie faux
+## s'il ne porte rien.
+func drop_body() -> bool:
+	if carried_body == null:
+		return false
+	var body := carried_body
+	carried_body = null
+	# Couché le long du flanc droit, la tête vers l'avant du porteur.
+	var hips := global_position + global_basis.x * 0.9
+	body.put_down(hips, -global_basis.z, body.carried_hips, body.carried_axis)
+	if not is_dead:
+		_model.play_pickup()
+	Sfx.play_at(&"fall", hips, -8.0)
+	return true
+
+
+## Corps porté en travers des épaules : la tête vers la gauche du
+## porteur, ventre contre l'épaule, le bassin dessus.
+func _place_carried_body() -> void:
+	if not is_instance_valid(carried_body):
+		carried_body = null
+		return
+	var body := carried_body
+	var axis := body.carried_axis
+	# Le dos (face contre terre) ou le ventre reste en haut ou passe en bas
+	# pour que le ventre repose sur l'épaule.
+	var up := Vector3.UP if body._model.is_face_down() else Vector3.DOWN
+	var head := -global_basis.x
+	var lying := Basis(Vector3.UP.cross(axis), Vector3.UP, axis)
+	var carried := Basis(up.cross(head), up, head)
+	var basis := carried * lying.inverse()
+	var shoulder := global_position + Vector3.UP * CARRY_SHOULDER + global_basis.z * 0.05
+	body.global_transform = Transform3D(basis, shoulder - basis * body.carried_hips)
+	body._model.position.y = 0.0
 
 
 ## Arrête l'ordre en cours (déplacement, attaque, caisse…) et une pose de
@@ -989,8 +1078,8 @@ func is_diving() -> bool:
 func toggle_posture(new_posture: SoldierModel.Posture) -> void:
 	if is_dead:
 		return
-	if hostage:
-		# Debout, l'otage devant soi.
+	if hostage or carried_body:
+		# Debout, l'otage devant soi ou le corps sur les épaules.
 		_hostage_busy()
 		return
 	posture = SoldierModel.Posture.STANDING if posture == new_posture else new_posture
@@ -1447,6 +1536,9 @@ func _fire(enemy: Enemy, distance: float) -> void:
 func fire_at(target: Vector3, run: bool = false) -> bool:
 	if is_dead or _hopping:
 		return false
+	if carried_body:
+		flash_message(CARRY_BUSY)
+		return false
 	if not _ready_to_fire():
 		flash_hint(Hint.NO_AMMO)
 		return false
@@ -1508,6 +1600,8 @@ func _fire_at_point(point: Vector3) -> void:
 
 
 func _current_speed() -> float:
+	if carried_body:
+		return stats.walk_speed * CARRY_SPEED
 	if hostage:
 		return stats.walk_speed * HOSTAGE_SPEED
 	var shield := SHIELD_SPEED if shield_raised else 1.0
@@ -1535,6 +1629,7 @@ func _on_died() -> void:
 	Sfx.play_at(&"fall", global_position, -2.0)
 	_cancel_actions()
 	release_hostage()
+	drop_body()
 	_reload_left = 0.0
 	_model.reload_progress = -1.0
 	remove_from_group(&"commandos")
@@ -1558,6 +1653,7 @@ func save_state() -> Dictionary:
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
 		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
+		"carried_body": String(carried_body.get_path()) if carried_body else "",
 	})
 	return data
 
@@ -1567,6 +1663,12 @@ func load_state(data: Dictionary) -> void:
 	release_crate()
 	# L'otage reprend l'état sauvegardé (le sien) : on le lâche sans plus.
 	_drop_hostage()
+	# Le corps porté aussi ; on reprend celui de la sauvegarde une fois tous
+	# les états rendus.
+	carried_body = null
+	var carried_path: String = data.get("carried_body", "")
+	if not carried_path.is_empty():
+		_relift_body.call_deferred(NodePath(carried_path))
 	super(data)
 	if is_dead:
 		return

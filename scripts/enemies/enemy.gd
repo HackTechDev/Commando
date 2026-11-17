@@ -71,6 +71,12 @@ const HELP_RADIUS := 12.0
 const HELP_RADIUS_MUFFLED := 4.0
 ## Bruit de diversion : il va voir, puis regarde autour de lui ce temps (s).
 const INVESTIGATE_LOOK_TIME := 3.0
+## Tous les ennemis, vivants ou non (corps à découvrir).
+const ALL_GROUP := &"all_enemies"
+## Intervalle (s) entre deux recherches de corps dans le champ de vision.
+const BODY_CHECK_INTERVAL := 0.3
+## Rayon (m) du cri d'un ennemi qui découvre un corps.
+const BODY_ALARM_RADIUS := 12.0
 ## Corps à corps à plusieurs : un second assaillant se place sur le flanc
 ## de la cible, à cet angle (degrés) du premier.
 const FLANK_ANGLE := 100.0
@@ -88,6 +94,15 @@ var cries: int = 0
 var _help_left: float = 0.0
 ## Va voir d'où vient un bruit (`_last_seen`), méfiant.
 var investigating: bool = false
+## Opérateur qui porte ce corps (mort ou assommé), ou null.
+var carrier: Commando
+## Corps déjà découvert par un ennemi (l'alarme a été donnée une fois).
+var discovered: bool = false
+## Bassin et axe bassin-tête du corps (son repère), relevés quand on le
+## soulève : sa pose étendue ne change plus.
+var carried_hips := Vector3.ZERO
+var carried_axis := Vector3.BACK
+var _body_check_left: float = 0.0
 var _look_left: float = 0.0
 ## Tirs retenus parce qu'un otage couvrait la cible.
 var hesitations: int = 0
@@ -145,6 +160,7 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	add_to_group(ALL_GROUP)
 	health.reset(stats.max_health)
 	ammo = stats.ammo
 	health.died.connect(_on_died)
@@ -190,6 +206,7 @@ func _physics_process(delta: float) -> void:
 		return
 	alert_age += delta
 	_update_detection(delta)
+	_look_for_bodies(delta)
 	_update_state()
 	if _traversal.update(delta):
 		_model.aiming = false
@@ -685,6 +702,9 @@ func knock_out(fall_forward: bool = false, duration: float = -1.0) -> void:
 
 ## Fin de la perte de connaissance : il se relève et donne l'alerte sur place.
 func _wake_up() -> void:
+	if carrier:
+		carrier.drop_body()
+	_model.position.y = 0.0
 	collision_layer = LAYER_ACTIVE
 	_agent.avoidance_enabled = true
 	_model.is_dead = false
@@ -789,6 +809,94 @@ func _update_state() -> void:
 		_agent.target_position = _waypoints[_waypoint_index]
 	state_changed.emit(state)
 	GameState.refresh_alert()
+
+
+## Vrai pour un corps : mort, ou assommé au sol.
+func is_body() -> bool:
+	return is_dead or state == State.STUNNED
+
+
+## Vrai si ce corps échappe aux regards : porté, dans une cachette (buisson,
+## eau, abri) ou sous un toit.
+func is_hidden_body() -> bool:
+	if carrier != null:
+		return true
+	if HidingSpot.at(get_tree(), body_center()) != null:
+		return true
+	for roof in get_tree().get_nodes_in_group(&"roofs"):
+		if roof is Roof and (roof as Roof).covers(global_position + Vector3.UP * 0.3):
+			return true
+	return false
+
+
+## Milieu du corps couché : son bassin, au sol.
+func body_center() -> Vector3:
+	var hips := _model.hips_node().global_position
+	return Vector3(hips.x, global_position.y, hips.z)
+
+
+## Bassin du corps étendu dans son propre repère.
+func body_hips_local() -> Vector3:
+	return to_local(_model.hips_node().global_position)
+
+
+## Direction horizontale (repère du corps) du bassin vers la tête.
+func body_axis_local() -> Vector3:
+	var axis := to_local(_model.head_node().global_position) - body_hips_local()
+	axis.y = 0.0
+	return axis.normalized() if axis.length() > 0.01 else Vector3.BACK
+
+
+## Cherche dans son champ de vision un corps visible pas encore découvert : il
+## donne l'alarme (`discover_body`).
+func _look_for_bodies(delta: float) -> void:
+	if blind:
+		return
+	_body_check_left -= delta
+	if _body_check_left > 0.0:
+		return
+	_body_check_left = BODY_CHECK_INTERVAL
+	for node in get_tree().get_nodes_in_group(ALL_GROUP):
+		var body := node as Enemy
+		if body == null or body == self or body.discovered or not body.is_body() or body.is_hidden_body():
+			continue
+		if _vision.sees_point(body.body_center() + Vector3.UP * 0.25):
+			discover_body(body)
+			return
+
+
+## Corps découvert : il crie (les ennemis proches accourent) et va voir.
+func discover_body(body: Enemy) -> void:
+	body.discovered = true
+	EventBus.body_discovered.emit(body, self)
+	EventBus.noise_emitted.emit(global_position, BODY_ALARM_RADIUS, &"help")
+	hear_alarm(body.body_center())
+
+
+## Pris sur l'épaule de `by` : plus de collision, il suit le porteur. Sa
+## pose étendue est relevée (`measure`), sauf au chargement d'une sauvegarde.
+func carry(by: Commando, measure: bool = true) -> void:
+	if measure:
+		carried_hips = body_hips_local()
+		carried_axis = body_axis_local()
+	carrier = by
+	_traversal.cancel()
+	velocity = Vector3.ZERO
+	collision_layer = 0
+
+
+## Déposé au sol, le bassin en `hips_at`, la tête vers `head_dir` ; dans
+## l'eau, il s'y enfonce.
+func put_down(hips_at: Vector3, head_dir: Vector3, hips: Vector3, axis: Vector3) -> void:
+	carrier = null
+	var yaw := atan2(head_dir.x, head_dir.z) - atan2(axis.x, axis.z)
+	var basis := Basis(Vector3.UP, yaw)
+	var origin := hips_at - basis * Vector3(hips.x, 0.0, hips.z)
+	origin.y = hips_at.y
+	global_transform = Transform3D(basis, origin)
+	collision_layer = LAYER_DOWN if state == State.STUNNED and not is_dead else 0
+	var spot := HidingSpot.at(get_tree(), body_center())
+	_model.position.y = -HidingSpot.WATER_SINK if spot and spot.kind == HidingSpot.Kind.WATER else 0.0
 
 
 ## Donne une ronde (points parcourus en boucle) à un ennemi déjà en place,
@@ -963,6 +1071,7 @@ func save_state() -> Dictionary:
 		"detection": detection, "waypoint": _waypoint_index, "stun_left": _stun_left, "ammo": ammo,
 		"disarmed": disarmed,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
+		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
 	}
 
 
@@ -971,8 +1080,14 @@ func load_state(data: Dictionary) -> void:
 	_traversal.cancel()
 	_cancel_melee()
 	velocity = Vector3.ZERO
+	# Porté ou non : c'est le porteur qui le reprend (`Commando.load_state`).
+	carrier = null
+	_model.position.y = 0.0
+	discovered = data.get("discovered", false)
+	carried_hips = data.get("carried_hips", carried_hips)
+	carried_axis = data.get("carried_axis", carried_axis)
 	global_position = data.get("position", global_position)
-	rotation.y = data.get("rotation", rotation.y)
+	rotation = Vector3(0.0, data.get("rotation", rotation.y), 0.0)
 	health.load_state(data.get("health", {}))
 	if is_dead:
 		return

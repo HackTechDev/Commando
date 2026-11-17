@@ -219,6 +219,14 @@ tooltip_text = "Tir libre : puis clic gauche sur un mur, un objet ou le sol. Les
 toggle_mode = true
 text = "Tir libre"
 
+[node name="Carry" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Porter un corps : puis clic gauche sur un ennemi mort ou assommé. L'opérateur le charge sur ses épaules (mains prises, marche lente). Appuyer de nouveau pour le déposer. Un corps visible alerte l'ennemi qui le découvre ; caché dans un buisson, dans l'eau ou sous un toit, il passe inaperçu."
+toggle_mode = true
+text = "Porter"
+
 [node name="Crate" type="Button" parent="PlayerController/ActionBar/Rows/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2

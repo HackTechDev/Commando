@@ -12,6 +12,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _knockout: Button = %Knockout
 @onready var _throw: Button = %Throw
 @onready var _fire_at: Button = %FireAt
+@onready var _carry: Button = %Carry
 @onready var _crate: Button = %Crate
 @onready var _sling: Button = %Sling
 @onready var _reload: Button = %Reload
@@ -67,6 +68,7 @@ func _ready() -> void:
 	_knockout.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_KNOCKOUT))
 	_throw.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_THROW))
 	_fire_at.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_FIRE_AT))
+	_carry.pressed.connect(_controller.press_carry)
 	_crate.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_CRATE))
 	_controller.pending_action_changed.connect(func(_action: StringName) -> void: _refresh_actions())
 	_sling.pressed.connect(SelectionManager.toggle_sling)
@@ -92,6 +94,7 @@ func _ready() -> void:
 	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")
 	_smoke.text = "Fumigène  [%s]" % KeyNames.label(&"action_smoke")
 	_fire_at.text = "Tir libre  [%s]" % KeyNames.label(&"action_fire_at")
+	_carry.text = "Porter  [%s]" % KeyNames.label(&"action_carry")
 	_build_mission_panels()
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
@@ -159,7 +162,7 @@ func _back_to_pause_menu() -> void:
 func _refresh_actions() -> void:
 	var selected := SelectionManager.selected
 	var empty := selected.is_empty()
-	for button: Button in [_crouch, _prone, _knife, _knockout, _throw, _fire_at, _crate, _sling, _reload, _stop]:
+	for button: Button in [_crouch, _prone, _knife, _knockout, _throw, _fire_at, _carry, _crate, _sling, _reload, _stop]:
 		button.disabled = empty
 	_action_bar.modulate.a = 0.5 if empty else 1.0
 	# Équipement : grisé si aucune unité sélectionnée n'en a.
@@ -183,5 +186,6 @@ func _refresh_actions() -> void:
 	_knockout.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_KNOCKOUT)
 	_throw.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_THROW)
 	_fire_at.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_FIRE_AT)
+	_carry.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_CARRY or (not empty and selected.any(func(unit: Commando) -> bool: return unit.carried_body != null)))
 	_crate.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_CRATE)
 	_sling.set_pressed_no_signal(not empty and selected.all(func(unit: Commando) -> bool: return unit.weapon_slung))

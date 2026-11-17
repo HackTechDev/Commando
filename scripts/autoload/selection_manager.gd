@@ -121,6 +121,29 @@ func order_fire_at(target: Vector3, run: bool = false) -> bool:
 	return any
 
 
+## Envoie l'unité sélectionnée la plus proche de `body` (mains libres) le
+## prendre sur les épaules. Renvoie vrai si une unité a obéi.
+func order_carry(body: Enemy, run: bool = false) -> bool:
+	var best: Commando
+	for unit in selected:
+		if unit.carried_body != null or unit.is_dead:
+			continue
+		if best == null or unit.global_position.distance_to(body.global_position) < best.global_position.distance_to(body.global_position):
+			best = unit
+	if best == null:
+		return false
+	return _issue(best, best.carry_body.bind(body, run), body.body_center(), &"move")
+
+
+## Les unités sélectionnées qui portent un corps le déposent. Renvoie vrai
+## si au moins une l'a fait.
+func drop_bodies() -> bool:
+	var any := false
+	for unit in selected:
+		any = unit.drop_body() or any
+	return any
+
+
 ## Ordonne aux unités sélectionnées d'attaquer `enemy`.
 func order_attack(enemy: Enemy, run: bool) -> void:
 	for unit in selected:

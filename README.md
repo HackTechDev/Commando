@@ -37,6 +37,7 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Marcher / courir | Clic droit / double clic droit |
 | Tirer sur un ennemi | Clic droit sur l'ennemi |
 | Tir libre (rafale de 5 coups sur un mur, un objet ou le sol) | : (touche à droite de « ; » en AZERTY), puis clic gauche sur le point |
+| Porter un corps (ennemi mort ou assommé) / le déposer | ! (touche à droite de « : » en AZERTY), puis clic gauche sur le corps ; de nouveau ! pour le déposer |
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
 | Corps à corps au choix (assommer, couteau, hachette si équipée, balayage, projection, désarmer, bouclier humain ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |

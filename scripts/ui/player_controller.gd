@@ -33,6 +33,10 @@ const ACTION_GRENADE := &"grenade"
 const ACTION_SMOKE := &"smoke"
 ## Tir libre : puis clic gauche sur un mur, un objet ou le sol.
 const ACTION_FIRE_AT := &"fire_at"
+## Porter un corps : puis clic gauche sur le corps.
+const ACTION_CARRY := &"carry"
+## Distance (m) entre le clic et le bassin d'un corps pour le désigner.
+const BODY_PICK_RADIUS := 1.2
 ## Grappin : puis clic gauche sur un point en hauteur.
 const ACTION_GRAPPLE := &"grapple"
 
@@ -111,6 +115,32 @@ func _ready() -> void:
 
 
 ## Arme l'action ciblée `action`, ou la désarme si elle l'était déjà.
+## Touche ou bouton « Porter » : les unités sélectionnées qui portent un
+## corps le déposent ; sinon, attend un clic sur le corps à prendre.
+func press_carry() -> void:
+	if pending_action != ACTION_CARRY and SelectionManager.drop_bodies():
+		pending_action_changed.emit(pending_action)
+		return
+	toggle_pending_action(ACTION_CARRY)
+
+
+## Corps (ennemi mort ou assommé, que personne ne porte) dont le bassin est
+## près de `point`, ou null.
+static func body_at(tree: SceneTree, point: Vector3) -> Enemy:
+	var best: Enemy
+	var best_distance := BODY_PICK_RADIUS
+	for node in tree.get_nodes_in_group(Enemy.ALL_GROUP):
+		var enemy := node as Enemy
+		if enemy == null or not enemy.is_body() or enemy.carrier != null:
+			continue
+		var offset := enemy.body_center() - point
+		offset.y = 0.0
+		if offset.length() < best_distance:
+			best = enemy
+			best_distance = offset.length()
+	return best
+
+
 func toggle_pending_action(action: StringName) -> void:
 	if action == pending_action or SelectionManager.selected.is_empty():
 		cancel_pending_action()
@@ -261,6 +291,11 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 			return GameCursor.Kind.GRENADE
 		ACTION_FIRE_AT:
 			return GameCursor.Kind.ATTACK
+		ACTION_CARRY:
+			var ground := _raycast(screen_position, MASK_GROUND)
+			if not ground.is_empty() and body_at(get_tree(), ground["position"]) != null:
+				return GameCursor.Kind.CRATE
+			return GameCursor.Kind.FORBIDDEN
 		ACTION_GRAPPLE:
 			return _grapple_cursor(screen_position)
 		ACTION_CRATE:
@@ -406,6 +441,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_pending_action(ACTION_SMOKE)
 	elif event.is_action_pressed(&"action_fire_at"):
 		toggle_pending_action(ACTION_FIRE_AT)
+	elif event.is_action_pressed(&"action_carry"):
+		press_carry()
 	elif event.is_action_pressed(&"action_grapple"):
 		if pending_action == ACTION_GRAPPLE or _has_grapnel():
 			toggle_pending_action(ACTION_GRAPPLE)
@@ -678,6 +715,15 @@ func _use_pending_action(screen_position: Vector2) -> void:
 				_spawn_marker(point, marker_color)
 			else:
 				Sfx.play_ui(&"denied")
+		cancel_pending_action()
+		return
+	if pending_action == ACTION_CARRY:
+		var ground := _raycast(screen_position, MASK_GROUND)
+		var body := body_at(get_tree(), ground["position"]) if not ground.is_empty() else null
+		if body and SelectionManager.order_carry(body):
+			_spawn_marker(body.body_center(), marker_color)
+		else:
+			Sfx.play_ui(&"denied")
 		cancel_pending_action()
 		return
 	if pending_action == ACTION_FIRE_AT:

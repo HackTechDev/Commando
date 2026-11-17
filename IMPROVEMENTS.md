@@ -25,7 +25,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** ajouter un `HearingComponent` et le bruit de la course ;
   - **b)** ajouter un état `Investigate`, qui envoie l'ennemi voir la source ;
   - **c)** remplacer `Enemy.startle` (couteau raté, ennemis épargnés par une explosion), qui n'est qu'un palliatif.
-- **2.2 Découverte des corps** : un ennemi qui voit un cadavre ou un camarade assommé devrait donner l'alerte. Il faudrait aussi pouvoir porter et cacher les corps (M5). Sans cela, l'élimination silencieuse ne comporte aucun risque.
 - **2.3 Ligoter un ennemi assommé** (§5.4), pour qu'il ne se réveille pas.
 - **2.4 États `Search` et `Return`** : après avoir perdu sa cible, l'ennemi repart aujourd'hui comme si de rien n'était. Il devrait fouiller la zone, puis reprendre sa ronde avec une vigilance accrue.
 - **2.5 Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
