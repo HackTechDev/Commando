@@ -67,6 +67,34 @@ func test_sentries_are_spread_over_the_map() -> void:
 	assert_gt(spread.size.z, map.map_bounds.size.z * 0.6)
 
 
+func test_half_of_the_sentries_patrol_around_their_post() -> void:
+	if not await _load("training_b.map"):
+		return
+	var sentries := node("Enemies").get_children()
+	var patrollers: Array[Enemy] = []
+	for node in sentries:
+		var sentry := node as Enemy
+		if sentry.patrol_points().size() > 1:
+			patrollers.append(sentry)
+			assert_false(sentry.stationary, "%s : n'est plus fixe" % sentry.name)
+		else:
+			assert_true(sentry.stationary, "%s : reste à son poste" % sentry.name)
+	assert_between(patrollers.size(), sentries.size() / 3, sentries.size() * 2 / 3, "environ une sur deux")
+	var nav_map := get_tree().root.get_world_3d().navigation_map
+	for sentry in patrollers:
+		var points := sentry.patrol_points()
+		for point in points:
+			assert_lt(absf(point.y - points[0].y), 0.61, "%s : même étage" % sentry.name)
+			assert_lt(flat_distance(point, points[0]), 13.0, "%s : autour du poste" % sentry.name)
+	# Ils se mettent en route.
+	var walker := patrollers[0]
+	hide_from_enemies(node("Units/Alpha"))
+	hide_from_enemies(node("Units/Bravo"))
+	hide_from_enemies(node("Units/Charlie"))
+	var post := walker.global_position
+	assert_gt(await frames_until(func() -> bool: return flat_distance(walker.global_position, post) > 2.0, 600), -1, "en ronde")
+
+
 func test_operator_reaches_the_farthest_sentry_post() -> void:
 	# Relief en terrasses (fighter_crash) : pentes, petites marches.
 	for map_name: String in LEVELS:

@@ -791,6 +791,22 @@ func _update_state() -> void:
 	GameState.refresh_alert()
 
 
+## Donne une ronde (points parcourus en boucle) à un ennemi déjà en place,
+## par exemple une sentinelle des cartes UFO:AI : il cesse d'être fixe.
+func set_patrol(points: Array[Vector3]) -> void:
+	_waypoints = points.duplicate()
+	_waypoint_index = 0
+	_pause_left = 0.0
+	stationary = false
+	if not _waypoints.is_empty() and state == State.PATROL:
+		_agent.target_position = _waypoints[0]
+
+
+## Points de la ronde (vide pour un ennemi fixe).
+func patrol_points() -> Array[Vector3]:
+	return _waypoints
+
+
 func _patrol(delta: float) -> Vector3:
 	if _waypoints.is_empty():
 		return Vector3.ZERO

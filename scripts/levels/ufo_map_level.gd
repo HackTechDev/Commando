@@ -101,6 +101,10 @@ static var requested_map: String = ""
 @export var enemies_parent: NodePath
 ## Nombre maximal d'ennemis créés (-1 : tous).
 @export var max_enemies: int = -1
+## Part des sentinelles qui font une ronde autour de leur poste (les autres
+## restent fixes). Les rondes sont tracées une fois la navigation prête.
+@export_range(0.0, 1.0) var patrol_ratio: float = 0.5
+
 ## Fils de calcul en cours (`_run_in_thread`).
 var _threads: Array[Thread] = []
 ## Caméra dont les limites sont réglées sur la carte.
@@ -1237,6 +1241,7 @@ func _spawn_enemies(map: UfoMap) -> void:
 	if parent == null or enemy_scene == null:
 		return
 	var count := 0
+	var patrollers: Array[Enemy] = []
 	for start in _spread_starts(map.find_entities("info_alien_start"), map.find_entities("info_player_start")):
 		var enemy := enemy_scene.instantiate() as Enemy
 		enemy.name = "Sentry%d" % (count + 1)
@@ -1244,7 +1249,83 @@ func _spawn_enemies(map: UfoMap) -> void:
 		enemy.position = parent.to_local(_feet(start))
 		enemy.rotation.y = yaw_to_world(start.angle())
 		parent.add_child(enemy)
+		# Une sentinelle sur deux (selon `patrol_ratio`), en alternance.
+		if floorf((count + 1) * patrol_ratio) > floorf(count * patrol_ratio):
+			patrollers.append(enemy)
 		count += 1
+	var level := _level_root()
+	if level and not patrollers.is_empty():
+		level.level_ready.connect(_plan_patrols.bind(patrollers), CONNECT_ONE_SHOT)
+
+
+func _level_root() -> LevelRoot:
+	var node := get_parent()
+	while node and not node is LevelRoot:
+		node = node.get_parent()
+	return node as LevelRoot
+
+
+## Trace la ronde de chaque sentinelle de `patrollers` (`patrol_route`).
+func _plan_patrols(patrollers: Array[Enemy]) -> void:
+	for enemy in patrollers:
+		if not is_instance_valid(enemy) or enemy.is_dead:
+			continue
+		var route := patrol_route(enemy.get_world_3d().navigation_map, enemy.global_position, -enemy.global_basis.z)
+		if route.size() > 1:
+			enemy.set_patrol(route)
+
+
+## Longueur (m) visée pour chaque branche d'une ronde, et détour toléré.
+const PATROL_REACH: Array[float] = [12.0, 9.0, 6.0]
+const PATROL_MIN_LEG := 4.0
+const PATROL_DETOUR := 1.7
+const PATROL_DIRECTIONS := 12
+
+## Ronde autour du poste `post` : deux points atteignables, de part et
+## d'autre (le premier du côté où regarde la sentinelle, `facing`), au même
+## étage, par des chemins sans grand détour. La sentinelle revient à son
+## poste entre les deux : [poste, A, poste, B]. Un seul point trouvé : un
+## aller-retour. Vide si rien ne convient (elle reste fixe).
+static func patrol_route(nav_map: RID, post: Vector3, facing: Vector3) -> Array[Vector3]:
+	var start := NavigationServer3D.map_get_closest_point(nav_map, post)
+	var base := atan2(facing.x, facing.z)
+	var found: Array[Vector3] = []
+	var found_dirs: Array[Vector3] = []
+	for reach in PATROL_REACH:
+		for k in PATROL_DIRECTIONS:
+			# Directions de plus en plus écartées de celle du regard.
+			var step := (k + 1) / 2
+			var angle := base + (TAU / PATROL_DIRECTIONS) * step * (1.0 if k % 2 == 0 else -1.0)
+			var dir := Vector3(sin(angle), 0.0, cos(angle))
+			if found_dirs.any(func(other: Vector3) -> bool: return other.dot(dir) > -0.2):
+				continue
+			var point := _patrol_point(nav_map, start, dir, reach)
+			if point != Vector3.INF:
+				found.append(point)
+				found_dirs.append(dir)
+			if found.size() == 2:
+				return [start, found[0], start, found[1]] as Array[Vector3]
+	if found.size() == 1:
+		return [start, found[0]] as Array[Vector3]
+	return [] as Array[Vector3]
+
+
+## Point atteignable à environ `reach` m de `start` dans la direction `dir`,
+## ou `Vector3.INF`.
+static func _patrol_point(nav_map: RID, start: Vector3, dir: Vector3, reach: float) -> Vector3:
+	var point := NavigationServer3D.map_get_closest_point(nav_map, start + dir * reach)
+	var offset := point - start
+	if absf(offset.y) > 0.6 or Vector2(offset.x, offset.z).length() < PATROL_MIN_LEG:
+		return Vector3.INF
+	var path := NavigationServer3D.map_get_path(nav_map, start, point, true)
+	if path.is_empty() or path[path.size() - 1].distance_to(point) > 0.5:
+		return Vector3.INF
+	var length := 0.0
+	for i in range(1, path.size()):
+		length += path[i - 1].distance_to(path[i])
+	if length > Vector2(offset.x, offset.z).length() * PATROL_DETOUR + 1.0:
+		return Vector3.INF
+	return point
 
 
 ## Au plus `max_enemies` points de départ, répartis sur toute la carte : le

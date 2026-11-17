@@ -99,7 +99,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** lumières (`light`) ;
   - **c)** portes (`func_door`) et objets destructibles (`func_breakable`) ;
   - **f)** remplacer les modèles absents (arbres, mobilier) par des modèles CC0 ;
-  - **g)** patrouilles pour les sentinelles, aujourd'hui fixes ;
   - **h)** cartes aléatoires assemblées à partir des tuiles et des `.ump` ;
   - **i)** inclure cartes et textures dans un paquet pour l'export Web.
 - **7.10 Textures, suite** :

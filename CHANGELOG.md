@@ -641,3 +641,9 @@
 
 - La pose d'une charge, sa mise à feu, les soins et la roulade se préparent aussi en mode ordres simultanés (Tab) : par exemple, faire sauter une charge au moment où un coéquipier plonge hors d'un cône de vision, puis tout lancer d'Entrée.
 - Sur la carte, la mise à feu préparée est tracée vers la charge, en rouge.
+
+## Rondes des sentinelles (7.9 g)
+
+- Sur les cartes UFO:AI, une sentinelle sur deux (`UfoMapLevel.patrol_ratio`) fait une ronde autour de son poste ; les autres restent fixes.
+- La ronde est tracée une fois la navigation prête (`UfoMapLevel.patrol_route`) : deux points atteignables à 6 à 12 m, de part et d'autre du poste (le premier du côté où regarde la sentinelle), au même étage et sans grand détour ; la sentinelle repasse par son poste entre les deux. Un seul point trouvé : un aller-retour ; aucun : elle reste fixe.
+- Une sentinelle en ronde n'est plus fixe : en alerte, elle poursuit comme un soldat.
