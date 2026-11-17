@@ -636,3 +636,8 @@
   - caillou lancé d'un petit mouvement du poignet ;
   - couteau : geste vif inchangé.
 - L'objet tenu (grenade, fumigène, caillou, couteau) est visible dans la main jusqu'au lâcher.
+
+## Ordres simultanés, suite
+
+- La pose d'une charge, sa mise à feu, les soins et la roulade se préparent aussi en mode ordres simultanés (Tab) : par exemple, faire sauter une charge au moment où un coéquipier plonge hors d'un cône de vision, puis tout lancer d'Entrée.
+- Sur la carte, la mise à feu préparée est tracée vers la charge, en rouge.

@@ -465,7 +465,7 @@ func _draw_plans() -> void:
 		match plan["kind"]:
 			&"attack":
 				color = marker_attack_color
-			&"melee":
+			&"melee", &"detonate":
 				color = marker_melee_color
 		var point: Vector3 = plan["point"]
 		if camera.is_position_behind(point) or camera.is_position_behind(unit.global_position):

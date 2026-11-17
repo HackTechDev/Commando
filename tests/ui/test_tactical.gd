@@ -97,3 +97,28 @@ func test_leaving_planning_discards_the_orders() -> void:
 	_press(&"execute_orders")
 	await frames(30)
 	assert_lt(flat_distance(alpha.global_position, start), 0.01, "abandonnés")
+
+
+func test_detonation_and_dive_are_planned_too() -> void:
+	await _setup()
+	alpha.explosives = 1
+	assert_true(alpha.plant_explosive())
+	assert_gt(await frames_until(func() -> bool: return not ExplosiveCharge.planted_by(get_tree(), alpha).is_empty(), 300), -1, "charge posée")
+	await frames(5)
+	alpha.global_position += Vector3(0, 0, 12)
+	bravo.global_position += Vector3(0, 0, 14)
+	await frames(5)
+	_press(&"plan_orders")
+	SelectionManager.select([alpha] as Array[Commando])
+	assert_gt(SelectionManager.detonate_explosives(), 0, "mise à feu préparée")
+	SelectionManager.select([bravo] as Array[Commando])
+	assert_true(SelectionManager.dive(bravo.global_position + Vector3(3, 0, 0)), "roulade préparée")
+	assert_eq(SelectionManager.planned_orders()[alpha]["kind"], &"detonate")
+	assert_eq(SelectionManager.planned_orders()[bravo]["kind"], &"dive")
+	await frames(10)
+	assert_eq(ExplosiveCharge.planted_by(get_tree(), alpha).size(), 1, "pas encore sautée")
+	assert_ne(bravo.posture, SoldierModel.Posture.PRONE, "pas encore plongé")
+	_press(&"execute_orders")
+	assert_true(bravo.is_diving(), "roulade lancée")
+	assert_eq(ExplosiveCharge.planted_by(get_tree(), alpha).size(), 0, "sautée")
+	assert_gt(await frames_until(func() -> bool: return bravo.posture == SoldierModel.Posture.PRONE, 200), -1, "plongé en même temps")

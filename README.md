@@ -59,7 +59,7 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Rotation de la caméra | A / E (maintenir) |
 | Centrer sur l'unité | Origine |
 | Pause tactique (ordres possibles) | Espace |
-| Ordres simultanés | Tab (préparer / abandonner), Entrée (exécuter) |
+| Ordres simultanés (un ordre par unité : déplacement, attaque, lancers, charge, mise à feu, soins, roulade…) | Tab (préparer / abandonner), Entrée (exécuter) |
 | Étage affiché (cartes à bâtiments) | Page suiv. (descendre), Page préc. (monter ; au-dessus du dernier étage, tout s'affiche) |
 | Aide (toutes les commandes, jeu en pause) | H (Échap ou clic pour fermer) |
 | Journal des objectifs / minicarte | O / M (clic sur la minicarte : centrer la caméra) |

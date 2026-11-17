@@ -3,7 +3,8 @@ extends Node
 ##
 ## Ordres simultanés : en mode préparation (`planning`), les ordres donnés
 ## (déplacement, attaque, couteau, lancer, grenade, fumigène, grappin,
-## caisse, escalade) ne partent pas : chaque unité garde le dernier reçu, et
+## caisse, escalade, pose et mise à feu d'une charge, soins, roulade) ne
+## partent pas : chaque unité garde le dernier reçu, et
 ## `execute_plans` les lance tous ensemble. Les gestes immédiats (posture,
 ## rechargement, arrêt…) ne se préparent pas.
 
@@ -268,7 +269,10 @@ func order_grapple(target: Vector3, run: bool = false) -> bool:
 ## Fait poser une charge explosive à la première unité sélectionnée qui en a.
 func plant_explosive() -> bool:
 	for unit in _by_index():
-		if unit.plant_explosive():
+		if planning:
+			if not unit.is_dead and unit.explosives > 0:
+				return _issue(unit, unit.plant_explosive, unit.global_position, &"plant")
+		elif unit.plant_explosive():
 			return true
 	return false
 
@@ -278,7 +282,13 @@ func plant_explosive() -> bool:
 func detonate_explosives() -> int:
 	var count := 0
 	for unit in selected:
-		count += unit.detonate_explosives()
+		var charges := ExplosiveCharge.planted_by(unit.get_tree(), unit)
+		if planning:
+			if not charges.is_empty():
+				_issue(unit, unit.detonate_explosives, (charges[0] as Node3D).global_position, &"detonate")
+				count += charges.size()
+		else:
+			count += unit.detonate_explosives()
 	return count
 
 
@@ -286,7 +296,10 @@ func detonate_explosives() -> int:
 ## qui a une trousse (et un blessé à portée).
 func use_medkit() -> bool:
 	for unit in _by_index():
-		if unit.use_medkit():
+		if planning:
+			if not unit.is_dead and unit.medkits > 0:
+				return _issue(unit, unit.use_medkit, unit.global_position, &"medkit")
+		elif unit.use_medkit():
 			return true
 	return false
 
@@ -309,7 +322,7 @@ func toggle_shield() -> bool:
 func dive(toward: Vector3) -> bool:
 	var any := false
 	for unit in selected:
-		any = unit.dive(toward) or any
+		any = _issue(unit, unit.dive.bind(toward), toward, &"dive") or any
 	return any
 
 
