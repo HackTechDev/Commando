@@ -620,3 +620,7 @@
 - Petite fenêtre d'astuce à gauche de l'écran (`TutorialPanel`) : titre, étape « n / 7 », texte où les touches sont lues dans l'InputMap (AZERTY ou autre). Le jeu continue ; × la masque, « ? Astuce » la rouvre. À la réussite d'un atelier, elle l'annonce et indique la suite.
 - Chaque atelier est un objectif du journal.
 - `Enemy.blind` : ennemi qui ne voit rien (mannequins et cibles d'entraînement), sans cône affiché.
+
+## Chargement des cartes UFO:AI
+
+- La lecture de la carte et le repérage des toits tournent chacun sur un fil dédié (`Thread`) au lieu du `WorkerThreadPool`, où la tâche restait parfois sans démarrer (suite de tests bloquée sur `test_roof_detection_is_cached_per_map`). Un niveau quitté en plein calcul attend la fin du fil.

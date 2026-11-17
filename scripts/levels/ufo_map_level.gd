@@ -101,6 +101,8 @@ static var requested_map: String = ""
 @export var enemies_parent: NodePath
 ## Nombre maximal d'ennemis créés (-1 : tous).
 @export var max_enemies: int = -1
+## Fils de calcul en cours (`_run_in_thread`).
+var _threads: Array[Thread] = []
 ## Caméra dont les limites sont réglées sur la carte.
 @export var camera_rig: NodePath
 
@@ -135,6 +137,10 @@ func _process(_delta: float) -> void:
 
 func _exit_tree() -> void:
 	WorldMaterial.set_see_through([] as Array[Vector3])
+	# Niveau quitté pendant un calcul : on attend la fin du fil.
+	for thread in _threads:
+		thread.wait_to_finish()
+	_threads.clear()
 
 
 ## Le décor s'efface entre la caméra et chaque opérateur vivant.
@@ -155,13 +161,14 @@ func _build_level() -> void:
 	if map_file.is_empty():
 		map_file = requested_map
 	var path := AssetPaths.maps_dir().path_join(map_file)
-	var loaded: Dictionary = await _run_in_thread(func() -> Dictionary:
+	var result: Variant = await _run_in_thread(func() -> Dictionary:
 		var parsed := UfoMap.load_file(path)
 		if parsed == null:
 			return {}
 		return {"map": parsed, "solids": _collect_brushes(parsed)})
 	if not is_inside_tree():
 		return
+	var loaded: Dictionary = result
 	if loaded.is_empty():
 		_finish_build()
 		return
@@ -206,15 +213,19 @@ func _finish_build() -> void:
 	built.emit()
 
 
-## Exécute `task` sur un fil de travail et rend son résultat, sans bloquer
-## l'affichage.
+## Exécute `task` sur un fil à lui et rend son résultat, sans bloquer
+## l'affichage. Un fil dédié plutôt que le `WorkerThreadPool` : dans la suite
+## de tests, une tâche du pool restait parfois sans jamais démarrer.
 func _run_in_thread(task: Callable) -> Variant:
-	var result := []
-	var id := WorkerThreadPool.add_task(func() -> void: result.append(task.call()), true)
-	while not WorkerThreadPool.is_task_completed(id):
+	var thread := Thread.new()
+	_threads.append(thread)
+	thread.start(task)
+	while thread.is_alive():
 		await get_tree().process_frame
-	WorkerThreadPool.wait_for_task_completion(id)
-	return result[0]
+		if not is_inside_tree():
+			return null
+	_threads.erase(thread)
+	return thread.wait_to_finish()
 
 
 ## Rend la main pour une image si la tranche de calcul en cours a dépassé
