@@ -300,6 +300,11 @@ select_unit_6={
 
 3d/physics_engine="Jolt Physics"
 
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+anti_aliasing/quality/msaa_3d=2
+
 [shader_globals]
 
 see_through_1={
@@ -326,8 +331,3 @@ see_through_6={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
-
-[rendering]
-
-rendering_device/driver.windows="d3d12"
-anti_aliasing/quality/msaa_3d=2
