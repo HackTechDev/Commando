@@ -16,7 +16,7 @@ signal shield_changed(raised: bool)
 
 ## Corps à corps : couteau (tue), assommer, balayage (assomme moins
 ## longtemps), projection (au sol par-dessus la hanche, puis assommé).
-enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE }
+enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET }
 
 const MASK_OCCLUDERS := 0b10
 ## Indicatif affiché au-dessus de la tête : couleur, couleur une fois
@@ -113,6 +113,7 @@ var throwing_knives: int = 0
 ## Grenades, charges explosives et trousses de soins restantes.
 var grenades: int = 0
 var smoke_grenades: int = 0
+var hatchets: int = 0
 var explosives: int = 0
 var medkits: int = 0
 ## Bouclier balistique emporté (0 ou 1).
@@ -199,6 +200,7 @@ func _ready() -> void:
 	throwing_knives = stats.throwing_knives
 	grenades = stats.grenades
 	smoke_grenades = stats.smoke_grenades
+	hatchets = stats.hatchets
 	explosives = stats.explosives
 	medkits = stats.medkits
 	shields = stats.shields
@@ -282,6 +284,7 @@ func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.throwing_knives = operator.throwing_knives
 	weapon.grenades = operator.grenades
 	weapon.smoke_grenades = operator.smoke_grenades
+	weapon.hatchets = operator.hatchet
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
 	weapon.shields = operator.shield
@@ -527,7 +530,10 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 	if kind == MeleeKind.HOSTAGE and _secondary_stats == null:
 		flash_message("Bouclier humain : il faut une arme de poing")
 		return false
-	if kind != MeleeKind.KNIFE and enemy.is_stunned():
+	if kind == MeleeKind.HATCHET and hatchets <= 0:
+		flash_message("Pas de hachette (à équiper : écran Opérateurs)")
+		return false
+	if not finishes(kind) and enemy.is_stunned():
 		return false
 	if kind == MeleeKind.DISARM and not enemy.can_be_disarmed():
 		return false
@@ -535,6 +541,11 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 		return _descend(enemy.global_position, melee.bind(enemy, kind, run))
 	_set_order(MeleeOrder.new(self, enemy, kind, run))
 	return true
+
+
+## Vrai si le coup `kind` achève un ennemi au sol (lames).
+static func finishes(kind: MeleeKind) -> bool:
+	return kind == MeleeKind.KNIFE or kind == MeleeKind.HATCHET
 
 
 ## Ordonne de lancer un couteau sur `enemy` : l'unité s'approche à portée,
@@ -1479,7 +1490,7 @@ func save_state() -> Dictionary:
 	data.merge({
 		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
-		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "explosives": explosives,
+		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 	})
 	return data
@@ -1502,6 +1513,7 @@ func load_state(data: Dictionary) -> void:
 	throwing_knives = data.get("throwing_knives", throwing_knives)
 	grenades = data.get("grenades", grenades)
 	smoke_grenades = data.get("smoke_grenades", smoke_grenades)
+	hatchets = data.get("hatchets", hatchets)
 	explosives = data.get("explosives", explosives)
 	medkits = data.get("medkits", medkits)
 	shields = data.get("shields", shields)

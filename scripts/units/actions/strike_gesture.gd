@@ -35,6 +35,8 @@ const THROW_STUN := 4.0
 ## `CHEST_OFFSET` des pieds.
 const GROUND_DISTANCE := 0.55
 const CHEST_OFFSET := 0.75
+## Bruit d'un coup de hachette, rapporté à celui d'un coup de poing.
+const HATCHET_NOISE := 1.5
 const MOVE_DURATIONS := {
 	SoldierModel.StrikeMove.SWEEP: 1.3,
 	SoldierModel.StrikeMove.HIP_THROW: 2.0,
@@ -43,6 +45,7 @@ const MOVE_DURATIONS := {
 	SoldierModel.StrikeMove.KNEE: 1.1,
 	SoldierModel.StrikeMove.JAB_HOOK: 1.6,
 	SoldierModel.StrikeMove.DISARM: 1.1,
+	SoldierModel.StrikeMove.HATCHET_CHOP: 1.1,
 }
 
 var enemy: Enemy
@@ -142,6 +145,10 @@ func start() -> void:
 			# Les deux mains sur l'arme : debout, face à lui.
 			unit.posture = SoldierModel.Posture.STANDING
 			forced_move = SoldierModel.StrikeMove.DISARM
+		elif kind == Commando.MeleeKind.HATCHET:
+			# Coup de haut en bas : debout, même sur un ennemi au sol.
+			unit.posture = SoldierModel.Posture.STANDING
+			forced_move = SoldierModel.StrikeMove.HATCHET_CHOP
 		elif forced_move == SoldierModel.StrikeMove.GROUND_PUNCH:
 			# Accroupi à côté de la poitrine (le corps est couché sur le dos,
 			# tête vers son +Z), frappe vers le sol.
@@ -291,6 +298,12 @@ func _land() -> void:
 	if offset.length() > Commando.MELEE_RANGE + Commando.STRIKE_REACH_MARGIN:
 		return
 	match kind:
+		Commando.MeleeKind.HATCHET:
+			# Le coup tue net, sans un cri ; mais le choc s'entend.
+			enemy.kill_silently()
+			Sfx.play_at(&"knife", enemy.global_position + Vector3.UP * 1.3, 2.0)
+			Sfx.play_at(&"punch", enemy.global_position + Vector3.UP * 1.3, -2.0)
+			EventBus.noise_emitted.emit(unit.global_position, stats.melee_noise_radius * HATCHET_NOISE, &"melee")
 		Commando.MeleeKind.KNIFE:
 			# De face, la victime a le temps de crier.
 			enemy.kill_silently()

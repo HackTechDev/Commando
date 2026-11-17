@@ -652,3 +652,10 @@
 
 - Chignon refait : boule enroulée sur elle-même (torsade) tenue par un élastique, haut sur l'arrière du crâne tête nue, plus bas sous un casque ou une casquette pour dépasser sous le bord.
 - Cheveux longs refaits : sept mèches effilées qui épousent l'arrière de la tête et tombent sur la nuque, deux mèches qui encadrent le visage, frange de côté tête nue.
+
+## Hachette
+
+- Nouvel équipement « Hachette » (une au plus, 0,9 kg), choisi dans l'écran Opérateurs ou la préparation de mission.
+- Au corps à corps (menu circulaire, clic du milieu sur l'ennemi : « Hachette », grisée si aucun opérateur sélectionné n'en porte) : coup de haut en bas, bras armé au-dessus de l'épaule, pas en avant.
+- Elle tue net, même de face, sans laisser à la victime le temps de crier ; mais le choc s'entend (1,5 fois le bruit d'un coup de poing). Comme les autres coups, elle est repoussée par un ennemi en garde ; elle achève un ennemi au sol.
+- La hachette n'apparaît dans la main que pendant le coup.

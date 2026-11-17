@@ -19,7 +19,7 @@ enum DefendMove { PARRY, DODGE }
 enum ThrowStyle { KNIFE, OVERHAND, LOB, FLICK }
 ## Objet tenu pendant un lancer.
 enum ThrowObject { KNIFE, GRENADE, SMOKE, PEBBLE, NONE }
-enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH, DISARM }
+enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH, DISARM, HATCHET_CHOP }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
@@ -296,12 +296,28 @@ const MOVES := {
 		"lean": [0.0, 0.0, 0.3, -0.12, 0.5, -0.1, 0.7, 0.12, 1.0, 0.0],
 		"dip": [0.0, 0.0, 0.3, 0.05, 0.7, 0.08, 1.0, 0.0],
 	},
+	# Coup de hachette : bras droit armé haut au-dessus de l'épaule, main
+	# gauche en garde, puis coup de haut en bas en avançant le pied gauche.
+	StrikeMove.HATCHET_CHOP: {
+		"times": [0.0, 0.35, 0.45, 0.6, 0.78, 1.0] as Array[float],
+		"right": [Vector3.ZERO, Vector3(0.22, 0.9, 0.12), Vector3(0.2, 0.92, 0.08), Vector3(0.06, 0.38, -0.52), Vector3(0.02, 0.26, -0.42), Vector3.ZERO] as Array[Vector3],
+		"left": [Vector3.ZERO, Vector3(-0.14, 0.52, -0.32), Vector3(-0.14, 0.52, -0.32), Vector3(-0.24, 0.36, -0.12), Vector3(-0.24, 0.34, -0.1), Vector3.ZERO] as Array[Vector3],
+		"torso_yaw": [0.0, 0.0, 0.35, -0.4, 0.45, -0.45, 0.6, 0.25, 0.78, 0.2, 1.0, 0.0],
+		"lean": [0.0, 0.0, 0.35, 0.18, 0.45, 0.2, 0.6, -0.4, 0.78, -0.35, 1.0, 0.0],
+		"lunge": [0.0, 0.0, 0.45, 0.06, 0.6, -0.22, 0.78, -0.2, 1.0, 0.0],
+		"dip": [0.0, 0.0, 0.45, 0.0, 0.6, 0.1, 0.78, 0.08, 1.0, 0.0],
+		"head": [0.0, 0.0, 0.45, -0.15, 0.6, 0.25, 1.0, 0.0],
+		"thigh_l": [0.0, 0.0, 0.45, 0.05, 0.6, 0.32, 0.8, 0.3, 1.0, 0.0],
+		"knee_l": [0.0, 0.0, 0.45, -0.05, 0.6, -0.12, 0.8, -0.1, 1.0, 0.0],
+		"thigh_r": [0.0, 0.0, 0.6, -0.15, 0.8, -0.12, 1.0, 0.0],
+		"knee_r": [0.0, 0.0, 0.6, -0.2, 0.8, -0.18, 1.0, 0.0],
+	},
 }
 
 ## Instant (0 à 1) où porte le coup décisif des mouvements de `MOVES` qui ne
 ## frappent pas à `Commando.STRIKE_HIT_TIME`, et premier coup d'un
 ## enchaînement.
-const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75, StrikeMove.SWEEP: 0.5, StrikeMove.HIP_THROW: 0.5, StrikeMove.GROUND_PUNCH: 0.5, StrikeMove.DISARM: 0.6}
+const MOVE_HIT_TIMES := {StrikeMove.JAB_HOOK: 0.75, StrikeMove.SWEEP: 0.5, StrikeMove.HIP_THROW: 0.5, StrikeMove.GROUND_PUNCH: 0.5, StrikeMove.DISARM: 0.6, StrikeMove.HATCHET_CHOP: 0.58}
 const MOVE_FIRST_HIT := {StrikeMove.JAB_HOOK: 0.3}
 
 # Coup de crosse (arme en main) : l'arme recule sur la hanche droite, crosse
@@ -670,6 +686,7 @@ var _hand_mag: Node3D
 var _flash: Node3D
 var _knife: Node3D
 var _hand_grenade: Node3D
+var _hatchet: Node3D
 var _hand_smoke: Node3D
 var _hand_pebble: Node3D
 ## Prise de la main gauche dans le repère de l'arme (garde-main, ou poignée
@@ -767,6 +784,7 @@ var _m_grenade: StandardMaterial3D
 var _m_smoke: StandardMaterial3D
 var _m_smoke_band: StandardMaterial3D
 var _m_pebble: StandardMaterial3D
+var _m_wood: StandardMaterial3D
 var _m_explosive: StandardMaterial3D
 var _m_glove: StandardMaterial3D
 var _m_sole: StandardMaterial3D
@@ -840,6 +858,7 @@ func _build() -> void:
 	_m_smoke = _mat(Color(0.42, 0.45, 0.4), 0.55, 0.3)
 	_m_smoke_band = _mat(Color(0.9, 0.9, 0.85), 0.6, 0.0)
 	_m_pebble = _mat(Color(0.45, 0.43, 0.4), 0.95, 0.0)
+	_m_wood = _mat(Color(0.36, 0.2, 0.1), 0.7)
 	_m_explosive = _mat(Color(0.62, 0.55, 0.38), 0.85)
 	_m_team = _mat(team_color, 0.6)
 	_m_team.emission_enabled = true
@@ -1078,6 +1097,7 @@ func _animate_transition(delta: float) -> void:
 	_knife.visible = false
 	_hand_grenade.visible = false
 	_hand_smoke.visible = false
+	_hatchet.visible = false
 	_hand_pebble.visible = false
 	_update_magazines()
 	_animate_fingers(Vector2(lerpf(0.95, 0.1, hand), 1.0) if is_armed else Vector2(lerpf(0.35, 0.1, hand), lerpf(0.35, 0.1, hand)), delta)
@@ -1294,6 +1314,9 @@ func _animate_alive(delta: float) -> void:
 		if move.has("thigh_r"):
 			thigh.y = sample_keys(move["thigh_r"], punch_t)
 			knee.y = sample_keys(move["knee_r"], punch_t)
+		if move.has("thigh_l"):
+			thigh.x = sample_keys(move["thigh_l"], punch_t) + _knee_bend(dip)
+			knee.x = sample_keys(move["knee_l"], punch_t) - 2.0 * _knee_bend(dip)
 		if move.has("spread_r"):
 			spread.y = sample_keys(move["spread_r"], punch_t)
 		lean += _track(move, "lean", punch_t)
@@ -1604,6 +1627,7 @@ func _animate_alive(delta: float) -> void:
 	_hand_grenade.visible = held_object == ThrowObject.GRENADE
 	_hand_smoke.visible = held_object == ThrowObject.SMOKE
 	_hand_pebble.visible = held_object == ThrowObject.PEBBLE
+	_hatchet.visible = strike_progress >= 0.0 and strike_move == StrikeMove.HATCHET_CHOP and not is_dead
 	_knife.visible = (strike > 0.0 and strike_with_knife) or held_object == ThrowObject.KNIFE or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)
 	_update_magazines()
 
@@ -1888,6 +1912,7 @@ func _animate_death(delta: float) -> void:
 	_knife.visible = false
 	_hand_grenade.visible = false
 	_hand_smoke.visible = false
+	_hatchet.visible = false
 	_hand_pebble.visible = false
 	_update_magazines()
 	_animate_fingers(Vector2(0.3, 0.3), delta)
@@ -3595,6 +3620,13 @@ func _build_arm(side: float) -> void:
 		var band := _tapered(_hand_smoke, 0.031, 0.031, 0.025, Vector3(0.0, 0.0, -0.035), _m_smoke_band)
 		band.rotation.x = PI / 2.0
 		_hand_smoke.visible = false
+		# Hachette : manche qui prolonge le poing, fer à son extrémité, tranchant
+		# vers l'avant.
+		_hatchet = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.04, 0.0), "Hatchet")
+		_box(_hatchet, Vector3(0.026, 0.36, 0.03), Vector3(0.0, -0.1, 0.0), _m_wood)
+		_box(_hatchet, Vector3(0.016, 0.06, 0.12), Vector3(0.0, -0.25, -0.035), _m_steel)
+		_box(_hatchet, Vector3(0.008, 0.085, 0.02), Vector3(0.0, -0.25, -0.1), _m_steel)
+		_hatchet.visible = false
 		_hand_pebble = _pivot(elbow, Vector3(0.0, -FOREARM_LENGTH - 0.04, -0.02), "HandPebble")
 		_sphere(_hand_pebble, 0.028, Vector3.ZERO, _m_pebble)
 		_hand_pebble.visible = false

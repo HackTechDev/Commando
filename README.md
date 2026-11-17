@@ -38,7 +38,7 @@ Le dossier `build/` n'est pas versionné. La page doit être servie en HTTP : l'
 | Tirer sur un ennemi | Clic droit sur l'ennemi |
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
-| Corps à corps au choix (assommer, couteau, balayage, projection, désarmer, bouclier humain ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
+| Corps à corps au choix (assommer, couteau, hachette si équipée, balayage, projection, désarmer, bouclier humain ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
 | Parer un coup | I, juste avant que l'ennemi frappe (option du menu pause : parade automatique au hasard) |
 | Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le corps pour le ramasser |
 | Caillou de diversion (jusqu'à 14 m) | T, puis clic gauche au sol : les ennemis à moins de 7 m vont voir |

@@ -586,6 +586,8 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 	return [
 		{"id": &"knockout", "label": "Assommer", "detail": "coup ou prise par derrière", "enabled": standing},
 		{"id": &"knife", "label": "Couteau", "detail": "silencieux par derrière"},
+		{"id": &"hatchet", "label": "Hachette", "detail": "tue même de face, bruyant",
+			"enabled": SelectionManager.selected.any(func(unit: Commando) -> bool: return unit.hatchets > 0)},
 		{"id": &"sweep", "label": "Balayage", "detail": "il tombe, sonné peu de temps", "enabled": standing},
 		{"id": &"throw", "label": "Projection", "detail": "au sol, puis assommé", "enabled": standing},
 		{"id": &"disarm", "label": "Désarmer", "detail": "pris de court, il se rend", "enabled": enemy.can_be_disarmed()},
@@ -610,7 +612,8 @@ func _on_radial_chosen(id: StringName) -> void:
 		return
 	var kinds := {&"knockout": Commando.MeleeKind.KNOCKOUT, &"knife": Commando.MeleeKind.KNIFE,
 			&"sweep": Commando.MeleeKind.SWEEP, &"throw": Commando.MeleeKind.THROW,
-			&"disarm": Commando.MeleeKind.DISARM, &"hostage": Commando.MeleeKind.HOSTAGE}
+			&"disarm": Commando.MeleeKind.DISARM, &"hostage": Commando.MeleeKind.HOSTAGE,
+			&"hatchet": Commando.MeleeKind.HATCHET}
 	if not kinds.has(id):
 		return
 	var accepted := SelectionManager.order_melee(enemy, kinds[id])
