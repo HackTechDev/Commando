@@ -1,7 +1,8 @@
 class_name Explosion
 extends Node3D
 ## Explosion d'une grenade ou d'une charge : dégâts qui décroissent avec la
-## distance (ennemis et opérateurs à découvert, les murs protègent), grand
+## distance (ennemis et opérateurs à découvert, les murs protègent), décor
+## touché (murs fragiles abattus, caisses et bidons détruits ou projetés), grand
 ## bruit, ennemis plus loin rendus méfiants, éclair et boule de feu.
 
 const MASK_OCCLUDERS := 0b10
@@ -42,9 +43,23 @@ func _blast(damage: float, noise_radius: float) -> void:
 		var distance := unit.global_position.distance_to(global_position)
 		if distance < radius and _exposed(center, unit.global_position + Vector3.UP):
 			unit.health.take_damage(damage_at(distance, radius, damage))
+	_damage_scenery()
 	EventBus.noise_emitted.emit(global_position, noise_radius, &"explosion")
 	Sfx.play_at(&"explosion", global_position)
 	_show()
+
+
+## Dégâts au décor : murs fragiles abattus, caisses et bidons détruits tout
+## près ou projetés (`Climbable.blast`).
+func _damage_scenery() -> void:
+	for node in get_tree().get_nodes_in_group(FragileWall.GROUP):
+		var wall := node as FragileWall
+		if wall and wall.is_breached_by(global_position, radius):
+			wall.break_apart(global_position)
+	for node in get_tree().get_nodes_in_group(&"climbables"):
+		var prop := node as Climbable
+		if prop:
+			prop.blast(global_position, radius)
 
 
 func _exposed(from: Vector3, to: Vector3) -> bool:

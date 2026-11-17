@@ -38,6 +38,15 @@ const SIDES: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vec
 var occupant: Commando
 ## Unité qui la pousse ou la tire.
 var handler: Commando
+## Détruite par une explosion (invisible, sans collision).
+var is_broken: bool = false
+var _layer_before_break: int = 0
+
+## Souffle d'une explosion : en deçà de cette part du rayon, l'objet est
+## détruit ; au-delà (jusqu'au rayon), il est projeté d'au plus `BLAST_PUSH` m.
+const BLAST_DESTROY_RATIO := 0.45
+const BLAST_PUSH := 2.5
+const BLAST_SLIDE_TIME := 0.3
 
 
 func _enter_tree() -> void:
@@ -182,13 +191,78 @@ func get_nearest_access(near: Vector3) -> Dictionary:
 	return best
 
 
+## Souffle d'une explosion de rayon `radius` au point `from` : l'objet
+## (caisse, bidon) est détruit tout près, projeté plus loin, jusqu'au premier
+## obstacle. Un objet tenu ou occupé ne bouge pas. Renvoie vrai s'il a été
+## touché.
+func blast(from: Vector3, radius: float) -> bool:
+	if not movable or is_broken or occupant != null or handler != null:
+		return false
+	var away := global_position - from
+	away.y = 0.0
+	var distance := away.length()
+	if distance > radius:
+		return false
+	if distance < radius * BLAST_DESTROY_RATIO:
+		var box := AABB(global_position - Vector3(half_extent, 0.0, half_extent), Vector3(half_extent * 2.0, top_height, half_extent * 2.0))
+		Debris.burst(get_parent(), box, from, _color(), 16)
+		Sfx.play_at(&"fall", global_position + Vector3.UP * 0.5, 0.0)
+		_set_broken(true)
+		return true
+	var direction := away.normalized() if distance > 0.01 else Vector3.FORWARD
+	var push := BLAST_PUSH * (1.0 - distance / radius)
+	var goal := global_position
+	var step := 0.1
+	var travelled := step
+	while travelled <= push:
+		var next := global_position + direction * travelled
+		if not is_free_at(next, []):
+			break
+		goal = next
+		travelled += step
+	if goal.distance_to(global_position) < 0.05:
+		return true
+	var tween := create_tween()
+	tween.tween_property(self, "global_position", goal, BLAST_SLIDE_TIME).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_callback(EventBus.navigation_obstacle_moved.emit)
+	return true
+
+
+## Couleur des éclats : bois d'une caisse, tôle d'un bidon.
+func _color() -> Color:
+	return Color(0.45, 0.33, 0.2) if can_stand_on else Color(0.32, 0.36, 0.3)
+
+
+func _set_broken(broken: bool) -> void:
+	if broken == is_broken:
+		return
+	is_broken = broken
+	# Hors des couches lues par la navigation (une forme désactivée y compte).
+	if broken:
+		_layer_before_break = collision_layer
+		collision_layer = 0
+	else:
+		collision_layer = _layer_before_break
+	for child in get_children():
+		if child is CollisionShape3D:
+			(child as CollisionShape3D).set_deferred(&"disabled", broken)
+		elif child is VisualInstance3D:
+			(child as VisualInstance3D).visible = not broken
+	if broken:
+		remove_from_group(&"climbables")
+	else:
+		add_to_group(&"climbables")
+	EventBus.navigation_obstacle_moved.emit()
+
+
 ## Sauvegarde rapide (`QuickSave`) : place et orientation (caisses
-## déplacées).
+## déplacées), objet détruit.
 func save_state() -> Dictionary:
-	return {"transform": global_transform}
+	return {"transform": global_transform, "broken": is_broken}
 
 
 func load_state(data: Dictionary) -> void:
+	_set_broken(data.get("broken", false))
 	var saved: Transform3D = data.get("transform", global_transform)
 	if saved.is_equal_approx(global_transform):
 		return

@@ -44,7 +44,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 - **2.12 Couverture** : réduire la probabilité d'être touché derrière une caisse ou un angle de mur. Aujourd'hui, seule la ligne de vue compte.
 - **2.13 Tirs ratés** : ils n'ont aucun effet. Ils pourraient toucher un obstacle ou une autre unité, ou faire du bruit à l'impact.
 - **2.14 Explosifs, suite** :
-  - **a)** dégâts au décor : caisses et bidons projetés ou détruits, murs fragiles ;
   - **b)** charge à retardement, en plus de la mise à feu à distance ;
   - **c)** grenades assourdissantes pour l'infiltration (les fumigènes existent) ;
   - **d)** fumée qui dérive avec le vent, et qui gêne aussi la visée des opérateurs.

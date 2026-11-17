@@ -659,3 +659,9 @@
 - Au corps à corps (menu circulaire, clic du milieu sur l'ennemi : « Hachette », grisée si aucun opérateur sélectionné n'en porte) : coup de haut en bas, bras armé au-dessus de l'épaule, pas en avant.
 - Elle tue net, même de face, sans laisser à la victime le temps de crier ; mais le choc s'entend (1,5 fois le bruit d'un coup de poing). Comme les autres coups, elle est repoussée par un ennemi en garde ; elle achève un ennemi au sol.
 - La hachette n'apparaît dans la main que pendant le coup.
+
+## Dégâts au décor (2.14 a)
+
+- Une explosion (grenade, charge) détruit les caisses et bidons tout près (moins de 45 % de son rayon) et projette les autres, jusqu'à 2,5 m, dans l'axe du souffle et jusqu'au premier obstacle. Un objet sur lequel se tient un opérateur, ou qu'il pousse, ne bouge pas.
+- Murs fragiles (`FragileWall`, briques fissurées) : ils arrêtent la vue et les balles, mais une explosion proche les abat et ouvre un passage. Le terrain d'essai en a un, au sud-ouest.
+- Éclats projetés qui retombent et restent quelques secondes au sol (`Debris`). La navigation est recalculée ; l'état (détruit, abattu) est sauvegardé par la sauvegarde rapide.
