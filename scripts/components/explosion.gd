@@ -56,6 +56,8 @@ func _damage_scenery() -> void:
 		var wall := node as FragileWall
 		if wall and wall.is_breached_by(global_position, radius):
 			wall.break_apart(global_position)
+	for node in get_tree().get_nodes_in_group(Door.GROUP):
+		(node as Door).blast(global_position, radius)
 	for node in get_tree().get_nodes_in_group(&"climbables"):
 		var prop := node as Climbable
 		if prop:

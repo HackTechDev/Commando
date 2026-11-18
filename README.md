@@ -57,6 +57,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Grenade fumigène (équipement, jusqu'à 12 m) | ; (touche à droite de « , » en AZERTY), puis clic gauche au sol : le nuage cache les opérateurs aux ennemis |
 | Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
+| Ouvrir / fermer une porte, crocheter une porte verrouillée | Clic droit sur la porte (on passe aussi une porte fermée en marchant : elle s'ouvre) |
 | Grappin (équipement) | W, puis clic gauche sur un point en hauteur : l'opérateur lance le grappin et monte à la corde |
 | Échelle, muret | Clic droit sur le toit ou de l'autre côté : le chemin passe par l'échelle ou enjambe le muret |
 | Arme à la bretelle / en main | G (bascule) |

@@ -135,6 +135,20 @@ func order_carry(body: Enemy, run: bool = false) -> bool:
 	return _issue(best, best.carry_body.bind(body, run), body.body_center(), &"move")
 
 
+## Envoie l'unité sélectionnée la plus proche ouvrir, fermer ou crocheter
+## la porte `door`. Renvoie vrai si une unité a obéi.
+func order_door(door: Door, run: bool = false) -> bool:
+	var best: Commando
+	for unit in selected:
+		if unit.is_dead:
+			continue
+		if best == null or unit.global_position.distance_to(door.global_position) < best.global_position.distance_to(door.global_position):
+			best = unit
+	if best == null:
+		return false
+	return _issue(best, best.use_door.bind(door, run), door.near_side(best.global_position), &"move")
+
+
 ## Les unités sélectionnées qui portent un corps le déposent. Renvoie vrai
 ## si au moins une l'a fait.
 func drop_bodies() -> bool:

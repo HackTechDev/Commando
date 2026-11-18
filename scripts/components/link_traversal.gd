@@ -11,6 +11,8 @@ extends RefCounted
 ##   le toit (escalade d'un rebord). Descente : l'inverse, face à l'échelle.
 ## - Corde (grappin) : le relief se gravit face par face, chaque ressaut bas
 ##   escaladé comme une caisse, chaque paroi haute à la corde.
+## - Porte : pas jusqu'au seuil, ouverture si elle est fermée, puis passage ;
+##   l'unité garde sa posture et son arme.
 
 ## Vitesse sur les barreaux (m/s) et longueur d'un cycle de l'animation
 ## (deux barreaux).
@@ -35,7 +37,11 @@ const WALK_SPEED := 1.3
 const CLIMB_TIME := 1.4
 const DESCEND_TIME := 1.0
 
-enum Phase { WALK, CLIMB_UP, LOWER, CLIMB_DOWN, RUNGS }
+## Porte : temps pour l'ouvrir, et instant où elle s'ouvre (part de ce temps).
+const DOOR_OPEN_TIME := 0.45
+const DOOR_PUSH_AT := 0.5
+
+enum Phase { WALK, CLIMB_UP, LOWER, CLIMB_DOWN, RUNGS, OPEN }
 
 ## Franchissement en cours.
 var active: bool = false
@@ -79,6 +85,8 @@ func begin(traversal: TraversalLink, entry: Vector3, exit_point: Vector3) -> boo
 	_phases.clear()
 	var climb := _stat(&"climb_time", CLIMB_TIME)
 	var descend := _stat(&"descend_time", DESCEND_TIME)
+	if traversal.kind == TraversalLink.Kind.DOOR:
+		return _begin_door(traversal, start, exit_point, direction)
 	if traversal.kind == TraversalLink.Kind.VAULT:
 		var top := (entry + exit_point) * 0.5
 		top.y = entry.y + traversal.height
@@ -112,12 +120,32 @@ func begin(traversal: TraversalLink, entry: Vector3, exit_point: Vector3) -> boo
 	return true
 
 
+## Porte : marche jusqu'au seuil, ouverture au besoin, puis passage. Posture
+## et arme ne changent pas.
+func _begin_door(traversal: TraversalLink, start: Vector3, exit_point: Vector3, direction: Vector3) -> bool:
+	var door := traversal.door
+	if door == null:
+		return false
+	if not door.is_open and not door.is_broken:
+		_add(Phase.OPEN, start, start, DOOR_OPEN_TIME, direction)
+	_walk(start, exit_point, direction)
+	if _phases.is_empty():
+		return false
+	_body.rotation.y = atan2(-direction.x, -direction.z)
+	_body.velocity = Vector3.ZERO
+	_index = 0
+	_time = 0.0
+	active = true
+	return true
+
+
 ## Avance le franchissement d'une image. Renvoie vrai tant qu'il est en cours
 ## (l'unité ne doit alors pas se déplacer elle-même).
 func update(delta: float) -> bool:
 	if not active:
 		return false
-	_model.weapon_slung = true
+	if link.kind != TraversalLink.Kind.DOOR:
+		_model.weapon_slung = true
 	var phase := _phases[_index]
 	if _time == 0.0:
 		var facing: Vector3 = phase["facing"]
@@ -223,6 +251,12 @@ func _apply(phase: Dictionary, t: float) -> void:
 		Phase.WALK:
 			_body.global_position = from.lerp(to, t)
 			_model.move_ratio = 0.5
+		Phase.OPEN:
+			_body.global_position = from
+			if t >= DOOR_PUSH_AT and not phase.get("pushed", false):
+				phase["pushed"] = true
+				if link and link.door:
+					link.door.open_from(from)
 		Phase.RUNGS:
 			_body.global_position = from.lerp(to, t)
 			_model.ladder_phase = absf(_body.global_position.y - minf(from.y, to.y)) / LADDER_CYCLE

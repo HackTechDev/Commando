@@ -276,6 +276,8 @@ func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
 	var enemy := _raycast(screen_position, MASK_ENEMIES).get("collider") as Enemy
 	if enemy and not enemy.is_dead:
 		return GameCursor.Kind.ATTACK
+	if door_at(screen_position):
+		return GameCursor.Kind.CRATE
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
 		return GameCursor.Kind.DEFAULT
@@ -566,6 +568,13 @@ func _order(screen_position: Vector2, run: bool) -> void:
 		SelectionManager.order_attack(enemy, run)
 		_spawn_marker(enemy.global_position, marker_attack_color)
 		return
+	var door := door_at(screen_position)
+	if door:
+		if SelectionManager.order_door(door, run):
+			_spawn_marker(door.near_side(SelectionManager.selected[0].global_position), marker_run_color if run else marker_color)
+		else:
+			Sfx.play_ui(&"denied")
+		return
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
 		return
@@ -793,6 +802,13 @@ func _focus_camera() -> void:
 		rig.focus_on(SelectionManager.selected[0].global_position)
 
 
+## Porte (fermée ou ouverte, pas détruite) sous `screen_position`, ou null.
+func door_at(screen_position: Vector2) -> Door:
+	var hit := _raycast(screen_position, MASK_GROUND | Door.DOOR_LAYER)
+	var door := hit.get("collider") as Door
+	return door if door and not door.is_broken else null
+
+
 func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	var camera := get_viewport().get_camera_3d()
 	var from := camera.project_ray_origin(screen_position)
@@ -800,9 +816,10 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	var query := PhysicsRayQueryParameters3D.create(from, to, mask)
 	var space := camera.get_world_3d().direct_space_state
 	var hit := space.intersect_ray(query)
-	# Un toit effacé (opérateur à l'intérieur) laisse passer les clics vers
-	# l'intérieur du bâtiment.
-	while not hit.is_empty() and Roof.is_revealed_body(hit["collider"], hit["position"]):
+	# Un toit effacé (opérateur à l'intérieur) ou le haut des murs d'un
+	# bâtiment vu en coupe laissent passer les clics vers l'intérieur.
+	while not hit.is_empty() and (Roof.is_revealed_body(hit["collider"], hit["position"]) \
+			or Building.is_revealed_body(hit["collider"], hit["position"])):
 		query.exclude += [hit["rid"]]
 		hit = space.intersect_ray(query)
 	return hit

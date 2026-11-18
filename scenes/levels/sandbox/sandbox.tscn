@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/props/low_wall.tscn" id="9"]
 [ext_resource type="Script" path="res://scripts/props/fragile_wall.gd" id="fragile"]
 [ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
+[ext_resource type="Script" path="res://scripts/props/building.gd" id="building"]
 
 [sub_resource type="Curve3D" id="patrol_a"]
 _data = {
@@ -215,6 +216,12 @@ length = 6.0
 [node name="FragileWall" type="StaticBody3D" parent="NavigationRegion3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 18)
 script = ExtResource("fragile")
+
+[node name="Building" type="Node3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 22)
+script = ExtResource("building")
+doors = Array[Vector3]([Vector3(2, 0, 0), Vector3(0, 1.5, 1)])
+windows = Array[Vector2]([Vector2(1, 0), Vector2(3, 0), Vector2(2, 2.5)])
 
 [node name="Bush" type="Node3D" parent="Decor"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 6)

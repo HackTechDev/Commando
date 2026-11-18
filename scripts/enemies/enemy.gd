@@ -169,6 +169,8 @@ func _ready() -> void:
 	_agent.velocity_computed.connect(_apply_velocity)
 	_traversal = LinkTraversal.new(self, _model)
 	_agent.link_reached.connect(_on_link_reached)
+	# Les ennemis ont les clés : ils passent aussi les portes verrouillées.
+	_agent.navigation_layers = Door.NAV_EVERYONE | Door.NAV_ENEMIES
 	if patrol_path and patrol_path.curve:
 		for i in patrol_path.curve.point_count:
 			_waypoints.append(patrol_path.to_global(patrol_path.curve.get_point_position(i)))
@@ -826,7 +828,7 @@ func is_hidden_body() -> bool:
 	for roof in get_tree().get_nodes_in_group(&"roofs"):
 		if roof is Roof and (roof as Roof).covers(global_position + Vector3.UP * 0.3):
 			return true
-	return false
+	return Building.at(get_tree(), global_position + Vector3.UP * 0.3) != null
 
 
 ## Milieu du corps couché : son bassin, au sol.

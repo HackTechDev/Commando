@@ -948,6 +948,24 @@ func carry_body(body: Enemy, run: bool = false) -> bool:
 	return true
 
 
+## Va à la porte `door` et l'ouvre ou la ferme ; verrouillée, la crochète.
+## Renvoie faux si l'unité ne peut pas y aller.
+func use_door(door: Door, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
+	if is_dead or _hopping or door == null or door.is_broken or carried_body != null and door.is_locked and not door.is_open:
+		return false
+	if perched_on:
+		return _descend(door.near_side(global_position), use_door.bind(door, run))
+	_set_order(DoorOrder.new(self, door, run))
+	return true
+
+
+## Vrai pendant un crochetage de porte.
+func is_picking_lock() -> bool:
+	return _order is DoorOrder and (_order as DoorOrder).picking
+
+
 ## Prend `body` sur les épaules (instant du geste de `CarryOrder`).
 func _lift_body(body: Enemy) -> void:
 	if not is_instance_valid(body) or not body.is_body() or body.carrier != null or carried_body != null:

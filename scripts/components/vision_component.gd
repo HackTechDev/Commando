@@ -58,6 +58,7 @@ func _ready() -> void:
 	instance.layers = LevelPreview.OVERLAY_LAYER
 	add_child(instance)
 	EventBus.navigation_obstacle_moved.connect(invalidate)
+	EventBus.sight_blockers_changed.connect(invalidate)
 
 
 func _physics_process(delta: float) -> void:

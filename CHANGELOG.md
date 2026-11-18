@@ -686,3 +686,11 @@
 - `tools/web_pack.py` copie trois cartes UFO:AI (par défaut celles du catalogue : `training_a`, `training_b`, `fighter_crash`) et les seules textures qu'elles utilisent, plus celles des scènes du jeu, dans `web_assets/` (images gardées telles quelles, importeur `keep`) ; il complète le filtre d'inclusion du préréglage Web. Options `--maps`, `--export`, `--clean`.
 - Sur le Web, `AssetPaths` lit `res://web_assets/maps` et `res://web_assets/textures` quand le paquet est présent.
 - Export Web sans fils : `UfoMapLevel._run_in_thread` exécute la tâche dans le fil principal.
+
+## Portes, fenêtres et bâtiments
+
+- `Door` : porte pivotante ; fermée, elle arrête la marche, la vue et les balles. Le seuil est coupé dans la navigation (obstacle) et se passe par un lien (`TraversalLink`, sorte `DOOR`) : une unité qui l'emprunte ouvre la porte en passant, sans changer de posture. Clic droit sur une porte : l'opérateur le plus proche l'ouvre ou la ferme (pas si quelqu'un est dans le passage).
+- Porte verrouillée (métal sombre) : réservée aux ennemis, qui ont les clés (couche de navigation 2) ; un opérateur la crochète, accroupi, en 4 s. Une explosion proche ou des balles (tir libre) la font voler en éclats.
+- `WallWindow` : fenêtre sans vitre ; la vue et les balles passent au-dessus de l'allège (une unité accroupie reste cachée), on l'enjambe comme un muret.
+- `Building` : bâtiment à quatre murs, portes, fenêtres, sol et toit. Opérateur à l'intérieur : vue en coupe (toit et haut des murs effacés en fondu, traversés par les clics). Un corps déposé à l'intérieur est caché. Un bâtiment dans la sandbox (porte avant, porte arrière verrouillée, trois fenêtres).
+- Sauvegarde rapide : état des portes (ouverte, verrouillée, détruite).
