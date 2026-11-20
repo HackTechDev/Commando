@@ -759,3 +759,10 @@
 - `Commando.mission_nvg` : la mission équipe les opérateurs de jumelles de vision nocturne, et du casque qui les porte.
 - Vision nocturne : la lumière est amplifiée en vert phosphore, avec grain, lignes et vignettage circulaire ; les lampes éblouissent un peu. Les cônes de vision et les marqueurs d'équipe gardent leur teinte, et l'interface reste en couleurs. Elle est allumée d'office si un opérateur vivant porte des JVN ; touche ² (à gauche de 1) pour l'éteindre ou la rallumer. Elle s'éteint quand le dernier porteur tombe.
 - Les jumelles s'abaissent devant les yeux des opérateurs quand la vision nocturne est allumée, et se relèvent sur le casque quand elle est éteinte.
+
+## Rangers refaits
+
+- La tige est portée par la jambe et non plus par le pied : elle suit le tibia quelle que soit la flexion de la cheville. À genou, elle ne sort plus de la jambe en équerre.
+- Tige plus haute, avec col rembourré, languette, laçage croisé et crochets ; le pantalon blouse sur le haut de la tige ; une rotule comble la pliure de la cheville.
+- Pied : talon arrondi, cou-de-pied incliné, bout renforcé et laçage ; semelle crantée au bout arrondi, talon plus épais. Le VIP en civil garde des chaussures basses.
+- Un genou à terre : le tibia arrière remonte vers la cheville et le pied se dresse sur la pointe, orteils repliés, semelle crantée vers l'arrière ; il ne s'enfonce plus dans le sol.

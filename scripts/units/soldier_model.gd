@@ -481,9 +481,17 @@ const THIGH_LENGTH := 0.44
 const UPPER_ARM_LENGTH := 0.29
 const FOREARM_LENGTH := 0.29
 const SHIN_LENGTH := 0.40
+## Hauteur de la tige des rangers, et dessous de la semelle sous la cheville.
+const BOOT_SHAFT := 0.17
+const BOOT_SOLE := -0.08
 ## Débattement de la cheville (rad) : négatif = pointe vers le bas.
 const ANKLE_MIN := -0.9
 const ANKLE_MAX := 1.0
+## Un genou à terre : flexion du genou arrière (le tibia remonte vers la
+## cheville) et inclinaison du pied arrière par rapport au bassin (pointe en
+## bas, un peu vers l'avant).
+const KNEEL_REAR_KNEE := -1.8
+const KNEEL_REAR_FOOT := -1.22
 const IRIS_REST := Vector3(0.036, 0.192, -0.098)
 ## Échelle verticale de la paupière, œil ouvert (1 : fermé).
 const LID_OPEN := 0.08
@@ -1242,7 +1250,9 @@ func _animate_alive(delta: float) -> void:
 			var crouch_knee := Vector2(-1.9 - maxf(-c, 0.0) * half * 1.6, -1.9 - maxf(c, 0.0) * half * 1.6)
 			hips_y = lerpf(0.56 + absf(s) * 0.02 * moving, 0.52, k)
 			thigh = crouch_thigh.lerp(Vector2(1.45, -0.1), k)
-			knee = crouch_knee.lerp(Vector2(-1.45, -1.47), k)
+			# Genou arrière au sol, tibia remontant vers la cheville (orteils
+			# repliés, pointe au sol : `_tuck_rear_foot`).
+			knee = crouch_knee.lerp(Vector2(-1.45, KNEEL_REAR_KNEE), k)
 			lean = lerpf(-0.4, -0.12, k)
 			head_pitch = lerpf(0.3, 0.12, k)
 		Posture.PRONE:
@@ -1475,6 +1485,7 @@ func _animate_alive(delta: float) -> void:
 		_ankle_r.rotation.x = lerpf(_ankle_r.rotation.x, ANKLE_MIN, blend)
 	else:
 		_level_feet()
+		_tuck_rear_foot()
 		if not kick.is_empty():
 			_ankle_r.rotation.x = sample_keys(kick["ankle"], punch_t)
 	# Respiration au repos, balancement en marche, choc des impacts.
@@ -2125,6 +2136,15 @@ func _level_feet() -> void:
 	_ankle_r.rotation.x = clampf(-(_leg_r.rotation.x + _knee_r.rotation.x), ANKLE_MIN, ANKLE_MAX)
 
 
+## Un genou à terre : le pied arrière se dresse sur la pointe, orteils
+## repliés sous lui, semelle tournée vers l'arrière (`KNEEL_REAR_FOOT`).
+func _tuck_rear_foot() -> void:
+	if _kneel <= 0.0 or posture != Posture.CROUCHED:
+		return
+	var tucked := KNEEL_REAR_FOOT - (_leg_r.rotation.x + _knee_r.rotation.x)
+	_ankle_r.rotation.x = lerpf(_ankle_r.rotation.x, tucked, smoothstep(0.0, 1.0, _kneel))
+
+
 ## Interpole les bras entre les poses d'une piste (instant, `ArmPose`).
 func _apply_arm_keys(keys: Array[float], t: float) -> void:
 	var count := keys.size() / 2
@@ -2162,19 +2182,12 @@ func _build_legs() -> void:
 		# Jambe et mollet, bas du pantalon bouffant sur la botte.
 		_tapered(knee, 0.062, 0.05, 0.34, Vector3(0.0, -0.18, 0.0), _m_pants).scale.z = 1.08
 		_ellipsoid(knee, 0.056, Vector3(0.95, 1.7, 0.9), Vector3(0.0, -0.13, 0.016), _m_pants)
-		_tapered(knee, 0.056, 0.064, 0.05, Vector3(0.0, -0.335, 0.0), _m_pants)
 		if _wears(&"knee_pads"):
 			var pad := _ellipsoid(knee, 0.072, Vector3(1.0, 1.15, 0.55), Vector3(0.0, -0.02, -0.05), _m_gear)
 			pad.name = "KneePad"
 			_tapered(knee, 0.066, 0.066, 0.016, Vector3(0.0, -0.07, 0.0), _m_weapon)
-		# Botte : tige, empeigne arrondie, lacets, semelle crantée.
 		var ankle := _pivot(knee, Vector3(0.0, -SHIN_LENGTH, 0.0), "Ankle")
-		_tapered(ankle, 0.058, 0.064, 0.15, Vector3(0.0, 0.035, 0.002), _m_boot)
-		var foot := _capsule(ankle, 0.056, 0.27, Vector3(0.0, -0.026, -0.05), _m_boot)
-		foot.rotation.x = PI / 2.0
-		foot.scale = Vector3(1.0, 1.0, 0.72)
-		_box(ankle, Vector3(0.04, 0.008, 0.11), Vector3(0.0, 0.016, -0.085), _m_weapon).rotation.x = -0.25
-		_box(ankle, Vector3(0.118, 0.026, 0.285), Vector3(0.0, -0.067, -0.05), _m_sole)
+		_build_boot(knee, ankle)
 		if side < 0.0:
 			_leg_l = leg
 			_knee_l = knee
@@ -2184,6 +2197,58 @@ func _build_legs() -> void:
 			_knee_r = knee
 			_ankle_r = ankle
 			_build_sidearm(leg)
+
+
+## Ranger (chaussure basse pour un civil). La tige est portée par la jambe
+## (`knee`) : elle suit le tibia quelle que soit la flexion de la cheville ;
+## le pied (`ankle`, pointe vers -Z, semelle à y = -0.08) : talon arrondi,
+## cou-de-pied incliné, bout renforcé, semelle crantée au bout arrondi.
+func _build_boot(knee: Node3D, ankle: Node3D) -> void:
+	var top := -SHIN_LENGTH + BOOT_SHAFT
+	if civilian:
+		# Bas de pantalon droit sur une chaussure de ville.
+		_tapered(knee, 0.052, 0.06, 0.07, Vector3(0.0, -SHIN_LENGTH + 0.07, 0.0), _m_pants)
+	else:
+		# Tige : du coup-de-pied au haut du mollet, col rembourré.
+		_tapered(knee, 0.06, 0.057, BOOT_SHAFT, Vector3(0.0, -SHIN_LENGTH + BOOT_SHAFT * 0.5, 0.004), _m_boot)
+		_tapered(knee, 0.064, 0.062, 0.022, Vector3(0.0, top - 0.004, 0.004), _m_boot)
+		# Languette et laçage croisé sur le devant, crochets sur les côtés.
+		_box(knee, Vector3(0.036, BOOT_SHAFT - 0.02, 0.008), Vector3(0.0, -SHIN_LENGTH + BOOT_SHAFT * 0.5 + 0.01, -0.058), _m_sole)
+		for i in 4:
+			var y := -SHIN_LENGTH + 0.04 + i * 0.034
+			for slant: float in [-0.55, 0.55]:
+				_box(knee, Vector3(0.05, 0.006, 0.005), Vector3(0.0, y, -0.064), _m_weapon).rotation.z = slant
+			for x: float in [-0.026, 0.026]:
+				_sphere(knee, 0.0065, Vector3(x, y + 0.012, -0.056), _m_weapon)
+		# Pantalon bouffant rentré dans la tige.
+		_tapered(knee, 0.054, 0.068, 0.045, Vector3(0.0, top + 0.012, 0.004), _m_pants)
+	# Cheville : comble la pliure entre la tige et le pied.
+	_sphere(ankle, 0.058, Vector3(0.0, 0.0, 0.004), _m_boot)
+	# Talon, cou-de-pied incliné vers la pointe, bout arrondi.
+	_ellipsoid(ankle, 0.055, Vector3(0.96, 0.95, 0.95), Vector3(0.0, -0.028, 0.036), _m_boot)
+	var instep := _capsule(ankle, 0.05, 0.19, Vector3(0.0, -0.03, -0.06), _m_boot)
+	instep.rotation.x = PI / 2.0 - 0.32
+	instep.scale = Vector3(1.0, 1.0, 0.85)
+	_ellipsoid(ankle, 0.051, Vector3(1.0, 0.72, 1.25), Vector3(0.0, -0.045, -0.128), _m_boot)
+	if not civilian:
+		# Bout renforcé (pare-pierres) et laçage du cou-de-pied.
+		_ellipsoid(ankle, 0.052, Vector3(1.02, 0.42, 1.18), Vector3(0.0, -0.058, -0.134), _m_sole)
+		for i in 2:
+			var z := -0.04 - i * 0.032
+			var lace := _box(ankle, Vector3(0.042, 0.005, 0.006), Vector3(0.0, 0.006 - i * 0.012, z - 0.012), _m_weapon)
+			lace.rotation = Vector3(-0.32, 0.5 if i % 2 == 0 else -0.5, 0.0)
+	# Semelle : plus large au talon, bout arrondi, crans dessous.
+	var sole := 0.024 if civilian else 0.03
+	var sole_y := BOOT_SOLE + sole * 0.5
+	_box(ankle, Vector3(0.106, sole, 0.17), Vector3(0.0, sole_y, -0.045), _m_sole)
+	_cylinder(ankle, 0.053, sole, Vector3(0.0, sole_y, -0.13), _m_sole)
+	# Talon : arrondi derrière, un peu plus épais.
+	var heel := sole + 0.008
+	_cylinder(ankle, 0.05, heel, Vector3(0.0, BOOT_SOLE + heel * 0.5, 0.04), _m_sole)
+	if not civilian:
+		# Crans sous la semelle (visibles quand le pied se dresse).
+		for i in 6:
+			_box(ankle, Vector3(0.096, 0.006, 0.012), Vector3(0.0, BOOT_SOLE - 0.002, -0.15 + i * 0.036), _m_weapon)
 
 
 func _build_torso() -> void:
