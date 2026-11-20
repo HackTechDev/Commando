@@ -142,3 +142,41 @@ Cartes et missions :
 - **8.16 Raid nocturne** sur « Nuit sans lune » : insertion en rappel, sabotage, extraction par le convertible.
 - **8.17 Course contre la montre** : l'appareil ne reste que 60 s en vol stationnaire ; toute l'équipe doit être à bord avant qu'il reparte.
 - **8.18 Appareil ennemi** : un convertible ennemi patrouille, avec son cône de vision vu du ciel et un projecteur la nuit.
+
+## 9. Sabre
+
+Idées pour le véhicule léger des forces spéciales (`Sabre`, carte « Patrouille Sabre »). Priorité suggérée : 9.2, 9.8, 9.9 et 9.15, qui rééquilibrent la 12,7 (aujourd'hui elle balaie le poste de contrôle sans risque).
+
+Tactique et discrétion :
+
+- **9.1 Moteur coupé** : ordre « Couper le moteur » pour avancer lentement (2 m/s) en roue libre, sans bruit, sur une courte distance.
+- **9.2 Phares et conduite de nuit** : la nuit, le Sabre roule tous feux éteints et n'est repéré que de près, comme le convertible (8.9). Phares allumés, il roule plus vite mais se voit de loin, et le cône des phares éclaire les ennemis.
+- **9.3 Le véhicule comme couvert** : à l'arrêt, des opérateurs à pied s'abritent derrière la caisse, accroupis. La carrosserie arrête les balles mais s'abîme (lié à 9.8).
+- **9.4 Leurre** : laisser tourner le moteur à l'arrêt pour attirer les gardes (bruit `distraction`) pendant que l'équipe contourne à pied.
+
+Armement :
+
+- **9.5 7,62 latérales servies** : le chef de bord et l'arrière gauche servent chacun une mitrailleuse, avec un champ de tir limité (avant droit, arrière gauche). Même composant `MountedGun`, portée plus courte et bruit moindre.
+- **9.6 Missile antichar** : tir unique sur une cible désignée (bunker, véhicule ennemi, mur), avec un temps de visée et une explosion. Une seule munition par mission.
+- **9.7 Tir désigné à la 12,7** : en plus du feu à volonté, clic droit sur un ennemi ou une caisse pour y concentrer le feu.
+
+Dégâts et logistique :
+
+- **9.8 Structure et pannes** : une jauge comme celle du convertible. Pneus crevés : vitesse réduite. Moteur touché : fumée puis immobilisation. Un opérateur répare en restant quelques secondes à l'avant.
+- **9.9 Ravitaillement** : les jerricans et les caisses de munitions du plateau. Un opérateur à côté du véhicule refait ses chargeurs et récupère grenades et fumigènes (lié à 2.10 et à l'inventaire).
+- **9.10 Transport de blessés et de corps** : déposer un opérateur à terre ou un otage sur le plateau arrière pour l'évacuer, ce qui libère le porteur.
+- **9.11 Escorte de VIP** : le VIP monte à une place passagère ; l'objectif est de le conduire jusqu'à l'extraction.
+
+Cartes et missions :
+
+- **9.12 Convoi de nuit** : rejoindre en Sabre le convertible d'extraction, puis embarquer (les deux véhicules dans une même mission).
+- **9.13 Barrage routier** : un poste avec une barrière, à forcer à faible vitesse (bruit, dégâts) ou à ouvrir discrètement à pied.
+- **9.14 Mines et IED** sur la piste : un opérateur à pied devant le véhicule les détecte ; sinon le véhicule saute.
+- **9.15 Pick-ups ennemis (technicals)** : ils patrouillent la piste et prennent le Sabre en chasse s'ils l'entendent ; une vraie cible pour la 12,7 et le missile.
+- **9.16 Raid éclair** : objectif chronométré (détruire un dépôt et repartir avant l'arrivée des renforts).
+
+Commandes et confort :
+
+- **9.17 Points de passage** : Maj + clic droit pour enchaîner un trajet (contourner un poste par un chemin choisi).
+- **9.18 Rouler et débarquer** : les passagers descendent dès l'arrêt et se dispersent à couvert.
+- **9.19 Caméra qui suit** le véhicule pendant le trajet (option).
