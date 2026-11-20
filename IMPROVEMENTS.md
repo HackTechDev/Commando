@@ -111,3 +111,38 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **c)** répliques des opérateurs à la sélection et aux ordres (bus « Voix ») ;
   - **e)** sons d'ambiance ;
   - **f)** sous-titres des sons importants, pour l'accessibilité (le signal `Sfx.played` existe).
+
+## 8. Convertible
+
+Insertion et extraction :
+
+- **8.1 Extraction en fin de mission** : un opérateur appelle l'appareil (radio), qui vient se poser dans la zone d'extraction ; la mission est réussie quand tout le monde est à bord, VIP compris. Le bruit des rotors attire les ennemis pendant l'approche.
+- **8.2 Insertion en début de mission** : la partie commence en vol stationnaire au-dessus de la carte, et le joueur choisit où descendre en rappel. Un point trop proche des sentinelles déclenche l'alerte (bruit).
+- **8.3 Hélitreuillage** : remonter par la corde un opérateur ou le VIP depuis le sol ou un toit inaccessible (rappel à l'envers).
+- **8.4 Déplacement en vol stationnaire** : clic sur la carte pour déplacer l'appareil d'un point à l'autre, et déposer une équipe sur un toit, une autre au sol ailleurs.
+
+Combat :
+
+- **8.5 Canon latéral** : un opérateur à bord sert le canon du modèle. Grande portée, rafales qui détruisent caisses et murs fragiles ; très bruyant, ne tire que d'un côté.
+- **8.6 Tireur d'élite embarqué** : l'Hécate tirée depuis la soute porte plus loin grâce à la hauteur, mais elle est moins précise quand l'appareil bouge.
+- **8.7 Riposte ennemie** : les ennemis tirent sur l'appareil en vol. Points de structure, fumée quand il est touché, atterrissage d'urgence au-delà d'un seuil.
+- **8.8 Lance-roquettes ennemi** : un ennemi spécial capable d'abattre l'appareil, à neutraliser avant de le faire venir.
+
+Discrétion :
+
+- **8.9 Vol tous feux éteints** : la nuit, l'appareil n'a pas de lumière ; visible en vision nocturne, invisible aux ennemis tant qu'il est loin, seul le bruit le trahit.
+- **8.10 Hauteur et bruit** : plus il vole haut, moins le bruit porte (rayon `ROTOR_NOISE` selon la hauteur), mais plus le rappel est long.
+- **8.11 Diversion** : faire passer l'appareil d'un côté de la carte pour attirer les sentinelles pendant que l'équipe s'infiltre de l'autre.
+
+Logistique :
+
+- **8.12 Ravitaillement** : munitions, trousses de soins et charges à prendre dans la soute (lié à 2.10 et à l'inventaire).
+- **8.13 Évacuation des blessés** : un opérateur blessé ramené à bord est sauvé ; il quitte la mission sans compter comme perdu.
+- **8.14 Transport de corps et de documents** : ramener à bord un corps ou les documents d'un officier ennemi, comme objectif de mission.
+- **8.15 Élingage** : avec les crochets du modèle, soulever une caisse, du matériel ou un véhicule et le déposer ailleurs (bloquer une porte, créer un abri).
+
+Cartes et missions :
+
+- **8.16 Raid nocturne** sur « Nuit sans lune » : insertion en rappel, sabotage, extraction par le convertible.
+- **8.17 Course contre la montre** : l'appareil ne reste que 60 s en vol stationnaire ; toute l'équipe doit être à bord avant qu'il reparte.
+- **8.18 Appareil ennemi** : un convertible ennemi patrouille, avec son cône de vision vu du ciel et un projecteur la nuit.
