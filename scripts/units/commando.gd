@@ -115,6 +115,9 @@ var ammo_in_magazine: int = 0
 var ammo_reserve: int = 0
 ## Couteaux de lancer en main (à ramasser après chaque lancer).
 var throwing_knives: int = 0
+## Charges explosives fournies par la mission (réglage du niveau), qui
+## s'ajoutent à l'équipement choisi.
+@export var mission_explosives: int = 0
 ## Grenades, charges explosives et trousses de soins restantes.
 var grenades: int = 0
 var smoke_grenades: int = 0
@@ -208,7 +211,8 @@ func _ready() -> void:
 	grenades = stats.grenades
 	smoke_grenades = stats.smoke_grenades
 	hatchets = stats.hatchets
-	explosives = stats.explosives
+	# Charges fournies par la mission, en plus de l'équipement choisi.
+	explosives = stats.explosives + mission_explosives
 	medkits = stats.medkits
 	shields = stats.shields
 	grapnels = stats.grapnels

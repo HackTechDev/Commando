@@ -694,3 +694,10 @@
 - `WallWindow` : fenêtre sans vitre ; la vue et les balles passent au-dessus de l'allège (une unité accroupie reste cachée), on l'enjambe comme un muret.
 - `Building` : bâtiment à quatre murs, portes, fenêtres, sol et toit. Opérateur à l'intérieur : vue en coupe (toit et haut des murs effacés en fondu, traversés par les clics). Un corps déposé à l'intérieur est caché. Un bâtiment dans la sandbox (porte avant, porte arrière verrouillée, trois fenêtres).
 - Sauvegarde rapide : état des portes (ouverte, verrouillée, détruite).
+
+## Convertible et carte « Base aérienne »
+
+- `TiltrotorModel` : convertible quadrirotor fictif construit en code (d'après trois visuels de référence) : fuselage à facettes au nez en bec et verrière en fentes, deux paires d'ailes épaisses, quatre nacelles chanfreinées numérotées avec prises d'air et feux de position, rotors à 2–6 pales (disque flou à pleine vitesse), tourelle sous le menton, canon latéral, crochets d'élingage, train d'atterrissage. Livrées olive, grise et hiver (camouflage numérique généré). Épave : coque calcinée, pales tordues.
+- `Tiltrotor` : l'appareil posé au sol, obstacle (marche, vue, balles) et cible : une explosion près de la coque (charge, grenade) le détruit ; le réservoir saute à son tour (rayon 7 m), l'épave brûle et fume, l'objectif `aircraft_destroyed` est rempli et la mission réussie 3 s plus tard. Sauvegarde rapide de l'état.
+- Carte « Base aérienne » (`scenes/levels/airbase/`) : plateforme et convertible au centre, hangar (échelle vers le toit), poste de garde, armurerie verrouillée, murets, caisses, buissons, clôture sud à deux brèches ; sept soldats (deux patrouilles, cinq sentinelles). Objectifs : détruire le convertible sans perdre d'opérateur.
+- `Commando.mission_explosives` : charges fournies par le niveau, en plus de l'équipement choisi (Alpha et Charlie en ont une sur la base aérienne).
