@@ -718,3 +718,7 @@
 - Rampe relevée : elle arrête la marche, la vue et les balles ; la navigation est recalculée (plus d'accès à la soute). Impossible tant que quelqu'un se tient dessus. État gardé par la sauvegarde rapide.
 - « Piloter » : possible quand tous les opérateurs vivants sont à bord. La rampe se relève, les rotors se lancent (bruit qui alerte la garde), puis l'appareil décolle avec l'équipe ; l'objectif de la carte est rempli (« détruire ou voler ») et la mission réussie.
 - En vol, la coque redevient opaque (elle n'est translucide qu'au sol, opérateur à bord).
+
+## Retour au menu sans plantage
+
+- Retour au menu (écran de fin ou menu pause) avec des opérateurs sélectionnés : le HUD, déjà hors de la scène, ne rafraîchit plus ses boutons quand les unités quittent la sélection (le jeu plantait).

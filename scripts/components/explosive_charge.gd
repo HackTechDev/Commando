@@ -29,6 +29,8 @@ static func plant(parent: Node, at: Vector3, by: Commando) -> ExplosiveCharge:
 ## Charges posées par `unit` et encore en place.
 static func planted_by(tree: SceneTree, unit: Commando) -> Array[ExplosiveCharge]:
 	var result: Array[ExplosiveCharge] = []
+	if tree == null:
+		return result
 	for node in tree.get_nodes_in_group(&"explosive_charges"):
 		var charge := node as ExplosiveCharge
 		if charge and charge.planter == unit and not charge.is_queued_for_deletion():

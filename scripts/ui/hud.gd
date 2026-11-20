@@ -158,6 +158,10 @@ func _back_to_pause_menu() -> void:
 
 ## Active la barre d'actions selon la sélection et reflète la posture commune.
 func _refresh_actions() -> void:
+	# Changement de scène : les unités quittent la sélection alors que le
+	# HUD est déjà hors de l'arbre (plus de `get_tree()`).
+	if not is_inside_tree():
+		return
 	var selected := SelectionManager.selected
 	var empty := selected.is_empty()
 	for button: Button in [_crouch, _prone, _knife, _knockout, _throw, _fire_at, _carry, _crate, _sling, _reload, _stop]:
