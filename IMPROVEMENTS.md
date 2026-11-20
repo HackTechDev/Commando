@@ -41,7 +41,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 - **2.10 Ramassage de munitions, de grenades et de soins** (§5.5) : un opérateur à sec ou blessé le reste jusqu'à la fin, sauf avec une trousse de soins.
 - **2.11 Munitions et rechargement pour les ennemis**, pour créer des fenêtres d'action.
 - **2.12 Couverture** : réduire la probabilité d'être touché derrière une caisse ou un angle de mur. Aujourd'hui, seule la ligne de vue compte.
-- **2.13 Tirs ratés** : ils n'ont aucun effet. Ils pourraient toucher un obstacle ou une autre unité, ou faire du bruit à l'impact.
+- **2.13 Tirs ratés** : une balle manquée s'arrête déjà sur le premier obstacle (gerbe de poussière). Reste à lui faire toucher une autre unité sur sa trajectoire, et faire du bruit à l'impact.
 - **2.14 Explosifs, suite** :
   - **b)** charge à retardement, en plus de la mise à feu à distance ;
   - **c)** grenades assourdissantes pour l'infiltration (les fumigènes existent) ;
@@ -82,8 +82,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 - **7.1 Maillage de navigation** : il est généré 0,5 m au-dessus du sol, et un réglage sur chaque agent compense ce décalage. Il faudrait trouver la cause (taille des cellules) plutôt que compenser.
 - **7.2 Îlots de navigation sur les caisses** : le dessus des caisses collées reçoit un bout de maillage inutile. L'exclure à la génération.
 - **7.3 Escalade sur les cartes UFO:AI** : placer échelles (`Ladder`) et murets (`LowWall`) sur ces cartes (ils existent déjà sur les cartes faites main).
-- **7.5 Occlusion** (M8) : rendre transparents les murs entre la caméra et l'unité sélectionnée. Aujourd'hui, un opérateur derrière un mur est invisible.
-- **7.6 Structure de niveau** (§7) : `LevelRoot` avec `SpawnPoints`, `Objectives`, `CameraBounds` et `ExtractionZone`, et un premier objectif simple pour avoir une boucle de jeu complète.
+- **7.5 Occlusion** (M8) : le décor des cartes UFO:AI s'efface déjà entre la caméra et les opérateurs. Reste à faire de même pour les murs et bâtiments des cartes faites main (un opérateur derrière l'un d'eux est invisible, sauf à l'intérieur d'un `Building`).
 - **7.7 Grandes cartes** :
   - **a)** sur `training_b` (100 × 62 m), la navigation met plus d'une seconde à se régénérer après chaque caisse déplacée : la générer par tuiles (un `NavigationMesh` par zone) ;
   - **b)** la lecture de la carte sur un fil de travail est trois fois plus lente que sur le fil principal (2,2 s contre 0,7 s) : à creuser ;
@@ -97,8 +96,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** lumières (`light`) ;
   - **c)** portes (`func_door`) et objets destructibles (`func_breakable`) ;
   - **f)** remplacer les modèles absents (arbres, mobilier) par des modèles CC0 ;
-  - **h)** cartes aléatoires assemblées à partir des tuiles et des `.ump` ;
-  - **i)** inclure cartes et textures dans un paquet pour l'export Web.
+  - **h)** cartes aléatoires assemblées à partir des tuiles et des `.ump`.
 - **7.10 Textures, suite** :
   - **a)** aperçu des textures externes dans l'éditeur : un greffon qui les applique à l'ouverture d'une scène, sans les enregistrer dans le `.tscn` ;
   - **b)** si le chargement devient lent : compression pour la carte graphique (`Image.compress`), ou cache des textures préparées ;
@@ -111,6 +109,5 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** remplacer les sons synthétisés par de vrais sons CC0 (M10) ;
   - **b)** musique dynamique selon le niveau d'alerte (le bus « Musique » est prêt) ;
   - **c)** répliques des opérateurs à la sélection et aux ordres (bus « Voix ») ;
-  - **d)** réglage du volume par bus dans les options ;
   - **e)** sons d'ambiance ;
   - **f)** sous-titres des sons importants, pour l'accessibilité (le signal `Sfx.played` existe).
