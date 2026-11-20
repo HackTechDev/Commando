@@ -61,13 +61,6 @@ focus_mode = 0
 tooltip_text = "Abandonner la partie et revenir au choix de la carte."
 text = "Menu"
 
-[node name="Quit" type="Button" parent="PlayerController/TopRight"]
-unique_name_in_owner = true
-layout_mode = 2
-focus_mode = 0
-tooltip_text = "Fermer le jeu."
-text = "Quitter"
-
 [node name="Portraits" type="VBoxContainer" parent="PlayerController"]
 unique_name_in_owner = true
 layout_mode = 1

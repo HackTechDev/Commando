@@ -78,7 +78,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Aide (toutes les commandes, jeu en pause) | H (Échap ou clic pour fermer) |
 | Journal des objectifs / minicarte | O / M (clic sur la minicarte : centrer la caméra) |
 | Menu pause (reprendre, recommencer, aide, options, menu, quitter) | Échap (annule d'abord une action V / B / T… armée) |
-| Quitter | Bouton « Quitter » en haut à droite |
+| Quitter | Menu pause (Échap), « Quitter » |
 
 Les touches sont définies par position physique dans l'InputMap : sur un clavier QWERTY, ZQSD devient WASD et A/E devient Q/E.
 

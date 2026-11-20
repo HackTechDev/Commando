@@ -26,7 +26,6 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _weapon: Button = %Weapon
 @onready var _shield: Button = %Shield
 @onready var _menu: Button = %Menu
-@onready var _quit: Button = %Quit
 @onready var _controller: PlayerController = $PlayerController
 ## Confirmations avant de quitter et de revenir au menu.
 var quit_dialog: ConfirmDialog
@@ -88,7 +87,6 @@ func _ready() -> void:
 	_menu.pressed.connect(menu_dialog.ask)
 	quit_dialog = ConfirmDialog.for_quit(self)
 	add_child(quit_dialog)
-	_quit.pressed.connect(quit_dialog.ask)
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
 	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")

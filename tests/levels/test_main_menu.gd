@@ -136,12 +136,12 @@ func test_quit_from_menu_asks_confirmation() -> void:
 	await _check_confirmation(menu, "Quit", menu.quit_dialog)
 
 
-func test_quit_and_menu_from_game_ask_confirmation() -> void:
+func test_menu_from_game_asks_confirmation() -> void:
 	var menu := await _open_menu()
 	_launch(menu, _index_of("Terrain d'essai"))
 	assert_true(await _wait_scene("Sandbox"), "terrain d'essai lancé")
 	var hud: Hud = get_tree().current_scene.find_children("*", "Hud", true, false)[0]
-	await _check_confirmation(hud, "Quit", hud.quit_dialog)
+	assert_null(hud.find_child("Quit", true, false), "pas de bouton « Quitter » en jeu (menu pause)")
 	await _check_confirmation(hud, "Menu", hud.menu_dialog)
 
 

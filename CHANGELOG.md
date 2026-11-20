@@ -707,3 +707,7 @@
 - L'appareil est agrandi d'un quart (`Tiltrotor.SCALE`, environ 21 m de long) ; la plateforme de la base aérienne et ses abords suivent (rayon 13,5 m, ronde, murets et caisses écartés).
 - Soute ouverte : queue relevée, rampe abaissée jusqu'au sol (bandes jaunes, vérins), plancher, bancs, cloison du cockpit. La collision est creuse (nez, parois, toit, dessus de la queue ; plancher et rampe à part) : la navigation monte la rampe et couvre le plancher.
 - Clic droit sur l'appareil : la sélection embarque, les unités à la file dans l'axe de la soute (`SelectionManager.order_board`). Opérateur à bord : coque translucide sans ombre, clics qui la traversent jusqu'au plancher ; les parois le cachent des ennemis (sauf par l'arrière ouvert). Un corps déposé dans la soute est caché.
+
+## HUD : plus de bouton « Quitter »
+
+- Le bouton « Quitter » en haut à droite disparaît du jeu ; on quitte par le menu pause (Échap, « Quitter », avec confirmation).
