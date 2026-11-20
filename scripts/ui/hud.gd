@@ -4,7 +4,7 @@ extends CanvasLayer
 
 const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn")
 
-@onready var _portraits: HBoxContainer = %Portraits
+@onready var _portraits: VBoxContainer = %Portraits
 @onready var _action_bar: Control = %ActionBar
 @onready var _crouch: Button = %Crouch
 @onready var _prone: Button = %Prone

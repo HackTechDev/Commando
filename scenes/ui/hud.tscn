@@ -68,7 +68,7 @@ focus_mode = 0
 tooltip_text = "Fermer le jeu."
 text = "Quitter"
 
-[node name="Portraits" type="HBoxContainer" parent="PlayerController"]
+[node name="Portraits" type="VBoxContainer" parent="PlayerController"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 2
