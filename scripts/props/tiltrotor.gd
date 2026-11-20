@@ -36,6 +36,11 @@ extends StaticBody3D
 ## fume ; à zéro, il est hors d'usage (`is_disabled`) : il se pose en urgence
 ## à la verticale (ou sur sa zone, en approche) et ne revole plus.
 ##
+## Canon latéral : un opérateur à bord le sert (`man_gun`). Il tire alors
+## seul, par rafales, sur le premier ennemi debout qu'il voit du côté droit à
+## moins de `GUN_RANGE` ; les balles arrêtées par une caisse ou un mur
+## fragile les abîment (un abri ne protège pas longtemps). Très bruyant.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
@@ -81,6 +86,23 @@ const STRUCTURE := 400.0
 const BULLET_SHARE := 0.25
 const SMOKE_SHARE := 0.5
 const EMERGENCY_TIME := 2.5
+## Canon latéral : portée, dégâts, rafale (coups, intervalle, pause en s),
+## écart (m par m de distance), bruit, vitesse de visée (rad/s), recherche
+## de cible (s), tolérance de visée (rad), couches touchées (murs, caisses,
+## ennemis debout ou au sol).
+const GUN_RANGE := 40.0
+const GUN_DAMAGE := 45.0
+const GUN_BURST := 6
+const GUN_ROUND_INTERVAL := 0.09
+const GUN_BURST_PAUSE := 0.9
+const GUN_SPREAD := 0.035
+const GUN_NOISE := 50.0
+const GUN_TURN_SPEED := 3.0
+const GUN_SEARCH_INTERVAL := 0.3
+const GUN_AIM_TOLERANCE := 0.12
+const MASK_GUN := 0b11011
+## Bouche du canon dans le repère de son pivot.
+const GUN_MUZZLE := Vector3(0.0, 0.02, -1.62)
 ## Point visé par les tireurs (repère du modèle, avant mise à l'échelle).
 const AIM_POINT := Vector3(0.0, 2.2, 0.5)
 
@@ -136,6 +158,12 @@ var structure: float = STRUCTURE
 var is_disabled: bool = false
 var _smoke: Node3D
 var _gauge: Label3D
+## Opérateur qui sert le canon latéral (null : personne).
+var gunner: Commando
+var _gun_target: Enemy
+var _gun_search_left: float = 0.0
+var _gun_rounds_left: int = 0
+var _gun_cooldown: float = 0.0
 
 
 func _enter_tree() -> void:
@@ -550,6 +578,156 @@ func vips_aboard() -> Array[Vip]:
 	return aboard
 
 
+# --- Canon latéral ------------------------------------------------------------
+
+## Raison pour laquelle `unit` ne peut pas servir le canon (vide : c'est
+## possible).
+func gun_problem(unit: Commando) -> String:
+	if is_destroyed:
+		return "appareil détruit"
+	if is_flying:
+		return "en partance"
+	if unit == null or unit.is_dead or not _is_aboard(unit):
+		return "pas à bord"
+	if gunner and gunner != unit and _gunner_ok():
+		return "%s le sert déjà" % gunner.display_name
+	return ""
+
+
+## `unit` prend le canon : il tire seul sur les ennemis en vue.
+func man_gun(unit: Commando) -> bool:
+	if gun_problem(unit) != "":
+		return false
+	gunner = unit
+	_gun_target = null
+	_gun_search_left = 0.0
+	unit.stop()
+	unit.flash_message("Canon latéral : feu à volonté")
+	return true
+
+
+## Le servant lâche le canon.
+func leave_gun() -> void:
+	gunner = null
+	_gun_target = null
+	_gun_rounds_left = 0
+
+
+func _is_aboard(unit: Commando) -> bool:
+	return unit.airborne_in == self or cabin_contains(unit.global_position + Vector3.UP * 0.3)
+
+
+func _gunner_ok() -> bool:
+	return is_instance_valid(gunner) and not gunner.is_dead and _is_aboard(gunner)
+
+
+## Bouche du canon (monde).
+func gun_muzzle() -> Vector3:
+	return model.door_gun.to_global(GUN_MUZZLE)
+
+
+## Vrai si `point` est dans le champ du canon : côté droit, vers l'avant ou
+## le travers, à portée.
+func gun_covers(point: Vector3) -> bool:
+	var pivot := model.door_gun.global_position
+	if pivot.distance_to(point) > GUN_RANGE:
+		return false
+	var local := (global_basis.inverse() * (point - pivot)).normalized()
+	return local.x > 0.2 and local.z < 0.35
+
+
+## Vrai si le canon peut tirer sur `enemy` : en vue, ou seulement derrière
+## une caisse ou un mur fragile que ses balles rongent.
+func _gun_can_reach(enemy: Enemy) -> bool:
+	var aim := enemy.global_position + Vector3.UP * 1.0
+	if not gun_covers(aim):
+		return false
+	var query := PhysicsRayQueryParameters3D.create(gun_muzzle(), aim, MASK_GUN, body_rids())
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return true
+	var collider := hit["collider"] as Node
+	return collider == enemy or (collider != null and collider.has_method(&"take_shot"))
+
+
+func _update_gun(delta: float) -> void:
+	if gunner and not _gunner_ok():
+		leave_gun()
+	if gunner == null or is_destroyed or is_flying or is_away or is_inbound:
+		return
+	_gun_cooldown -= delta
+	_gun_search_left -= delta
+	if _gun_target and (not is_instance_valid(_gun_target) or _gun_target.is_dead or _gun_target.state == Enemy.State.STUNNED):
+		_gun_target = null
+	if _gun_search_left <= 0.0:
+		_gun_search_left = GUN_SEARCH_INTERVAL
+		if _gun_target == null or not _gun_can_reach(_gun_target):
+			_gun_target = _find_gun_target()
+	if _gun_target == null:
+		_gun_rounds_left = 0
+		return
+	# Le canon pivote vers la cible.
+	var pivot := model.door_gun
+	var aim := _gun_target.global_position + Vector3.UP * 1.0
+	var wanted := model.global_basis.inverse() * (aim - pivot.global_position)
+	if wanted.length_squared() < 0.01:
+		return
+	var goal := Quaternion(Basis.looking_at(wanted.normalized(), Vector3.UP))
+	pivot.quaternion = pivot.quaternion.slerp(goal, minf(1.0, delta * GUN_TURN_SPEED * 2.0))
+	var barrel := -(pivot.global_basis.z.normalized())
+	if barrel.angle_to((aim - pivot.global_position).normalized()) > GUN_AIM_TOLERANCE or _gun_cooldown > 0.0:
+		return
+	if _gun_rounds_left <= 0:
+		_gun_rounds_left = GUN_BURST
+		EventBus.noise_emitted.emit(global_position, GUN_NOISE, &"gunshot")
+	_gun_rounds_left -= 1
+	_gun_cooldown = GUN_ROUND_INTERVAL if _gun_rounds_left > 0 else GUN_BURST_PAUSE
+	_fire_gun_round(aim)
+
+
+## Ennemi debout le plus proche que le canon peut atteindre, ou null.
+func _find_gun_target() -> Enemy:
+	var best: Enemy = null
+	var best_distance := INF
+	var pivot := model.door_gun.global_position
+	for node in get_tree().get_nodes_in_group(&"enemies"):
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dead or enemy.state == Enemy.State.STUNNED:
+			continue
+		var distance := pivot.distance_to(enemy.global_position)
+		if distance < best_distance and _gun_can_reach(enemy):
+			best = enemy
+			best_distance = distance
+	return best
+
+
+## Un coup vers `aim`, avec un écart qui croît avec la distance : la balle
+## blesse le premier ennemi touché, ou abîme le premier objet destructible.
+func _fire_gun_round(aim: Vector3) -> void:
+	var muzzle := gun_muzzle()
+	var spread := GUN_SPREAD * muzzle.distance_to(aim)
+	aim += Vector3(randf_range(-spread, spread), randf_range(-spread, spread) * 0.6, randf_range(-spread, spread))
+	var direction := (aim - muzzle).normalized()
+	var query := PhysicsRayQueryParameters3D.create(muzzle, aim + direction * ShotImpact.MISS_RANGE, MASK_GUN, body_rids())
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var scene := get_tree().current_scene as Node3D
+	if scene == null:
+		scene = get_parent() as Node3D
+	var end := aim + direction * 4.0
+	if not hit.is_empty():
+		end = hit["position"]
+		var target := hit["collider"] as Node
+		if target is Enemy and not (target as Enemy).is_dead:
+			ShotImpact.hit(scene, target as Node3D, end, muzzle, GUN_DAMAGE, false)
+			(target as Enemy).take_hit(GUN_DAMAGE, muzzle)
+		else:
+			ShotImpact.burst(scene, end, hit["normal"], ShotImpact.DUST, 10, 2.2)
+			if target and target.has_method(&"take_shot"):
+				target.call(&"take_shot", GUN_DAMAGE, end, muzzle)
+	Tracer.spawn(scene, muzzle, end, Color(1.0, 0.75, 0.35))
+	Sfx.play_at(&"shot", muzzle, 2.0)
+
+
 # --- Riposte ------------------------------------------------------------------
 
 ## Vrai si l'appareil est en l'air, à portée des tirs ennemis (approche,
@@ -787,6 +965,7 @@ func _physics_process(delta: float) -> void:
 	for unit: Node3D in _passengers:
 		if is_instance_valid(unit):
 			unit.global_position = to_global(_passengers[unit])
+	_update_gun(delta)
 	if is_inbound:
 		# Bruit des rotors au sol sous l'appareil : les ennemis accourent.
 		_noise_left -= delta

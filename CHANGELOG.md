@@ -783,3 +783,11 @@
 - À zéro, l'appareil est abattu : atterrissage d'urgence à la verticale avec ceux à bord (« Appareil touché : atterrissage d'urgence »), ou droit sur sa zone pendant une approche. Hors d'usage, il ne revole plus (« appareil endommagé ») ; un appareil d'extraction abattu fait échouer la mission. Sur la base aérienne, l'épave posée peut encore être détruite.
 - Il n'est pas visé en partance (la mission est gagnée), ni posé.
 - Structure et état « abattu » gardés par la sauvegarde rapide.
+
+## Canon latéral du convertible (8.5)
+
+- Clic milieu sur un opérateur à bord : « Canon latéral » (un seul servant ; « Lâcher le canon » pour arrêter). Au sol comme en vol, le canon tire alors seul sur l'ennemi debout le plus proche qu'il peut atteindre : côté droit de l'appareil, vers l'avant ou le travers, à moins de 40 m.
+- Le canon pivote vers sa cible (pièce à part du modèle : boîtier, canon, poignées, caisse de munitions) et tire des rafales de 6 coups (45 de dégâts, écart qui croît avec la distance), traçantes orangées.
+- Les balles arrêtées par une caisse, un bidon ou un mur fragile les abîment : un ennemi abrité derrière reste une cible, l'abri cède vite.
+- Très bruyant : chaque rafale s'entend à 50 m.
+- Le servant qui quitte la soute (marche, rappel) ou tombe lâche le canon.

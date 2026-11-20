@@ -49,6 +49,8 @@ const CABIN_CEILING := 3.4
 ## Hauteur des parois intérieures (sous les chanfreins hauts de la coque).
 const CABIN_WALL_TOP := 2.9
 const RAMP_END := 8.8
+## Pivot du canon latéral (côté droit du cockpit).
+const DOOR_GUN := Vector3(1.75, 2.45, -4.3)
 const RAMP_HALF_WIDTH := 1.3
 ## Angle de la rampe autour de sa charnière (rotation sur X) : abaissée
 ## jusqu'au sol, ou relevée sous la queue.
@@ -87,6 +89,8 @@ var _blur_discs: Array[MeshInstance3D] = []
 var _body: MeshInstance3D
 ## Charnière de la rampe (sa rotation sur X l'abaisse ou la relève).
 var ramp_pivot: Node3D
+## Pivot du canon latéral (bouche vers -Z).
+var door_gun: Node3D
 var _ramp_tween: Tween
 var _cut: float = 0.0
 var _cut_goal: float = 0.0
@@ -215,6 +219,7 @@ func _build() -> void:
 	_build_interior()
 	_commit("Interior")
 	_build_ramp()
+	_build_door_gun()
 	for i in NACELLES.size():
 		_build_rotor(i)
 	_build_lights()
@@ -473,15 +478,32 @@ func _build_weapons() -> void:
 	_cylinder(&"dark", turret + Vector3(-0.3, 0, 0), turret + Vector3(0.3, 0, 0), 0.32, 12)
 	for side: float in [-0.1, 0.1]:
 		_cylinder(&"dark", turret + Vector3(side, -0.05, -0.2), turret + Vector3(side, -0.05, -1.1), 0.05, 6)
-	# Canon latéral, côté droit du cockpit.
-	var mount := Vector3(1.35, 2.45, -4.3)
-	_box(&"panel", mount, Vector3(0.35, 0.35, 0.8))
-	_cylinder(&"dark", mount + Vector3(0, 0, -0.3), mount + Vector3(0, 0, -1.6), 0.07, 8)
+	# Support du canon latéral, côté droit du cockpit (le canon pivote :
+	# `_build_door_gun`).
+	_box(&"panel", DOOR_GUN + Vector3(-0.22, 0.0, 0.0), Vector3(0.3, 0.3, 0.6))
+	_box(&"dark", DOOR_GUN + Vector3(-0.05, -0.12, 0.0), Vector3(0.12, 0.08, 0.12))
 	# Crochets d'élingage sous les ailes.
 	for z in WINGS:
 		var hook := Vector3(0, 1.0, z)
 		_cylinder(&"dark", hook, hook + Vector3(0, -0.35, 0), 0.12, 8)
 		_box(&"yellow", hook + Vector3(0, -0.45, 0), Vector3(0.28, 0.12, 0.08))
+
+
+## Canon latéral sur son pivot (orienté par `Tiltrotor`) : boîtier,
+## canon, poignées, caisse de munitions, bande ; bouche en (0, 0.02, -1.6).
+func _build_door_gun() -> void:
+	door_gun = Node3D.new()
+	door_gun.name = "DoorGunPivot"
+	door_gun.position = DOOR_GUN
+	add_child(door_gun)
+	_box(&"dark", Vector3(0, 0, -0.1), Vector3(0.16, 0.2, 0.6))
+	_cylinder(&"dark", Vector3(0, 0.02, -0.4), Vector3(0, 0.02, -1.6), 0.055, 8)
+	_cylinder(&"dark", Vector3(0, 0.02, -1.45), Vector3(0, 0.02, -1.62), 0.075, 8)
+	_box(&"dark", Vector3(0, -0.16, 0.12), Vector3(0.05, 0.16, 0.06))
+	_box(&"dark", Vector3(0, 0.0, 0.24), Vector3(0.22, 0.05, 0.05))
+	_box(&"panel", Vector3(0.15, -0.06, -0.05), Vector3(0.12, 0.18, 0.26))
+	_box(&"yellow", Vector3(0.09, 0.02, -0.08), Vector3(0.03, 0.03, 0.12))
+	_commit("DoorGun", door_gun)
 
 
 func _build_gear() -> void:

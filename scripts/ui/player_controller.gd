@@ -696,6 +696,12 @@ static func aircraft_options(aircraft: Tiltrotor, crew: Commando = null) -> Arra
 			"detail": "abaisser la rampe" if aircraft.is_ramp_closed else ("relever la rampe" if ramp_free else "quelqu'un sur la rampe"),
 			"enabled": aircraft.is_ramp_closed or ramp_free},
 	]
+	if aircraft.gunner == crew and crew != null:
+		options.append({"id": &"gun", "label": "Lâcher le canon", "detail": "le canon latéral se tait"})
+	else:
+		var gun := aircraft.gun_problem(crew)
+		options.append({"id": &"gun", "label": "Canon latéral",
+			"detail": "feu à volonté, côté droit (bruyant)" if gun == "" else gun, "enabled": gun == ""})
 	if aircraft.is_airborne:
 		var rappel := aircraft.rappel_problem(crew)
 		options.append({"id": &"rappel", "label": "Descendre en rappel",
@@ -777,6 +783,12 @@ func _on_radial_chosen(id: StringName) -> void:
 				done = aircraft.land()
 			elif id == &"rappel":
 				done = aircraft.rappel(crew)
+			elif id == &"gun":
+				if aircraft.gunner == crew:
+					aircraft.leave_gun()
+					done = true
+				else:
+					done = aircraft.man_gun(crew)
 		Sfx.play_ui(&"order" if done else &"denied")
 		return
 	var enemy := _menu_enemy
