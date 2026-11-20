@@ -751,3 +751,11 @@
 - Rappel : l'opérateur rejoint le bout de la rampe abaissée et descend une corde jusqu'au sol (2,5 m/s). On n'atterrit pas pendant un rappel ni avec quelqu'un sous l'appareil. La navigation est recalculée à la montée et à l'atterrissage (le sol sous l'appareil se libère en vol). État de vol gardé par la sauvegarde rapide.
 - Carte « Héliportage » (`build/gen_heliport.py`) : le convertible seul sur sa plateforme, l'équipe à côté, trois cibles d'entraînement. Objectifs : monter en vol stationnaire, descendre en rappel, abattre les cibles depuis l'appareil.
 - Libellés du menu de bord : « Ouvrir » / « Fermer » deviennent « Ouverture » / « Fermeture ».
+
+## Carte de nuit et vision nocturne
+
+- Nouvelle carte « Nuit sans lune » : un dépôt clos (entrepôt, dortoir, caisses, buissons) gardé par cinq soldats, dont deux en ronde, éclairé seulement par la lune et cinq lampadaires.
+- `LevelRoot.night` : sur une carte de nuit, la portée de vue lointaine des ennemis tombe à 55 % (zone proche inchangée), et le filtre de vision nocturne (`NightVision`) est ajouté.
+- `Commando.mission_nvg` : la mission équipe les opérateurs de jumelles de vision nocturne, et du casque qui les porte.
+- Vision nocturne : la lumière est amplifiée en vert phosphore, avec grain, lignes et vignettage circulaire ; les lampes éblouissent un peu. Les cônes de vision et les marqueurs d'équipe gardent leur teinte, et l'interface reste en couleurs. Elle est allumée d'office si un opérateur vivant porte des JVN ; touche ² (à gauche de 1) pour l'éteindre ou la rallumer. Elle s'éteint quand le dernier porteur tombe.
+- Les jumelles s'abaissent devant les yeux des opérateurs quand la vision nocturne est allumée, et se relèvent sur le casque quand elle est éteinte.

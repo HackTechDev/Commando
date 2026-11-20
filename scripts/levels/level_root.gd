@@ -16,6 +16,12 @@ const MAP_SYNC_MAX_FRAMES := 300
 ## Intervalle (images) avant de renvoyer le maillage à une carte qui ne l'a pas pris.
 const MAP_SYNC_RETRY_FRAMES := 20
 
+## Carte de nuit : les ennemis voient moins loin (`NIGHT_SIGHT`), et les
+## opérateurs qui portent des JVN voient en vision nocturne (`NightVision`).
+@export var night: bool = false
+## Part de la portée de vue lointaine des ennemis qui reste la nuit.
+const NIGHT_SIGHT := 0.55
+
 ## Vrai une fois la navigation générée et le jeu lancé.
 var is_level_ready: bool = false
 
@@ -37,6 +43,8 @@ func _ready() -> void:
 	var map := get_world_3d().navigation_map
 	NavigationServer3D.map_set_cell_size(map, _navigation.navigation_mesh.cell_size)
 	NavigationServer3D.map_set_cell_height(map, _navigation.navigation_mesh.cell_height)
+	if night:
+		add_child(NightVision.new())
 	_loading_screen = LoadingScreen.new(LevelCatalog.title_of(scene_file_path))
 	add_child(_loading_screen)
 	_was_paused = get_tree().paused
@@ -54,6 +62,16 @@ func _ready() -> void:
 	# Les caisses ont déjà choisi leur variante (`_ready` des enfants).
 	_loading_screen.set_status("Préparation des chemins")
 	_navigation.bake_navigation_mesh(true)
+
+
+## Vrai si `node` est dans une carte de nuit.
+static func is_night(node: Node) -> bool:
+	var parent := node.get_parent()
+	while parent:
+		if parent is LevelRoot:
+			return (parent as LevelRoot).night
+		parent = parent.get_parent()
+	return false
 
 
 ## Clé de ce niveau (aperçu, dernière carte jouée : `LevelCatalog.key_of`).

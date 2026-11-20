@@ -171,6 +171,11 @@ func _ready() -> void:
 	_agent.link_reached.connect(_on_link_reached)
 	# Les ennemis ont les clés : ils passent aussi les portes verrouillées.
 	_agent.navigation_layers = Door.NAV_EVERYONE | Door.NAV_ENEMIES
+	# La nuit, on voit moins loin (la zone proche ne change pas).
+	if LevelRoot.is_night(self) and _vision.config:
+		var dark := _vision.config.duplicate() as VisionConfig
+		dark.far_range = maxf(dark.near_range, dark.far_range * LevelRoot.NIGHT_SIGHT)
+		_vision.config = dark
 	if patrol_path and patrol_path.curve:
 		for i in patrol_path.curve.point_count:
 			_waypoints.append(patrol_path.to_global(patrol_path.curve.get_point_position(i)))

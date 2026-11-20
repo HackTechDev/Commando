@@ -80,6 +80,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Étage affiché (cartes à bâtiments) | Page suiv. (descendre), Page préc. (monter ; au-dessus du dernier étage, tout s'affiche) |
 | Aide (toutes les commandes, jeu en pause) | H (Échap ou clic pour fermer) |
 | Journal des objectifs / minicarte | O / M (clic sur la minicarte : centrer la caméra) |
+| Vision nocturne (cartes de nuit) | ² (à gauche de 1) |
 | Menu pause (reprendre, recommencer, aide, options, menu, quitter) | Échap (annule d'abord une action V / B / T… armée) |
 | Quitter | Menu pause (Échap), « Quitter » |
 

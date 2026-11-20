@@ -516,6 +516,12 @@ const PICKUP_HAND := Vector3(0.2, 0.15, -0.45)
 ## reconstruit le modèle.
 ## Pas de bruits de pas (aperçu de l'écran « Opérateurs »).
 var silent: bool = false
+## Jumelles de vision nocturne abaissées devant les yeux (sinon relevées).
+var nvg_lowered: bool = false:
+	set(value):
+		nvg_lowered = value
+		_show_nvg()
+
 var outfit: OperatorProfile:
 	set(value):
 		outfit = value
@@ -3133,21 +3139,47 @@ func _build_operator_helmet(nvg: bool, headset: bool) -> void:
 	_box(shroud, Vector3(0.075, 0.008, 0.06), Vector3.ZERO, _m_weapon)
 	_box(shroud, Vector3(0.042, 0.02, 0.03), Vector3(0.0, 0.012, 0.0), _m_weapon)
 	if nvg:
-		# Bras articulé, boîtier et tubes des jumelles relevées.
-		_strap(shroud.transform * Vector3(0.0, 0.02, 0.0), Vector3(0.0, 0.3, -0.13), 0.026, 0.018, _m_weapon)
-		var housing := _box(_head, Vector3(0.105, 0.03, 0.04), Vector3(0.0, 0.314, -0.125), _m_weapon)
+		# Jumelles relevées : bras articulé, boîtier et tubes inclinés vers le ciel.
+		var raised := _pivot(_head, Vector3.ZERO, "NvgRaised")
+		_strap(shroud.transform * Vector3(0.0, 0.02, 0.0), Vector3(0.0, 0.3, -0.13), 0.026, 0.018, _m_weapon, raised)
+		var housing := _box(raised, Vector3(0.105, 0.03, 0.04), Vector3(0.0, 0.314, -0.125), _m_weapon)
 		housing.rotation.x = deg_to_rad(-65.0)
 		for side: float in [-1.0, 1.0]:
-			var tube := _cylinder(_head, 0.021, 0.10, Vector3(0.033 * side, 0.335, -0.145), _m_weapon)
+			var tube := _cylinder(raised, 0.021, 0.10, Vector3(0.033 * side, 0.335, -0.145), _m_weapon)
 			tube.name = "NvgTube"
 			tube.rotation.x = deg_to_rad(-65.0)
-			var ring := _cylinder(_head, 0.023, 0.014, Vector3(0.033 * side, 0.352, -0.181), _m_gear)
+			var ring := _cylinder(raised, 0.023, 0.014, Vector3(0.033 * side, 0.352, -0.181), _m_gear)
 			ring.rotation.x = deg_to_rad(-65.0)
-			var lens := _cylinder(_head, 0.017, 0.006, Vector3(0.033 * side, 0.36, -0.198), _m_lens)
+			var lens := _cylinder(raised, 0.017, 0.006, Vector3(0.033 * side, 0.36, -0.198), _m_lens)
 			lens.rotation.x = deg_to_rad(-65.0)
+		# Jumelles abaissées : le bras descend du support, le boîtier passe
+		# devant le front, les tubes devant les yeux, objectifs vers l'avant.
+		var lowered := _pivot(_head, Vector3.ZERO, "NvgLowered")
+		_strap(shroud.transform * Vector3(0.0, 0.02, 0.0), Vector3(0.0, 0.235, -0.165), 0.026, 0.018, _m_weapon, lowered)
+		_box(lowered, Vector3(0.105, 0.04, 0.035), Vector3(0.0, 0.225, -0.165), _m_weapon)
+		for side: float in [-1.0, 1.0]:
+			var tube := _cylinder(lowered, 0.021, 0.10, Vector3(0.033 * side, 0.19, -0.18), _m_weapon)
+			tube.name = "NvgTube"
+			tube.rotation.x = PI / 2.0
+			var ring := _cylinder(lowered, 0.023, 0.014, Vector3(0.033 * side, 0.19, -0.226), _m_gear)
+			ring.rotation.x = PI / 2.0
+			var lens := _cylinder(lowered, 0.017, 0.006, Vector3(0.033 * side, 0.19, -0.235), _m_lens)
+			lens.rotation.x = PI / 2.0
+		_show_nvg()
 		# Contrepoids (pochette) sur la nuque.
 		_shell_box(Vector3(0.11, 0.035, 0.055), 1.42, PI, 0.016, _m_gear, false)
 		_shell_box(Vector3(0.112, 0.008, 0.02), 1.32, PI, 0.032, _m_gear, false)
+
+
+## Affiche les jumelles abaissées ou relevées selon `nvg_lowered`.
+func _show_nvg() -> void:
+	if _head == null or not is_instance_valid(_head):
+		return
+	var raised := _head.get_node_or_null(^"NvgRaised") as Node3D
+	var lowered := _head.get_node_or_null(^"NvgLowered") as Node3D
+	if raised and lowered:
+		raised.visible = not nvg_lowered
+		lowered.visible = nvg_lowered
 
 
 ## Coque du casque : ellipsoïde de centre et rayons donnés, épaisseur de la

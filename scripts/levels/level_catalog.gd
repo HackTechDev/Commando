@@ -84,6 +84,16 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Nuit sans lune",
+		"scene": "res://scenes/levels/night/night.tscn",
+		"description": "Un dépôt gardé, de nuit : cinq soldats, dont deux en ronde. Les opérateurs portent des jumelles de vision nocturne (touche à gauche de 1 : ² sur AZERTY) qui amplifient la lumière en vert ; sans elles, on ne distingue presque rien hors des lampadaires. Dans le noir, les sentinelles voient moins loin.",
+		"camo": "night",
+		"objectives": [
+			{"id": "all_enemies_down", "text": "Neutraliser les cinq gardes du dépôt"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

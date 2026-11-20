@@ -121,6 +121,9 @@ var throwing_knives: int = 0
 ## Arme principale imposée par la mission (vide : celle de l'opérateur),
 ## par exemple l'Hécate du tireur d'élite du didacticiel.
 @export var mission_primary: StringName = &""
+## La mission impose des jumelles de vision nocturne (et le casque qui les
+## porte) : cartes de nuit.
+@export var mission_nvg: bool = false
 ## Grenades, charges explosives et trousses de soins restantes.
 var grenades: int = 0
 var smoke_grenades: int = 0
@@ -276,6 +279,12 @@ func _on_link_reached(details: Dictionary) -> void:
 		_traversal.begin(link, details["link_entry_position"], details["link_exit_position"])
 
 
+## Jumelles de vision nocturne abaissées devant les yeux (`NightVision`)
+## ou relevées sur le casque.
+func set_nvg_lowered(lowered: bool) -> void:
+	_model.nvg_lowered = lowered
+
+
 ## Vrai si l'unité marche ou court vers une destination (ordre de
 ## déplacement en cours).
 func is_walking() -> bool:
@@ -301,13 +310,21 @@ func _apply_profile(operator: OperatorProfile) -> void:
 	_model.outfit = operator
 
 
-## Copie de `operator` armée de `mission_primary`, si la mission en impose
-## une (le profil de l'équipe n'est pas modifié).
+## Copie de `operator` armée de `mission_primary` et équipée de JVN
+## (`mission_nvg`), si la mission l'impose (le profil de l'équipe n'est pas
+## modifié).
 func _mission_profile(operator: OperatorProfile) -> OperatorProfile:
-	if operator == null or mission_primary == &"" or not GearCatalog.PRIMARY.has(mission_primary):
+	if operator == null:
+		return operator
+	var weapon := mission_primary != &"" and GearCatalog.PRIMARY.has(mission_primary)
+	if not weapon and not (mission_nvg and not operator.wears_nvg()):
 		return operator
 	var armed := operator.duplicate() as OperatorProfile
-	armed.primary = mission_primary
+	if weapon:
+		armed.primary = mission_primary
+	if mission_nvg:
+		armed.nvg = true
+		armed.headwear = &"helmet"
 	return armed
 
 
