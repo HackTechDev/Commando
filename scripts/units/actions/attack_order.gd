@@ -51,6 +51,9 @@ func update(delta: float) -> Vector3:
 	# Pas de ligne de tir : s'approcher, puis viser de nouveau.
 	unit.report_hint(Commando.Hint.OUT_OF_RANGE if distance > unit.stats.fire_range else Commando.Hint.OBSTACLE)
 	unit._fire_cooldown = unit.stats.aim_time
+	# En vol, on ne s'approche pas : on attend que la cible passe à portée.
+	if unit.airborne_in:
+		return Vector3.ZERO
 	if unit.perched_on:
 		unit._descend(enemy.global_position, func() -> void: pass)
 		return Vector3.ZERO

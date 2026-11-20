@@ -17,6 +17,12 @@ extends StaticBody3D
 ## dans la soute : rampe relevée, rotors lancés (bruit qui alerte), l'appareil
 ## décolle avec eux, l'objectif est rempli et la mission réussie.
 ##
+## Vol stationnaire (`rise` / `land`) : l'appareil monte à `HOVER_HEIGHT`
+## avec les opérateurs à bord (`Commando.airborne_in` : en vol, ils ne
+## font que tirer, et seulement porte ouverte). La porte (rampe) s'ouvre
+## et se ferme en l'air ; porte ouverte, un opérateur descend en rappel
+## (`rappel`) le long d'une corde jusqu'au sol.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
@@ -43,6 +49,11 @@ const ROTOR_NOISE := 40.0
 const CLIMB_TIME := 6.0
 const CLIMB_HEIGHT := 45.0
 const CLIMB_DISTANCE := 60.0
+## Vol stationnaire : hauteur (m), durée de la montée ou de la descente (s),
+## vitesse de descente en rappel (m/s).
+const HOVER_HEIGHT := 10.0
+const HOVER_TIME := 4.0
+const RAPPEL_SPEED := 2.5
 
 @export var livery: TiltrotorModel.Livery = TiltrotorModel.Livery.OLIVE
 @export var tail_number: String = "07"
@@ -51,6 +62,10 @@ const CLIMB_DISTANCE := 60.0
 @export var rotor_speed: float = 0.0
 @export var objective_id: StringName = &"aircraft_destroyed"
 @export var ends_mission: bool = true
+## Objectifs remplis en atteignant le vol stationnaire, et à la première
+## descente en rappel (vides : aucun).
+@export var hover_objective: StringName = &""
+@export var rappel_objective: StringName = &""
 
 var is_destroyed: bool = false
 var model: TiltrotorModel
@@ -63,6 +78,14 @@ var _fire: Node3D
 var _check_left: float = 0.0
 var is_ramp_closed: bool = false
 var is_flying: bool = false
+## En vol stationnaire (monté, pas encore reposé).
+var is_airborne: bool = false
+## Montée ou descente du vol stationnaire en cours.
+var is_moving: bool = false
+## Hauteur du sol sous l'appareil (au décollage).
+var ground_y: float = 0.0
+var _rope: MeshInstance3D
+var _rappelling: int = 0
 var _ramp_shape: CollisionShape3D
 ## Passagers pendant le vol : unité -> position dans le repère de l'appareil.
 var _passengers: Dictionary = {}
@@ -177,7 +200,7 @@ static func is_revealed_body(collider: Object) -> bool:
 ## Relève (`closed`) ou abaisse la rampe. Renvoie faux si rien n'a changé
 ## (déjà dans cet état, appareil détruit ou en vol, quelqu'un sur la rampe).
 func set_ramp_closed(closed: bool, animate: bool = true) -> bool:
-	if closed == is_ramp_closed or is_destroyed or is_flying:
+	if closed == is_ramp_closed or is_destroyed or is_flying or is_moving:
 		return false
 	if is_ramp_blocked():
 		return false
@@ -188,6 +211,9 @@ func set_ramp_closed(closed: bool, animate: bool = true) -> bool:
 
 func _apply_ramp(closed: bool, animate: bool) -> void:
 	is_ramp_closed = closed
+	if closed and _rope:
+		_rope.queue_free()
+		_rope = null
 	model.set_ramp_closed(closed, RAMP_TIME if animate else 0.0)
 	_ramp_shape.transform = _ramp_transform(closed)
 	EventBus.navigation_obstacle_moved.emit()
@@ -225,6 +251,8 @@ func take_off_problem() -> String:
 		return "appareil détruit"
 	if is_flying:
 		return "déjà en vol"
+	if is_airborne or is_moving:
+		return "atterrir d'abord"
 	var aboard := passengers()
 	if aboard.is_empty():
 		return "personne à bord"
@@ -261,6 +289,179 @@ func take_off(pilot: Commando) -> bool:
 	return true
 
 
+## Corps de l'appareil (coque, plancher et rampe), que les tirs depuis la
+## soute ignorent porte ouverte.
+func body_rids() -> Array[RID]:
+	return [get_rid(), floor_body.get_rid()]
+
+
+## Raison pour laquelle on ne peut pas monter en vol stationnaire (vide :
+## c'est possible).
+func rise_problem() -> String:
+	if is_destroyed:
+		return "appareil détruit"
+	if is_flying or is_airborne or is_moving:
+		return "déjà en vol"
+	if passengers().is_empty():
+		return "personne à bord"
+	if not is_ramp_closed and is_ramp_blocked():
+		return "quelqu'un sur la rampe"
+	return ""
+
+
+## Monte en vol stationnaire à `HOVER_HEIGHT` avec les opérateurs à bord.
+func rise() -> bool:
+	if rise_problem() != "":
+		return false
+	ground_y = global_position.y
+	_move_to_height(ground_y + HOVER_HEIGHT, true)
+	return true
+
+
+## Raison pour laquelle on ne peut pas atterrir (vide : c'est possible).
+func land_problem() -> String:
+	if not is_airborne or is_moving:
+		return "pas en vol"
+	if _rappelling > 0:
+		return "rappel en cours"
+	if _someone_below():
+		return "quelqu'un sous l'appareil"
+	return ""
+
+
+## Se repose au sol avec les opérateurs restés à bord.
+func land() -> bool:
+	if land_problem() != "":
+		return false
+	if _rope:
+		_rope.queue_free()
+		_rope = null
+	_move_to_height(ground_y, false)
+	return true
+
+
+## Monte (`up`) ou descend jusqu'à `height`, rotors lancés ; les passagers
+## suivent, physique suspendue.
+func _move_to_height(height: float, up: bool) -> void:
+	is_moving = true
+	is_airborne = false
+	_carry(passengers())
+	EventBus.noise_emitted.emit(global_position, ROTOR_NOISE, &"help")
+	var flight := create_tween()
+	if up:
+		flight.tween_property(model, "rotor_speed", FLIGHT_ROTOR_SPEED, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	flight.tween_property(self, "global_position:y", height, HOVER_TIME).set_trans(Tween.TRANS_SINE)
+	if not up:
+		flight.tween_property(model, "rotor_speed", 0.0, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	flight.tween_callback(_arrived.bind(up))
+
+
+func _arrived(up: bool) -> void:
+	is_moving = false
+	is_airborne = up
+	var crew: Array[Commando] = []
+	for unit: Commando in _passengers:
+		if is_instance_valid(unit):
+			unit.process_mode = Node.PROCESS_MODE_INHERIT
+			unit.velocity = Vector3.ZERO
+			crew.append(unit)
+	_passengers.clear()
+	for unit in passengers():
+		unit.airborne_in = self if up else null
+	# Le sol sous l'appareil se libère (ou se referme) pour la navigation.
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+	if up and hover_objective != &"":
+		EventBus.objective_completed.emit(hover_objective)
+
+
+## Passagers emportés : ils suivent l'appareil, physique suspendue.
+func _carry(units: Array[Commando]) -> void:
+	for unit in units:
+		unit.stop()
+		unit.airborne_in = null
+		unit.process_mode = Node.PROCESS_MODE_DISABLED
+		_passengers[unit] = to_local(unit.global_position)
+
+
+## Vrai si une unité se tient au sol sous l'emprise de l'appareil.
+func _someone_below() -> bool:
+	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips"]:
+		for node in get_tree().get_nodes_in_group(group):
+			var unit := node as Node3D
+			if unit == null or (unit is Commando and (unit as Commando).airborne_in == self):
+				continue
+			var local := to_local(unit.global_position)
+			for box in hull_boxes:
+				if local.x > box.position.x - 0.5 and local.x < box.end.x + 0.5 \
+						and local.z > box.position.z - 0.5 and local.z < box.end.z + 0.5 \
+						and local.y < -1.0:
+					return true
+	return false
+
+
+## Bout de la rampe abaissée (monde), où s'accroche la corde de rappel.
+func ramp_tip() -> Vector3:
+	return model.ramp_pivot.to_global(Vector3(0, 0, TiltrotorModel.ramp_length()))
+
+
+## Raison pour laquelle `unit` ne peut pas descendre en rappel (vide :
+## c'est possible).
+func rappel_problem(unit: Commando) -> String:
+	if not is_airborne or is_moving:
+		return "au sol"
+	if is_ramp_closed:
+		return "ouvrir la porte d'abord"
+	if unit == null or unit.airborne_in != self:
+		return "pas à bord"
+	return ""
+
+
+## `unit` rejoint le bout de la rampe et descend le long de la corde
+## jusqu'au sol, physique suspendue.
+func rappel(unit: Commando) -> bool:
+	if rappel_problem(unit) != "":
+		return false
+	var tip := ramp_tip()
+	var foot := Vector3(tip.x, ground_y, tip.z)
+	_show_rope(tip, foot)
+	unit.stop()
+	unit.airborne_in = null
+	unit.process_mode = Node.PROCESS_MODE_DISABLED
+	_rappelling += 1
+	var start := unit.global_position
+	var descent := create_tween()
+	descent.tween_property(unit, "global_position", tip + Vector3.UP * 0.1, clampf(start.distance_to(tip) / 3.5, 0.4, 2.0))
+	descent.tween_property(unit, "global_position", foot, (tip.y - foot.y) / RAPPEL_SPEED).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	descent.tween_callback(func() -> void:
+		_rappelling -= 1
+		unit.process_mode = Node.PROCESS_MODE_INHERIT
+		unit.velocity = Vector3.ZERO
+		if rappel_objective != &"":
+			EventBus.objective_completed.emit(rappel_objective))
+	return true
+
+
+## Corde de rappel, du bout de la rampe au sol.
+func _show_rope(tip: Vector3, foot: Vector3) -> void:
+	if _rope:
+		return
+	_rope = MeshInstance3D.new()
+	_rope.name = "Rope"
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = 0.025
+	cylinder.bottom_radius = 0.025
+	cylinder.height = tip.y - foot.y
+	cylinder.radial_segments = 6
+	_rope.mesh = cylinder
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.55, 0.5, 0.38)
+	material.roughness = 0.9
+	_rope.material_override = material
+	add_child(_rope)
+	_rope.global_position = (tip + foot) * 0.5
+
+
 ## Les passagers suivent l'appareil (leur physique est suspendue) ; en vol,
 ## la coque redevient opaque.
 func _lift_passengers() -> void:
@@ -278,10 +479,10 @@ func _flown_away() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	for unit: Commando in _passengers:
+		if is_instance_valid(unit):
+			unit.global_position = to_global(_passengers[unit])
 	if is_flying:
-		for unit: Commando in _passengers:
-			if is_instance_valid(unit):
-				unit.global_position = to_global(_passengers[unit])
 		return
 	_check_left -= delta
 	if _check_left > 0.0:
@@ -316,7 +517,7 @@ func blast(at: Vector3, radius: float) -> void:
 
 ## Détruit l'appareil : réservoir qui saute, épave en feu, objectif rempli.
 func destroy() -> void:
-	if is_destroyed or is_flying:
+	if is_destroyed or is_flying or is_airborne or is_moving:
 		return
 	_set_wrecked()
 	Explosion.detonate(get_parent(), global_position + Vector3.UP * 1.5, FUEL_RADIUS, FUEL_DAMAGE, FUEL_NOISE)
@@ -328,7 +529,7 @@ func destroy() -> void:
 
 ## Sauvegarde rapide (`QuickSave`).
 func save_state() -> Dictionary:
-	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed}
+	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y}
 
 
 func load_state(data: Dictionary) -> void:
@@ -337,6 +538,29 @@ func load_state(data: Dictionary) -> void:
 	var closed: bool = data.get("ramp_closed", false)
 	if closed != is_ramp_closed:
 		_apply_ramp(closed, false)
+	var airborne: bool = data.get("airborne", false)
+	if airborne != is_airborne and not is_moving:
+		ground_y = data.get("ground_y", ground_y if is_airborne else global_position.y)
+		global_position.y = ground_y + (HOVER_HEIGHT if airborne else 0.0)
+		is_airborne = airborne
+		model.rotor_speed = FLIGHT_ROTOR_SPEED if airborne else rotor_speed
+		if _rope and not airborne:
+			_rope.queue_free()
+			_rope = null
+		EventBus.navigation_obstacle_moved.emit()
+	# Équipage : les opérateurs restaurés dans la soute (après eux).
+	_assign_crew.call_deferred()
+
+
+func _assign_crew() -> void:
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit:
+			var aboard := is_airborne and not unit.is_dead and cabin_contains(unit.global_position + Vector3.UP * 0.3)
+			if aboard:
+				unit.airborne_in = self
+			elif unit.airborne_in == self:
+				unit.airborne_in = null
 
 
 func _set_wrecked() -> void:

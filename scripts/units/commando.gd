@@ -154,6 +154,9 @@ var shield_raised: bool = false
 var using_secondary: bool = false
 ## Obstacle sur lequel l'unité se tient, le cas échéant.
 var perched_on: Climbable
+## Appareil en vol stationnaire dont l'unité occupe la soute (`Tiltrotor`) :
+## elle n'y reçoit que des ordres de tir, et ne tire que porte ouverte.
+var airborne_in: Tiltrotor
 ## Ennemi tenu en bouclier humain, devant l'opérateur.
 var hostage: Enemy
 
@@ -407,6 +410,11 @@ func _start(action: CommandoAction) -> void:
 ## interruptible (pose de charge, soins) est annulé ; les autres vont à leur
 ## terme, puis l'ordre commence.
 func _set_order(order: CommandoAction) -> void:
+	# En vol : pas de déplacement (ni corps à corps, porte, caisse…), seulement
+	# le tir depuis la soute.
+	if airborne_in and order != null and not (order is AttackOrder or order is FireAtOrder):
+		flash_message("En vol : tir seulement")
+		return
 	if _order and _order != order:
 		_order.cancel()
 	_order = order
@@ -1533,6 +1541,12 @@ func _has_line_of_fire(enemy: Enemy) -> bool:
 	var from := global_position + Vector3.UP * _weapon_height()
 	var to := enemy.global_position + Vector3.UP * 1.2
 	var query := PhysicsRayQueryParameters3D.create(from, to, MASK_OCCLUDERS)
+	if airborne_in:
+		# Depuis la soute en vol : porte fermée, aucun tir ; porte ouverte, on
+		# tire par l'ouverture (la coque ne compte plus).
+		if airborne_in.is_ramp_closed:
+			return false
+		query.exclude = airborne_in.body_rids()
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
@@ -1550,6 +1564,8 @@ func _fire(enemy: Enemy, distance: float) -> void:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
 		# La balle manquée file jusqu'au premier obstacle derrière la cible.
 		var ignored: Array[RID] = [get_rid(), enemy.get_rid()]
+		if airborne_in:
+			ignored.append_array(airborne_in.body_rids())
 		if hostage:
 			ignored.append(hostage.get_rid())
 		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)

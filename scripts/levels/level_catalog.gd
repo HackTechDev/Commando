@@ -72,6 +72,18 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Héliportage",
+		"scene": "res://scenes/levels/heliport/heliport.tscn",
+		"description": "Un convertible seul sur sa plateforme, pour s'exercer à l'héliportage. Montez dans la soute par la rampe arrière (clic droit sur l'appareil), puis clic milieu sur un opérateur à bord : « Monter » (vol stationnaire à 10 m), « Ouverture » / « Fermeture » de la porte, « Descendre en rappel » (porte ouverte), « Atterrir ». Porte ouverte en vol, les opérateurs à bord tirent sur les trois cibles d'entraînement.",
+		"camo": "woodland",
+		"objectives": [
+			{"id": "heli_hover", "text": "Monter en vol stationnaire avec un opérateur à bord"},
+			{"id": "heli_rappel", "text": "Descendre un opérateur en rappel"},
+			{"id": "all_enemies_down", "text": "Abattre les trois cibles depuis l'appareil en vol (porte ouverte)"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

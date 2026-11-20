@@ -597,6 +597,9 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	# Convertible : on embarque (la soute, par la rampe arrière).
 	var aircraft := hit["collider"] as Tiltrotor
 	if aircraft:
+		if aircraft.is_airborne or aircraft.is_moving or aircraft.is_flying:
+			Sfx.play_ui(&"denied")
+			return
 		var cabin := aircraft.cabin_point()
 		SelectionManager.order_board(aircraft, run)
 		_spawn_marker(cabin, marker_run_color if run else marker_color)
@@ -648,27 +651,42 @@ func open_aircraft_menu(screen_position: Vector2) -> bool:
 	if unit == null or unit.is_dead:
 		return false
 	var aircraft := Tiltrotor.cabin_at(get_tree(), unit.global_position + Vector3.UP * 0.3)
-	if aircraft == null or aircraft.is_destroyed or aircraft.is_flying:
+	if aircraft == null or aircraft.is_destroyed or aircraft.is_flying or aircraft.is_moving:
 		return false
 	cancel_pending_action()
 	_menu_aircraft = aircraft
 	_menu_crew = unit
-	_radial.open(screen_position, aircraft_options(aircraft), unit.display_name)
+	_radial.open(screen_position, aircraft_options(aircraft, unit), unit.display_name)
 	Sfx.play_ui(&"select")
 	return true
 
 
-## Options du menu de bord de `aircraft`.
-static func aircraft_options(aircraft: Tiltrotor) -> Array[Dictionary]:
-	var problem := aircraft.take_off_problem()
+## Options du menu de bord de `aircraft`, ouvert sur `crew` : la porte
+## (rampe), puis au sol « Monter » (et « Piloter » si le décollage termine
+## la mission), en vol « Descendre en rappel » et « Atterrir ».
+static func aircraft_options(aircraft: Tiltrotor, crew: Commando = null) -> Array[Dictionary]:
 	var ramp_free := not aircraft.is_ramp_blocked()
-	return [
-		{"id": &"ramp", "label": "Ouvrir" if aircraft.is_ramp_closed else "Fermer",
+	var options: Array[Dictionary] = [
+		{"id": &"ramp", "label": "Ouverture" if aircraft.is_ramp_closed else "Fermeture",
 			"detail": "abaisser la rampe" if aircraft.is_ramp_closed else ("relever la rampe" if ramp_free else "quelqu'un sur la rampe"),
 			"enabled": aircraft.is_ramp_closed or ramp_free},
-		{"id": &"pilot", "label": "Piloter", "detail": "décoller avec l'équipe" if problem == "" else problem,
-			"enabled": problem == ""},
 	]
+	if aircraft.is_airborne:
+		var rappel := aircraft.rappel_problem(crew)
+		options.append({"id": &"rappel", "label": "Descendre en rappel",
+			"detail": "par la rampe, jusqu'au sol" if rappel == "" else rappel, "enabled": rappel == ""})
+		var landing := aircraft.land_problem()
+		options.append({"id": &"land", "label": "Atterrir", "detail": "avec ceux à bord" if landing == "" else landing,
+			"enabled": landing == ""})
+		return options
+	var rising := aircraft.rise_problem()
+	options.append({"id": &"rise", "label": "Monter",
+		"detail": "vol stationnaire à %d m" % Tiltrotor.HOVER_HEIGHT if rising == "" else rising, "enabled": rising == ""})
+	if aircraft.ends_mission:
+		var problem := aircraft.take_off_problem()
+		options.append({"id": &"pilot", "label": "Piloter", "detail": "décoller avec l'équipe" if problem == "" else problem,
+			"enabled": problem == ""})
+	return options
 
 
 ## Ouvre le menu de corps à corps sur l'ennemi sous `screen_position` :
@@ -722,6 +740,12 @@ func _on_radial_chosen(id: StringName) -> void:
 				done = aircraft.set_ramp_closed(not aircraft.is_ramp_closed)
 			elif id == &"pilot":
 				done = aircraft.take_off(crew)
+			elif id == &"rise":
+				done = aircraft.rise()
+			elif id == &"land":
+				done = aircraft.land()
+			elif id == &"rappel":
+				done = aircraft.rappel(crew)
 		Sfx.play_ui(&"order" if done else &"denied")
 		return
 	var enemy := _menu_enemy
