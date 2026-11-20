@@ -732,3 +732,7 @@
 
 - Clic droit simple pendant qu'une unité sélectionnée marche ou court vers sa destination : elle s'arrête (`SelectionManager.stop_walkers`, `Commando.is_walking`). Le clic droit suivant donne la nouvelle destination.
 - Le double clic droit reste un ordre de course (il redirige sans arrêt) ; en ordres simultanés (Tab), le clic droit prépare toujours un ordre.
+
+## Clic sur un toit : la hauteur est gardée
+
+- Un clic droit sur une surface où l'on peut se tenir (toit, dessus du bunker du didacticiel) garde la hauteur du point visé ; seul un clic sur le flanc d'un mur vise le sol à son pied (`PlayerController.FLAT_SURFACE`). Avant, la destination était ramenée au sol : l'opérateur montait l'échelle, redescendait, remontait et s'arrêtait en haut.

@@ -22,6 +22,9 @@ extends Control
 
 signal pending_action_changed(action: StringName)
 
+## Une surface cliquée dont la normale monte au moins autant se parcourt
+## (sol, toit) : le point visé garde sa hauteur.
+const FLAT_SURFACE := 0.7
 const ACTION_NONE := &""
 const ACTION_KNIFE := &"knife"
 const ACTION_KNOCKOUT := &"knockout"
@@ -606,7 +609,11 @@ func _order(screen_position: Vector2, run: bool) -> void:
 		_spawn_marker(climbable.get_top_position(), marker_run_color if run else marker_color)
 		return
 	var target: Vector3 = hit["position"]
-	target.y = 0.0
+	# Dessus d'un toit, d'un bunker… : on y va (la navigation passe par
+	# l'échelle). Flanc d'un mur : on vise le sol à son pied.
+	var normal: Vector3 = hit.get("normal", Vector3.UP)
+	if normal.y < FLAT_SURFACE:
+		target.y = 0.0
 	SelectionManager.order_move(target, run)
 	_spawn_marker(target, marker_run_color if run else marker_color)
 
