@@ -82,6 +82,12 @@ const BODY_ALARM_RADIUS := 12.0
 const FLANK_ANGLE := 100.0
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
+## Riposte contre un convertible en l'air (`Tiltrotor.is_in_air`) : portée
+## (part de `fire_range`), intervalle de recherche (s), bonus de précision
+## (grande cible).
+const AIR_RANGE_SHARE := 1.5
+const AIR_CHECK_INTERVAL := 0.25
+const AIR_HIT_BONUS := 0.15
 
 var state: State = State.PATROL
 var is_dead: bool = false
@@ -144,6 +150,9 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _walker := PathWalker.new()
 ## Franchissement d'échelle ou de muret en cours.
 var _traversal: LinkTraversal
+## Convertible en l'air pris pour cible (aucun opérateur en vue), ou null.
+var _aircraft: Tiltrotor
+var _aircraft_check_left: float = 0.0
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
@@ -219,12 +228,15 @@ func _physics_process(delta: float) -> void:
 		_model.aiming = false
 		return
 	var guarding := is_guarding()
-	_model.aiming = can_fire() and state == State.ALERT and _target != null and not guarding
+	_update_aircraft_target(delta)
+	_model.aiming = can_fire() and ((state == State.ALERT and _target != null and not guarding) or _aircraft != null)
 	# En alerte : en garde entre deux coups sans arme, ou face à une cible
 	# toute proche.
 	_model.guard_up = state == State.ALERT and (not armed or guarding)
 	# Il suit des yeux sa cible, ou regarde vers ce qui l'a intrigué.
-	if is_instance_valid(_target):
+	if _aircraft:
+		_model.look_target = _aircraft.aim_point()
+	elif is_instance_valid(_target):
 		_model.look_target = _target.global_position + Vector3.UP * 1.4
 	elif state != State.PATROL:
 		_model.look_target = _last_seen + Vector3.UP * 1.4
@@ -241,6 +253,8 @@ func _physics_process(delta: float) -> void:
 		_update_attack(delta)
 	elif _off_balance_left > 0.0:
 		pass
+	elif _aircraft:
+		_engage_aircraft(delta)
 	else:
 		match state:
 			State.PATROL:
@@ -1036,6 +1050,64 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 	elif hit:
 		ShotImpact.hit(scene, _target, aim, muzzle, stats.fire_damage, true)
 		_target.health.take_damage(stats.fire_damage)
+
+
+## Cherche un convertible en l'air à abattre : seulement armé, sans
+## opérateur en vue, à portée et en vue directe.
+func _update_aircraft_target(delta: float) -> void:
+	if _aircraft and (not is_instance_valid(_aircraft) or not _aircraft.is_in_air() or _aircraft.is_disabled):
+		_aircraft = null
+	_aircraft_check_left -= delta
+	if _aircraft_check_left > 0.0:
+		return
+	_aircraft_check_left = AIR_CHECK_INTERVAL
+	_aircraft = null
+	if not can_fire() or _target != null:
+		return
+	var eye := global_position + Vector3.UP * 1.5
+	for node in get_tree().get_nodes_in_group(Tiltrotor.GROUP):
+		var aircraft := node as Tiltrotor
+		if aircraft and aircraft.is_in_air() and not aircraft.is_disabled \
+				and aircraft.exposed_to(eye, stats.fire_range * AIR_RANGE_SHARE):
+			_aircraft = aircraft
+			return
+
+
+## Tire sur le convertible pris pour cible, sur place.
+func _engage_aircraft(delta: float) -> void:
+	var target := _aircraft.aim_point()
+	var to_target := target - global_position
+	to_target.y = 0.0
+	_face(to_target, delta)
+	_fire_cooldown -= delta
+	if _fire_cooldown > 0.0 or not can_fire():
+		return
+	var forward := -global_basis.z
+	if to_target.length() > 0.5 and forward.angle_to(to_target) > 0.3:
+		return
+	_fire_cooldown = stats.fire_interval
+	if ammo > 0:
+		ammo -= 1
+	var muzzle := global_position + Vector3.UP * 1.3 + forward * 0.7
+	var reach := stats.fire_range * AIR_RANGE_SHARE
+	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(muzzle.distance_to(target) / reach, 0.0, 1.0)) + AIR_HIT_BONUS
+	var scene := get_tree().current_scene as Node3D
+	if scene == null:
+		scene = get_parent() as Node3D
+	var spread := Vector3(randf_range(-1.2, 1.2), randf_range(-0.6, 0.8), randf_range(-1.2, 1.2))
+	if randf() < chance:
+		var query := PhysicsRayQueryParameters3D.create(muzzle, target + spread, Tiltrotor.LAYER_OCCLUDERS, [get_rid()])
+		var hit := get_world_3d().direct_space_state.intersect_ray(query)
+		var at: Vector3 = hit.get("position", target)
+		Tracer.spawn(scene, muzzle, at)
+		_aircraft.take_hit(stats.fire_damage, at, muzzle)
+	else:
+		# Balle qui passe à côté, vers le ciel.
+		var miss := target + spread * 3.0 + Vector3.UP * 2.0
+		Tracer.spawn(scene, muzzle, muzzle + (miss - muzzle) * 1.6)
+	_model.play_shot()
+	Sfx.play_at(&"shot", muzzle)
+	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
 
 
 func _face(direction: Vector3, delta: float) -> void:

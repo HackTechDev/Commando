@@ -124,7 +124,6 @@ Combat :
 
 - **8.5 Canon latéral** : un opérateur à bord sert le canon du modèle. Grande portée, rafales qui détruisent caisses et murs fragiles ; très bruyant, ne tire que d'un côté.
 - **8.6 Tireur d'élite embarqué** : l'Hécate tirée depuis la soute porte plus loin grâce à la hauteur, mais elle est moins précise quand l'appareil bouge.
-- **8.7 Riposte ennemie** : les ennemis tirent sur l'appareil en vol. Points de structure, fumée quand il est touché, atterrissage d'urgence au-delà d'un seuil.
 - **8.8 Lance-roquettes ennemi** : un ennemi spécial capable d'abattre l'appareil, à neutraliser avant de le faire venir.
 
 Discrétion :

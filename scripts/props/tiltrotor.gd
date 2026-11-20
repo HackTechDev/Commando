@@ -30,6 +30,12 @@ extends StaticBody3D
 ## opérateurs vivants (et les VIP) sont à bord et que les autres objectifs
 ## sont remplis : l'objectif `objective_id` est rempli, la mission réussie.
 ##
+## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
+## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
+## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points ; sous la moitié, il
+## fume ; à zéro, il est hors d'usage (`is_disabled`) : il se pose en urgence
+## à la verticale (ou sur sa zone, en approche) et ne revole plus.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
@@ -69,6 +75,14 @@ const APPROACH_HEIGHT := 30.0
 const APPROACH_TIME := 14.0
 const APPROACH_NOISE_INTERVAL := 1.5
 const DEPART_DELAY := 1.5
+## Riposte : points de structure, part des dégâts d'une balle encaissée, part
+## de la structure sous laquelle il fume, durée de la descente d'urgence (s).
+const STRUCTURE := 400.0
+const BULLET_SHARE := 0.25
+const SMOKE_SHARE := 0.5
+const EMERGENCY_TIME := 2.5
+## Point visé par les tireurs (repère du modèle, avant mise à l'échelle).
+const AIM_POINT := Vector3(0.0, 2.2, 0.5)
 
 @export var livery: TiltrotorModel.Livery = TiltrotorModel.Livery.OLIVE
 @export var tail_number: String = "07"
@@ -117,6 +131,11 @@ var _noise_left: float = 0.0
 var _depart_left: float = DEPART_DELAY
 ## Tout le monde est à bord mais des objectifs restent : déjà signalé.
 var _told_pending: bool = false
+var structure: float = STRUCTURE
+## Abattu : hors d'usage, il ne revole plus.
+var is_disabled: bool = false
+var _smoke: Node3D
+var _gauge: Label3D
 
 
 func _enter_tree() -> void:
@@ -284,6 +303,8 @@ func take_off_problem() -> String:
 		return "déjà en vol"
 	if is_away or is_inbound:
 		return "pas encore arrivé"
+	if is_disabled:
+		return "appareil endommagé"
 	if is_airborne or is_moving:
 		return "atterrir d'abord"
 	var aboard := passengers()
@@ -337,6 +358,8 @@ func rise_problem() -> String:
 		return "appareil détruit"
 	if is_away or is_inbound:
 		return "pas encore arrivé"
+	if is_disabled:
+		return "appareil endommagé"
 	if is_flying or is_airborne or is_moving:
 		return "déjà en vol"
 	if passengers().is_empty():
@@ -384,13 +407,13 @@ func _move_to_height(height: float, up: bool) -> void:
 	is_airborne = false
 	_carry(passengers())
 	EventBus.noise_emitted.emit(global_position, ROTOR_NOISE, &"help")
-	var flight := create_tween()
+	_flight = create_tween()
 	if up:
-		flight.tween_property(model, "rotor_speed", FLIGHT_ROTOR_SPEED, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	flight.tween_property(self, "global_position:y", height, HOVER_TIME).set_trans(Tween.TRANS_SINE)
+		_flight.tween_property(model, "rotor_speed", FLIGHT_ROTOR_SPEED, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_flight.tween_property(self, "global_position:y", height, HOVER_TIME).set_trans(Tween.TRANS_SINE)
 	if not up:
-		flight.tween_property(model, "rotor_speed", 0.0, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	flight.tween_callback(_arrived.bind(up))
+		_flight.tween_property(model, "rotor_speed", 0.0, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_flight.tween_callback(_arrived.bind(up))
 
 
 func _arrived(up: bool) -> void:
@@ -527,6 +550,114 @@ func vips_aboard() -> Array[Vip]:
 	return aboard
 
 
+# --- Riposte ------------------------------------------------------------------
+
+## Vrai si l'appareil est en l'air, à portée des tirs ennemis (approche,
+## montée, vol stationnaire, descente ; pas en partance).
+func is_in_air() -> bool:
+	return not is_destroyed and not is_flying and not is_away and (is_inbound or is_moving or is_airborne)
+
+
+## Point visé par les tireurs (monde).
+func aim_point() -> Vector3:
+	return to_global(AIM_POINT * SCALE)
+
+
+## Vrai si un tireur en `eye` voit l'appareil à moins de `reach` (la coque
+## est le premier obstacle sur la ligne).
+func exposed_to(eye: Vector3, reach: float) -> bool:
+	var target := aim_point()
+	if eye.distance_to(target) > reach:
+		return false
+	var query := PhysicsRayQueryParameters3D.create(eye, target, LAYER_OCCLUDERS)
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	return hit.is_empty() or hit["collider"] == self or hit["collider"] == floor_body
+
+
+## Une balle tirée de `from` frappe l'appareil en `at` : étincelles, structure
+## entamée ; à zéro, il est abattu.
+func take_hit(damage: float, at: Vector3, from: Vector3) -> void:
+	if not is_in_air() or is_disabled:
+		return
+	ShotImpact.spark(get_parent() as Node3D, at, from)
+	Sfx.play_at(&"ricochet", at, -4.0)
+	structure = maxf(structure - damage * BULLET_SHARE, 0.0)
+	_show_damage()
+	if structure <= 0.0:
+		_shot_down()
+
+
+## Fumée sous la moitié de la structure, jauge dès la première balle.
+func _show_damage() -> void:
+	if structure < STRUCTURE and _gauge == null:
+		_gauge = Label3D.new()
+		_gauge.name = "Structure"
+		_gauge.fixed_size = true
+		_gauge.font_size = 26
+		_gauge.outline_size = 8
+		_gauge.pixel_size = 0.0012
+		_gauge.outline_modulate = Color(0.0, 0.0, 0.0, 0.8)
+		_gauge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_gauge.no_depth_test = true
+		_gauge.shaded = false
+		_gauge.position = Vector3(0.0, 5.5, 0.0)
+		add_child(_gauge)
+	if _gauge:
+		var share := structure / STRUCTURE
+		_gauge.text = "Abattu" if is_disabled else "Structure %d %%" % ceili(share * 100.0)
+		_gauge.modulate = Color(1.0, 0.35, 0.25) if share <= SMOKE_SHARE else Color(1.0, 0.85, 0.4)
+	if structure <= STRUCTURE * SMOKE_SHARE and _smoke == null:
+		_smoke = _make_fire()
+		_smoke.name = "Smoke"
+		# Fumée seule : ni flammes, ni lueur.
+		for child in _smoke.get_children():
+			if child.name != "Smoke":
+				child.queue_free()
+		add_child(_smoke)
+
+
+## Abattu : descente d'urgence à la verticale avec ceux à bord (ou, en
+## approche, droit sur la zone de pose), rotors au ralenti ; hors d'usage.
+func _shot_down() -> void:
+	is_disabled = true
+	_show_damage()
+	if _flight:
+		_flight.kill()
+	if _rope:
+		_rope.queue_free()
+		_rope = null
+	for unit in passengers():
+		unit.flash_message("Appareil touché : atterrissage d'urgence")
+	_flight = create_tween()
+	if is_inbound:
+		_flight.tween_property(self, "global_position", _landing, EMERGENCY_TIME * 1.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		_flight.parallel().tween_property(model, "rotor_speed", 0.6, EMERGENCY_TIME * 1.6)
+		_flight.tween_callback(_touched_down)
+		return
+	is_moving = true
+	is_airborne = false
+	_carry(passengers())
+	_flight.tween_property(self, "global_position:y", ground_y, EMERGENCY_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_flight.parallel().tween_property(model, "rotor_speed", 0.6, EMERGENCY_TIME)
+	_flight.tween_callback(_crash_landed)
+
+
+## Posé en urgence : les passagers reprennent pied, rotors arrêtés.
+func _crash_landed() -> void:
+	Sfx.play_at(&"fall", global_position + Vector3.UP, 0.0)
+	EventBus.noise_emitted.emit(global_position, FUEL_NOISE, &"gunshot")
+	_arrived(false)
+	model.rotor_speed = 0.0
+	_fail_extraction()
+
+
+## Appareil d'extraction hors d'usage : plus moyen de repartir.
+func _fail_extraction() -> void:
+	if extraction:
+		get_tree().create_timer(END_DELAY, false).timeout.connect(func() -> void:
+			EventBus.mission_ended.emit(false, "ÉCHEC — appareil d'extraction abattu"))
+
+
 # --- Extraction ---------------------------------------------------------------
 
 ## Pas encore appelé : caché, sans collision (la navigation passe sur son
@@ -608,6 +739,11 @@ func _touched_down() -> void:
 	global_position = _landing
 	_push_enemies_out()
 	_set_solid(true)
+	if is_disabled:
+		Sfx.play_at(&"fall", global_position + Vector3.UP, 0.0)
+		model.rotor_speed = 0.0
+		_fail_extraction()
+		return
 	_apply_ramp(false, true)
 
 
@@ -724,7 +860,7 @@ func destroy() -> void:
 ## Sauvegarde rapide (`QuickSave`).
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
-		"away": is_away or is_inbound}
+		"away": is_away or is_inbound, "structure": structure, "disabled": is_disabled}
 
 
 func load_state(data: Dictionary) -> void:
@@ -744,6 +880,10 @@ func load_state(data: Dictionary) -> void:
 			_set_solid(true)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
+	structure = data.get("structure", STRUCTURE)
+	is_disabled = data.get("disabled", false)
+	if structure < STRUCTURE:
+		_show_damage()
 	var closed: bool = data.get("ramp_closed", false)
 	if closed != is_ramp_closed:
 		_apply_ramp(closed, false)

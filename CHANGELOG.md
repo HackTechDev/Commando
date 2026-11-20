@@ -775,3 +775,11 @@
 - Il repart seul 1,5 s après que tous les opérateurs vivants et les VIP sont à bord, si les autres objectifs sont remplis (« Extraction : objectifs en cours » sinon) : objectif rempli, « RÉUSSITE — équipe extraite ». Détruit au sol, il fait échouer la mission.
 - « Nuit sans lune » : convertible d'extraction au sud du dépôt, nouvel objectif « Repartir à bord du convertible d'extraction » ; l'équipe part plus à l'ouest.
 - `Objectives.done_except` et groupe `objectives`.
+
+## Riposte ennemie contre le convertible (8.7)
+
+- En l'air (approche d'extraction, montée, vol stationnaire, descente), le convertible est une cible : un ennemi armé sans opérateur en vue, qui le voit à moins de 1,5 fois sa portée de tir, s'arrête, se tourne vers lui et tire (+15 % de chances de toucher : grande cible). Chaque coup de feu fait du bruit.
+- Structure de 400 points ; une balle en ôte le quart de ses dégâts, avec étincelles et ricochet. Jauge « Structure NN % » au-dessus de l'appareil dès la première balle ; fumée sous la moitié.
+- À zéro, l'appareil est abattu : atterrissage d'urgence à la verticale avec ceux à bord (« Appareil touché : atterrissage d'urgence »), ou droit sur sa zone pendant une approche. Hors d'usage, il ne revole plus (« appareil endommagé ») ; un appareil d'extraction abattu fait échouer la mission. Sur la base aérienne, l'épave posée peut encore être détruite.
+- Il n'est pas visé en partance (la mission est gagnée), ni posé.
+- Structure et état « abattu » gardés par la sauvegarde rapide.
