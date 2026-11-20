@@ -261,8 +261,10 @@ func take_off(pilot: Commando) -> bool:
 	return true
 
 
-## Les passagers suivent l'appareil (leur physique est suspendue).
+## Les passagers suivent l'appareil (leur physique est suspendue) ; en vol,
+## la coque redevient opaque.
 func _lift_passengers() -> void:
+	model.set_cutaway(false)
 	for unit: Commando in _passengers:
 		if is_instance_valid(unit):
 			unit.process_mode = Node.PROCESS_MODE_DISABLED
