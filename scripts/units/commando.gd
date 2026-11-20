@@ -270,6 +270,12 @@ func _on_link_reached(details: Dictionary) -> void:
 		_traversal.begin(link, details["link_entry_position"], details["link_exit_position"])
 
 
+## Vrai si l'unité marche ou court vers une destination (ordre de
+## déplacement en cours).
+func is_walking() -> bool:
+	return not is_dead and _order is MoveOrder
+
+
 ## Vrai pendant le franchissement d'une échelle ou d'un muret.
 func is_traversing() -> bool:
 	return _traversal != null and _traversal.active

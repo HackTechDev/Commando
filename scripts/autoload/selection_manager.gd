@@ -252,6 +252,17 @@ func stop() -> void:
 		unit.stop()
 
 
+## Arrête les unités sélectionnées qui marchent vers une destination.
+## Renvoie vrai si au moins une a été arrêtée.
+func stop_walkers() -> bool:
+	var stopped := false
+	for unit in selected:
+		if unit.is_walking():
+			unit.stop()
+			stopped = true
+	return stopped
+
+
 ## Fait recharger les unités sélectionnées.
 func reload() -> void:
 	for unit in selected:

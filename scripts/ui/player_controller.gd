@@ -426,6 +426,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			queue_redraw()
 			_finish_selection()
 		elif event.is_action_pressed(&"order"):
+			# Clic droit simple sur une unité en route : elle s'arrête (le clic
+			# suivant donne la nouvelle destination). Le double clic (course)
+			# reste un ordre ; hors ordres simultanés (Tab).
+			if not button.double_click and not SelectionManager.planning and SelectionManager.stop_walkers():
+				Sfx.play_ui(&"order")
+				return
 			_order(button.position, button.double_click)
 	elif event is InputEventMouseMotion and _dragging:
 		_drag_end = (event as InputEventMouseMotion).position

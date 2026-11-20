@@ -12,6 +12,7 @@ const SECTIONS: Array = [
 		[["Clic gauche", "rectangle"], "Sélectionner (Maj : ajouter)"],
 		[["1 à 6"], "Sélectionner un opérateur (rangée des chiffres)"],
 		[["Clic droit"], "Marcher (double clic : courir)"],
+		[["Clic droit en route"], "S'arrêter (le clic suivant : nouvelle destination)"],
 		[["Clic droit sur une caisse"], "Grimper dessus"],
 		[["Clic droit sur une porte"], "L'ouvrir, la fermer ou la crocheter"],
 		[["Clic droit sur le convertible"], "Monter à bord (soute)"],

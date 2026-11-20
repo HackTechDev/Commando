@@ -727,3 +727,8 @@
 
 - Sans casque balistique, le casque audio a un vrai arceau : bande courbe qui passe au sommet de la tête (ou par-dessus casquette, bob, béret, bonnet), coussin sous le sommet, coulisses qui entrent dans les coquilles. La barre droite au-dessus de la tête disparaît.
 - Coquilles rapprochées de la tête (`SoldierModel.EAR_CUP_OFFSET`), coussinets contre les tempes ; micro et bras du casque balistique suivent.
+
+## Clic droit : arrêter une unité en route
+
+- Clic droit simple pendant qu'une unité sélectionnée marche ou court vers sa destination : elle s'arrête (`SelectionManager.stop_walkers`, `Commando.is_walking`). Le clic droit suivant donne la nouvelle destination.
+- Le double clic droit reste un ordre de course (il redirige sans arrêt) ; en ordres simultanés (Tab), le clic droit prépare toujours un ordre.
