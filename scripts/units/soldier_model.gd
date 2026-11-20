@@ -2577,12 +2577,13 @@ func _build_head() -> void:
 				_build_operator_helmet(outfit.wears_nvg(), outfit.headset)
 			&"none":
 				if outfit.headset:
-					_build_ear_cups(0.12)
-					_box(_head, Vector3(0.25, 0.015, 0.03), Vector3(0.0, 0.3, 0.0), _m_weapon)
+					_build_ear_cups()
+					_build_headband(HEADBAND_TOPS[&"none"])
 			_:
 				_build_soft_headwear(outfit.headwear)
 				if outfit.headset:
-					_build_ear_cups(0.12)
+					_build_ear_cups()
+					_build_headband(HEADBAND_TOPS.get(outfit.headwear, HEADBAND_TOPS[&"beanie"]))
 		return
 	if _guard_look.is_empty():
 		_build_operator_helmet(true, true)
@@ -3034,9 +3035,17 @@ func _build_soft_headwear(kind: StringName) -> void:
 			_cylinder(_head, 0.124, 0.04, Vector3(0.0, 0.2, 0.005), _m_helmet).scale = Vector3(1.0, 1.0, 1.07)
 
 
+## Écart des coquilles auditives au centre de la tête : coussinets
+## appuyés sur les tempes.
+const EAR_CUP_OFFSET := 0.112
+## Hauteur du sommet de l'arceau, selon ce qui couvre la tête (il passe
+## par-dessus).
+const HEADBAND_TOPS := {&"none": 0.318, &"cap": 0.318, &"boonie": 0.336, &"beret": 0.334, &"beanie": 0.342}
+
+
 ## Protection auditive : coquilles, couvercles, coussinets et micro
 ## (`offset` : écart des coquilles au centre de la tête).
-func _build_ear_cups(offset: float) -> void:
+func _build_ear_cups(offset: float = EAR_CUP_OFFSET) -> void:
 	for side: float in [-1.0, 1.0]:
 		var cup := _cylinder(_head, 0.052, 0.04, Vector3((offset + 0.013) * side, 0.15, 0.005), _m_gear)
 		cup.name = "EarCup"
@@ -3046,9 +3055,36 @@ func _build_ear_cups(offset: float) -> void:
 		var cushion := _cylinder(_head, 0.048, 0.012, Vector3((offset - 0.012) * side, 0.15, 0.005), _m_weapon)
 		cushion.rotation.z = PI / 2.0
 	# Micro sur perche, devant la bouche.
-	var boom := _box(_head, Vector3(0.01, 0.01, 0.11), Vector3(-0.12, 0.13, -0.07), _m_weapon)
+	var boom := _box(_head, Vector3(0.01, 0.01, 0.11), Vector3(-offset, 0.13, -0.07), _m_weapon)
 	boom.rotation.y = -0.45
-	_sphere(_head, 0.014, Vector3(-0.085, 0.125, -0.12), _m_gear)
+	_sphere(_head, 0.014, Vector3(-offset + 0.035, 0.125, -0.12), _m_gear)
+
+
+## Arceau du casque audio (sans casque balistique) : bande courbe qui passe
+## au sommet de la tête (`top_y`), coussin sous le sommet, et descend dans
+## les coquilles par deux coulisses réglables.
+func _build_headband(top_y: float, offset: float = EAR_CUP_OFFSET) -> void:
+	var half_width := offset + 0.013
+	var center := HEAD_CENTER.y
+	var rise := top_y - center
+	var steps := 16
+	var points: Array[Vector3] = []
+	for i in steps + 1:
+		var angle := lerpf(-PI / 2.0, PI / 2.0, float(i) / steps)
+		points.append(Vector3(half_width * sin(angle), center + rise * cos(angle), 0.005))
+	for i in steps:
+		# Segments un peu allongés : pas de fente entre eux.
+		var a := points[i]
+		var b := points[i + 1]
+		var middle := (a + b) * 0.5
+		_strap(middle + (a - middle) * 1.15, middle + (b - middle) * 1.15, 0.026, 0.008, _m_weapon).name = "Headband"
+		# Coussin sous le sommet de l'arceau.
+		if absf(i + 0.5 - steps * 0.5) < steps * 0.2:
+			var inward := (Vector3(0.0, center, 0.005) - middle).normalized() * 0.008
+			_strap(a + inward, b + inward, 0.032, 0.008, _m_gear)
+	for side: float in [-1.0, 1.0]:
+		# Coulisse : fourche qui entre dans le haut de la coquille.
+		_box(_head, Vector3(0.012, 0.045, 0.03), Vector3(half_width * side, center - 0.005, 0.005), _m_steel)
 
 
 ## Casque balistique « high cut » d'opérateur : coque découpée au-dessus des
@@ -3074,7 +3110,7 @@ func _build_operator_helmet(nvg: bool, headset: bool) -> void:
 		if headset:
 			# Bras qui relie la coquille auditive au rail.
 			var top := _helmet_point(1.12, side * PI / 2.0) + _helmet_normal(1.12, side * PI / 2.0) * 0.012
-			_strap(top, Vector3((0.133 + 0.01) * side, 0.185, 0.005), 0.016, 0.01, _m_weapon)
+			_strap(top, Vector3((EAR_CUP_OFFSET + 0.023) * side, 0.185, 0.005), 0.016, 0.01, _m_weapon)
 		# Jugulaire : sangles devant et derrière l'oreille, jusqu'au menton.
 		var chin := Vector3(0.05 * side, 0.072, -0.075)
 		for phi: float in [side * 1.15, side * 2.05]:
@@ -3082,7 +3118,7 @@ func _build_operator_helmet(nvg: bool, headset: bool) -> void:
 			_strap(anchor, chin, 0.012, 0.004, _m_weapon)
 	_box(_head, Vector3(0.1, 0.012, 0.03), Vector3(0.0, 0.066, -0.076), _m_weapon).name = "ChinCup"
 	if headset:
-		_build_ear_cups(0.12)
+		_build_ear_cups()
 	# Lampe tactique sur l'avant du rail droit.
 	var lamp := _pivot(_head, Vector3.ZERO, "Lamp")
 	lamp.transform = _shell_frame(1.08, 1.12, 0.03, false)

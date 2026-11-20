@@ -722,3 +722,8 @@
 ## Retour au menu sans plantage
 
 - Retour au menu (écran de fin ou menu pause) avec des opérateurs sélectionnés : le HUD, déjà hors de la scène, ne rafraîchit plus ses boutons quand les unités quittent la sélection (le jeu plantait).
+
+## Casque audio : arceau courbe
+
+- Sans casque balistique, le casque audio a un vrai arceau : bande courbe qui passe au sommet de la tête (ou par-dessus casquette, bob, béret, bonnet), coussin sous le sommet, coulisses qui entrent dans les coquilles. La barre droite au-dessus de la tête disparaît.
+- Coquilles rapprochées de la tête (`SoldierModel.EAR_CUP_OFFSET`), coussinets contre les tempes ; micro et bras du casque balistique suivent.
