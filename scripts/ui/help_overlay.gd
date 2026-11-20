@@ -15,6 +15,7 @@ const SECTIONS: Array = [
 		[["Clic droit sur une caisse"], "Grimper dessus"],
 		[["Clic droit sur une porte"], "L'ouvrir, la fermer ou la crocheter"],
 		[["Clic droit sur le convertible"], "Monter à bord (soute)"],
+		[["Clic milieu sur un opérateur à bord"], "Fermer la rampe, piloter"],
 		[["Clic droit sur un toit"], "Y monter par l'échelle, enjamber les murets"],
 		[[&"posture_crouch", &"posture_prone"], "Accroupi / rampé"],
 		[[&"dive"], "Roulade vers le curseur"],

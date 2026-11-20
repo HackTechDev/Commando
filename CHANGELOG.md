@@ -711,3 +711,9 @@
 ## HUD : plus de bouton « Quitter »
 
 - Le bouton « Quitter » en haut à droite disparaît du jeu ; on quitte par le menu pause (Échap, « Quitter », avec confirmation).
+
+## Convertible : rampe et pilotage
+
+- Clic milieu sur un opérateur dans la soute : menu circulaire de bord, « Fermer » / « Ouvrir » (la rampe se relève jusqu'au bout de la queue, ou s'abaisse) et « Piloter ».
+- Rampe relevée : elle arrête la marche, la vue et les balles ; la navigation est recalculée (plus d'accès à la soute). Impossible tant que quelqu'un se tient dessus. État gardé par la sauvegarde rapide.
+- « Piloter » : possible quand tous les opérateurs vivants sont à bord. La rampe se relève, les rotors se lancent (bruit qui alerte la garde), puis l'appareil décolle avec l'équipe ; l'objectif de la carte est rempli (« détruire ou voler ») et la mission réussie.

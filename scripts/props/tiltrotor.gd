@@ -11,6 +11,12 @@ extends StaticBody3D
 ## la coque translucide ; les clics la traversent alors (`is_revealed_body`)
 ## pour atteindre le plancher. Un corps déposé dans la soute est caché.
 ##
+## À bord, un opérateur peut relever la rampe (`set_ramp_closed` : elle arrête
+## alors la marche, la vue et les balles ; la navigation est recalculée) ou
+## prendre les commandes (`take_off`) quand tous les opérateurs vivants sont
+## dans la soute : rampe relevée, rotors lancés (bruit qui alerte), l'appareil
+## décolle avec eux, l'objectif est rempli et la mission réussie.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
@@ -27,6 +33,16 @@ const FUEL_DAMAGE := 140.0
 const FUEL_NOISE := 45.0
 ## Délai (s) entre la destruction et la fin de mission.
 const END_DELAY := 3.0
+## Durée (s) du mouvement de la rampe.
+const RAMP_TIME := 1.2
+## Décollage : mise en route des rotors (s), vitesse finale (tours/s),
+## bruit des rotors (rayon), montée (s, m) et fin de mission après.
+const SPIN_UP := 3.0
+const FLIGHT_ROTOR_SPEED := 5.0
+const ROTOR_NOISE := 40.0
+const CLIMB_TIME := 6.0
+const CLIMB_HEIGHT := 45.0
+const CLIMB_DISTANCE := 60.0
 
 @export var livery: TiltrotorModel.Livery = TiltrotorModel.Livery.OLIVE
 @export var tail_number: String = "07"
@@ -45,6 +61,11 @@ var hull_boxes: Array[AABB] = []
 var floor_body: StaticBody3D
 var _fire: Node3D
 var _check_left: float = 0.0
+var is_ramp_closed: bool = false
+var is_flying: bool = false
+var _ramp_shape: CollisionShape3D
+## Passagers pendant le vol : unité -> position dans le repère de l'appareil.
+var _passengers: Dictionary = {}
 
 
 func _enter_tree() -> void:
@@ -87,15 +108,22 @@ func _ready() -> void:
 	floor_body.collision_mask = 0
 	add_child(floor_body)
 	_add_box(floor_body, AABB(Vector3(-2.1, 0.0, TiltrotorModel.CABIN_FRONT), Vector3(4.2, TiltrotorModel.FLOOR, TiltrotorModel.CABIN_BACK - TiltrotorModel.CABIN_FRONT)))
-	var top := Vector3(0, TiltrotorModel.FLOOR, TiltrotorModel.CABIN_BACK) * SCALE
-	var foot := Vector3(0, 0.0, TiltrotorModel.RAMP_END) * SCALE
-	var ramp := CollisionShape3D.new()
+	_ramp_shape = CollisionShape3D.new()
+	_ramp_shape.name = "Ramp"
 	var slab := BoxShape3D.new()
-	slab.size = Vector3(TiltrotorModel.RAMP_HALF_WIDTH * 2.0 * SCALE, 0.1, top.distance_to(foot))
-	ramp.shape = slab
-	ramp.rotation.x = atan2(top.y - foot.y, foot.z - top.z)
-	ramp.position = (top + foot) * 0.5 + ramp.basis.y * -0.05
-	floor_body.add_child(ramp)
+	slab.size = Vector3(TiltrotorModel.RAMP_HALF_WIDTH * 2.0, 0.1, TiltrotorModel.ramp_length()) * SCALE
+	_ramp_shape.shape = slab
+	floor_body.add_child(_ramp_shape)
+	_ramp_shape.transform = _ramp_transform(false)
+
+
+## Forme de la rampe (repère local), relevée ou abaissée, autour de sa
+## charnière (au bord du plancher, rotation sur X comme dans le modèle).
+func _ramp_transform(closed: bool) -> Transform3D:
+	var angle := TiltrotorModel.RAMP_CLOSED_ANGLE if closed else TiltrotorModel.RAMP_OPEN_ANGLE
+	var length := TiltrotorModel.ramp_length() * (TiltrotorModel.RAMP_CLOSED_LENGTH if closed else 1.0)
+	var hinge := Vector3(0, TiltrotorModel.FLOOR, TiltrotorModel.CABIN_BACK) * SCALE
+	return Transform3D(Basis(Vector3.RIGHT, angle), hinge) * Transform3D(Basis.IDENTITY, Vector3(0, -0.05, length * SCALE * 0.5))
 
 
 ## Ajoute à `body` une forme pour la boîte `box` (repère du modèle, avant
@@ -146,7 +174,113 @@ static func is_revealed_body(collider: Object) -> bool:
 	return aircraft != null and aircraft.model.is_cut()
 
 
+## Relève (`closed`) ou abaisse la rampe. Renvoie faux si rien n'a changé
+## (déjà dans cet état, appareil détruit ou en vol, quelqu'un sur la rampe).
+func set_ramp_closed(closed: bool, animate: bool = true) -> bool:
+	if closed == is_ramp_closed or is_destroyed or is_flying:
+		return false
+	if is_ramp_blocked():
+		return false
+	_apply_ramp(closed, animate)
+	Sfx.play_at(&"clink", to_global(Vector3(0, TiltrotorModel.FLOOR, TiltrotorModel.CABIN_BACK) * SCALE), -4.0)
+	return true
+
+
+func _apply_ramp(closed: bool, animate: bool) -> void:
+	is_ramp_closed = closed
+	model.set_ramp_closed(closed, RAMP_TIME if animate else 0.0)
+	_ramp_shape.transform = _ramp_transform(closed)
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+
+
+## Vrai si une unité se tient sur la rampe (ou sous elle, à son pied).
+func is_ramp_blocked() -> bool:
+	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips"]:
+		for node in get_tree().get_nodes_in_group(group):
+			var unit := node as Node3D
+			if unit == null:
+				continue
+			var local := to_local(unit.global_position) / SCALE
+			if absf(local.x) < TiltrotorModel.RAMP_HALF_WIDTH + 0.4 \
+					and local.z > TiltrotorModel.CABIN_BACK - 0.3 and local.z < TiltrotorModel.RAMP_END + 0.4 \
+					and local.y < TiltrotorModel.FLOOR + 0.5:
+				return true
+	return false
+
+
+## Opérateurs vivants dans la soute.
+func passengers() -> Array[Commando]:
+	var aboard: Array[Commando] = []
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and cabin_contains(unit.global_position + Vector3.UP * 0.3):
+			aboard.append(unit)
+	return aboard
+
+
+## Raison pour laquelle on ne peut pas décoller (vide : c'est possible).
+func take_off_problem() -> String:
+	if is_destroyed:
+		return "appareil détruit"
+	if is_flying:
+		return "déjà en vol"
+	var aboard := passengers()
+	if aboard.is_empty():
+		return "personne à bord"
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and not aboard.has(unit):
+			return "tous les opérateurs à bord"
+	if not is_ramp_closed and is_ramp_blocked():
+		return "quelqu'un sur la rampe"
+	return ""
+
+
+## `pilot` prend les commandes : rampe relevée, rotors lancés, puis
+## décollage avec les passagers ; objectif rempli, mission réussie.
+## Renvoie faux si c'est impossible (`take_off_problem`).
+func take_off(pilot: Commando) -> bool:
+	if take_off_problem() != "":
+		return false
+	if not is_ramp_closed:
+		_apply_ramp(true, true)
+	is_flying = true
+	for unit in passengers():
+		unit.stop()
+		_passengers[unit] = to_local(unit.global_position)
+	if pilot:
+		pilot.stop()
+	EventBus.noise_emitted.emit(global_position, ROTOR_NOISE, &"help")
+	var flight := create_tween()
+	flight.tween_property(model, "rotor_speed", FLIGHT_ROTOR_SPEED, SPIN_UP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	flight.tween_callback(_lift_passengers)
+	var goal := global_position + Vector3.UP * CLIMB_HEIGHT - global_basis.z * CLIMB_DISTANCE
+	flight.tween_property(self, "global_position", goal, CLIMB_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	flight.tween_callback(_flown_away)
+	return true
+
+
+## Les passagers suivent l'appareil (leur physique est suspendue).
+func _lift_passengers() -> void:
+	for unit: Commando in _passengers:
+		if is_instance_valid(unit):
+			unit.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _flown_away() -> void:
+	if objective_id != &"":
+		EventBus.objective_completed.emit(objective_id)
+	if ends_mission:
+		EventBus.mission_ended.emit(true, "RÉUSSITE — appareil volé")
+
+
 func _physics_process(delta: float) -> void:
+	if is_flying:
+		for unit: Commando in _passengers:
+			if is_instance_valid(unit):
+				unit.global_position = to_global(_passengers[unit])
+		return
 	_check_left -= delta
 	if _check_left > 0.0:
 		return
@@ -180,7 +314,7 @@ func blast(at: Vector3, radius: float) -> void:
 
 ## Détruit l'appareil : réservoir qui saute, épave en feu, objectif rempli.
 func destroy() -> void:
-	if is_destroyed:
+	if is_destroyed or is_flying:
 		return
 	_set_wrecked()
 	Explosion.detonate(get_parent(), global_position + Vector3.UP * 1.5, FUEL_RADIUS, FUEL_DAMAGE, FUEL_NOISE)
@@ -192,12 +326,15 @@ func destroy() -> void:
 
 ## Sauvegarde rapide (`QuickSave`).
 func save_state() -> Dictionary:
-	return {"destroyed": is_destroyed}
+	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed}
 
 
 func load_state(data: Dictionary) -> void:
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
+	var closed: bool = data.get("ramp_closed", false)
+	if closed != is_ramp_closed:
+		_apply_ramp(closed, false)
 
 
 func _set_wrecked() -> void:

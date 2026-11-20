@@ -75,6 +75,9 @@ var _radial: RadialMenu
 var _menu_vip: Vip
 ## Ennemi du menu de corps à corps ouvert (null : aucun).
 var _menu_enemy: Enemy
+## Appareil et opérateur du menu de bord ouvert.
+var _menu_aircraft: Tiltrotor
+var _menu_crew: Commando
 var _cursor_left: float = 0.0
 ## Pause tactique en cours (le jeu est en pause, les ordres restent possibles).
 var tactical_paused: bool = false
@@ -106,7 +109,9 @@ func _ready() -> void:
 	_radial.chosen.connect(_on_radial_chosen)
 	_radial.closed.connect(func() -> void:
 		_menu_vip = null
-		_menu_enemy = null)
+		_menu_enemy = null
+		_menu_aircraft = null
+		_menu_crew = null)
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
 			cancel_pending_action()
@@ -406,7 +411,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_middle_start = middle.position
 		elif _middle_start != Vector2.INF:
 			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
-				if open_vip_menu(middle.position) or open_melee_menu(middle.position):
+				if open_vip_menu(middle.position) or open_aircraft_menu(middle.position) or open_melee_menu(middle.position):
 					get_viewport().set_input_as_handled()
 			_middle_start = Vector2.INF
 		return
@@ -621,6 +626,38 @@ func open_vip_menu(screen_position: Vector2) -> bool:
 	return true
 
 
+## Ouvre le menu de bord sur l'opérateur sous `screen_position`, s'il est
+## dans la soute d'un convertible : relever / abaisser la rampe, piloter.
+## Renvoie faux sinon.
+func open_aircraft_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_COMMANDOS)
+	var unit := hit.get("collider") as Commando
+	if unit == null or unit.is_dead:
+		return false
+	var aircraft := Tiltrotor.cabin_at(get_tree(), unit.global_position + Vector3.UP * 0.3)
+	if aircraft == null or aircraft.is_destroyed or aircraft.is_flying:
+		return false
+	cancel_pending_action()
+	_menu_aircraft = aircraft
+	_menu_crew = unit
+	_radial.open(screen_position, aircraft_options(aircraft), unit.display_name)
+	Sfx.play_ui(&"select")
+	return true
+
+
+## Options du menu de bord de `aircraft`.
+static func aircraft_options(aircraft: Tiltrotor) -> Array[Dictionary]:
+	var problem := aircraft.take_off_problem()
+	var ramp_free := not aircraft.is_ramp_blocked()
+	return [
+		{"id": &"ramp", "label": "Ouvrir" if aircraft.is_ramp_closed else "Fermer",
+			"detail": "abaisser la rampe" if aircraft.is_ramp_closed else ("relever la rampe" if ramp_free else "quelqu'un sur la rampe"),
+			"enabled": aircraft.is_ramp_closed or ramp_free},
+		{"id": &"pilot", "label": "Piloter", "detail": "décoller avec l'équipe" if problem == "" else problem,
+			"enabled": problem == ""},
+	]
+
+
 ## Ouvre le menu de corps à corps sur l'ennemi sous `screen_position` :
 ## l'opérateur sélectionné le plus proche s'en charge. Renvoie faux sans
 ## ennemi visé ou sans opérateur sélectionné.
@@ -660,6 +697,19 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 func _on_radial_chosen(id: StringName) -> void:
 	if _menu_vip:
 		_on_vip_order(id)
+		return
+	if _menu_aircraft:
+		var aircraft := _menu_aircraft
+		var crew := _menu_crew
+		_menu_aircraft = null
+		_menu_crew = null
+		var done := false
+		if is_instance_valid(aircraft):
+			if id == &"ramp":
+				done = aircraft.set_ramp_closed(not aircraft.is_ramp_closed)
+			elif id == &"pilot":
+				done = aircraft.take_off(crew)
+		Sfx.play_ui(&"order" if done else &"denied")
 		return
 	var enemy := _menu_enemy
 	_menu_enemy = null

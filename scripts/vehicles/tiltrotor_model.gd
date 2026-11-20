@@ -50,6 +50,13 @@ const CABIN_CEILING := 3.4
 const CABIN_WALL_TOP := 2.9
 const RAMP_END := 8.8
 const RAMP_HALF_WIDTH := 1.3
+## Angle de la rampe autour de sa charnière (rotation sur X) : abaissée
+## jusqu'au sol, ou relevée sous la queue.
+const RAMP_OPEN_ANGLE := 0.2939
+## Relevée, elle va de la charnière au bout de la queue (le bout se replie :
+## longueur ramenée à `RAMP_CLOSED_LENGTH`).
+const RAMP_CLOSED_ANGLE := -0.5109
+const RAMP_CLOSED_LENGTH := 0.953
 ## Facettes de dessous de la queue, ouvertes sur la soute : (section,
 ## segment) des chanfreins bas et du fond.
 const TAIL_OPENING: Array[Vector2i] = [Vector2i(6, 2), Vector2i(6, 3), Vector2i(6, 4), Vector2i(7, 2), Vector2i(7, 3), Vector2i(7, 4)]
@@ -78,6 +85,9 @@ var _materials: Dictionary = {}
 var _tools: Dictionary = {}
 var _blur_discs: Array[MeshInstance3D] = []
 var _body: MeshInstance3D
+## Charnière de la rampe (sa rotation sur X l'abaisse ou la relève).
+var ramp_pivot: Node3D
+var _ramp_tween: Tween
 var _cut: float = 0.0
 var _cut_goal: float = 0.0
 
@@ -204,6 +214,7 @@ func _build() -> void:
 	_body = _commit("Body")
 	_build_interior()
 	_commit("Interior")
+	_build_ramp()
 	for i in NACELLES.size():
 		_build_rotor(i)
 	_build_lights()
@@ -354,8 +365,7 @@ func _build_hull() -> void:
 		_box(&"panel", Vector3(side * 2.06, 1.55, 1.0), Vector3(0.03, 0.55, 2.6))
 
 
-## Soute : plancher, bancs le long des flancs, cloison du cockpit, rampe
-## abaissée (bandes jaunes sur les bords) et ses vérins.
+## Soute : plancher, bancs le long des flancs, cloison du cockpit.
 func _build_interior() -> void:
 	var length := CABIN_BACK - CABIN_FRONT
 	var middle := (CABIN_FRONT + CABIN_BACK) * 0.5
@@ -373,28 +383,42 @@ func _build_interior() -> void:
 		for k in 5:
 			var z := CABIN_FRONT + 1.6 + k * (length - 2.4) / 4.0
 			_box(&"dark", Vector3(side * (CABIN_HALF_WIDTH - 0.25), FLOOR + 0.2, z), Vector3(0.04, 0.4, 0.04))
-	# Rampe : du bord du plancher jusqu'au sol.
-	var top := Vector3(0, FLOOR, CABIN_BACK)
-	var foot := Vector3(0, 0.02, RAMP_END)
-	var along := foot - top
-	var normal := along.cross(Vector3.RIGHT).normalized()
-	if normal.y < 0.0:
-		normal = -normal
-	var corners: Array[Vector3] = []
-	for point in [top, foot]:
-		for side: float in [-1.0, 1.0]:
-			corners.append(point + Vector3(side * RAMP_HALF_WIDTH, 0, 0))
-	var thickness := normal * -0.1
-	var ramp: Array[PackedVector3Array] = [
-		PackedVector3Array([corners[0], corners[1], corners[1] + thickness, corners[0] + thickness]),
-		PackedVector3Array([corners[2], corners[3], corners[3] + thickness, corners[2] + thickness]),
-	]
-	_loft(ramp, func(_s: int, _i: int) -> StringName: return &"floor")
+
+
+## Rampe arrière, sur sa charnière au bord du plancher (`ramp_pivot`) : un
+## plateau le long de +Z, bandes jaunes sur les bords. Abaissée jusqu'au sol
+## ou relevée sous la queue (`set_ramp_closed`).
+func _build_ramp() -> void:
+	ramp_pivot = Node3D.new()
+	ramp_pivot.name = "RampPivot"
+	ramp_pivot.position = Vector3(0, FLOOR, CABIN_BACK)
+	ramp_pivot.rotation.x = RAMP_OPEN_ANGLE
+	add_child(ramp_pivot)
+	var length := ramp_length()
+	_box(&"floor", Vector3(0, -0.05, length * 0.5), Vector3(RAMP_HALF_WIDTH * 2.0, 0.1, length))
 	for side: float in [-1.0, 1.0]:
-		var edge := Vector3(side * (RAMP_HALF_WIDTH - 0.1), 0.01, 0)
-		_quad(&"yellow", top + edge + Vector3(-0.08, 0.005, 0), top + edge + Vector3(0.08, 0.005, 0), foot + edge + Vector3(0.08, 0.005, 0), foot + edge + Vector3(-0.08, 0.005, 0), top + edge - normal)
-		# Vérin entre la queue et la rampe.
-		_cylinder(&"dark", Vector3(side * 1.2, 2.7, 6.2), Vector3(side * 1.2, 0.75, 6.4), 0.06, 6)
+		_box(&"yellow", Vector3(side * (RAMP_HALF_WIDTH - 0.1), 0.005, length * 0.5), Vector3(0.16, 0.01, length))
+	_commit("Ramp", ramp_pivot)
+
+
+## Longueur de la rampe (de la charnière au sol, abaissée).
+static func ramp_length() -> float:
+	return Vector2(FLOOR, RAMP_END - CABIN_BACK).length()
+
+
+## Relève (`closed`) ou abaisse la rampe, en `duration` secondes.
+func set_ramp_closed(closed: bool, duration: float = 0.0) -> void:
+	var angle := RAMP_CLOSED_ANGLE if closed else RAMP_OPEN_ANGLE
+	var length := RAMP_CLOSED_LENGTH if closed else 1.0
+	if _ramp_tween:
+		_ramp_tween.kill()
+	if duration <= 0.0:
+		ramp_pivot.rotation.x = angle
+		ramp_pivot.scale.z = length
+		return
+	_ramp_tween = create_tween().set_parallel()
+	_ramp_tween.tween_property(ramp_pivot, "rotation:x", angle, duration).set_trans(Tween.TRANS_SINE)
+	_ramp_tween.tween_property(ramp_pivot, "scale:z", length, duration)
 
 
 func _build_wings() -> void:
