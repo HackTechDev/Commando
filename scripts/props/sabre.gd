@@ -18,6 +18,14 @@ extends StaticBody3D
 ## (`set_gun_firing`) avec la mitrailleuse de 12,7 (`MountedGun`, tout
 ## autour du véhicule).
 ##
+## Transport aérien (`load_into`) : clic droit sur un convertible posé,
+## rampe abaissée, avec un passager sélectionné. Le Sabre roule jusque
+## derrière la rampe, replie arceau et antennes, monte dans la soute et s'y
+## gare à l'avant (`stowed_in`). Le convertible l'emporte avec son équipage
+## (vol stationnaire, décollage). Pour ressortir : clic droit au sol, appareil
+## posé et rampe abaissée ; le Sabre redescend la rampe en marche arrière,
+## puis file vers sa destination.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol).
 
 const GROUP := &"sabres"
@@ -51,6 +59,15 @@ const GUN_ROUND_INTERVAL := 0.12
 const GUN_BURST_PAUSE := 1.0
 const GUN_SPREAD := 0.03
 const GUN_NOISE := 55.0
+## Manœuvres sur la rampe du convertible : vitesse (m/s), écart entre les
+## essieux (m), place dans la soute (centre du véhicule, z local de l'appareil,
+## nez contre la cloison), point de départ au pied de la rampe (recul depuis
+## le bout de la rampe) et alignement.
+const RAMP_SPEED := 2.2
+const WHEELBASE := 3.1
+const STOW_Z := TiltrotorModel.CABIN_FRONT * Tiltrotor.SCALE + 2.85
+const RAMP_CLEARANCE := 3.6
+const ALIGN_TIME := 1.0
 ## Arrivée : rayon de la zone autour de `arrival_point`.
 const ARRIVAL_RADIUS := 5.0
 
@@ -59,6 +76,9 @@ const ARRIVAL_RADIUS := 5.0
 ## (monde) avec quelqu'un au volant (vide : aucun).
 @export var arrival_objective: StringName = &""
 @export var arrival_point: Vector3 = Vector3.ZERO
+## Convertible dans la soute duquel le véhicule commence la mission (vide :
+## au sol, à sa place).
+@export var start_stowed_in: NodePath
 
 var model: SabreModel
 ## Occupant de chaque place (null : libre), dans l'ordre de `SabreModel.SEATS`.
@@ -75,6 +95,11 @@ var _steer: float = 0.0
 ## Opérateurs en route pour monter : unité -> vrai.
 var _boarders: Dictionary = {}
 var _arrived_once: bool = false
+## Convertible dans la soute duquel le véhicule est garé (null : au sol).
+var stowed_in: Tiltrotor
+## Suite d'un trajet (montée dans la soute) et manœuvre sur la rampe en cours.
+var _then: Callable
+var _ramp_tween: Tween
 
 
 func _enter_tree() -> void:
@@ -110,6 +135,20 @@ func _ready() -> void:
 	_gun.spread = GUN_SPREAD
 	_gun.noise = GUN_NOISE
 	_gun.excluded = body_rids
+	if not start_stowed_in.is_empty():
+		_stow_at_start.call_deferred()
+
+
+## Début de mission dans une soute : garé à l'avant, arceau replié.
+func _stow_at_start() -> void:
+	var aircraft := get_node_or_null(start_stowed_in) as Tiltrotor
+	if aircraft == null or aircraft.cargo != null:
+		return
+	stowed_in = aircraft
+	aircraft.cargo = self
+	model.fold(true)
+	global_transform = _hold_transform(aircraft, STOW_Z)
+	EventBus.navigation_obstacle_moved.emit()
 
 
 func _add_box(box: AABB) -> void:
@@ -159,6 +198,9 @@ func _free_seat() -> int:
 
 ## Point de montée le plus proche de `from`, au sol, à côté d'une portière.
 func boarding_point(from: Vector3) -> Vector3:
+	# Dans la soute : on monte par l'arrière, seul passage libre.
+	if stowed_in:
+		return _on_navmesh(to_global(Vector3(0, 0, 3.4)))
 	var best := Vector3.INF
 	for side: float in [-1.0, 1.0]:
 		var point := to_global(Vector3(side * (SabreModel.HALF_WIDTH + 0.9), 0.0, 0.1))
@@ -175,12 +217,17 @@ func _on_navmesh(point: Vector3) -> Vector3:
 ## Départ du chemin de conduite : un point du sol autour du véhicule (devant
 ## de préférence). Le dessus du véhicule, cuit dans le maillage de
 ## navigation, ne compte pas. Vector3.INF si aucun.
-func _ground_start() -> Vector3:
+func _ground_start(toward: Vector3) -> Vector3:
+	var candidates: Array[Vector3] = []
 	for local: Vector3 in [Vector3(0, 0, -3.4), Vector3(-2.3, 0, -1.0), Vector3(2.3, 0, -1.0), Vector3(0, 0, 3.4)]:
 		var point := _on_navmesh(to_global(local))
 		if absf(point.y - global_position.y) < 0.6 and point.distance_to(to_global(local)) < 1.5:
-			return point
-	return Vector3.INF
+			candidates.append(point)
+	if candidates.is_empty():
+		return Vector3.INF
+	# Le plus proche de la destination : on ne repart pas à contresens.
+	candidates.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(toward) < b.distance_squared_to(toward))
+	return candidates[0]
 
 
 ## Envoie `unit` monter à bord. Renvoie faux si c'est impossible (déjà à
@@ -215,7 +262,9 @@ func _place(unit: Commando, index: int) -> void:
 	unit.velocity = Vector3.ZERO
 	unit.global_position = to_global(SabreModel.SEATS[index] + Vector3.UP * 0.02)
 	unit.global_rotation = Vector3(0.0, global_rotation.y, 0.0)
-	unit.posture = SoldierModel.Posture.STANDING if index == GUNNER_SEAT else SoldierModel.Posture.CROUCHED
+	# Arceau replié (transport aérien) : le tireur s'assoit aussi.
+	var standing := index == GUNNER_SEAT and not model.is_folded
+	unit.posture = SoldierModel.Posture.STANDING if standing else SoldierModel.Posture.CROUCHED
 
 
 ## Fait descendre `unit` à côté de sa place. Renvoie faux en route.
@@ -229,7 +278,9 @@ func dismount(unit: Commando) -> bool:
 	unit.riding = null
 	var local := SabreModel.SEATS[index]
 	var side := -1.0 if local.x < 0.0 or (local.x == 0.0 and index == GUNNER_SEAT) else 1.0
-	unit.global_position = _on_navmesh(to_global(Vector3(side * (SabreModel.HALF_WIDTH + 0.9), 0.0, local.z)))
+	# Dans la soute, pas de place sur les côtés : on descend par l'arrière.
+	var beside := Vector3(side * 0.7, 0.0, 3.3) if stowed_in else Vector3(side * (SabreModel.HALF_WIDTH + 0.9), 0.0, local.z)
+	unit.global_position = _on_navmesh(to_global(beside))
 	unit.velocity = Vector3.ZERO
 	return true
 
@@ -258,7 +309,7 @@ func move_seat(unit: Commando, index: int) -> bool:
 
 ## Ouvre ou cesse le feu avec la 12,7 (il faut quelqu'un à la tourelle).
 func set_gun_firing(firing: bool) -> bool:
-	if firing and gunner() == null:
+	if firing and (gunner() == null or model.is_folded):
 		return false
 	gun_firing = firing
 	if firing:
@@ -288,17 +339,61 @@ func _update_boarders() -> void:
 func drive_problem() -> String:
 	if driver() == null:
 		return "personne au volant"
+	if is_maneuvering():
+		return "manœuvre en cours"
+	if stowed_in:
+		return _ramp_problem(stowed_in)
 	return ""
 
 
-## Roule jusqu'à `target` par le chemin de navigation. Renvoie la raison d'un
-## refus (vide : en route).
+## Vrai pendant une manœuvre sur la rampe d'un convertible.
+func is_maneuvering() -> bool:
+	return _ramp_tween != null and _ramp_tween.is_running()
+
+
+## Raison pour laquelle on ne peut pas passer la rampe de `aircraft` (vide :
+## c'est possible).
+func _ramp_problem(aircraft: Tiltrotor) -> String:
+	if aircraft.is_destroyed:
+		return "appareil détruit"
+	if aircraft.is_flying or aircraft.is_airborne or aircraft.is_moving or aircraft.is_away or aircraft.is_inbound:
+		return "appareil en vol"
+	if aircraft.is_ramp_closed:
+		return "rampe relevée"
+	if aircraft.is_ramp_blocked():
+		return "quelqu'un sur la rampe"
+	return ""
+
+
+## Roule jusqu'à `target` par le chemin de navigation (en sortant d'abord de
+## la soute, si le véhicule y est garé). Renvoie la raison d'un refus (vide :
+## en route).
 func drive_to(target: Vector3) -> String:
 	var problem := drive_problem()
 	if problem != "":
 		return problem
+	if stowed_in:
+		var aircraft := stowed_in
+		_begin_driving()
+		_then = Callable()
+		_ramp_move(aircraft, STOW_Z, _ramp_foot_z(aircraft), func() -> void:
+			_leave_hold(aircraft)
+			if _set_path(target) != "":
+				driver().flash_message("Pas de chemin")
+				stop_driving())
+		return ""
+	problem = _set_path(target)
+	if problem != "":
+		return problem
+	_then = Callable()
+	_begin_driving()
+	return ""
+
+
+## Chemin de navigation du sol autour du véhicule jusqu'à `target`.
+func _set_path(target: Vector3) -> String:
 	var map := get_world_3d().navigation_map
-	var start := _ground_start()
+	var start := _ground_start(target)
 	if start == Vector3.INF:
 		return "pas de chemin"
 	var path := NavigationServer3D.map_get_path(map, start, target, true)
@@ -307,13 +402,149 @@ func drive_to(target: Vector3) -> String:
 	_path = path
 	_path_index = 1
 	_blocked_left = BLOCK_GIVE_UP
-	if not is_driving:
-		is_driving = true
-		_arrived_once = false
-		for unit in crew():
-			unit.stop()
-			unit.process_mode = Node.PROCESS_MODE_DISABLED
 	return ""
+
+
+## En route : les passagers sont emportés, physique suspendue.
+func _begin_driving() -> void:
+	if is_driving:
+		return
+	is_driving = true
+	_arrived_once = false
+	for unit in crew():
+		unit.stop()
+		unit.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+# --- Transport aérien -----------------------------------------------------------
+
+## Raison pour laquelle le véhicule ne peut pas monter dans `aircraft` (vide :
+## c'est possible).
+func load_problem(aircraft: Tiltrotor) -> String:
+	if stowed_in == aircraft:
+		return "déjà dans la soute"
+	var problem := drive_problem()
+	if problem != "":
+		return problem
+	problem = _ramp_problem(aircraft)
+	if problem != "":
+		return problem
+	if aircraft.cargo != null:
+		return "soute déjà chargée"
+	# La moitié avant de la soute doit être libre.
+	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips"]:
+		for node in get_tree().get_nodes_in_group(group):
+			var unit := node as Node3D
+			if unit == null or (unit is Commando and (unit as Commando).riding == self) or unit.get(&"is_dead") == true:
+				continue
+			if aircraft.cabin_contains(unit.global_position + Vector3.UP * 0.3) and aircraft.to_local(unit.global_position).z < STOW_Z + 3.4:
+				return "soute encombrée"
+	return ""
+
+
+## Monte dans la soute de `aircraft` : trajet jusque derrière la rampe,
+## alignement, montée de la rampe. Renvoie la raison d'un refus (vide : en
+## route).
+func load_into(aircraft: Tiltrotor) -> String:
+	var problem := load_problem(aircraft)
+	if problem != "":
+		return problem
+	var foot := _ramp_foot_z(aircraft)
+	var far := _on_navmesh(aircraft.to_global(Vector3(0, 0, foot + 7.0)))
+	problem = _set_path(far)
+	if problem != "":
+		return problem
+	var near := aircraft.to_global(Vector3(0, 0, foot + 2.0))
+	near.y = far.y
+	_path.append(near)
+	_begin_driving()
+	_then = _climb_in.bind(aircraft)
+	return ""
+
+
+## z local (appareil) du centre du véhicule quand ses roues avant touchent le
+## bas de la rampe, plus une marge.
+func _ramp_foot_z(aircraft: Tiltrotor) -> float:
+	return TiltrotorModel.RAMP_END * Tiltrotor.SCALE + RAMP_CLEARANCE
+
+
+## Derrière la rampe : alignement dans l'axe, repli de l'arceau, montée
+## jusqu'à l'avant de la soute.
+func _climb_in(aircraft: Tiltrotor) -> void:
+	var problem := load_problem(aircraft)
+	if problem != "":
+		driver().flash_message("Embarquement impossible : " + problem)
+		stop_driving()
+		return
+	aircraft.cargo = self
+	var foot := _ramp_foot_z(aircraft)
+	var start := global_transform
+	var goal := _hold_transform(aircraft, foot)
+	model.fold(true)
+	for index in seats.size():
+		if seats[index]:
+			seats[index].posture = SoldierModel.Posture.CROUCHED
+	set_gun_firing(false)
+	_ramp_tween = create_tween()
+	_ramp_tween.tween_method(func(weight: float) -> void:
+		global_transform = start.interpolate_with(goal, weight)
+		_carry_crew(), 0.0, 1.0, ALIGN_TIME).set_trans(Tween.TRANS_SINE)
+	_ramp_tween.tween_callback(func() -> void:
+		_ramp_move(aircraft, foot, STOW_Z, func() -> void:
+			stowed_in = aircraft
+			stop_driving()))
+
+
+## Sorti de la soute de `aircraft` (au pied de la rampe).
+func _leave_hold(aircraft: Tiltrotor) -> void:
+	stowed_in = null
+	if aircraft.cargo == self:
+		aircraft.cargo = null
+	model.fold(false)
+	global_position.y = _ground_height()
+
+
+## Roule sur l'axe de la soute de `aircraft`, de `from_z` à `to_z` (z local
+## de l'appareil), en épousant le plancher et la rampe, puis appelle `done`.
+func _ramp_move(aircraft: Tiltrotor, from_z: float, to_z: float, done: Callable) -> void:
+	var last := [from_z]
+	_ramp_tween = create_tween()
+	_ramp_tween.tween_method(func(z: float) -> void:
+		global_transform = _hold_transform(aircraft, z)
+		# Vers l'avant de l'appareil (z qui baisse) : marche avant.
+		model.roll(last[0] - z)
+		last[0] = z
+		_carry_crew(), from_z, to_z, absf(to_z - from_z) / RAMP_SPEED).set_trans(Tween.TRANS_SINE)
+	_ramp_tween.tween_callback(done)
+
+
+## Place du véhicule dans l'axe de la soute de `aircraft`, centre en `z`
+## (local), nez vers l'avant de l'appareil : hauteur et assiette suivent le
+## plancher, la rampe ou le sol sous chaque essieu.
+func _hold_transform(aircraft: Tiltrotor, z: float) -> Transform3D:
+	var front := _deck_height(z - WHEELBASE * 0.5)
+	var back := _deck_height(z + WHEELBASE * 0.5)
+	var pitch := atan2(front - back, WHEELBASE)
+	var local := Transform3D(Basis(Vector3.RIGHT, pitch), Vector3(0, (front + back) * 0.5, z))
+	return aircraft.global_transform * local
+
+
+## Hauteur (locale) du plancher de la soute, de la rampe abaissée ou du sol
+## au z local `z` de l'appareil.
+static func _deck_height(z: float) -> float:
+	var hinge := TiltrotorModel.CABIN_BACK * Tiltrotor.SCALE
+	var end := TiltrotorModel.RAMP_END * Tiltrotor.SCALE
+	var floor_y := TiltrotorModel.FLOOR * Tiltrotor.SCALE
+	return floor_y * clampf((end - z) / (end - hinge), 0.0, 1.0)
+
+
+## Les passagers suivent le véhicule, à leur place.
+func _carry_crew() -> void:
+	for index in seats.size():
+		var unit := seats[index]
+		if unit:
+			unit.global_position = to_global(SabreModel.SEATS[index] + Vector3.UP * 0.02)
+			unit.global_rotation = Vector3(0.0, global_rotation.y, 0.0)
 
 
 ## Arrêt : les passagers reprennent leur place, la navigation contourne de
@@ -322,6 +553,9 @@ func stop_driving() -> void:
 	if not is_driving:
 		return
 	is_driving = false
+	_then = Callable()
+	if _ramp_tween:
+		_ramp_tween.kill()
 	_path = PackedVector3Array()
 	model.steer(0.0)
 	for index in seats.size():
@@ -331,19 +565,24 @@ func stop_driving() -> void:
 			_place(unit, index)
 	EventBus.navigation_obstacle_moved.emit()
 	EventBus.sight_blockers_changed.emit()
-	if arrival_objective != &"" and not _arrived_once and global_position.distance_to(arrival_point) <= ARRIVAL_RADIUS:
+	if arrival_objective != &"" and stowed_in == null and not _arrived_once and global_position.distance_to(arrival_point) <= ARRIVAL_RADIUS:
 		_arrived_once = true
 		EventBus.objective_completed.emit(arrival_objective)
 
 
 func _drive(delta: float) -> void:
 	if driver() == null or driver().is_dead:
+		if is_maneuvering():
+			return
 		stop_driving()
 		return
 	_noise_left -= delta
 	if _noise_left <= 0.0:
 		_noise_left = NOISE_INTERVAL
 		EventBus.noise_emitted.emit(global_position, ENGINE_NOISE, &"distraction")
+	if is_maneuvering() or _path_index >= _path.size():
+		_carry_crew()
+		return
 	if _is_blocked():
 		_blocked_left -= delta
 		if _blocked_left <= 0.0:
@@ -357,7 +596,12 @@ func _drive(delta: float) -> void:
 	if to_next.length() <= WAYPOINT_REACH:
 		_path_index += 1
 		if _path_index >= _path.size():
-			stop_driving()
+			if _then.is_valid():
+				var follow := _then
+				_then = Callable()
+				follow.call()
+			else:
+				stop_driving()
 		return
 	# Cap vers le point suivant : on braque, et on ralentit d'autant plus que
 	# le virage est serré (presque sur place au pied d'un point de côté).
@@ -375,12 +619,7 @@ func _drive(delta: float) -> void:
 	_steer = lerpf(_steer, clampf(turn, -0.5, 0.5), minf(1.0, delta * 6.0))
 	model.steer(_steer)
 	model.roll(distance)
-	# Les passagers suivent, à leur place.
-	for index in seats.size():
-		var unit := seats[index]
-		if unit:
-			unit.global_position = to_global(SabreModel.SEATS[index] + Vector3.UP * 0.02)
-			unit.global_rotation = Vector3(0.0, global_rotation.y, 0.0)
+	_carry_crew()
 
 
 ## Hauteur du sol sous le véhicule (le maillage de navigation flotte un peu
@@ -422,7 +661,7 @@ func _physics_process(delta: float) -> void:
 		_drive(delta)
 	else:
 		_update_boarders()
-	_gun.update(delta, gun_firing and gunner() != null)
+	_gun.update(delta, gun_firing and gunner() != null and not model.is_folded)
 
 
 # --- Sauvegarde ---------------------------------------------------------------
@@ -432,13 +671,22 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing}
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing,
+		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
 
 func load_state(data: Dictionary) -> void:
 	stop_driving()
+	for node in get_tree().get_nodes_in_group(Tiltrotor.GROUP):
+		var aircraft := node as Tiltrotor
+		if aircraft and aircraft.cargo == self:
+			aircraft.cargo = null
+	stowed_in = get_node_or_null(NodePath(String(data.get("stowed", "")))) as Tiltrotor if String(data.get("stowed", "")) != "" else null
+	if stowed_in:
+		stowed_in.cargo = self
+	model.fold(stowed_in != null)
 	global_position = data.get("position", global_position)
-	global_rotation.y = data.get("yaw", global_rotation.y)
+	global_rotation = Vector3(0.0, data.get("yaw", global_rotation.y), 0.0)
 	_restore_crew.call_deferred(data.get("seats", []), data.get("gun", false))
 
 
@@ -456,5 +704,5 @@ func _restore_crew(names: Array, firing: bool) -> void:
 				seats[index] = unit
 				unit.riding = self
 				_place(unit, index)
-	gun_firing = firing and gunner() != null
+	gun_firing = firing and gunner() != null and not model.is_folded
 	EventBus.navigation_obstacle_moved.emit()

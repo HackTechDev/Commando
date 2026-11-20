@@ -6,7 +6,8 @@ extends FacetModel
 ## annulaire portant une mitrailleuse de 12,7 mm (`gun_pivot`), mitrailleuses
 ## de 7,62 mm à l'avant droit et à l'arrière gauche, tube de missile
 ## antichar, roue de secours, jerricans, sacs et antennes. Les roues tournent
-## (`roll`), celles de devant braquent (`steer`).
+## (`roll`), celles de devant braquent (`steer`). Pour le transport aérien
+## (`fold`), l'arceau et le tourelleau s'abaissent, les antennes se rabattent.
 ##
 ## Repère : l'avant vers -Z, posé au sol (y = 0) ; 4,9 m de long, 2,2 m de
 ## large, 2,4 m au sommet de l'arceau.
@@ -31,6 +32,10 @@ const SEATS: Array[Vector3] = [
 	Vector3(-0.5, FLOOR, -0.35), Vector3(0.0, FLOOR, 0.35), Vector3(0.5, FLOOR, -0.35),
 	Vector3(-0.55, FLOOR, 0.8), Vector3(0.55, FLOOR, 0.8),
 ]
+## Abaissement de l'arceau replié (m) et inclinaison des antennes rabattues
+## vers l'arrière (rad).
+const CAGE_DROP := 0.6
+const ANTENNA_FOLD := 1.35
 ## Bouche de la 12,7 dans le repère de son pivot.
 const GUN_MUZZLE := Vector3(0.0, 0.08, -1.55)
 
@@ -41,6 +46,10 @@ var gun_pivot: Node3D
 ## Roues (nœuds qui tournent) et pivots de braquage des roues avant.
 var wheels: Array[Node3D] = []
 var steer_pivots: Array[Node3D] = []
+## Arceau et tourelleau (abaissés au transport) ; pied des antennes.
+var cage: Node3D
+var antennas: Node3D
+var is_folded: bool = false
 
 
 func _ready() -> void:
@@ -53,6 +62,13 @@ func _ready() -> void:
 func roll(distance: float) -> void:
 	for wheel in wheels:
 		wheel.rotate_x(-distance / WHEEL_RADIUS)
+
+
+## Replie (`folded`) ou déploie l'arceau, le tourelleau et les antennes.
+func fold(folded: bool) -> void:
+	is_folded = folded
+	cage.position.y = -CAGE_DROP if folded else 0.0
+	antennas.rotation.x = ANTENNA_FOLD if folded else 0.0
 
 
 ## Braque les roues avant de `angle` (rad, positif vers la gauche).
@@ -83,11 +99,16 @@ func _make_materials() -> void:
 func _build() -> void:
 	_build_hull()
 	_build_crew_area()
-	_build_cage()
 	_build_rear()
 	_build_side_guns()
 	_commit("Body")
+	cage = Node3D.new()
+	cage.name = "Cage"
+	add_child(cage)
+	_build_cage()
+	_commit("Frame", cage)
 	_build_turret()
+	_build_antennas()
 	for i in WHEELS.size():
 		_build_wheel(i)
 
@@ -190,8 +211,6 @@ func _build_rear() -> void:
 		for i in 2:
 			_box(&"jerrican", Vector3(side * (HALF_WIDTH + 0.12), 1.15, front + 0.45 + i * 0.4), Vector3(0.16, 0.46, 0.34))
 			_box(&"dark", Vector3(side * (HALF_WIDTH + 0.12), 1.41, front + 0.45 + i * 0.4), Vector3(0.05, 0.05, 0.1))
-		# Antennes aux coins arrière.
-		_cylinder(&"dark", Vector3(side * 0.95, 1.4, back - 0.1), Vector3(side * 0.98, 3.4, back - 0.06), 0.012, 4)
 		_box(&"red", Vector3(side * 0.8, 0.95, back + 0.01), Vector3(0.16, 0.1, 0.03))
 	_box(&"body", Vector3(0, 1.15, back), Vector3(HALF_WIDTH * 2.0, 0.36, 0.08))
 	# Roue de secours sur le hayon.
@@ -225,7 +244,7 @@ func _build_turret() -> void:
 	gun_pivot = Node3D.new()
 	gun_pivot.name = "GunPivot"
 	gun_pivot.position = RING + Vector3.UP * 0.05
-	add_child(gun_pivot)
+	cage.add_child(gun_pivot)
 	_cylinder(&"metal", Vector3(0, -0.05, 0), Vector3(0, 0.0, 0), 0.12, 10)
 	_box(&"dark", Vector3(0, 0.08, -0.15), Vector3(0.2, 0.18, 0.7))
 	_cylinder(&"dark", Vector3(0, 0.08, -0.5), Vector3(0, 0.08, -1.45), 0.045, 8)
@@ -234,6 +253,17 @@ func _build_turret() -> void:
 	_box(&"jerrican", Vector3(0.18, 0.02, -0.15), Vector3(0.14, 0.2, 0.3))
 	_box(&"panel", Vector3(0, 0.12, -0.62), Vector3(0.62, 0.42, 0.04))
 	_commit("Gun", gun_pivot)
+
+
+## Antennes aux coins arrière, sur un pied commun qui les rabat.
+func _build_antennas() -> void:
+	antennas = Node3D.new()
+	antennas.name = "Antennas"
+	antennas.position = Vector3(0, 1.4, 2.35)
+	add_child(antennas)
+	for side: float in [-1.0, 1.0]:
+		_cylinder(&"dark", Vector3(side * 0.95, 0, 0), Vector3(side * 0.98, 2.0, 0.04), 0.012, 4)
+	_commit("Whips", antennas)
 
 
 ## Roue `index` : pivot de braquage (roues avant), roue qui tourne (pneu,

@@ -615,7 +615,12 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	# jusqu'au point visé.
 	var vehicle := _selected_vehicle()
 	if vehicle:
-		var problem := vehicle.drive_to(hit["position"])
+		# Clic sur un convertible : le Sabre monte dans sa soute.
+		var collider := hit["collider"] as Node
+		var aircraft := collider as Tiltrotor
+		if aircraft == null and collider:
+			aircraft = collider.get_parent() as Tiltrotor
+		var problem := vehicle.load_into(aircraft) if aircraft and aircraft != vehicle.stowed_in else vehicle.drive_to(hit["position"])
 		if problem == "":
 			_spawn_marker(hit["position"], marker_run_color if run else marker_color)
 		else:

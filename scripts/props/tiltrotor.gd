@@ -47,6 +47,9 @@ extends StaticBody3D
 ## stroboscope infrarouge, visible seulement en vision nocturne, le signale à
 ## l'équipe.
 ##
+## Soute à véhicule : un Sabre peut s'y garer (`cargo`, voir `Sabre.load_into`)
+## ; l'appareil l'emporte avec son équipage, comme ses passagers.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
@@ -175,6 +178,8 @@ var _revealed_left: float = 0.0
 var _strobe_time: float = 0.0
 ## Opérateur qui sert le canon latéral (null : personne).
 var gunner: Commando
+## Véhicule garé dans la soute (null : aucun).
+var cargo: Sabre
 var _gun: MountedGun
 
 
@@ -284,7 +289,11 @@ func cabin_contains(point: Vector3) -> bool:
 ## Place de la `index`-ième unité qui embarque : les unes derrière les
 ## autres, dans l'axe de la soute, de l'avant vers la rampe.
 func cabin_point(index: int = 0) -> Vector3:
-	var z := lerpf(TiltrotorModel.CABIN_FRONT + 1.0, TiltrotorModel.CABIN_BACK - 0.8, fposmod(index * 0.3, 1.0))
+	# Un véhicule garé à l'avant : les places commencent derrière lui.
+	var front := TiltrotorModel.CABIN_FRONT + 1.0
+	if cargo:
+		front = (Sabre.STOW_Z + 3.6) / SCALE
+	var z := lerpf(front, TiltrotorModel.CABIN_BACK - 0.8, fposmod(index * 0.3, 1.0))
 	return to_global(Vector3(0, TiltrotorModel.FLOOR, z) * SCALE)
 
 
@@ -392,6 +401,8 @@ func take_off(pilot: Commando) -> bool:
 		_passengers[vip] = to_local(vip.global_position)
 	if pilot:
 		pilot.stop()
+	if cargo:
+		_passengers[cargo] = to_local(cargo.global_position)
 	EventBus.noise_emitted.emit(global_position, ROTOR_NOISE, &"help")
 	var flight := create_tween()
 	flight.tween_property(model, "rotor_speed", FLIGHT_ROTOR_SPEED, SPIN_UP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -476,10 +487,10 @@ func _move_to_height(height: float, up: bool) -> void:
 func _arrived(up: bool) -> void:
 	is_moving = false
 	is_airborne = up
-	for unit: CharacterBody3D in _passengers:
-		if is_instance_valid(unit):
+	for unit: Node3D in _passengers:
+		if is_instance_valid(unit) and unit is CharacterBody3D:
 			unit.process_mode = Node.PROCESS_MODE_INHERIT
-			unit.velocity = Vector3.ZERO
+			(unit as CharacterBody3D).velocity = Vector3.ZERO
 	_passengers.clear()
 	for unit in passengers():
 		unit.airborne_in = self if up else null
@@ -497,6 +508,9 @@ func _carry(units: Array[Commando]) -> void:
 		unit.airborne_in = null
 		unit.process_mode = Node.PROCESS_MODE_DISABLED
 		_passengers[unit] = to_local(unit.global_position)
+	# Le véhicule garé dans la soute suit aussi.
+	if cargo:
+		_passengers[cargo] = to_local(cargo.global_position)
 
 
 ## Vrai si une unité se tient au sol sous l'emprise de l'appareil (sans les
@@ -585,8 +599,8 @@ func _show_rope(tip: Vector3, foot: Vector3) -> void:
 ## la coque redevient opaque.
 func _lift_passengers() -> void:
 	model.set_cutaway(false)
-	for unit: CharacterBody3D in _passengers:
-		if is_instance_valid(unit):
+	for unit: Node3D in _passengers:
+		if is_instance_valid(unit) and unit is CharacterBody3D:
 			unit.process_mode = Node.PROCESS_MODE_DISABLED
 
 

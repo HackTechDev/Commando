@@ -807,3 +807,11 @@
 - Menu de bord (clic milieu sur un passager) : descendre, tout le monde descend, prendre le volant, passer à la tourelle, ouvrir ou cesser le feu avec la 12,7 (`MountedGun`, tout autour du véhicule, 45 m).
 - Sauvegarde rapide : position, cap, équipage et feu de la tourelle.
 - Nouvelle carte « Patrouille Sabre » (désert) : piste du départ au point de ralliement, une patrouille et un poste de contrôle ; objectifs : conduire le Sabre au drapeau et neutraliser les gardes.
+
+## Sabre dans la soute du convertible
+
+- Clic droit sur un convertible posé, rampe abaissée, avec un passager du Sabre sélectionné : le véhicule roule jusque derrière la rampe, s'aligne, replie son arceau (tourelleau compris) et ses antennes, monte la rampe en épousant sa pente et se gare à l'avant de la soute (`Sabre.load_into`, `Tiltrotor.cargo`).
+- Le convertible l'emporte avec son équipage en vol stationnaire comme au décollage. Dans la soute, la 12,7 est muette ; on monte à bord et on en descend par l'arrière du véhicule.
+- Clic droit au sol, appareil posé et rampe abaissée : le Sabre redescend la rampe en marche arrière, redéploie l'arceau et file vers sa destination.
+- Sauvegarde rapide : véhicule garé ou non.
+- « Patrouille Sabre » : la mission commence à côté d'un convertible d'insertion, le Sabre garé dans sa soute (`Sabre.start_stowed_in`).
