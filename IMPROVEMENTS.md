@@ -127,7 +127,6 @@ Combat :
 
 Discrétion :
 
-- **8.9 Vol tous feux éteints** : la nuit, l'appareil n'a pas de lumière ; visible en vision nocturne, invisible aux ennemis tant qu'il est loin, seul le bruit le trahit.
 - **8.10 Hauteur et bruit** : plus il vole haut, moins le bruit porte (rayon `ROTOR_NOISE` selon la hauteur), mais plus le rappel est long.
 - **8.11 Diversion** : faire passer l'appareil d'un côté de la carte pour attirer les sentinelles pendant que l'équipe s'infiltre de l'autre.
 

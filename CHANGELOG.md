@@ -791,3 +791,10 @@
 - Les balles arrêtées par une caisse, un bidon ou un mur fragile les abîment : un ennemi abrité derrière reste une cible, l'abri cède vite.
 - Très bruyant : chaque rafale s'entend à 50 m.
 - Le servant qui quitte la soute (marche, rappel) ou tombe lâche le canon.
+
+## Vol tous feux éteints (8.9)
+
+- Sur une carte de nuit, le convertible vole feux de position éteints (`Tiltrotor.blacked_out`). Les ennemis ne le voient qu'à 14 m (au lieu de 1,5 fois leur portée de tir) ; le bruit des rotors, lui, porte toujours et les attire. Sur « Nuit sans lune », les gardes ouvrent le feu à la fin de l'approche plutôt qu'au milieu.
+- Une rafale du canon latéral trahit l'appareil pendant 3 s : il redevient visible de loin.
+- Un stroboscope infrarouge sur le dos de l'appareil clignote (un éclair toutes les 1,2 s), visible seulement en vision nocturne (`NightVision.viewing`) : l'équipe suit l'appareil, pas les ennemis.
+- Extraction : l'appareil cesse d'être une cible dès qu'il touche le sol (avant, les gardes tiraient encore pendant que les rotors ralentissaient).

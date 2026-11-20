@@ -41,6 +41,12 @@ extends StaticBody3D
 ## moins de `GUN_RANGE` ; les balles arrêtées par une caisse ou un mur
 ## fragile les abîment (un abri ne protège pas longtemps). Très bruyant.
 ##
+## Vol de nuit (`LevelRoot.night`) : tous feux éteints (`blacked_out`). Les
+## ennemis ne le voient qu'à `BLACKOUT_SIGHT` (le bruit des rotors porte
+## toujours), sauf quelques secondes après une rafale du canon. Un
+## stroboscope infrarouge, visible seulement en vision nocturne, le signale à
+## l'équipe.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
@@ -103,6 +109,13 @@ const GUN_AIM_TOLERANCE := 0.12
 const MASK_GUN := 0b11011
 ## Bouche du canon dans le repère de son pivot.
 const GUN_MUZZLE := Vector3(0.0, 0.02, -1.62)
+## Vol tous feux éteints : distance à laquelle un ennemi le voit, durée
+## (s) pendant laquelle une rafale du canon le trahit, cadence du
+## stroboscope infrarouge (période, éclair, s).
+const BLACKOUT_SIGHT := 14.0
+const MUZZLE_REVEAL := 3.0
+const STROBE_PERIOD := 1.2
+const STROBE_FLASH := 0.12
 ## Point visé par les tireurs (repère du modèle, avant mise à l'échelle).
 const AIM_POINT := Vector3(0.0, 2.2, 0.5)
 
@@ -158,6 +171,10 @@ var structure: float = STRUCTURE
 var is_disabled: bool = false
 var _smoke: Node3D
 var _gauge: Label3D
+## Vol de nuit : feux de position éteints.
+var blacked_out: bool = false
+var _revealed_left: float = 0.0
+var _strobe_time: float = 0.0
 ## Opérateur qui sert le canon latéral (null : personne).
 var gunner: Commando
 var _gun_target: Enemy
@@ -214,6 +231,8 @@ func _ready() -> void:
 	floor_body.add_child(_ramp_shape)
 	_ramp_shape.transform = _ramp_transform(false)
 	_landing = global_position
+	blacked_out = LevelRoot.is_night(self)
+	model.set_lights(not blacked_out)
 	if extraction:
 		_go_away()
 
@@ -680,9 +699,20 @@ func _update_gun(delta: float) -> void:
 	if _gun_rounds_left <= 0:
 		_gun_rounds_left = GUN_BURST
 		EventBus.noise_emitted.emit(global_position, GUN_NOISE, &"gunshot")
+	# Les éclairs du canon trahissent l'appareil, même tous feux éteints.
+	_revealed_left = MUZZLE_REVEAL
 	_gun_rounds_left -= 1
 	_gun_cooldown = GUN_ROUND_INTERVAL if _gun_rounds_left > 0 else GUN_BURST_PAUSE
 	_fire_gun_round(aim)
+
+
+## Stroboscope infrarouge : éclairs réguliers, vol de nuit, appareil visible,
+## pas détruit, et seulement à travers les jumelles de vision nocturne.
+func _update_strobe(delta: float) -> void:
+	var lit := blacked_out and visible and not is_destroyed and NightVision.viewing
+	if lit:
+		_strobe_time = fmod(_strobe_time + delta, STROBE_PERIOD)
+	model.ir_strobe.visible = lit and _strobe_time < STROBE_FLASH
 
 
 ## Ennemi debout le plus proche que le canon peut atteindre, ou null.
@@ -736,6 +766,14 @@ func is_in_air() -> bool:
 	return not is_destroyed and not is_flying and not is_away and (is_inbound or is_moving or is_airborne)
 
 
+## Distance à laquelle un tireur ennemi voit l'appareil, au plus `reach` :
+## courte tous feux éteints, sauf juste après une rafale du canon.
+func sight_range(reach: float) -> float:
+	if blacked_out and _revealed_left <= 0.0:
+		return minf(reach, BLACKOUT_SIGHT)
+	return reach
+
+
 ## Point visé par les tireurs (monde).
 func aim_point() -> Vector3:
 	return to_global(AIM_POINT * SCALE)
@@ -745,7 +783,7 @@ func aim_point() -> Vector3:
 ## est le premier obstacle sur la ligne).
 func exposed_to(eye: Vector3, reach: float) -> bool:
 	var target := aim_point()
-	if eye.distance_to(target) > reach:
+	if eye.distance_to(target) > sight_range(reach):
 		return false
 	var query := PhysicsRayQueryParameters3D.create(eye, target, LAYER_OCCLUDERS)
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
@@ -907,8 +945,9 @@ func _over_landing() -> void:
 	ground_y = _landing.y
 	_flight = create_tween()
 	_flight.tween_property(self, "global_position:y", ground_y, HOVER_TIME).set_trans(Tween.TRANS_SINE)
-	_flight.tween_property(model, "rotor_speed", 0.0, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# Posé dès le contact (plus une cible) ; les rotors ralentissent ensuite.
 	_flight.tween_callback(_touched_down)
+	_flight.tween_property(model, "rotor_speed", 0.0, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 ## Posé : solide, rampe abaissée pour l'embarquement.
@@ -966,6 +1005,8 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(unit):
 			unit.global_position = to_global(_passengers[unit])
 	_update_gun(delta)
+	_revealed_left = maxf(_revealed_left - delta, 0.0)
+	_update_strobe(delta)
 	if is_inbound:
 		# Bruit des rotors au sol sous l'appareil : les ennemis accourent.
 		_noise_left -= delta

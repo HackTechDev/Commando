@@ -44,6 +44,9 @@ void fragment() {
 
 ## Vrai quand le filtre est affiché.
 var active: bool = false
+## Vision nocturne affichée dans la partie en cours (stroboscopes
+## infrarouges visibles, `Tiltrotor`).
+static var viewing: bool = false
 var _filter: ColorRect
 
 
@@ -77,11 +80,16 @@ func is_available() -> bool:
 ## Allume ou éteint les JVN (refusé sans opérateur qui en porte).
 func set_active(value: bool) -> void:
 	active = value and is_available()
+	viewing = active
 	_filter.visible = active
 	for node in get_tree().get_nodes_in_group(&"commandos"):
 		var unit := node as Commando
 		if unit and unit.profile and unit.profile.wears_nvg():
 			unit.set_nvg_lowered(active)
+
+
+func _exit_tree() -> void:
+	viewing = false
 
 
 func _unhandled_input(event: InputEvent) -> void:

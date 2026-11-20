@@ -91,6 +91,9 @@ var _body: MeshInstance3D
 var ramp_pivot: Node3D
 ## Pivot du canon latéral (bouche vers -Z).
 var door_gun: Node3D
+## Stroboscope infrarouge : visible seulement en vision nocturne.
+var ir_strobe: MeshInstance3D
+var _lights: MeshInstance3D
 var _ramp_tween: Tween
 var _cut: float = 0.0
 var _cut_goal: float = 0.0
@@ -567,4 +570,23 @@ func _build_lights() -> void:
 		_box(key, Vector3(at.x + signf(at.x) * 0.45, NACELLE_TOP - 0.15, at.y - 0.6), Vector3(0.1, 0.1, 0.1))
 		_box(&"white", Vector3(at.x, NACELLE_BOTTOM - 0.02, at.y), Vector3(0.18, 0.04, 0.18))
 	_box(&"red", Vector3(0, 2.1, -8.32), Vector3(0.18, 0.08, 0.04))
-	_commit("Lights")
+	_lights = _commit("Lights")
+	# Stroboscope infrarouge sur le dos (`Tiltrotor` le fait clignoter).
+	ir_strobe = MeshInstance3D.new()
+	ir_strobe.name = "IrStrobe"
+	var bulb := BoxMesh.new()
+	bulb.size = Vector3(0.4, 0.2, 0.4)
+	ir_strobe.mesh = bulb
+	var glow := StandardMaterial3D.new()
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow.albedo_color = Color(1.0, 1.0, 1.0)
+	ir_strobe.material_override = glow
+	ir_strobe.position = Vector3(0, 4.15, 1.0)
+	ir_strobe.visible = false
+	add_child(ir_strobe)
+
+
+## Feux de position allumés ou éteints (vol de nuit tous feux éteints).
+func set_lights(on: bool) -> void:
+	if _lights:
+		_lights.visible = on
