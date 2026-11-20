@@ -63,7 +63,7 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Base aérienne",
 		"scene": "res://scenes/levels/airbase/airbase.tscn",
-		"description": "Un convertible quadrirotor est posé au centre d'une base gardée par sept soldats : deux patrouilles, des sentinelles autour de la plateforme, un garde dans le hangar, au poste et devant l'armurerie (verrouillée). Alpha et Charlie ont chacun une charge explosive : la poser contre l'appareil, s'éloigner (le réservoir saute à son tour), puis la faire sauter.",
+		"description": "Un convertible quadrirotor est posé au centre d'une base gardée par sept soldats : deux patrouilles, des sentinelles autour de la plateforme, un garde dans le hangar, au poste et devant l'armurerie (verrouillée). Alpha et Charlie ont chacun une charge explosive : la poser contre l'appareil, s'éloigner (le réservoir saute à son tour), puis la faire sauter. On peut aussi monter dans la soute par la rampe arrière.",
 		"camo": "desert",
 		"objectives": [
 			{"id": "aircraft_destroyed", "text": "Détruire le convertible (charge explosive)"},

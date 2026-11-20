@@ -283,6 +283,8 @@ func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
 		return GameCursor.Kind.DEFAULT
 	if _climbable_at(hit):
 		return GameCursor.Kind.CLIMB
+	if hit["collider"] is Tiltrotor:
+		return GameCursor.Kind.ORDERS
 	return GameCursor.Kind.DEFAULT if _is_reachable(hit["position"]) else GameCursor.Kind.FORBIDDEN
 
 
@@ -578,6 +580,13 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
 		return
+	# Convertible : on embarque (la soute, par la rampe arrière).
+	var aircraft := hit["collider"] as Tiltrotor
+	if aircraft:
+		var cabin := aircraft.cabin_point()
+		SelectionManager.order_board(aircraft, run)
+		_spawn_marker(cabin, marker_run_color if run else marker_color)
+		return
 	# Caisse, ou dessus d'un mur où l'on peut se tenir (corniche). Un bidon
 	# ne se gravit pas : on va à côté.
 	var climbable := _climbable_at(hit)
@@ -819,7 +828,8 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	# Un toit effacé (opérateur à l'intérieur) ou le haut des murs d'un
 	# bâtiment vu en coupe laissent passer les clics vers l'intérieur.
 	while not hit.is_empty() and (Roof.is_revealed_body(hit["collider"], hit["position"]) \
-			or Building.is_revealed_body(hit["collider"], hit["position"])):
+			or Building.is_revealed_body(hit["collider"], hit["position"]) \
+			or Tiltrotor.is_revealed_body(hit["collider"])):
 		query.exclude += [hit["rid"]]
 		hit = space.intersect_ray(query)
 	return hit

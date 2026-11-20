@@ -828,6 +828,8 @@ func is_hidden_body() -> bool:
 	for roof in get_tree().get_nodes_in_group(&"roofs"):
 		if roof is Roof and (roof as Roof).covers(global_position + Vector3.UP * 0.3):
 			return true
+	if Tiltrotor.cabin_at(get_tree(), global_position + Vector3.UP * 0.3) != null:
+		return true
 	return Building.at(get_tree(), global_position + Vector3.UP * 0.3) != null
 
 

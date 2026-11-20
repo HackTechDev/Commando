@@ -701,3 +701,9 @@
 - `Tiltrotor` : l'appareil posé au sol, obstacle (marche, vue, balles) et cible : une explosion près de la coque (charge, grenade) le détruit ; le réservoir saute à son tour (rayon 7 m), l'épave brûle et fume, l'objectif `aircraft_destroyed` est rempli et la mission réussie 3 s plus tard. Sauvegarde rapide de l'état.
 - Carte « Base aérienne » (`scenes/levels/airbase/`) : plateforme et convertible au centre, hangar (échelle vers le toit), poste de garde, armurerie verrouillée, murets, caisses, buissons, clôture sud à deux brèches ; sept soldats (deux patrouilles, cinq sentinelles). Objectifs : détruire le convertible sans perdre d'opérateur.
 - `Commando.mission_explosives` : charges fournies par le niveau, en plus de l'équipement choisi (Alpha et Charlie en ont une sur la base aérienne).
+
+## Convertible agrandi, soute accessible
+
+- L'appareil est agrandi d'un quart (`Tiltrotor.SCALE`, environ 21 m de long) ; la plateforme de la base aérienne et ses abords suivent (rayon 13,5 m, ronde, murets et caisses écartés).
+- Soute ouverte : queue relevée, rampe abaissée jusqu'au sol (bandes jaunes, vérins), plancher, bancs, cloison du cockpit. La collision est creuse (nez, parois, toit, dessus de la queue ; plancher et rampe à part) : la navigation monte la rampe et couvre le plancher.
+- Clic droit sur l'appareil : la sélection embarque, les unités à la file dans l'axe de la soute (`SelectionManager.order_board`). Opérateur à bord : coque translucide sans ombre, clics qui la traversent jusqu'au plancher ; les parois le cachent des ennemis (sauf par l'arrière ouvert). Un corps déposé dans la soute est caché.

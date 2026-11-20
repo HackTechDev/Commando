@@ -15,7 +15,7 @@
 
 [sub_resource type="Curve3D" id="patrol_pad"]
 _data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -10, 0, -17, 0, 0, 0, 0, 0, 0, 10, 0, -17, 0, 0, 0, 0, 0, 0, 10, 0, 6, 0, 0, 0, 0, 0, 0, -10, 0, 6),
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -13, 0, -18, 0, 0, 0, 0, 0, 0, 13, 0, -18, 0, 0, 0, 0, 0, 0, 13, 0, 13.5, 0, 0, 0, 0, 0, 0, -13, 0, 13.5),
 "tilts": PackedFloat32Array(0, 0, 0, 0)
 }
 point_count = 4
@@ -65,8 +65,8 @@ roughness = 0.95
 
 [sub_resource type="CylinderMesh" id="pad_mesh"]
 material = SubResource("pad_mat")
-top_radius = 11.0
-bottom_radius = 11.0
+top_radius = 13.5
+bottom_radius = 13.5
 height = 0.02
 radial_segments = 48
 
@@ -76,8 +76,8 @@ roughness = 0.8
 
 [sub_resource type="TorusMesh" id="ring_mesh"]
 material = SubResource("paint_mat")
-inner_radius = 10.3
-outer_radius = 10.7
+inner_radius = 12.8
+outer_radius = 13.2
 rings = 48
 ring_segments = 4
 
@@ -174,23 +174,23 @@ windows = Array[Vector2]([Vector2(0, 1.5)])
 wall_color = Color(0.55, 0.56, 0.52, 1)
 
 [node name="Sandbags1" parent="NavigationRegion3D" instance=ExtResource("9")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 8)
-length = 4.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 9)
+length = 3.0
 
 [node name="Sandbags2" parent="NavigationRegion3D" instance=ExtResource("9")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, 8)
-length = 4.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 9)
+length = 3.0
 
 [node name="Sandbags3" parent="NavigationRegion3D" instance=ExtResource("9")]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -14, 0, -6)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -15.5, 0, -6)
 length = 4.0
 
 [node name="Sandbags4" parent="NavigationRegion3D" instance=ExtResource("9")]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 14, 0, -6)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 15.5, 0, -6)
 length = 4.0
 
 [node name="Sandbags5" parent="NavigationRegion3D" instance=ExtResource("9")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 13)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 15.5)
 length = 5.0
 
 [node name="Crate1" parent="NavigationRegion3D" instance=ExtResource("5")]
@@ -214,10 +214,10 @@ skin = "tex_base/ecrate_dunno.jpg"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -3)
 
 [node name="Crate7" parent="NavigationRegion3D" instance=ExtResource("5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 14)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 15.5)
 
 [node name="Crate8" parent="NavigationRegion3D" instance=ExtResource("5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 17.5)
 skin = "tex_base/ecrate_dunno.jpg"
 
 [node name="Crate9" parent="NavigationRegion3D" instance=ExtResource("5")]
@@ -298,7 +298,7 @@ curve = SubResource("patrol_fence")
 [node name="Enemies" type="Node3D" parent="."]
 
 [node name="PadPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -10, 0, -17)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -13, 0, -18)
 patrol_path = NodePath("../../PatrolPaths/PatrolPad")
 
 [node name="FencePatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
@@ -306,7 +306,7 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -28, 0, 17)
 patrol_path = NodePath("../../PatrolPaths/PatrolFence")
 
 [node name="PadSentryNorth" parent="Enemies" instance=ExtResource("7")]
-transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 6, 0, -15)
+transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 6, 0, -20)
 
 [node name="PadSentrySouth" parent="Enemies" instance=ExtResource("7")]
 transform = Transform3D(-0.9397, 0, 0.342, 0, 1, 0, -0.342, 0, -0.9397, -7, 0, 9)

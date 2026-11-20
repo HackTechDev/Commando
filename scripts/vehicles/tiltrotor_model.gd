@@ -5,8 +5,11 @@ extends Node3D
 ## nacelles hautes et chanfreinées portant chacune un rotor, tourelle sous le
 ## menton, canon latéral, crochets d'élingage et train d'atterrissage.
 ##
-## Repère : l'avant vers -Z, posé au sol (y = 0) ; environ 16 m de long et
-## 17 m d'envergure rotors compris. Les facettes sont en ombrage plat ; les
+## Repère : l'avant vers -Z, posé au sol (y = 0) ; environ 17 m de long et
+## 17 m d'envergure rotors compris (avant mise à l'échelle par `Tiltrotor`).
+## Soute ouverte à l'arrière : la queue relevée laisse passer une rampe
+## abaissée jusqu'au sol ; plancher, bancs et cloison du cockpit à l'intérieur
+## (`Interior`, qui reste opaque quand la coque devient translucide). Les facettes sont en ombrage plat ; les
 ## rotors tournent à `rotor_speed` tours par seconde (disque flou au-delà de
 ## `BLUR_SPEED`).
 
@@ -32,10 +35,26 @@ const HULL: Array[Array] = [
 	[-4.6, 1.45, 1.1, 3.35, 0.6, 0.45],
 	[-3.0, 1.65, 1.0, 3.6, 0.6, 0.5],
 	[2.5, 1.7, 1.0, 3.55, 0.6, 0.5],
-	[5.0, 1.45, 1.25, 3.4, 0.55, 0.45],
-	[7.0, 0.9, 1.9, 3.2, 0.35, 0.3],
-	[8.0, 0.45, 2.35, 3.0, 0.15, 0.15],
+	[5.0, 1.65, 1.05, 3.5, 0.55, 0.3],
+	[7.0, 1.45, 2.65, 3.45, 0.35, 0.2],
+	[8.3, 1.0, 3.0, 3.35, 0.15, 0.1],
 ]
+## Soute : plancher (hauteur), de la cloison du cockpit à la rampe (z),
+## demi-largeur intérieure ; rampe abaissée jusqu'au sol en `RAMP_END`.
+const FLOOR := 1.15
+const CABIN_FRONT := -3.2
+const CABIN_BACK := 5.0
+const CABIN_HALF_WIDTH := 1.5
+const CABIN_CEILING := 3.4
+## Hauteur des parois intérieures (sous les chanfreins hauts de la coque).
+const CABIN_WALL_TOP := 2.9
+const RAMP_END := 8.8
+const RAMP_HALF_WIDTH := 1.3
+## Facettes de dessous de la queue, ouvertes sur la soute : (section,
+## segment) des chanfreins bas et du fond.
+const TAIL_OPENING: Array[Vector2i] = [Vector2i(6, 2), Vector2i(6, 3), Vector2i(6, 4), Vector2i(7, 2), Vector2i(7, 3), Vector2i(7, 4)]
+## Transparence de la coque quand un opérateur est à bord.
+const CUTAWAY := 0.85
 ## Facettes vitrées : (section de départ, segment de l'anneau).
 const GLASS: Array[Vector2i] = [Vector2i(2, 0), Vector2i(2, 6), Vector2i(3, 0), Vector2i(3, 6)]
 
@@ -58,6 +77,9 @@ var hull_material: StandardMaterial3D
 var _materials: Dictionary = {}
 var _tools: Dictionary = {}
 var _blur_discs: Array[MeshInstance3D] = []
+var _body: MeshInstance3D
+var _cut: float = 0.0
+var _cut_goal: float = 0.0
 
 
 func _ready() -> void:
@@ -66,6 +88,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if not is_equal_approx(_cut, _cut_goal):
+		_cut = move_toward(_cut, _cut_goal, delta * 3.0)
+		if _body:
+			_body.transparency = _cut
 	if rotor_speed == 0.0:
 		return
 	for i in rotors.size():
@@ -73,6 +99,20 @@ func _process(delta: float) -> void:
 		rotors[i].rotate_y(direction * rotor_speed * TAU * delta)
 	for disc in _blur_discs:
 		disc.visible = absf(rotor_speed) >= BLUR_SPEED
+
+
+## Opérateur à bord : la coque devient translucide (fondu) pour montrer la
+## soute.
+func set_cutaway(cut: bool) -> void:
+	_cut_goal = CUTAWAY if cut else 0.0
+	# Sans quoi l'ombre de la coque noie la soute.
+	if _body:
+		_body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if cut else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+## Vrai si la coque est (en partie) translucide.
+func is_cut() -> bool:
+	return _cut_goal > 0.0
 
 
 ## Appareil détruit : coque calcinée, pales tordues.
@@ -98,6 +138,8 @@ func _make_materials() -> void:
 	hull_material.albedo_color = COLORS[livery]
 	hull_material.roughness = 0.75
 	hull_material.metallic = 0.25
+	# Vue de la soute par l'arrière : l'intérieur de la coque se voit aussi.
+	hull_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	if livery == Livery.WINTER:
 		hull_material.albedo_color = Color.WHITE
 		hull_material.albedo_texture = _winter_camo()
@@ -111,6 +153,8 @@ func _make_materials() -> void:
 	_materials[&"glass"] = glass
 	_materials[&"yellow"] = _plain(Color(0.85, 0.62, 0.1), 0.5, 0.4)
 	_materials[&"tyre"] = _plain(Color(0.07, 0.07, 0.07), 0.95, 0.0)
+	_materials[&"floor"] = _plain(Color(0.2, 0.21, 0.2), 0.9, 0.3)
+	_materials[&"seat"] = _plain(Color(0.28, 0.3, 0.24), 0.95, 0.0)
 	_materials[&"red"] = _glow(Color(1.0, 0.12, 0.08))
 	_materials[&"green"] = _glow(Color(0.15, 1.0, 0.3))
 	_materials[&"white"] = _glow(Color(1.0, 0.95, 0.85))
@@ -157,7 +201,9 @@ func _build() -> void:
 		_build_nacelle(i)
 	_build_weapons()
 	_build_gear()
-	_commit("Body")
+	_body = _commit("Body")
+	_build_interior()
+	_commit("Interior")
 	for i in NACELLES.size():
 		_build_rotor(i)
 	_build_lights()
@@ -218,7 +264,9 @@ func _loft(rings: Array[PackedVector3Array], material_for: Callable = Callable()
 		for i in a.size():
 			var j := (i + 1) % a.size()
 			var key: StringName = material_for.call(s, i) if material_for.is_valid() else &"hull"
-			_quad(key, a[i], a[j], b[j], b[i], inside)
+			# Clé vide : facette ouverte.
+			if key != &"":
+				_quad(key, a[i], a[j], b[j], b[i], inside)
 	var cap_key: StringName = material_for.call(0, 0) if material_for.is_valid() else &"hull"
 	var middle := (_centroid(rings[0]) + _centroid(rings[rings.size() - 1])) * 0.5
 	for cap: PackedVector3Array in [rings[0], rings[rings.size() - 1]]:
@@ -286,6 +334,8 @@ func _build_hull() -> void:
 	for s in HULL:
 		rings.append(ring(Vector3(0, 0, s[0]), Vector3.RIGHT, Vector3.UP, s[1], s[2], s[3], s[4], s[5]))
 	_loft(rings, func(section: int, segment: int) -> StringName:
+		if TAIL_OPENING.has(Vector2i(section, segment)):
+			return &""
 		return &"glass" if GLASS.has(Vector2i(section, segment)) else &"hull")
 	# Dos : carénage de transmission entre les ailes.
 	var spine: Array[PackedVector3Array] = []
@@ -294,7 +344,7 @@ func _build_hull() -> void:
 	_loft(spine)
 	# Flancs bas, élargis (logements du train).
 	var sponson: Array[PackedVector3Array] = []
-	for s: Array in [[-2.0, 1.2, 1.15, 1.6], [-1.2, 2.05, 1.0, 2.1], [3.2, 2.05, 1.0, 2.1], [4.2, 1.3, 1.2, 1.7]]:
+	for s: Array in [[-2.0, 1.2, 1.15, 1.6], [-1.2, 2.05, 1.0, 2.1], [3.2, 2.05, 1.0, 2.1], [4.2, 1.7, 1.05, 1.6]]:
 		sponson.append(ring(Vector3(0, 0, s[0]), Vector3.RIGHT, Vector3.UP, s[1], s[2], s[3], 0.45, 0.25))
 	_loft(sponson)
 	# Hublots latéraux et trappe arrière.
@@ -302,6 +352,49 @@ func _build_hull() -> void:
 		for z: float in [-1.4, 0.4]:
 			_box(&"dark", Vector3(side * 1.71, 2.75, z), Vector3(0.04, 0.4, 0.6))
 		_box(&"panel", Vector3(side * 2.06, 1.55, 1.0), Vector3(0.03, 0.55, 2.6))
+
+
+## Soute : plancher, bancs le long des flancs, cloison du cockpit, rampe
+## abaissée (bandes jaunes sur les bords) et ses vérins.
+func _build_interior() -> void:
+	var length := CABIN_BACK - CABIN_FRONT
+	var middle := (CABIN_FRONT + CABIN_BACK) * 0.5
+	_box(&"floor", Vector3(0, FLOOR - 0.04, middle), Vector3(CABIN_HALF_WIDTH * 2.0, 0.08, length))
+	# Cloison du cockpit, au profil de la coque (un peu en retrait).
+	var bulkhead: Array[PackedVector3Array] = []
+	for dz: float in [0.0, 0.1]:
+		bulkhead.append(ring(Vector3(0, 0, CABIN_FRONT + dz), Vector3.RIGHT, Vector3.UP, 1.55, FLOOR, 3.5, 0.62, 0.0))
+	_loft(bulkhead, func(_s: int, _i: int) -> StringName: return &"dark")
+	for side: float in [-1.0, 1.0]:
+		# Paroi intérieure, banc et dossier en toile.
+		_box(&"panel", Vector3(side * (CABIN_HALF_WIDTH + 0.03), (FLOOR + CABIN_WALL_TOP) * 0.5, middle), Vector3(0.06, CABIN_WALL_TOP - FLOOR, length))
+		_box(&"seat", Vector3(side * (CABIN_HALF_WIDTH - 0.25), FLOOR + 0.42, middle + 0.4), Vector3(0.45, 0.08, length - 2.0))
+		_box(&"seat", Vector3(side * (CABIN_HALF_WIDTH - 0.04), FLOOR + 0.8, middle + 0.4), Vector3(0.05, 0.6, length - 2.0))
+		for k in 5:
+			var z := CABIN_FRONT + 1.6 + k * (length - 2.4) / 4.0
+			_box(&"dark", Vector3(side * (CABIN_HALF_WIDTH - 0.25), FLOOR + 0.2, z), Vector3(0.04, 0.4, 0.04))
+	# Rampe : du bord du plancher jusqu'au sol.
+	var top := Vector3(0, FLOOR, CABIN_BACK)
+	var foot := Vector3(0, 0.02, RAMP_END)
+	var along := foot - top
+	var normal := along.cross(Vector3.RIGHT).normalized()
+	if normal.y < 0.0:
+		normal = -normal
+	var corners: Array[Vector3] = []
+	for point in [top, foot]:
+		for side: float in [-1.0, 1.0]:
+			corners.append(point + Vector3(side * RAMP_HALF_WIDTH, 0, 0))
+	var thickness := normal * -0.1
+	var ramp: Array[PackedVector3Array] = [
+		PackedVector3Array([corners[0], corners[1], corners[1] + thickness, corners[0] + thickness]),
+		PackedVector3Array([corners[2], corners[3], corners[3] + thickness, corners[2] + thickness]),
+	]
+	_loft(ramp, func(_s: int, _i: int) -> StringName: return &"floor")
+	for side: float in [-1.0, 1.0]:
+		var edge := Vector3(side * (RAMP_HALF_WIDTH - 0.1), 0.01, 0)
+		_quad(&"yellow", top + edge + Vector3(-0.08, 0.005, 0), top + edge + Vector3(0.08, 0.005, 0), foot + edge + Vector3(0.08, 0.005, 0), foot + edge + Vector3(-0.08, 0.005, 0), top + edge - normal)
+		# Vérin entre la queue et la rampe.
+		_cylinder(&"dark", Vector3(side * 1.2, 2.7, 6.2), Vector3(side * 1.2, 0.75, 6.4), 0.06, 6)
 
 
 func _build_wings() -> void:

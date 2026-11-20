@@ -6,9 +6,17 @@ extends StaticBody3D
 ## l'épave brûle, l'objectif `objective_id` est rempli et, si `ends_mission`,
 ## la mission est réussie peu après.
 ##
-## Repère : celui du modèle (avant vers -Z, posé au sol).
+## On entre dans la soute par la rampe arrière : la coque est creuse (parois,
+## toit, plancher), la navigation monte la rampe. Un opérateur à bord rend
+## la coque translucide ; les clics la traversent alors (`is_revealed_body`)
+## pour atteindre le plancher. Un corps déposé dans la soute est caché.
+##
+## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
+## Mise à l'échelle du modèle (et de ses formes).
+const SCALE := 1.25
+const CHECK_INTERVAL := 0.1
 const LAYER_OCCLUDERS := 0b10
 ## Une explosion détruit l'appareil si la coque est à moins de cette part de
 ## son rayon d'effet.
@@ -32,7 +40,11 @@ var is_destroyed: bool = false
 var model: TiltrotorModel
 ## Boîtes de la coque (repère local) : fuselage, ailes, nacelles.
 var hull_boxes: Array[AABB] = []
+## Plancher de la soute et rampe : corps à part, que les clics atteignent à
+## travers la coque translucide.
+var floor_body: StaticBody3D
 var _fire: Node3D
+var _check_left: float = 0.0
 
 
 func _enter_tree() -> void:
@@ -50,22 +62,103 @@ func _ready() -> void:
 	model.blade_count = blade_count
 	model.rotor_speed = rotor_speed
 	add_child(model)
-	# Fuselage jusqu'au sol (on ne passe pas dessous), ailes, nacelles
-	# jusqu'au sol aussi.
-	hull_boxes.append(AABB(Vector3(-2.1, 0.0, -8.3), Vector3(4.2, 4.0, 16.3)))
+	model.scale = Vector3.ONE * SCALE
+	var half := TiltrotorModel.CABIN_HALF_WIDTH
+	# Coque creuse : nez (cockpit), parois, toit, dessus de la queue.
+	_add_box(self, AABB(Vector3(-1.75, 0.0, -8.3), Vector3(3.5, 3.6, TiltrotorModel.CABIN_FRONT + 8.3)))
+	for side: float in [-1.0, 1.0]:
+		var inner := half if side > 0.0 else -2.1
+		_add_box(self, AABB(Vector3(inner, TiltrotorModel.FLOOR, TiltrotorModel.CABIN_FRONT), Vector3(2.1 - half, 3.6 - TiltrotorModel.FLOOR, 7.6 - TiltrotorModel.CABIN_FRONT)))
+	_add_box(self, AABB(Vector3(-2.1, TiltrotorModel.CABIN_CEILING, TiltrotorModel.CABIN_FRONT), Vector3(4.2, 0.4, TiltrotorModel.CABIN_BACK - TiltrotorModel.CABIN_FRONT)))
+	_add_box(self, AABB(Vector3(-1.6, 2.75, TiltrotorModel.CABIN_BACK), Vector3(3.2, 0.75, 8.4 - TiltrotorModel.CABIN_BACK)))
+	# Ailes, de part et d'autre du fuselage (pas dans la soute).
 	for z in TiltrotorModel.WINGS:
 		var span := absf(TiltrotorModel.NACELLES[0 if z < 0.0 else 2].x)
-		hull_boxes.append(AABB(Vector3(-span, TiltrotorModel.WING_HEIGHT - 0.3, z - 1.2), Vector3(span * 2.0, 0.6, 2.4)))
+		for side: float in [-1.0, 1.0]:
+			var from := 2.1 if side > 0.0 else -span
+			_add_box(self, AABB(Vector3(from, TiltrotorModel.WING_HEIGHT - 0.3, z - 1.2), Vector3(span - 2.1, 0.6, 2.4)))
 	for at in TiltrotorModel.NACELLES:
-		var half := TiltrotorModel.NACELLE_HALF
-		hull_boxes.append(AABB(Vector3(at.x - half.x, 0.0, at.y - half.y), Vector3(half.x * 2.0, TiltrotorModel.NACELLE_TOP, half.y * 2.0)))
-	for box in hull_boxes:
-		var shape := CollisionShape3D.new()
-		var cube := BoxShape3D.new()
-		cube.size = box.size
-		shape.shape = cube
-		shape.position = box.get_center()
-		add_child(shape)
+		var nacelle := TiltrotorModel.NACELLE_HALF
+		_add_box(self, AABB(Vector3(at.x - nacelle.x, 0.0, at.y - nacelle.y), Vector3(nacelle.x * 2.0, TiltrotorModel.NACELLE_TOP, nacelle.y * 2.0)))
+	# Plancher (jusqu'au sol : on ne passe pas sous l'appareil) et rampe.
+	floor_body = StaticBody3D.new()
+	floor_body.name = "Floor"
+	floor_body.collision_layer = LAYER_OCCLUDERS
+	floor_body.collision_mask = 0
+	add_child(floor_body)
+	_add_box(floor_body, AABB(Vector3(-2.1, 0.0, TiltrotorModel.CABIN_FRONT), Vector3(4.2, TiltrotorModel.FLOOR, TiltrotorModel.CABIN_BACK - TiltrotorModel.CABIN_FRONT)))
+	var top := Vector3(0, TiltrotorModel.FLOOR, TiltrotorModel.CABIN_BACK) * SCALE
+	var foot := Vector3(0, 0.0, TiltrotorModel.RAMP_END) * SCALE
+	var ramp := CollisionShape3D.new()
+	var slab := BoxShape3D.new()
+	slab.size = Vector3(TiltrotorModel.RAMP_HALF_WIDTH * 2.0 * SCALE, 0.1, top.distance_to(foot))
+	ramp.shape = slab
+	ramp.rotation.x = atan2(top.y - foot.y, foot.z - top.z)
+	ramp.position = (top + foot) * 0.5 + ramp.basis.y * -0.05
+	floor_body.add_child(ramp)
+
+
+## Ajoute à `body` une forme pour la boîte `box` (repère du modèle, avant
+## mise à l'échelle) ; la garde pour `distance_to_hull`.
+func _add_box(body: StaticBody3D, box: AABB) -> void:
+	var scaled := AABB(box.position * SCALE, box.size * SCALE)
+	hull_boxes.append(scaled)
+	var shape := CollisionShape3D.new()
+	var cube := BoxShape3D.new()
+	cube.size = scaled.size
+	shape.shape = cube
+	shape.position = scaled.get_center()
+	body.add_child(shape)
+
+
+## Soute (repère local) : du plancher au plafond, de la cloison au haut de
+## la rampe.
+func cabin_box() -> AABB:
+	return AABB(Vector3(-TiltrotorModel.CABIN_HALF_WIDTH, TiltrotorModel.FLOOR - 0.3, TiltrotorModel.CABIN_FRONT) * SCALE,
+		Vector3(TiltrotorModel.CABIN_HALF_WIDTH * 2.0, TiltrotorModel.CABIN_CEILING - TiltrotorModel.FLOOR + 0.3, TiltrotorModel.CABIN_BACK - TiltrotorModel.CABIN_FRONT) * SCALE)
+
+
+## Vrai si `point` (monde) est dans la soute.
+func cabin_contains(point: Vector3) -> bool:
+	return cabin_box().has_point(to_local(point))
+
+
+## Place de la `index`-ième unité qui embarque : les unes derrière les
+## autres, dans l'axe de la soute, de l'avant vers la rampe.
+func cabin_point(index: int = 0) -> Vector3:
+	var z := lerpf(TiltrotorModel.CABIN_FRONT + 1.0, TiltrotorModel.CABIN_BACK - 0.8, fposmod(index * 0.3, 1.0))
+	return to_global(Vector3(0, TiltrotorModel.FLOOR, z) * SCALE)
+
+
+## Appareil dont la soute contient `point`, ou null.
+static func cabin_at(tree: SceneTree, point: Vector3) -> Tiltrotor:
+	for node in tree.get_nodes_in_group(GROUP):
+		var aircraft := node as Tiltrotor
+		if aircraft and aircraft.cabin_contains(point):
+			return aircraft
+	return null
+
+
+## Vrai si `collider` est la coque d'un appareil translucide (opérateur à
+## bord) : les clics la traversent jusqu'au plancher.
+static func is_revealed_body(collider: Object) -> bool:
+	var aircraft := collider as Tiltrotor
+	return aircraft != null and aircraft.model.is_cut()
+
+
+func _physics_process(delta: float) -> void:
+	_check_left -= delta
+	if _check_left > 0.0:
+		return
+	_check_left = CHECK_INTERVAL
+	var aboard := false
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and cabin_contains(unit.global_position + Vector3.UP * 0.3):
+			aboard = true
+			break
+	if aboard != model.is_cut():
+		model.set_cutaway(aboard)
 
 
 ## Distance de `point` (monde) à la coque.

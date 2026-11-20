@@ -112,6 +112,14 @@ func order_move(target: Vector3, run: bool) -> void:
 		_issue(selected[i], selected[i].move_to.bind(point, run), point, &"move")
 
 
+## Fait embarquer les unités sélectionnées dans la soute de `aircraft`, les
+## unes derrière les autres.
+func order_board(aircraft: Tiltrotor, run: bool) -> void:
+	for i in selected.size():
+		var point := aircraft.cabin_point(i)
+		_issue(selected[i], selected[i].move_to.bind(point, run), point, &"move")
+
+
 ## Ordonne aux unités sélectionnées une rafale de tir libre sur `target`
 ## (mur, objet, sol). Renvoie vrai si au moins une a obéi.
 func order_fire_at(target: Vector3, run: bool = false) -> bool:
