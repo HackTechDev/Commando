@@ -114,6 +114,15 @@ func order_move(target: Vector3, run: bool) -> void:
 
 ## Fait embarquer les unités sélectionnées dans la soute de `aircraft`, les
 ## unes derrière les autres.
+## Envoie les unités sélectionnées (pas encore à bord) monter dans `sabre`.
+## Renvoie vrai si au moins une a obéi.
+func order_mount(sabre: Sabre, run: bool) -> bool:
+	var any := false
+	for unit in selected:
+		any = sabre.request_board(unit, run) or any
+	return any
+
+
 func order_board(aircraft: Tiltrotor, run: bool) -> void:
 	for i in selected.size():
 		var point := aircraft.cabin_point(i)

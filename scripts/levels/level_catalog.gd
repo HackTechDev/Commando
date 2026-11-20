@@ -95,6 +95,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Patrouille Sabre",
+		"scene": "res://scenes/levels/patrol/patrol.tscn",
+		"description": "Un Sabre, véhicule léger des forces spéciales, attend l'équipe au départ de la piste. Clic droit sur le véhicule pour monter (cinq places : volant, chef de bord, arrière, tourelle) ; avec un opérateur à bord sélectionné, clic droit au sol pour rouler. Clic milieu sur un opérateur à bord : descendre, prendre le volant, passer à la tourelle et ouvrir le feu avec la 12,7. Le moteur s'entend de loin ; un poste de contrôle garde le point de ralliement.",
+		"camo": "desert",
+		"objectives": [
+			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au point de ralliement (drapeau)"},
+			{"id": "all_enemies_down", "text": "Neutraliser le poste de contrôle et la patrouille"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

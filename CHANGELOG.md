@@ -798,3 +798,12 @@
 - Une rafale du canon latéral trahit l'appareil pendant 3 s : il redevient visible de loin.
 - Un stroboscope infrarouge sur le dos de l'appareil clignote (un éclair toutes les 1,2 s), visible seulement en vision nocturne (`NightVision.viewing`) : l'équipe suit l'appareil, pas les ennemis.
 - Extraction : l'appareil cesse d'être une cible dès qu'il touche le sol (avant, les gardes tiraient encore pendant que les rotors ralentissaient).
+
+## Sabre, véhicule léger des forces spéciales
+
+- `SabreModel` : 4×4 ouvert d'après l'Arquus Sabre (dérivé du Sherpa Light), construit en code sur la base `FacetModel` partagée avec le convertible : capot, pare-brise, caisse ouverte, arceau, tourelleau avec 12,7 pivotante, 7,62 latérales, tube antichar, roue de secours, jerricans, antennes ; les roues tournent et braquent.
+- `Sabre` : cinq places (volant, chef de bord, arrière gauche, arrière droit, tourelle). Clic droit sur le véhicule : les opérateurs sélectionnés le rejoignent et montent. À bord (`Commando.riding`), un opérateur ne marche plus et tire depuis sa place.
+- Conduite : avec un passager sélectionné, clic droit au sol ; le véhicule suit le chemin de navigation à 8 m/s, ralentit dans les virages, s'arrête devant une unité et renonce au bout de 3 s. Le moteur fait du bruit (24 m, toutes les secondes) ; les passagers sont emportés.
+- Menu de bord (clic milieu sur un passager) : descendre, tout le monde descend, prendre le volant, passer à la tourelle, ouvrir ou cesser le feu avec la 12,7 (`MountedGun`, tout autour du véhicule, 45 m).
+- Sauvegarde rapide : position, cap, équipage et feu de la tourelle.
+- Nouvelle carte « Patrouille Sabre » (désert) : piste du départ au point de ralliement, une patrouille et un poste de contrôle ; objectifs : conduire le Sabre au drapeau et neutraliser les gardes.

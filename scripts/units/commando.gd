@@ -160,6 +160,9 @@ var perched_on: Climbable
 ## Appareil en vol stationnaire dont l'unité occupe la soute (`Tiltrotor`) :
 ## elle n'y reçoit que des ordres de tir, et ne tire que porte ouverte.
 var airborne_in: Tiltrotor
+## Véhicule (Sabre) dont l'opérateur occupe une place : il ne marche plus,
+## il tire depuis sa place.
+var riding: Sabre
 ## Ennemi tenu en bouclier humain, devant l'opérateur.
 var hostage: Enemy
 
@@ -431,6 +434,9 @@ func _set_order(order: CommandoAction) -> void:
 	# le tir depuis la soute.
 	if airborne_in and order != null and not (order is AttackOrder or order is FireAtOrder):
 		flash_message("En vol : tir seulement")
+		return
+	if riding and order != null and not (order is AttackOrder or order is FireAtOrder):
+		flash_message("À bord : tir seulement")
 		return
 	if _order and _order != order:
 		_order.cancel()
@@ -1564,6 +1570,8 @@ func _has_line_of_fire(enemy: Enemy) -> bool:
 		if airborne_in.is_ramp_closed:
 			return false
 		query.exclude = airborne_in.body_rids()
+	elif riding:
+		query.exclude = riding.body_rids()
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
@@ -1583,6 +1591,8 @@ func _fire(enemy: Enemy, distance: float) -> void:
 		var ignored: Array[RID] = [get_rid(), enemy.get_rid()]
 		if airborne_in:
 			ignored.append_array(airborne_in.body_rids())
+		if riding:
+			ignored.append_array(riding.body_rids())
 		if hostage:
 			ignored.append(hostage.get_rid())
 		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)

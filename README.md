@@ -10,6 +10,7 @@ godot --path .            # menu de démarrage : choix de la carte
 godot --path . scenes/levels/tutorial/tutorial.tscn        # lance directement le didacticiel
 godot --path . scenes/levels/sandbox/sandbox.tscn          # lance directement le terrain d'essai
 godot --path . scenes/levels/airbase/airbase.tscn          # lance directement la base aérienne (sabotage du convertible)
+godot --path . scenes/levels/patrol/patrol.tscn          # lance directement la patrouille en Sabre
 godot --path . scenes/levels/training_a/training_a.tscn   # lance directement la carte UFO:AI « training_a »
 godot --headless --path . --quit-after 60   # vérification sans affichage
 ```
@@ -61,6 +62,9 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
 | Monter dans le convertible (soute, par la rampe arrière) | Clic droit sur l'appareil ; clic droit au sol pour redescendre |
 | Appeler le convertible d'extraction (cartes qui en ont un) : il se pose sur sa zone, repart seul quand tout le monde est à bord et les objectifs remplis | Clic milieu sur un opérateur au sol, « Appeler l'extraction » |
+| Monter dans le Sabre (véhicule léger, cinq places : volant, chef de bord, arrière gauche, arrière droit, tourelle) | Clic droit sur le véhicule |
+| Rouler en Sabre jusqu'à un point (chemin de navigation, il faut quelqu'un au volant ; le moteur s'entend à 24 m) | Clic droit au sol avec un opérateur à bord sélectionné |
+| Dans le Sabre : « Descendre », « Tout le monde descend », « Prendre le volant », « Tourelle 12,7 », puis « 12,7 : feu à volonté » (tir automatique tout autour, à 45 m ; bruyant) / « Cesser le feu » | Clic milieu sur un opérateur à bord |
 | À bord : « Canon latéral » (l'opérateur sert le canon, qui tire seul par rafales sur les ennemis en vue du côté droit, à 40 m ; bruyant) / « Lâcher le canon » ; « Ouverture » / « Fermeture » de la porte (rampe), « Monter » (vol stationnaire) / « Atterrir », « Descendre en rappel » (en vol, porte ouverte), « Piloter » (décoller avec toute l'équipe, sur les cartes où cela termine la mission) | Clic milieu sur un opérateur dans la soute |
 | Tirer depuis l'appareil en vol (porte ouverte) | Clic droit sur un ennemi, opérateurs à bord sélectionnés |
 | Ouvrir / fermer une porte, crocheter une porte verrouillée | Clic droit sur la porte (on passe aussi une porte fermée en marchant : elle s'ouvre) |

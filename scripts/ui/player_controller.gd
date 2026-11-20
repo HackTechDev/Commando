@@ -83,6 +83,9 @@ var _menu_aircraft: Tiltrotor
 var _menu_crew: Commando
 ## Appareil d'extraction du menu radio ouvert (sur un opérateur au sol).
 var _menu_radio: Tiltrotor
+## Véhicule et passager du menu de bord du Sabre ouvert.
+var _menu_sabre: Sabre
+var _menu_rider: Commando
 var _cursor_left: float = 0.0
 ## Pause tactique en cours (le jeu est en pause, les ordres restent possibles).
 var tactical_paused: bool = false
@@ -117,7 +120,9 @@ func _ready() -> void:
 		_menu_enemy = null
 		_menu_aircraft = null
 		_menu_crew = null
-		_menu_radio = null)
+		_menu_radio = null
+		_menu_sabre = null
+		_menu_rider = null)
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
 			cancel_pending_action()
@@ -294,7 +299,7 @@ func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
 		return GameCursor.Kind.DEFAULT
 	if _climbable_at(hit):
 		return GameCursor.Kind.CLIMB
-	if hit["collider"] is Tiltrotor:
+	if hit["collider"] is Tiltrotor or hit["collider"] is Sabre:
 		return GameCursor.Kind.ORDERS
 	return GameCursor.Kind.DEFAULT if _is_reachable(hit["position"]) else GameCursor.Kind.FORBIDDEN
 
@@ -417,8 +422,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_middle_start = middle.position
 		elif _middle_start != Vector2.INF:
 			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
-				if open_vip_menu(middle.position) or open_aircraft_menu(middle.position) or open_radio_menu(middle.position) \
-						or open_melee_menu(middle.position):
+				if open_vip_menu(middle.position) or open_sabre_menu(middle.position) or open_aircraft_menu(middle.position) \
+						or open_radio_menu(middle.position) or open_melee_menu(middle.position):
 					get_viewport().set_input_as_handled()
 			_middle_start = Vector2.INF
 		return
@@ -598,6 +603,27 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
 		return
+	# Sabre : on monte à bord.
+	var sabre := hit["collider"] as Sabre
+	if sabre:
+		if SelectionManager.order_mount(sabre, run):
+			_spawn_marker(sabre.boarding_point(SelectionManager.selected[0].global_position), marker_run_color if run else marker_color)
+		else:
+			Sfx.play_ui(&"denied")
+		return
+	# Un opérateur sélectionné est à bord d'un Sabre : le véhicule roule
+	# jusqu'au point visé.
+	var vehicle := _selected_vehicle()
+	if vehicle:
+		var problem := vehicle.drive_to(hit["position"])
+		if problem == "":
+			_spawn_marker(hit["position"], marker_run_color if run else marker_color)
+		else:
+			Sfx.play_ui(&"denied")
+			var who := vehicle.crew()
+			if not who.is_empty():
+				who[0].flash_message(problem[0].to_upper() + problem.substr(1))
+		return
 	# Convertible : on embarque (la soute, par la rampe arrière).
 	var aircraft := hit["collider"] as Tiltrotor
 	if aircraft:
@@ -663,6 +689,56 @@ func open_aircraft_menu(screen_position: Vector2) -> bool:
 	_radial.open(screen_position, aircraft_options(aircraft, unit), unit.display_name)
 	Sfx.play_ui(&"select")
 	return true
+
+
+## Sabre à bord duquel est un opérateur sélectionné, ou null.
+func _selected_vehicle() -> Sabre:
+	for unit: Commando in SelectionManager.selected:
+		if is_instance_valid(unit) and unit.riding:
+			return unit.riding
+	return null
+
+
+## Ouvre le menu de bord du Sabre sur l'opérateur à bord sous
+## `screen_position`. Renvoie faux sinon.
+func open_sabre_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_COMMANDOS)
+	var unit := hit.get("collider") as Commando
+	if unit == null or unit.is_dead or unit.riding == null:
+		return false
+	cancel_pending_action()
+	_menu_sabre = unit.riding
+	_menu_rider = unit
+	_radial.open(screen_position, sabre_options(unit.riding, unit), unit.display_name)
+	Sfx.play_ui(&"select")
+	return true
+
+
+## Options du menu de bord du Sabre, ouvert sur `rider` : descendre (lui,
+## tout le monde), prendre le volant ou la tourelle, ouvrir ou cesser le feu
+## avec la 12,7.
+static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
+	var moving := "en route" if sabre.is_driving else ""
+	var options: Array[Dictionary] = [
+		{"id": &"dismount", "label": "Descendre", "detail": "à côté de sa place" if moving == "" else moving, "enabled": moving == ""},
+		{"id": &"dismount_all", "label": "Tout le monde descend", "detail": "%d à bord" % sabre.crew().size() if moving == "" else moving,
+			"enabled": moving == ""},
+	]
+	var index := sabre.seat_of(rider)
+	if index != Sabre.DRIVER_SEAT:
+		var free := sabre.driver() == null
+		options.append({"id": &"drive", "label": "Prendre le volant",
+			"detail": "le véhicule roule au clic droit" if free and moving == "" else (moving if moving != "" else "%s conduit" % sabre.driver().display_name),
+			"enabled": free and moving == ""})
+	if index == Sabre.GUNNER_SEAT:
+		options.append({"id": &"gun", "label": "12,7 : cesser le feu" if sabre.gun_firing else "12,7 : feu à volonté",
+			"detail": "la mitrailleuse se tait" if sabre.gun_firing else "tir automatique tout autour (bruyant)"})
+	else:
+		var free_turret := sabre.gunner() == null
+		options.append({"id": &"turret", "label": "Tourelle 12,7",
+			"detail": "passer à la mitrailleuse" if free_turret and moving == "" else (moving if moving != "" else "%s y est" % sabre.gunner().display_name),
+			"enabled": free_turret and moving == ""})
+	return options
 
 
 ## Ouvre le menu radio sur l'opérateur au sol sous `screen_position`, si un
@@ -760,6 +836,26 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 func _on_radial_chosen(id: StringName) -> void:
 	if _menu_vip:
 		_on_vip_order(id)
+		return
+	if _menu_sabre:
+		var sabre := _menu_sabre
+		var rider := _menu_rider
+		_menu_sabre = null
+		_menu_rider = null
+		var ok := false
+		if is_instance_valid(sabre) and is_instance_valid(rider):
+			match id:
+				&"dismount":
+					ok = sabre.dismount(rider)
+				&"dismount_all":
+					ok = sabre.dismount_all()
+				&"drive":
+					ok = sabre.move_seat(rider, Sabre.DRIVER_SEAT)
+				&"turret":
+					ok = sabre.move_seat(rider, Sabre.GUNNER_SEAT)
+				&"gun":
+					ok = sabre.set_gun_firing(not sabre.gun_firing)
+		Sfx.play_ui(&"order" if ok else &"denied")
 		return
 	if _menu_radio:
 		var called := is_instance_valid(_menu_radio) and id == &"extract" and _menu_radio.call_in()
