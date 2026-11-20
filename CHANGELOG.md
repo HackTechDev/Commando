@@ -736,3 +736,10 @@
 ## Clic sur un toit : la hauteur est gardée
 
 - Un clic droit sur une surface où l'on peut se tenir (toit, dessus du bunker du didacticiel) garde la hauteur du point visé ; seul un clic sur le flanc d'un mur vise le sol à son pied (`PlayerController.FLAT_SURFACE`). Avant, la destination était ramenée au sol : l'opérateur montait l'échelle, redescendait, remontait et s'arrêtait en haut.
+
+## Fusil PGM Hécate II et tir à longue distance
+
+- Nouvelle arme principale `hecate` (PGM Hécate II, 12,7 mm, à verrou) : portée 48 m (deux fois celle des autres armes), 160 de dégâts (une cible abattue d'un tir), précision qui baisse peu avec la distance ; visée de 1,4 s, un tir toutes les 2,4 s, chargeur de 7 (+14), sans silencieux (détonation entendue à 32 m), 13,8 kg. Choisissable sur l'écran des opérateurs.
+- Modèle 3D (`SoldierModel._build_hecate`) : boîtier massif, long canon à frein de bouche, crosse squelette avec monopode, grosse lunette à tourelles, poignée de transport, bipied replié.
+- `Commando.mission_primary` : une carte peut imposer l'arme principale d'un opérateur (sans toucher à son profil d'équipe).
+- Didacticiel : huitième atelier « Tir à longue distance » (objectif `tuto_sniper`) à l'est du stand de tir ; Charlie y porte l'Hécate et abat trois cibles placées à 40–42 m sans quitter le stand. Les ateliers suivants sont renumérotés.

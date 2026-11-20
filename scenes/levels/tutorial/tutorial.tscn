@@ -179,6 +179,7 @@ display_name = "Bravo"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 39.2)
 unit_index = 3
 display_name = "Charlie"
+mission_primary = &"hecate"
 
 [node name="CameraRig" parent="." instance=ExtResource("2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 36)
@@ -226,6 +227,21 @@ transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 4, 0, -40)
 armed = false
 stationary = true
 blind = true
+
+[node name="FarLeft" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 14)
+armed = false
+stationary = true
+
+[node name="FarMiddle" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 16)
+armed = false
+stationary = true
+
+[node name="FarRight" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 14)
+armed = false
+stationary = true
 
 [node name="Sentry" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -9, 0, -55)
@@ -309,12 +325,26 @@ text = "Clic droit sur un ennemi : les opérateurs sélectionnés s'approchent �
 Les munitions s'affichent sur les portraits, en bas : {reload} recharge, {switch_weapon} passe à l'arme de poing. {action_grenade} puis clic au sol : grenade. Un tir s'entend de loin.
 
 Abattez les trois cibles."
-done_text = "Dernier atelier : passer la sentinelle."
+done_text = "Juste à l'est : le stand de tir à longue distance, pour Charlie et son Hécate."
 step = 5
 objective_id = &"tuto_shoot"
 size = Vector2(14, 6)
 goal = 2
 targets = Array[NodePath]([NodePath("../../Enemies/TargetLeft"), NodePath("../../Enemies/TargetMiddle"), NodePath("../../Enemies/TargetRight")])
+
+[node name="Sniper" type="Area3D" parent="Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -26)
+script = ExtResource("10")
+title = "Tir à longue distance"
+text = "Charlie porte un PGM Hécate II, fusil de précision lourd en 12,7 mm : il abat une cible d'un seul tir jusqu'à 48 m, deux fois plus loin que les autres armes. La visée est longue, la culasse lente, et la détonation s'entend de très loin.
+
+Amenez Charlie ici, déplacez la caméra vers les trois cibles au sud, à une quarantaine de mètres, puis clic droit sur chacune : il tire sans quitter le stand."
+done_text = "Dernier atelier : passer la sentinelle."
+step = 6
+objective_id = &"tuto_sniper"
+size = Vector2(8, 6)
+goal = 2
+targets = Array[NodePath]([NodePath("../../Enemies/FarLeft"), NodePath("../../Enemies/FarMiddle"), NodePath("../../Enemies/FarRight")])
 
 [node name="Stealth" type="Area3D" parent="Stations"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -45)
@@ -325,7 +355,7 @@ Restez hors du cône, accroupi, et prenez-la par derrière ({action_knockout} ou
 
 Neutralisez la sentinelle."
 done_text = "Rejoignez la zone de fin, au nord."
-step = 6
+step = 7
 objective_id = &"tuto_stealth"
 size = Vector2(14, 5)
 goal = 2
@@ -337,7 +367,7 @@ script = ExtResource("10")
 title = "Fin du didacticiel"
 text = "Amenez un opérateur dans la zone de fin."
 done_text = "Bravo, vous connaissez l'essentiel. {toggle_help} affiche toutes les commandes en partie."
-step = 7
+step = 8
 objective_id = &"tuto_end"
 size = Vector2(10, 6)
 goal = 3

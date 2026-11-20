@@ -39,8 +39,8 @@ func test_first_tip_is_shown_at_start() -> void:
 	assert_not_null(panel, "fenêtre d'astuces")
 	assert_eq(panel.shown_title(), "Se déplacer")
 	assert_string_contains(panel.shown_text(), "Clic droit au sol")
-	assert_eq(TutorialStation.all_in(get_tree()).size(), 7, "sept ateliers")
-	assert_eq((node("HUD") as Hud).objectives.entries.size(), 7, "un objectif par atelier")
+	assert_eq(TutorialStation.all_in(get_tree()).size(), 8, "huit ateliers")
+	assert_eq((node("HUD") as Hud).objectives.entries.size(), 8, "un objectif par atelier")
 	assert_true(LevelCatalog.find(TUTORIAL).get("title", "") == "Didacticiel", "au catalogue")
 
 
@@ -69,7 +69,7 @@ func test_entering_a_station_shows_its_tip() -> void:
 	panel.hide_tip()
 	alpha.global_position = _station("Run").global_position
 	assert_gt(await frames_until(func() -> bool: return panel.shown_title() == "Courir et se baisser", 30), -1, "astuce de l'atelier")
-	assert_eq(panel._step.text, "2 / 7")
+	assert_eq(panel._step.text, "2 / 8")
 	panel.hide_tip()
 	assert_eq(panel.shown_text(), "", "masquée")
 	assert_true(panel._reopen.visible, "bouton pour la rouvrir")

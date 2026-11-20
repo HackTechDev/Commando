@@ -118,6 +118,9 @@ var throwing_knives: int = 0
 ## Charges explosives fournies par la mission (réglage du niveau), qui
 ## s'ajoutent à l'équipement choisi.
 @export var mission_explosives: int = 0
+## Arme principale imposée par la mission (vide : celle de l'opérateur),
+## par exemple l'Hécate du tireur d'élite du didacticiel.
+@export var mission_primary: StringName = &""
 ## Grenades, charges explosives et trousses de soins restantes.
 var grenades: int = 0
 var smoke_grenades: int = 0
@@ -202,7 +205,7 @@ var _hint_label: Label3D
 
 func _ready() -> void:
 	if use_roster:
-		_apply_profile(OperatorRoster.current().profile(unit_index))
+		_apply_profile(_mission_profile(OperatorRoster.current().profile(unit_index)))
 	health.reset(stats.max_health)
 	_last_health = health.health
 	ammo_in_magazine = stats.magazine_size
@@ -293,6 +296,16 @@ func _apply_profile(operator: OperatorProfile) -> void:
 	var sidearm := GearCatalog.secondary_stats(base, operator.secondary)
 	_secondary_stats = _equip(sidearm, operator) if sidearm else null
 	_model.outfit = operator
+
+
+## Copie de `operator` armée de `mission_primary`, si la mission en impose
+## une (le profil de l'équipe n'est pas modifié).
+func _mission_profile(operator: OperatorProfile) -> OperatorProfile:
+	if operator == null or mission_primary == &"" or not GearCatalog.PRIMARY.has(mission_primary):
+		return operator
+	var armed := operator.duplicate() as OperatorProfile
+	armed.primary = mission_primary
+	return armed
 
 
 ## Complète les réglages d'une arme avec l'équipement, la charge et la

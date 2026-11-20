@@ -3433,6 +3433,8 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 			return _build_hk417(rifle)
 		&"m249":
 			return _build_m249(rifle)
+		&"hecate":
+			return _build_hecate(rifle)
 	if kind == &"rifle":
 		# Fusil d'assaut des ennemis : crosse et garde-main en bois, chargeur
 		# courbe, frein de bouche, sans optique.
@@ -3579,6 +3581,62 @@ func _build_scar(rifle: Node3D, heavy: bool) -> float:
 	var length := 0.2 if heavy else 0.17
 	_barrel(rifle, 0.024 if heavy else 0.021, length, Vector3(0.0, 0.05, front - 0.08 - length * 0.5), _m_weapon)
 	return front - 0.1 - length
+
+
+## PGM Hécate II : fusil lourd à verrou en 12,7 mm. Boîtier massif, long
+## canon à gros frein de bouche, crosse squelette réglable (busc, plaque de
+## couche, monopode arrière), lunette de tir à longue distance avec ses
+## tourelles, poignée de transport, bipied replié sous le garde-main,
+## chargeur de 7 et levier de culasse à droite.
+func _build_hecate(rifle: Node3D) -> float:
+	# Boîtier et culasse.
+	_box(rifle, Vector3(0.052, 0.085, 0.38), Vector3(0.0, 0.04, -0.06), _m_weapon)
+	var bolt := _cylinder(rifle, 0.009, 0.06, Vector3(0.045, 0.06, 0.06), _m_weapon)
+	bolt.rotation.z = PI / 2.0
+	_sphere(rifle, 0.014, Vector3(0.078, 0.055, 0.06), _m_weapon)
+	# Crosse squelette : busc, barre basse, plaque de couche, monopode.
+	_box(rifle, Vector3(0.04, 0.035, 0.3), Vector3(0.0, 0.075, 0.27), _m_gear)
+	var lower := _box(rifle, Vector3(0.032, 0.03, 0.28), Vector3(0.0, -0.025, 0.26), _m_weapon)
+	lower.rotation.x = deg_to_rad(-6.0)
+	_box(rifle, Vector3(0.03, 0.12, 0.03), Vector3(0.0, 0.025, 0.14), _m_weapon)
+	_box(rifle, Vector3(0.055, 0.14, 0.035), Vector3(0.0, 0.03, 0.42), _m_gear)
+	var monopod := _cylinder(rifle, 0.008, 0.09, Vector3(0.0, -0.07, 0.36), _m_weapon)
+	monopod.name = "Monopod"
+	# Chargeur de 7 (cartouches de 12,7 mm : large et profond).
+	_rifle_mag = _box(rifle, Vector3(0.04, 0.1, 0.1), Vector3(0.0, -0.055, -0.1), _m_weapon)
+	# Garde-main à rails, canon, frein de bouche à deux chambres.
+	_box(rifle, Vector3(0.058, 0.065, 0.36), Vector3(0.0, 0.045, -0.43), _m_gear)
+	for side: float in [-1.0, 1.0]:
+		_box(rifle, Vector3(0.006, 0.012, 0.3), Vector3(0.031 * side, 0.045, -0.43), _m_weapon)
+	var barrel := _cylinder(rifle, 0.017, 0.5, Vector3(0.0, 0.045, -0.85), _m_weapon)
+	barrel.rotation.x = PI / 2.0
+	_box(rifle, Vector3(0.054, 0.05, 0.12), Vector3(0.0, 0.045, -1.15), _m_weapon).name = "MuzzleBrake"
+	for z: float in [-1.12, -1.18]:
+		_box(rifle, Vector3(0.058, 0.032, 0.022), Vector3(0.0, 0.045, z), _m_dark)
+	# Lunette : corps, objectif, oculaire, tourelles, colliers.
+	var scope := _cylinder(rifle, 0.027, 0.32, Vector3(0.0, 0.145, -0.08), _m_weapon)
+	scope.name = "Scope"
+	scope.rotation.x = PI / 2.0
+	var bell := _cylinder(rifle, 0.04, 0.08, Vector3(0.0, 0.145, -0.27), _m_weapon)
+	bell.rotation.x = PI / 2.0
+	var lens := _cylinder(rifle, 0.034, 0.005, Vector3(0.0, 0.145, -0.312), _m_lens)
+	lens.rotation.x = PI / 2.0
+	var eyepiece := _cylinder(rifle, 0.032, 0.06, Vector3(0.0, 0.145, 0.1), _m_weapon)
+	eyepiece.rotation.x = PI / 2.0
+	_cylinder(rifle, 0.016, 0.03, Vector3(0.0, 0.18, -0.08), _m_weapon)
+	var windage := _cylinder(rifle, 0.016, 0.03, Vector3(0.035, 0.145, -0.08), _m_weapon)
+	windage.rotation.z = PI / 2.0
+	for z: float in [-0.17, 0.02]:
+		_box(rifle, Vector3(0.034, 0.06, 0.022), Vector3(0.0, 0.1, z), _m_weapon)
+	# Poignée de transport, devant la lunette.
+	_box(rifle, Vector3(0.016, 0.012, 0.1), Vector3(0.0, 0.135, -0.36), _m_weapon)
+	for z: float in [-0.4, -0.32]:
+		_box(rifle, Vector3(0.016, 0.06, 0.012), Vector3(0.0, 0.1, z), _m_weapon)
+	# Bipied replié sous le garde-main.
+	_box(rifle, Vector3(0.05, 0.025, 0.04), Vector3(0.0, 0.0, -0.6), _m_weapon)
+	for side: float in [-1.0, 1.0]:
+		_box(rifle, Vector3(0.012, 0.012, 0.3), Vector3(0.018 * side, -0.005, -0.44), _m_weapon)
+	return -1.21
 
 
 ## HK417 : grand AR en 7,62 mm, chargeur droit, garde-main long à rails,

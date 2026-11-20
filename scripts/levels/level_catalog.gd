@@ -27,7 +27,7 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Didacticiel",
 		"scene": "res://scenes/levels/tutorial/tutorial.tscn",
-		"description": "Parcours d'apprentissage en sept ateliers, du sud au nord : se déplacer, courir et se baisser, grimper, corps à corps, tir, infiltration. Une petite fenêtre explique chaque atelier quand un opérateur y entre ; un « ? » jaune les signale, un « ✓ » vert marque ceux réussis.",
+		"description": "Parcours d'apprentissage en huit ateliers, du sud au nord : se déplacer, courir et se baisser, grimper, corps à corps, tir, tir à longue distance (Charlie porte un PGM Hécate II), infiltration. Une petite fenêtre explique chaque atelier quand un opérateur y entre ; un « ? » jaune les signale, un « ✓ » vert marque ceux réussis.",
 		"camo": "woodland",
 		"objectives": [
 			{"id": "tuto_move", "text": "Se déplacer jusqu'au premier cercle"},
@@ -35,6 +35,7 @@ const LEVELS: Array[Dictionary] = [
 			{"id": "tuto_climb", "text": "Monter sur le toit du bunker"},
 			{"id": "tuto_melee", "text": "Neutraliser les trois mannequins au corps à corps"},
 			{"id": "tuto_shoot", "text": "Abattre les trois cibles du stand de tir"},
+			{"id": "tuto_sniper", "text": "Abattre les trois cibles lointaines à l'Hécate"},
 			{"id": "tuto_stealth", "text": "Neutraliser la sentinelle"},
 			{"id": "tuto_end", "text": "Rejoindre la zone de fin"},
 		],

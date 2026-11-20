@@ -191,6 +191,16 @@ const PRIMARY: Dictionary = {
 			"reload_time": 2.4, "gunshot_noise_radius": 11.0, "suppressed": true,
 		},
 	},
+	&"hecate": {
+		"short": "Hécate",
+		"name": "PGM Hécate II",
+		"description": "Fusil de précision lourd en 12,7 mm, à verrou : touche et abat d'un seul tir à très longue portée. Visée longue, cadence lente, très lourd et sans silencieux : la détonation s'entend de très loin.",
+		"stats": {
+			"fire_range": 48.0, "aim_time": 1.4, "fire_interval": 2.4, "fire_damage": 160.0,
+			"hit_chance_near": 0.88, "hit_chance_far": 0.85, "magazine_size": 7, "reserve_ammo": 14,
+			"reload_time": 3.8, "gunshot_noise_radius": 32.0, "suppressed": false,
+		},
+	},
 	&"m249": {
 		"short": "M249",
 		"name": "M249 (mitrailleuse légère)",
@@ -245,7 +255,7 @@ const EQUIPMENT: Dictionary = {
 const BASE_WEIGHT := 2.0
 const WEIGHTS: Dictionary = {
 	&"carbine": 3.5, &"smg": 2.8, &"dmr": 6.0, &"shotgun": 4.0, &"pump_shotgun": 3.6,
-	&"famas": 3.8, &"scar_l": 3.6, &"scar_h": 4.3, &"hk417": 5.0, &"m249": 8.0,
+	&"famas": 3.8, &"scar_l": 3.6, &"scar_h": 4.3, &"hk417": 5.0, &"m249": 8.0, &"hecate": 13.8,
 	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
 	&"helmet": 1.4, &"nvg": 0.6, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0,
