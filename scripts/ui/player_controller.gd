@@ -81,6 +81,8 @@ var _menu_enemy: Enemy
 ## Appareil et opérateur du menu de bord ouvert.
 var _menu_aircraft: Tiltrotor
 var _menu_crew: Commando
+## Appareil d'extraction du menu radio ouvert (sur un opérateur au sol).
+var _menu_radio: Tiltrotor
 var _cursor_left: float = 0.0
 ## Pause tactique en cours (le jeu est en pause, les ordres restent possibles).
 var tactical_paused: bool = false
@@ -114,7 +116,8 @@ func _ready() -> void:
 		_menu_vip = null
 		_menu_enemy = null
 		_menu_aircraft = null
-		_menu_crew = null)
+		_menu_crew = null
+		_menu_radio = null)
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
 			cancel_pending_action()
@@ -414,7 +417,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_middle_start = middle.position
 		elif _middle_start != Vector2.INF:
 			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
-				if open_vip_menu(middle.position) or open_aircraft_menu(middle.position) or open_melee_menu(middle.position):
+				if open_vip_menu(middle.position) or open_aircraft_menu(middle.position) or open_radio_menu(middle.position) \
+						or open_melee_menu(middle.position):
 					get_viewport().set_input_as_handled()
 			_middle_start = Vector2.INF
 		return
@@ -661,6 +665,27 @@ func open_aircraft_menu(screen_position: Vector2) -> bool:
 	return true
 
 
+## Ouvre le menu radio sur l'opérateur au sol sous `screen_position`, si un
+## appareil d'extraction attend d'être appelé. Renvoie faux sinon.
+func open_radio_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_COMMANDOS)
+	var unit := hit.get("collider") as Commando
+	if unit == null or unit.is_dead or unit.airborne_in != null:
+		return false
+	var aircraft := Tiltrotor.awaiting_call(get_tree())
+	if aircraft == null:
+		return false
+	cancel_pending_action()
+	_menu_radio = aircraft
+	var problem := aircraft.call_problem()
+	_radial.open(screen_position, [
+		{"id": &"extract", "label": "Appeler l'extraction",
+			"detail": "le convertible vient se poser (bruyant)" if problem == "" else problem, "enabled": problem == ""},
+	], unit.display_name)
+	Sfx.play_ui(&"select")
+	return true
+
+
 ## Options du menu de bord de `aircraft`, ouvert sur `crew` : la porte
 ## (rampe), puis au sol « Monter » (et « Piloter » si le décollage termine
 ## la mission), en vol « Descendre en rappel » et « Atterrir ».
@@ -682,7 +707,8 @@ static func aircraft_options(aircraft: Tiltrotor, crew: Commando = null) -> Arra
 	var rising := aircraft.rise_problem()
 	options.append({"id": &"rise", "label": "Monter",
 		"detail": "vol stationnaire à %d m" % Tiltrotor.HOVER_HEIGHT if rising == "" else rising, "enabled": rising == ""})
-	if aircraft.ends_mission:
+	# L'appareil d'extraction repart seul, une fois tout le monde à bord.
+	if aircraft.ends_mission and not aircraft.extraction:
 		var problem := aircraft.take_off_problem()
 		options.append({"id": &"pilot", "label": "Piloter", "detail": "décoller avec l'équipe" if problem == "" else problem,
 			"enabled": problem == ""})
@@ -728,6 +754,11 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 func _on_radial_chosen(id: StringName) -> void:
 	if _menu_vip:
 		_on_vip_order(id)
+		return
+	if _menu_radio:
+		var called := is_instance_valid(_menu_radio) and id == &"extract" and _menu_radio.call_in()
+		_menu_radio = null
+		Sfx.play_ui(&"order" if called else &"denied")
 		return
 	if _menu_aircraft:
 		var aircraft := _menu_aircraft

@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="7"]
 [ext_resource type="Script" path="res://scripts/props/building.gd" id="building"]
 [ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
+[ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="tiltrotor"]
 
 [sub_resource type="Curve3D" id="patrol_gate"]
 _data = {
@@ -297,6 +298,14 @@ light_energy = 2.2
 omni_range = 9.0
 omni_attenuation = 1.4
 
+[node name="Extraction" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 2, 0, 21)
+script = ExtResource("tiltrotor")
+livery = 1
+tail_number = "21"
+objective_id = &"extracted"
+extraction = true
+
 [node name="Decor" type="Node3D" parent="."]
 
 [node name="Bush1" type="Node3D" parent="Decor"]
@@ -322,25 +331,25 @@ size = Vector2(3, 2)
 [node name="Units" type="Node3D" parent="."]
 
 [node name="Alpha" parent="Units" instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 27)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, 29)
 unit_index = 1
 display_name = "Alpha"
 mission_nvg = true
 
 [node name="Bravo" parent="Units" instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0, 28.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.6, 0, 30.2)
 unit_index = 2
 display_name = "Bravo"
 mission_nvg = true
 
 [node name="Charlie" parent="Units" instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 28.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.4, 0, 30.2)
 unit_index = 3
 display_name = "Charlie"
 mission_nvg = true
 
 [node name="CameraRig" parent="." instance=ExtResource("2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 24)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 24)
 
 [node name="PatrolPaths" type="Node3D" parent="."]
 

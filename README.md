@@ -60,6 +60,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
 | Monter dans le convertible (soute, par la rampe arrière) | Clic droit sur l'appareil ; clic droit au sol pour redescendre |
+| Appeler le convertible d'extraction (cartes qui en ont un) : il se pose sur sa zone, repart seul quand tout le monde est à bord et les objectifs remplis | Clic milieu sur un opérateur au sol, « Appeler l'extraction » |
 | À bord : « Ouverture » / « Fermeture » de la porte (rampe), « Monter » (vol stationnaire) / « Atterrir », « Descendre en rappel » (en vol, porte ouverte), « Piloter » (décoller avec toute l'équipe, sur les cartes où cela termine la mission) | Clic milieu sur un opérateur dans la soute |
 | Tirer depuis l'appareil en vol (porte ouverte) | Clic droit sur un ennemi, opérateurs à bord sélectionnés |
 | Ouvrir / fermer une porte, crocheter une porte verrouillée | Clic droit sur la porte (on passe aussi une porte fermée en marchant : elle s'ouvre) |

@@ -23,6 +23,13 @@ extends StaticBody3D
 ## et se ferme en l'air ; porte ouverte, un opérateur descend en rappel
 ## (`rappel`) le long d'une corde jusqu'au sol.
 ##
+## Extraction (`extraction`) : l'appareil n'est pas là au début de la
+## mission. Un opérateur l'appelle (`call_in`) : il arrive en vol, bruyant
+## (les ennemis accourent), attend au-dessus de son point de pose que la place
+## soit libre, se pose et abaisse la rampe. Il repart seul quand tous les
+## opérateurs vivants (et les VIP) sont à bord et que les autres objectifs
+## sont remplis : l'objectif `objective_id` est rempli, la mission réussie.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol), agrandi de `SCALE`.
 
 const GROUP := &"vehicles"
@@ -54,6 +61,14 @@ const CLIMB_DISTANCE := 60.0
 const HOVER_HEIGHT := 10.0
 const HOVER_TIME := 4.0
 const RAPPEL_SPEED := 2.5
+## Extraction : arrivée depuis l'arrière (distance, hauteur au départ, s),
+## intervalle du bruit des rotors pendant l'approche, attente (s) avant de
+## repartir une fois tout le monde à bord.
+const APPROACH_DISTANCE := 70.0
+const APPROACH_HEIGHT := 30.0
+const APPROACH_TIME := 14.0
+const APPROACH_NOISE_INTERVAL := 1.5
+const DEPART_DELAY := 1.5
 
 @export var livery: TiltrotorModel.Livery = TiltrotorModel.Livery.OLIVE
 @export var tail_number: String = "07"
@@ -66,6 +81,8 @@ const RAPPEL_SPEED := 2.5
 ## descente en rappel (vides : aucun).
 @export var hover_objective: StringName = &""
 @export var rappel_objective: StringName = &""
+## Appareil d'extraction : absent jusqu'à l'appel (`call_in`).
+@export var extraction: bool = false
 
 var is_destroyed: bool = false
 var model: TiltrotorModel
@@ -87,8 +104,19 @@ var ground_y: float = 0.0
 var _rope: MeshInstance3D
 var _rappelling: int = 0
 var _ramp_shape: CollisionShape3D
-## Passagers pendant le vol : unité -> position dans le repère de l'appareil.
+## Passagers pendant le vol : unité (opérateur ou VIP) -> position dans le
+## repère de l'appareil.
 var _passengers: Dictionary = {}
+## Extraction : pas encore appelé (caché, sans collision), en approche.
+var is_away: bool = false
+var is_inbound: bool = false
+## Point de pose (position de l'appareil dans la scène).
+var _landing: Vector3
+var _flight: Tween
+var _noise_left: float = 0.0
+var _depart_left: float = DEPART_DELAY
+## Tout le monde est à bord mais des objectifs restent : déjà signalé.
+var _told_pending: bool = false
 
 
 func _enter_tree() -> void:
@@ -138,6 +166,9 @@ func _ready() -> void:
 	_ramp_shape.shape = slab
 	floor_body.add_child(_ramp_shape)
 	_ramp_shape.transform = _ramp_transform(false)
+	_landing = global_position
+	if extraction:
+		_go_away()
 
 
 ## Forme de la rampe (repère local), relevée ou abaissée, autour de sa
@@ -171,7 +202,7 @@ func cabin_box() -> AABB:
 
 ## Vrai si `point` (monde) est dans la soute.
 func cabin_contains(point: Vector3) -> bool:
-	return cabin_box().has_point(to_local(point))
+	return not is_away and cabin_box().has_point(to_local(point))
 
 
 ## Place de la `index`-ième unité qui embarque : les unes derrière les
@@ -200,7 +231,7 @@ static func is_revealed_body(collider: Object) -> bool:
 ## Relève (`closed`) ou abaisse la rampe. Renvoie faux si rien n'a changé
 ## (déjà dans cet état, appareil détruit ou en vol, quelqu'un sur la rampe).
 func set_ramp_closed(closed: bool, animate: bool = true) -> bool:
-	if closed == is_ramp_closed or is_destroyed or is_flying or is_moving:
+	if closed == is_ramp_closed or is_destroyed or is_flying or is_moving or is_away or is_inbound:
 		return false
 	if is_ramp_blocked():
 		return false
@@ -251,6 +282,8 @@ func take_off_problem() -> String:
 		return "appareil détruit"
 	if is_flying:
 		return "déjà en vol"
+	if is_away or is_inbound:
+		return "pas encore arrivé"
 	if is_airborne or is_moving:
 		return "atterrir d'abord"
 	var aboard := passengers()
@@ -277,6 +310,8 @@ func take_off(pilot: Commando) -> bool:
 	for unit in passengers():
 		unit.stop()
 		_passengers[unit] = to_local(unit.global_position)
+	for vip in vips_aboard():
+		_passengers[vip] = to_local(vip.global_position)
 	if pilot:
 		pilot.stop()
 	EventBus.noise_emitted.emit(global_position, ROTOR_NOISE, &"help")
@@ -300,6 +335,8 @@ func body_rids() -> Array[RID]:
 func rise_problem() -> String:
 	if is_destroyed:
 		return "appareil détruit"
+	if is_away or is_inbound:
+		return "pas encore arrivé"
 	if is_flying or is_airborne or is_moving:
 		return "déjà en vol"
 	if passengers().is_empty():
@@ -359,12 +396,10 @@ func _move_to_height(height: float, up: bool) -> void:
 func _arrived(up: bool) -> void:
 	is_moving = false
 	is_airborne = up
-	var crew: Array[Commando] = []
-	for unit: Commando in _passengers:
+	for unit: CharacterBody3D in _passengers:
 		if is_instance_valid(unit):
 			unit.process_mode = Node.PROCESS_MODE_INHERIT
 			unit.velocity = Vector3.ZERO
-			crew.append(unit)
 	_passengers.clear()
 	for unit in passengers():
 		unit.airborne_in = self if up else null
@@ -384,9 +419,13 @@ func _carry(units: Array[Commando]) -> void:
 		_passengers[unit] = to_local(unit.global_position)
 
 
-## Vrai si une unité se tient au sol sous l'emprise de l'appareil.
-func _someone_below() -> bool:
-	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips"]:
+## Vrai si une unité se tient au sol sous l'emprise de l'appareil (sans les
+## ennemis si `friends_only`).
+func _someone_below(friends_only: bool = false) -> bool:
+	var groups: Array[StringName] = [&"commandos", &"vips"]
+	if not friends_only:
+		groups.append(Enemy.ALL_GROUP)
+	for group: StringName in groups:
 		for node in get_tree().get_nodes_in_group(group):
 			var unit := node as Node3D
 			if unit == null or (unit is Commando and (unit as Commando).airborne_in == self):
@@ -466,7 +505,7 @@ func _show_rope(tip: Vector3, foot: Vector3) -> void:
 ## la coque redevient opaque.
 func _lift_passengers() -> void:
 	model.set_cutaway(false)
-	for unit: Commando in _passengers:
+	for unit: CharacterBody3D in _passengers:
 		if is_instance_valid(unit):
 			unit.process_mode = Node.PROCESS_MODE_DISABLED
 
@@ -475,19 +514,163 @@ func _flown_away() -> void:
 	if objective_id != &"":
 		EventBus.objective_completed.emit(objective_id)
 	if ends_mission:
-		EventBus.mission_ended.emit(true, "RÉUSSITE — appareil volé")
+		EventBus.mission_ended.emit(true, "RÉUSSITE — équipe extraite" if extraction else "RÉUSSITE — appareil volé")
+
+
+## VIP vivants, pas encore évacués, dans la soute.
+func vips_aboard() -> Array[Vip]:
+	var aboard: Array[Vip] = []
+	for node in get_tree().get_nodes_in_group(&"vips"):
+		var vip := node as Vip
+		if vip and not vip.is_dead and not vip.is_evacuated and cabin_contains(vip.global_position + Vector3.UP * 0.3):
+			aboard.append(vip)
+	return aboard
+
+
+# --- Extraction ---------------------------------------------------------------
+
+## Pas encore appelé : caché, sans collision (la navigation passe sur son
+## point de pose).
+func _go_away() -> void:
+	is_away = true
+	visible = false
+	_set_solid(false)
+
+
+func _set_solid(solid: bool) -> void:
+	collision_layer = LAYER_OCCLUDERS if solid else 0
+	floor_body.collision_layer = LAYER_OCCLUDERS if solid else 0
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+
+
+## Raison pour laquelle on ne peut pas appeler l'appareil (vide : c'est
+## possible).
+func call_problem() -> String:
+	if not extraction:
+		return "pas d'extraction prévue"
+	if is_destroyed:
+		return "appareil détruit"
+	if is_inbound:
+		return "déjà en route"
+	if not is_away:
+		return "déjà sur place"
+	return ""
+
+
+## Appareil d'extraction encore à appeler sur cette carte, ou null.
+static func awaiting_call(tree: SceneTree) -> Tiltrotor:
+	for node in tree.get_nodes_in_group(GROUP):
+		var aircraft := node as Tiltrotor
+		if aircraft and aircraft.extraction and (aircraft.is_away or aircraft.is_inbound):
+			return aircraft
+	return null
+
+
+## Appelle l'appareil : il arrive de l'arrière, rotors lancés, jusqu'au-dessus
+## de son point de pose. Renvoie faux si c'est impossible (`call_problem`).
+func call_in() -> bool:
+	if call_problem() != "":
+		return false
+	is_away = false
+	is_inbound = true
+	visible = true
+	_apply_ramp(true, false)
+	model.rotor_speed = FLIGHT_ROTOR_SPEED
+	var hover := _landing + Vector3.UP * HOVER_HEIGHT
+	global_position = hover + global_basis.z * APPROACH_DISTANCE + Vector3.UP * (APPROACH_HEIGHT - HOVER_HEIGHT)
+	_noise_left = 0.0
+	_flight = create_tween()
+	_flight.tween_property(self, "global_position", hover, APPROACH_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_flight.tween_callback(_over_landing)
+	return true
+
+
+## Au-dessus du point de pose : il attend que la place soit libre, puis
+## descend.
+func _over_landing() -> void:
+	if not is_inbound:
+		return
+	# Il ne se pose pas sur les siens ; les ennemis attirés dessous s'écartent.
+	if _someone_below(true):
+		get_tree().create_timer(0.5, false).timeout.connect(_over_landing)
+		return
+	ground_y = _landing.y
+	_flight = create_tween()
+	_flight.tween_property(self, "global_position:y", ground_y, HOVER_TIME).set_trans(Tween.TRANS_SINE)
+	_flight.tween_property(model, "rotor_speed", 0.0, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_flight.tween_callback(_touched_down)
+
+
+## Posé : solide, rampe abaissée pour l'embarquement.
+func _touched_down() -> void:
+	is_inbound = false
+	global_position = _landing
+	_push_enemies_out()
+	_set_solid(true)
+	_apply_ramp(false, true)
+
+
+## Ennemis sous l'emprise de l'appareil : écartés sur le côté le plus proche.
+func _push_enemies_out() -> void:
+	var reach := 0.0
+	for box in hull_boxes:
+		reach = maxf(reach, maxf(absf(box.position.x), absf(box.end.x)))
+	for node in get_tree().get_nodes_in_group(Enemy.ALL_GROUP):
+		var enemy := node as Enemy
+		if enemy == null:
+			continue
+		var local := to_local(enemy.global_position)
+		if distance_to_hull(enemy.global_position * Vector3(1, 0, 1) + Vector3.UP * (global_position.y + 0.5)) > 0.6:
+			continue
+		local.x = (reach + 0.8) * (1.0 if local.x >= 0.0 else -1.0)
+		enemy.global_position = to_global(local)
+
+
+## Vrai si tout le monde peut partir : opérateurs vivants et VIP à bord,
+## autres objectifs remplis.
+func _ready_to_leave() -> bool:
+	if take_off_problem() != "":
+		_told_pending = false
+		return false
+	for node in get_tree().get_nodes_in_group(&"vips"):
+		var vip := node as Vip
+		if vip and not vip.is_dead and not vip.is_evacuated and not vips_aboard().has(vip):
+			return false
+	var objectives := get_tree().get_first_node_in_group(Objectives.GROUP) as Objectives
+	if objectives and not objectives.done_except(String(objective_id)):
+		if not _told_pending:
+			_told_pending = true
+			for unit in passengers():
+				unit.flash_message("Extraction : objectifs en cours")
+		return false
+	return true
 
 
 func _physics_process(delta: float) -> void:
-	for unit: Commando in _passengers:
+	for unit: Node3D in _passengers:
 		if is_instance_valid(unit):
 			unit.global_position = to_global(_passengers[unit])
-	if is_flying:
+	if is_inbound:
+		# Bruit des rotors au sol sous l'appareil : les ennemis accourent.
+		_noise_left -= delta
+		if _noise_left <= 0.0:
+			_noise_left = APPROACH_NOISE_INTERVAL
+			EventBus.noise_emitted.emit(Vector3(global_position.x, _landing.y, global_position.z), ROTOR_NOISE, &"help")
+	if is_flying or is_away or is_inbound:
 		return
 	_check_left -= delta
 	if _check_left > 0.0:
 		return
 	_check_left = CHECK_INTERVAL
+	if extraction and not is_destroyed and not is_airborne and not is_moving:
+		if _ready_to_leave():
+			_depart_left -= CHECK_INTERVAL
+			if _depart_left <= 0.0:
+				take_off(null)
+				return
+		else:
+			_depart_left = DEPART_DELAY
 	var aboard := false
 	for node in get_tree().get_nodes_in_group(&"commandos"):
 		var unit := node as Commando
@@ -511,13 +694,15 @@ func distance_to_hull(point: Vector3) -> float:
 ## Explosion de rayon `radius` en `at` (`Explosion`) : détruit l'appareil si
 ## elle est assez près de la coque.
 func blast(at: Vector3, radius: float) -> void:
+	if is_away or is_inbound:
+		return
 	if not is_destroyed and distance_to_hull(at) <= radius * BLAST_SHARE:
 		destroy()
 
 
 ## Détruit l'appareil : réservoir qui saute, épave en feu, objectif rempli.
 func destroy() -> void:
-	if is_destroyed or is_flying or is_airborne or is_moving:
+	if is_destroyed or is_flying or is_airborne or is_moving or is_away or is_inbound:
 		return
 	_set_wrecked()
 	# Réservoirs dans les flancs : une explosion de chaque côté, hors de la
@@ -525,6 +710,11 @@ func destroy() -> void:
 	for side: float in [-1.0, 1.0]:
 		var tank := to_global(Vector3(side * (TiltrotorModel.CABIN_HALF_WIDTH + 0.6) * SCALE + side * 0.4, 1.2, 0.5 * SCALE))
 		Explosion.detonate(get_parent(), tank, FUEL_RADIUS, FUEL_DAMAGE, FUEL_NOISE)
+	if extraction:
+		# Plus d'appareil pour repartir : la mission est perdue.
+		get_tree().create_timer(END_DELAY, false).timeout.connect(func() -> void:
+			EventBus.mission_ended.emit(false, "ÉCHEC — appareil d'extraction détruit"))
+		return
 	EventBus.objective_completed.emit(objective_id)
 	if ends_mission:
 		get_tree().create_timer(END_DELAY, false).timeout.connect(func() -> void:
@@ -533,10 +723,25 @@ func destroy() -> void:
 
 ## Sauvegarde rapide (`QuickSave`).
 func save_state() -> Dictionary:
-	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y}
+	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
+		"away": is_away or is_inbound}
 
 
 func load_state(data: Dictionary) -> void:
+	# Extraction : en approche, l'appareil est rendu « pas encore appelé ».
+	var away: bool = data.get("away", false)
+	if away != (is_away or is_inbound) and extraction:
+		if _flight:
+			_flight.kill()
+		is_inbound = false
+		if away:
+			_go_away()
+		else:
+			is_away = false
+			visible = true
+			global_position = _landing
+			model.rotor_speed = 0.0
+			_set_solid(true)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	var closed: bool = data.get("ramp_closed", false)

@@ -11,6 +11,7 @@ extends Node
 
 enum Status { PENDING, DONE, FAILED }
 
+const GROUP := &"objectives"
 ## Objectifs qui ne se remplissent qu'à la réussite des autres.
 const CONDITIONS: Array[String] = ["vip_alive", "no_operator_lost"]
 ## Intervalle de vérification des ennemis restants.
@@ -35,6 +36,7 @@ func setup(objectives: Array[Dictionary]) -> void:
 
 func _ready() -> void:
 	name = "Objectives"
+	add_to_group(GROUP)
 	# Pas pendant le chargement ni les pauses (le HUD, lui, tourne toujours).
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	EventBus.mission_ended.connect(_on_mission_ended)
@@ -55,6 +57,17 @@ func status_of(id: String) -> Status:
 		if entry["id"] == id:
 			return entry["status"]
 	return Status.PENDING
+
+
+## Vrai si tous les objectifs autres que `id` (hors conditions) sont
+## remplis, et aucun manqué : l'extraction peut partir.
+func done_except(id: String) -> bool:
+	for entry in entries:
+		if entry["status"] == Status.FAILED:
+			return false
+		if entry["id"] != id and entry["status"] == Status.PENDING and not CONDITIONS.has(entry["id"]):
+			return false
+	return true
 
 
 func has_objective(id: String) -> bool:

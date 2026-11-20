@@ -766,3 +766,12 @@
 - Tige plus haute, avec col rembourré, languette, laçage croisé et crochets ; le pantalon blouse sur le haut de la tige ; une rotule comble la pliure de la cheville.
 - Pied : talon arrondi, cou-de-pied incliné, bout renforcé et laçage ; semelle crantée au bout arrondi, talon plus épais. Le VIP en civil garde des chaussures basses.
 - Un genou à terre : le tibia arrière remonte vers la cheville et le pied se dresse sur la pointe, orteils repliés, semelle crantée vers l'arrière ; il ne s'enfonce plus dans le sol.
+
+## Extraction par le convertible (8.1)
+
+- `Tiltrotor.extraction` : l'appareil n'est pas là au début de la mission (caché, sans collision ; la navigation passe sur son point de pose).
+- Clic milieu sur un opérateur au sol : « Appeler l'extraction ». Le convertible arrive de l'arrière en 14 s, rotors lancés ; le bruit des rotors, émis au sol sous lui toutes les 1,5 s, fait accourir les ennemis.
+- Au-dessus de son point de pose, il attend que la place soit libre d'opérateurs et de VIP ; les ennemis attirés dessous sont écartés sur le côté au moment du poser. Posé, il abaisse la rampe.
+- Il repart seul 1,5 s après que tous les opérateurs vivants et les VIP sont à bord, si les autres objectifs sont remplis (« Extraction : objectifs en cours » sinon) : objectif rempli, « RÉUSSITE — équipe extraite ». Détruit au sol, il fait échouer la mission.
+- « Nuit sans lune » : convertible d'extraction au sud du dépôt, nouvel objectif « Repartir à bord du convertible d'extraction » ; l'équipe part plus à l'ouest.
+- `Objectives.done_except` et groupe `objectives`.
