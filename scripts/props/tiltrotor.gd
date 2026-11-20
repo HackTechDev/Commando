@@ -520,7 +520,11 @@ func destroy() -> void:
 	if is_destroyed or is_flying or is_airborne or is_moving:
 		return
 	_set_wrecked()
-	Explosion.detonate(get_parent(), global_position + Vector3.UP * 1.5, FUEL_RADIUS, FUEL_DAMAGE, FUEL_NOISE)
+	# Réservoirs dans les flancs : une explosion de chaque côté, hors de la
+	# coque (creuse, elle arrêterait le souffle parti du centre).
+	for side: float in [-1.0, 1.0]:
+		var tank := to_global(Vector3(side * (TiltrotorModel.CABIN_HALF_WIDTH + 0.6) * SCALE + side * 0.4, 1.2, 0.5 * SCALE))
+		Explosion.detonate(get_parent(), tank, FUEL_RADIUS, FUEL_DAMAGE, FUEL_NOISE)
 	EventBus.objective_completed.emit(objective_id)
 	if ends_mission:
 		get_tree().create_timer(END_DELAY, false).timeout.connect(func() -> void:

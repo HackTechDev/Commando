@@ -141,7 +141,8 @@ func test_menu_from_game_asks_confirmation() -> void:
 	_launch(menu, _index_of("Terrain d'essai"))
 	assert_true(await _wait_scene("Sandbox"), "terrain d'essai lancé")
 	var hud: Hud = get_tree().current_scene.find_children("*", "Hud", true, false)[0]
-	assert_null(hud.find_child("Quit", true, false), "pas de bouton « Quitter » en jeu (menu pause)")
+	# Le menu pause garde son « Quitter » ; le coin en haut à droite n'en a plus.
+	assert_null(hud.get_node("PlayerController/TopRight").find_child("Quit", false, false), "pas de bouton « Quitter » en haut à droite")
 	await _check_confirmation(hud, "Menu", hud.menu_dialog)
 
 
