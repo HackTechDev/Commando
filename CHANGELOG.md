@@ -868,3 +868,9 @@
 - « Ravitaillement » au menu de bord du convertible : l'opérateur reprend sa dotation de départ, munitions de réserve des deux armes, grenades, fumigènes, trousses de soins et charges (`Commando.resupply`).
 - La soute emporte trois lots (`Tiltrotor.supplies`), un par opérateur ravitaillé ; « rien ne manque » si sa dotation est complète. Un message liste ce qui a été repris.
 - La sauvegarde rapide garde les lots restants.
+
+## Évacuation des blessés (8.13)
+
+- Un opérateur blessé (moins de 60 % de sa santé) à bord du convertible : « Évacuer le blessé » au menu de bord. Il quitte la mission, sauvé (`Commando.evacuate`) : caché, hors du groupe des opérateurs, il n'est plus une cible et l'appareil d'extraction ne l'attend plus.
+- Il ne compte pas comme perdu (`no_operator_lost` reste rempli). Son portrait affiche « Évacué » et ne se sélectionne plus.
+- On n'évacue pas le dernier opérateur. La sauvegarde rapide garde l'évacuation.

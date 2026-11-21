@@ -13,12 +13,16 @@ signal sling_changed(slung: bool)
 signal weapon_changed(secondary: bool)
 ## Bouclier levé ou baissé (choix du joueur).
 signal shield_changed(raised: bool)
+## Évacué par le convertible (blessé) : il quitte la mission, sauvé.
+signal evacuated
 
 ## Corps à corps : couteau (tue), assommer, balayage (assomme moins
 ## longtemps), projection (au sol par-dessus la hanche, puis assommé).
 enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET }
 
 const MASK_OCCLUDERS := 0b10
+## Blessé (évacuable) sous cette part de sa santé.
+const WOUNDED_SHARE := 0.6
 ## Tir depuis un convertible en vol : portée minimale d'un fusil de précision,
 ## hauteur qui double la portée (m), bonus maximal.
 const MARKSMAN_RANGE := 20.0
@@ -168,6 +172,8 @@ var airborne_in: Tiltrotor
 ## Véhicule (Sabre) dont l'opérateur occupe une place : il ne marche plus,
 ## il tire depuis sa place.
 var riding: Sabre
+## Évacué (voir `evacuate`) : hors de la mission, ni mort ni perdu.
+var is_evacuated: bool = false
 ## Ennemi tenu en bouclier humain, devant l'opérateur.
 var hostage: Enemy
 
@@ -1565,6 +1571,37 @@ func _weapon_height() -> float:
 	return 1.4
 
 
+## Blessé : santé sous `WOUNDED_SHARE`, encore en vie.
+func is_wounded() -> bool:
+	return not is_dead and health.health < health.max_health * WOUNDED_SHARE
+
+
+## Évacuation par le convertible : l'opérateur quitte la mission, sauvé (il
+## ne compte pas comme perdu) ; caché, sans physique, hors du groupe des
+## opérateurs (les ennemis ne le visent plus, l'appareil ne l'attend plus).
+func evacuate() -> void:
+	if is_dead or is_evacuated:
+		return
+	stop()
+	release_hostage()
+	drop_body()
+	_set_evacuated(true)
+	evacuated.emit()
+
+
+func _set_evacuated(value: bool) -> void:
+	is_evacuated = value
+	airborne_in = null
+	visible = not value
+	process_mode = Node.PROCESS_MODE_DISABLED if value else Node.PROCESS_MODE_INHERIT
+	collision_layer = 0 if value else 4
+	if value:
+		remove_from_group(&"commandos")
+		SelectionManager.remove(self)
+	elif not is_in_group(&"commandos"):
+		add_to_group(&"commandos")
+
+
 ## Ce qui manque à l'opérateur par rapport à sa dotation de départ :
 ## munitions de réserve (des deux armes), grenades, fumigènes, trousses de
 ## soins, charges. Clés : nom du lot, valeur : quantité manquante.
@@ -1798,6 +1835,7 @@ func save_state() -> Dictionary:
 	data.merge({
 		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
+		"evacuated": is_evacuated,
 		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
@@ -1819,6 +1857,10 @@ func load_state(data: Dictionary) -> void:
 	super(data)
 	if is_dead:
 		return
+	var gone: bool = data.get("evacuated", false)
+	if gone != is_evacuated:
+		_set_evacuated(gone)
+		evacuated.emit()
 	if data.get("using_secondary", using_secondary) != using_secondary:
 		switch_weapon()
 	var ammo: Vector2i = data.get("ammo", Vector2i(ammo_in_magazine, ammo_reserve))

@@ -48,6 +48,7 @@ func setup(unit: Commando) -> void:
 		tooltip_text = "%s « %s »" % [unit.profile.name, unit.profile.callsign]
 	unit.selected_changed.connect(func(_selected: bool) -> void: _refresh())
 	unit.posture_changed.connect(func(_posture: SoldierModel.Posture) -> void: _refresh())
+	unit.evacuated.connect(_refresh)
 	EventBus.unit_damaged.connect(_on_unit_event.unbind(1))
 	EventBus.unit_ammo_changed.connect(_on_unit_event)
 	EventBus.unit_died.connect(_on_unit_event)
@@ -59,7 +60,7 @@ func _gui_input(event: InputEvent) -> void:
 	if button == null or not button.pressed or button.button_index != MOUSE_BUTTON_LEFT:
 		return
 	accept_event()
-	if _unit.is_dead:
+	if _unit.is_dead or _unit.is_evacuated:
 		return
 	SelectionManager.select([_unit] as Array[Commando], Input.is_action_pressed(&"select_additive"))
 	if button.double_click:
@@ -79,13 +80,14 @@ func _refresh() -> void:
 	_health_text.text = "%d PV" % roundi(_unit.health.health)
 	_fill.bg_color = wounded_color.lerp(healthy_color, ratio)
 	_style.border_color = selected_border if _unit.is_selected else normal_border
-	if _unit.is_dead:
-		_status.text = "Mort"
+	if _unit.is_dead or _unit.is_evacuated:
+		_status.text = "Évacué" if _unit.is_evacuated else "Mort"
 		_ammo.text = ""
 		_gear.visible = false
 		_no_knife.visible = false
 		modulate = Color(1.0, 1.0, 1.0, 0.45)
 		return
+	modulate = Color.WHITE
 	_status.text = POSTURE_NAMES[_unit.posture]
 	if _unit.is_reloading():
 		_ammo.text = "Rechargement…"

@@ -61,6 +61,9 @@ extends StaticBody3D
 ## opérateur à bord y reprend sa dotation de départ (munitions, grenades,
 ## fumigènes, trousses de soins, charges).
 ##
+## Évacuation (`evacuate`) : un opérateur blessé à bord quitte la mission,
+## sauvé ; il ne compte pas comme perdu.
+##
 ## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
 ## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
 ## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points, une roquette
@@ -1225,6 +1228,34 @@ func resupply(unit: Commando) -> bool:
 	for key: String in taken:
 		parts.append("%s +%d" % [key, taken[key]])
 	unit.flash_message("Ravitaillé : " + ", ".join(parts))
+	return true
+
+
+# --- Évacuation des blessés -----------------------------------------------------
+
+## Raison pour laquelle `unit` ne peut pas être évacué (vide : c'est
+## possible).
+func evacuation_problem(unit: Commando) -> String:
+	if unit == null or not _is_aboard(unit):
+		return "pas à bord"
+	if not unit.is_wounded():
+		return "pas assez blessé"
+	if is_destroyed or is_disabled:
+		return "appareil endommagé"
+	var others := get_tree().get_nodes_in_group(&"commandos").filter(func(node: Node) -> bool:
+		return node != unit and not (node as Commando).is_dead)
+	if others.is_empty():
+		return "dernier opérateur"
+	return ""
+
+
+## Évacue `unit`, blessé et à bord : il quitte la mission, sauvé.
+func evacuate(unit: Commando) -> bool:
+	if evacuation_problem(unit) != "":
+		return false
+	if gunner == unit:
+		leave_gun()
+	unit.evacuate()
 	return true
 
 
