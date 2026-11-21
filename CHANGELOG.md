@@ -888,3 +888,9 @@
 - La charge suit l'appareil pendant « Déplacer » et les changements d'altitude ; sans collision pendant le transport (navigation et vues recalculées).
 - « Larguer la charge » la dépose sous l'appareil, au sol ou sur un toit : bloquer une porte, créer un abri, poser le Sabre ailleurs.
 - On n'atterrit pas et on ne renvoie pas l'appareil avec une charge. Abattu, il la lâche sur place. La sauvegarde rapide garde la charge suspendue.
+
+## Raid nocturne sur « Nuit sans lune » (8.16)
+
+- L'équipe commence à bord du convertible (`insertion`), en vol stationnaire à 30 m au sud-ouest du dépôt, hors de portée d'oreille des gardes. Rappel, puis on renvoie l'appareil ; rappelé par radio, il revient se poser au même endroit pour l'extraction.
+- `SabotageTarget` : groupe électrogène sur patins au fond de la cour. Une charge qui explose tout près le détruit (carcasse noircie), remplit l'objectif `sabotage` et éteint les lampadaires qu'il alimente.
+- Objectifs : saboter le groupe électrogène, repartir à bord, ne perdre personne. Neutraliser tous les gardes n'est plus exigé. Alpha et Bravo reçoivent une charge de la mission.

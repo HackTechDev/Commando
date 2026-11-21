@@ -58,6 +58,8 @@ func _damage_scenery() -> void:
 			wall.break_apart(global_position)
 	for node in get_tree().get_nodes_in_group(Tiltrotor.GROUP):
 		(node as Tiltrotor).blast(global_position, radius)
+	for node in get_tree().get_nodes_in_group(SabotageTarget.GROUP):
+		(node as SabotageTarget).blast(global_position, radius)
 	for node in get_tree().get_nodes_in_group(Door.GROUP):
 		(node as Door).blast(global_position, radius)
 	for node in get_tree().get_nodes_in_group(&"climbables"):

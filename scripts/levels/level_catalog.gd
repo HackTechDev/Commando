@@ -86,10 +86,10 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Nuit sans lune",
 		"scene": "res://scenes/levels/night/night.tscn",
-		"description": "Un dépôt gardé, de nuit : cinq soldats, dont deux en ronde. Les opérateurs portent des jumelles de vision nocturne (touche à gauche de 1 : ² sur AZERTY) qui amplifient la lumière en vert ; sans elles, on ne distingue presque rien hors des lampadaires. Dans le noir, les sentinelles voient moins loin. Pour repartir, appelez le convertible par radio (clic milieu sur un opérateur : « Appeler l'extraction ») : il se pose au sud du dépôt, mais le bruit de ses rotors attire les gardes.",
+		"description": "Un dépôt gardé, de nuit : cinq soldats, dont deux en ronde. Les opérateurs portent des jumelles de vision nocturne (touche à gauche de 1 : ² sur AZERTY) qui amplifient la lumière en vert ; sans elles, on ne distingue presque rien hors des lampadaires. Dans le noir, les sentinelles voient moins loin. Raid : l'équipe arrive à bord du convertible, en vol stationnaire à 30 m au sud-ouest ; descendez en rappel, puis renvoyez l'appareil (clic milieu sur un opérateur : « Renvoyer l'appareil »). Sabotez le groupe électrogène au fond de la cour avec une charge : les lampadaires s'éteignent. Pour repartir, rappelez le convertible par radio (« Appeler l'extraction ») : il revient se poser au même endroit, mais le bruit de ses rotors attire les gardes.",
 		"camo": "night",
 		"objectives": [
-			{"id": "all_enemies_down", "text": "Neutraliser les cinq gardes du dépôt"},
+			{"id": "sabotage", "text": "Saboter le groupe électrogène du dépôt"},
 			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
 			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
 		],
