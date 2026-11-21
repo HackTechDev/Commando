@@ -106,7 +106,7 @@ func _process(delta: float) -> void:
 	if not is_equal_approx(_cut, _cut_goal):
 		_cut = move_toward(_cut, _cut_goal, delta * 3.0)
 		if _body:
-			_body.transparency = _cut
+			MeshFade.apply(_body, _cut)
 	if rotor_speed == 0.0:
 		return
 	for i in rotors.size():

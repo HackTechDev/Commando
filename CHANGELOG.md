@@ -815,3 +815,7 @@
 - Clic droit au sol, appareil posé et rampe abaissée : le Sabre redescend la rampe en marche arrière, redéploie l'arceau et file vers sa destination.
 - Sauvegarde rapide : véhicule garé ou non.
 - « Patrouille Sabre » : la mission commence à côté d'un convertible d'insertion, le Sabre garé dans sa soute (`Sabre.start_stowed_in`).
+
+## Translucidité dans l'export web
+
+- La coque du convertible (opérateur à bord) et le haut des bâtiments (opérateur à l'intérieur) s'estompent désormais aussi dans l'export web. `GeometryInstance3D.transparency`, ignoré par le rendu Compatibility (WebGL 2), est remplacé par `MeshFade`, qui estompe des copies des matériaux de chaque surface par leur canal alpha.

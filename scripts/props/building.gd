@@ -265,5 +265,5 @@ func set_cut(cut: bool) -> void:
 
 func _apply_fade() -> void:
 	for mesh in _cut_meshes:
-		mesh.transparency = _fade
+		MeshFade.apply(mesh, _fade)
 		mesh.visible = _fade < 0.999
