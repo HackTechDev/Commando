@@ -1087,3 +1087,9 @@
 - Nouvelle carte « Nid de frelons » (`tools/gen_hornets.py`), de jour, sur un plateau rocheux. Il faut neutraliser un camp retranché et ses avant-postes. Trois gardes portent des lance-roquettes, dont un qui en a trois (8.8), et le reste du camp riposte contre l'appareil (8.7).
 - L'équipe commence en vol stationnaire (8.2). L'appui vient de la soute : le canon latéral (8.5) et Alpha à l'Hécate, plus loin grâce à la hauteur (8.6). La soute a trois lots de ravitaillement (8.12). Le même appareil sert à l'extraction.
 - Vérifié par scénario : chemins de la zone de poser au camp et à l'avant-poste ouest. La suite GUT n'a pas été lancée.
+
+## Feux éteints
+
+- Nouvelle carte « Feux éteints » (`tools/gen_blackout.py`), de nuit. Il faut saboter le groupe électrogène d'une station radio, ce qui éteint ses lampadaires.
+- On y emploie le vol tous feux éteints (8.9), l'appareil ennemi à projecteur qui tourne au-dessus de la station (8.18) et la diversion par le convertible pour attirer les sentinelles du portail (8.11). Un garde à lance-roquettes punit l'appareil qui vole trop près (8.8).
+- Vérifié par scénario : chemins de la zone de poser à la station et au groupe électrogène ; rendu de nuit. La suite GUT n'a pas été lancée.

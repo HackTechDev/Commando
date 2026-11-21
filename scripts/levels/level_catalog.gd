@@ -165,6 +165,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Feux éteints",
+		"scene": "res://scenes/levels/blackout/blackout.tscn",
+		"description": "De nuit. Une station radio, éclairée par ses lampadaires, est gardée par deux sentinelles au portail, une ronde, un garde à lance-roquettes, et survolée par un appareil ennemi dont le projecteur balaie le sol : à découvert dans sa tache, on est repéré. L'équipe commence en vol stationnaire, tous feux éteints : les gardes ne voient l'appareil que de près, mais entendent ses rotors ; une rafale du canon latéral le trahit. Rappel, puis renvoyez l'appareil. Parti, il peut faire une diversion (menu radio, puis clic sur la carte) : un passage en rase-mottes qui attire les sentinelles sans donner l'alerte. Sabotez le groupe électrogène avec une charge (Alpha et Bravo en ont une) : les lampadaires s'éteignent. Rappelez l'appareil pour repartir.",
+		"camo": "night",
+		"objectives": [
+			{"id": "sabotage", "text": "Saboter le groupe électrogène de la station radio"},
+			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

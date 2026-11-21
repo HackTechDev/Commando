@@ -78,7 +78,7 @@ class MapBuilder:
         self.subs = []
         self.nav = []
         self.decor = []
-        self.lamps = []
+        self.lamp_nodes = []
         self.units = []
         self.paths = []
         self.enemies = []
@@ -204,10 +204,10 @@ class MapBuilder:
         for x, z in items:
             name = self._name("Lamp")
             names.append(name)
-            self.lamps.append(f'[node name="{name}" type="Node3D" parent="Lamps"]\ntransform = {tf(x, z)}')
-            self.lamps.append(f'[node name="Post" type="MeshInstance3D" parent="Lamps/{name}"]\ntransform = {tf(0, 0, y=2)}\nmesh = SubResource("post_mesh")')
-            self.lamps.append(f'[node name="Bulb" type="MeshInstance3D" parent="Lamps/{name}"]\ntransform = {tf(0, 0, y=4.05)}\nmesh = SubResource("bulb_mesh")')
-            self.lamps.append(f'[node name="Light" type="OmniLight3D" parent="Lamps/{name}"]\ntransform = {tf(0, 0, y=3.9)}\n'
+            self.lamp_nodes.append(f'[node name="{name}" type="Node3D" parent="Lamps"]\ntransform = {tf(x, z)}')
+            self.lamp_nodes.append(f'[node name="Post" type="MeshInstance3D" parent="Lamps/{name}"]\ntransform = {tf(0, 0, y=2)}\nmesh = SubResource("post_mesh")')
+            self.lamp_nodes.append(f'[node name="Bulb" type="MeshInstance3D" parent="Lamps/{name}"]\ntransform = {tf(0, 0, y=4.05)}\nmesh = SubResource("bulb_mesh")')
+            self.lamp_nodes.append(f'[node name="Light" type="OmniLight3D" parent="Lamps/{name}"]\ntransform = {tf(0, 0, y=3.9)}\n'
                               'light_color = Color(1, 0.8, 0.52, 1)\nlight_energy = 2.2\nomni_range = 9.0\nomni_attenuation = 1.4')
         return names
 
@@ -351,7 +351,7 @@ class MapBuilder:
         nodes.append('[node name="Decor" type="Node3D" parent="."]')
         nodes += self.decor
         nodes.append('[node name="Lamps" type="Node3D" parent="."]')
-        nodes += self.lamps
+        nodes += self.lamp_nodes
         nodes.append('[node name="Units" type="Node3D" parent="."]')
         nodes += self.units
         nodes += self.after_root
