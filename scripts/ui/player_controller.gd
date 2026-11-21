@@ -49,6 +49,8 @@ const ACTION_FLY := &"fly"
 const ACTION_DIVERT := &"divert"
 ## Missile antichar du Sabre : puis clic gauche sur la cible.
 const ACTION_MISSILE := &"missile"
+## Tir désigné à la 12,7 : puis clic gauche sur un ennemi ou un objet.
+const ACTION_DESIGNATE := &"designate"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -347,6 +349,9 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 			return _grapple_cursor(screen_position)
 		ACTION_MISSILE:
 			return GameCursor.Kind.ATTACK
+		ACTION_DESIGNATE:
+			var picked := _designation_at(screen_position)
+			return GameCursor.Kind.ATTACK if picked and MountedGun.designation_alive(picked) else GameCursor.Kind.FORBIDDEN
 		ACTION_FLY, ACTION_DIVERT:
 			var spot := _raycast(screen_position, MASK_GROUND)
 			return GameCursor.Kind.ORDERS if not spot.is_empty() and not _is_aircraft_part(spot["collider"]) else GameCursor.Kind.FORBIDDEN
@@ -866,8 +871,10 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 			"detail": "puis clic sur la cible : %.1f s de visée, à l'arrêt" % Sabre.MISSILE_AIM if missile == "" else missile,
 			"enabled": missile == ""})
 	if index == Sabre.GUNNER_SEAT:
-		options.append({"id": &"gun", "label": "12,7 : cesser le feu" if sabre.gun_firing else "12,7 : feu à volonté",
-			"detail": "la mitrailleuse se tait" if sabre.gun_firing else "tir automatique tout autour (bruyant)"})
+		options.append({"id": &"gun", "label": "12,7 : cesser le feu" if sabre.gun_firing or sabre.designated_target() else "12,7 : feu à volonté",
+			"detail": "la mitrailleuse se tait" if sabre.gun_firing or sabre.designated_target() else "tir automatique tout autour (bruyant)"})
+		options.append({"id": &"designate", "label": "12,7 : tir désigné",
+			"detail": "puis clic sur un ennemi ou un objet : feu concentré", "enabled": not sabre.model.is_folded})
 	else:
 		var free_turret := sabre.gunner() == null
 		options.append({"id": &"turret", "label": "Tourelle 12,7",
@@ -1039,7 +1046,12 @@ func _on_radial_chosen(id: StringName) -> void:
 				&"turret":
 					ok = sabre.move_seat(rider, Sabre.GUNNER_SEAT)
 				&"gun":
-					ok = sabre.set_gun_firing(not sabre.gun_firing)
+					ok = sabre.set_gun_firing(not (sabre.gun_firing or sabre.designated_target() != null))
+				&"designate":
+					_action_sabre = sabre
+					_action_rider = rider
+					arm_aircraft_action(ACTION_DESIGNATE, null)
+					return
 				&"lights":
 					ok = sabre.set_headlights(not sabre.headlights)
 				&"coast":
@@ -1179,7 +1191,32 @@ static func _is_aircraft_part(collider: Object) -> bool:
 	return node is Tiltrotor or (node != null and node.get_parent() is Tiltrotor)
 
 
+## Ennemi ou objet destructible sous `screen_position` (pas un Sabre), ou
+## null.
+func _designation_at(screen_position: Vector2) -> Node3D:
+	var hit := _raycast(screen_position, MASK_GROUND | MASK_ENEMIES)
+	var node := hit.get("collider") as Node3D
+	if node is Enemy or (node != null and node.has_method(&"take_shot") and not node is Sabre):
+		return node
+	return null
+
+
 func _use_pending_action(screen_position: Vector2) -> void:
+	if pending_action == ACTION_DESIGNATE:
+		var sabre := _action_sabre
+		_action_sabre = null
+		_action_rider = null
+		cancel_pending_action()
+		var picked := _designation_at(screen_position)
+		var problem := sabre.designate(picked) if is_instance_valid(sabre) else "pas de véhicule"
+		if problem == "":
+			_spawn_marker(picked.global_position, marker_run_color)
+			Sfx.play_ui(&"order")
+		else:
+			if is_instance_valid(sabre) and sabre.gunner():
+				sabre.gunner().flash_message(problem[0].to_upper() + problem.substr(1))
+			Sfx.play_ui(&"denied")
+		return
 	if pending_action == ACTION_MISSILE:
 		var spot := _raycast(screen_position, MASK_GROUND | MASK_ENEMIES)
 		var sabre := _action_sabre

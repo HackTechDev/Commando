@@ -491,11 +491,36 @@ func move_seat(unit: Commando, index: int) -> bool:
 	return true
 
 
+## Tir désigné à la 12,7 : le tireur concentre le feu sur `node` (ennemi,
+## caisse, véhicule…), même sans feu à volonté, jusqu'à ce qu'elle tombe.
+func designate(node: Node3D) -> String:
+	if gunner() == null:
+		return "personne à la tourelle"
+	if model.is_folded:
+		return "arceau replié"
+	if is_wrecked:
+		return "épave"
+	if node == null or node == self or not MountedGun.designation_alive(node):
+		return "pas une cible"
+	if global_position.distance_to(node.global_position) > GUN_RANGE:
+		return "hors de portée (%d m)" % int(GUN_RANGE)
+	_gun.designated = node
+	gunner().flash_message("12,7 : tir sur la cible désignée")
+	return ""
+
+
+## Cible désignée de la 12,7, ou null.
+func designated_target() -> Node3D:
+	return _gun.designated
+
+
 ## Ouvre ou cesse le feu avec la 12,7 (il faut quelqu'un à la tourelle).
 func set_gun_firing(firing: bool) -> bool:
 	if firing and (gunner() == null or model.is_folded):
 		return false
 	gun_firing = firing
+	if not firing:
+		_gun.designated = null
 	if firing:
 		gunner().flash_message("12,7 : feu à volonté")
 	return true
@@ -990,7 +1015,7 @@ func _physics_process(delta: float) -> void:
 		_update_boarders()
 		_update_repair(delta)
 		_update_idle(delta)
-	_gun.update(delta, gun_firing and gunner() != null and not model.is_folded)
+	_gun.update(delta, (gun_firing or _gun.designated != null) and gunner() != null and not model.is_folded and not is_wrecked)
 	_update_missile(delta)
 	for index in _side_guns.size():
 		var crew_member := seats[SIDE_GUN_SEATS[index]]

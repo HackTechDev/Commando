@@ -6,7 +6,9 @@ extends RefCounted
 ## tir ; en vue, ou seulement derrière une caisse ou un mur fragile que ses
 ## balles rongent), pivote vers lui (`pivot`, bouche vers -Z) et tire des
 ## rafales. Une balle blesse le premier ennemi touché ou abîme le premier
-## objet destructible (`take_shot`). Chaque rafale fait du bruit.
+## objet destructible (`take_shot`). Chaque rafale fait du bruit. Une cible
+## désignée (`designated` : ennemi, caisse…) passe avant toute autre, tant
+## qu'elle tient debout et reste à portée.
 
 ## Couches touchées : murs, caisses, ennemis debout ou au sol.
 const MASK := 0b11011
@@ -38,6 +40,8 @@ var excluded: Callable
 var on_burst: Callable
 
 var target: Enemy
+## Cible désignée par le joueur (ennemi ou objet destructible), ou null.
+var designated: Node3D
 var _search_left: float = 0.0
 var _rounds_left: int = 0
 var _cooldown: float = 0.0
@@ -57,6 +61,7 @@ func muzzle() -> Vector3:
 ## Arme lâchée : plus de cible ni de rafale en cours.
 func reset() -> void:
 	target = null
+	designated = null
 	_rounds_left = 0
 	_search_left = 0.0
 
@@ -74,6 +79,42 @@ func can_reach(enemy: Enemy) -> bool:
 	return collider == enemy or (collider != null and collider.has_method(&"take_shot"))
 
 
+## Vrai tant que la cible désignée `node` vaut la peine (ennemi debout,
+## objet intact).
+static func designation_alive(node: Node3D) -> bool:
+	if not is_instance_valid(node) or not node.is_inside_tree():
+		return false
+	var enemy := node as Enemy
+	if enemy:
+		return not enemy.is_dead and enemy.state != Enemy.State.STUNNED
+	if node.get(&"is_broken") == true or node.get(&"is_destroyed") == true or node.get(&"is_wrecked") == true:
+		return false
+	return true
+
+
+## Point visé sur la cible désignée.
+static func designation_point(node: Node3D) -> Vector3:
+	if node is Enemy:
+		return node.global_position + Vector3.UP * 1.0
+	var crate := node as Climbable
+	if crate:
+		return crate.global_position + Vector3.UP * crate.top_height * 0.5
+	return node.global_position + Vector3.UP * 0.8
+
+
+## Vrai si l'arme peut tirer sur `point` de `node` (portée, champ, vue ou
+## obstacle qu'elle ronge).
+func _reaches_point(point: Vector3, node: Node3D) -> bool:
+	if pivot.global_position.distance_to(point) > reach or (covers.is_valid() and not covers.call(point)):
+		return false
+	var query := PhysicsRayQueryParameters3D.create(muzzle(), point, MASK, _excluded())
+	var hit := vehicle.get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return true
+	var collider := hit["collider"] as Node
+	return collider == node or (collider != null and collider.has_method(&"take_shot"))
+
+
 ## À chaque image : cherche, vise et tire si l'arme est servie.
 func update(delta: float, manned: bool) -> void:
 	if not manned:
@@ -82,16 +123,22 @@ func update(delta: float, manned: bool) -> void:
 		return
 	_cooldown -= delta
 	_search_left -= delta
+	if designated and not designation_alive(designated):
+		designated = null
 	if target and (not is_instance_valid(target) or target.is_dead or target.state == Enemy.State.STUNNED):
 		target = null
 	if _search_left <= 0.0:
 		_search_left = search_interval
-		if target == null or not can_reach(target):
+		if designated == null and (target == null or not can_reach(target)):
 			target = _find_target()
-	if target == null:
+	var aim: Vector3
+	if designated and _reaches_point(designation_point(designated), designated):
+		aim = designation_point(designated)
+	elif target:
+		aim = target.global_position + Vector3.UP * 1.0
+	else:
 		_rounds_left = 0
 		return
-	var aim := target.global_position + Vector3.UP * 1.0
 	var parent := pivot.get_parent() as Node3D
 	var wanted := parent.global_basis.inverse() * (aim - pivot.global_position)
 	if wanted.length_squared() < 0.01:

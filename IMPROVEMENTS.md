@@ -121,7 +121,6 @@ Tactique et discrétion :
 
 Armement :
 
-- **9.7 Tir désigné à la 12,7** : en plus du feu à volonté, clic droit sur un ennemi ou une caisse pour y concentrer le feu.
 
 Dégâts et logistique :
 

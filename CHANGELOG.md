@@ -956,3 +956,9 @@
 - Après 2,5 s de visée, interrompue si le Sabre repart ou si le tireur quitte sa place, le missile part du tube avec une traînée de fumée et explose sur le premier obstacle : rayon de 4,5 m, 160 de dégâts, murs fragiles abattus, caisses détruites, véhicules endommagés.
 - Un seul missile par mission (`Sabre.missiles`), gardé par la sauvegarde rapide.
 - `Rocket` sert aussi au missile : charge réglable, et la fusée de proximité contre les appareils devient optionnelle.
+
+## Tir désigné à la 12,7 (9.7)
+
+- Tireur de la tourelle : « 12,7 : tir désigné », puis clic sur un ennemi ou un objet destructible (caisse, bidon, mur fragile, véhicule).
+- La mitrailleuse y concentre son feu, même sans feu à volonté et même si d'autres ennemis sont plus près, tant que la cible tient debout et reste à portée (`MountedGun.designated`). Ensuite elle reprend le feu à volonté s'il était ouvert, sinon elle se tait.
+- « 12,7 : cesser le feu » annule aussi la désignation.
