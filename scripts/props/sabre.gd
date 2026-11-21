@@ -32,6 +32,13 @@ extends StaticBody3D
 ## à pleine vitesse, mais on le voit de loin (`HEADLIGHT_SIGHT`), et ses
 ## phares éclairent la route.
 ##
+## Dégâts (`take_shot`, `blast`) : une jauge de structure (`STRUCTURE`).
+## Une balle près d'une roue peut crever un pneu (vitesse réduite) ; dans le
+## capot, elle abîme le moteur, qui fume, puis lâche (immobilisé). À zéro,
+## le véhicule est une épave. Un opérateur à pied le répare (`request_repair`)
+## en restant quelques secondes à l'avant : pneus et moteur, pas la caisse.
+## Les balles tirées sur un passager touchent souvent la carrosserie.
+##
 ## Moteur coupé (`coasting`) : le conducteur avance en roue libre, à
 ## `COAST_SPEED`, sans aucun bruit, sur `COAST_RANGE` m au plus en tout,
 ## jusqu'à ce qu'on relance le moteur.
@@ -52,6 +59,19 @@ const WAYPOINT_REACH := 1.4
 const NIGHT_DARK_SHARE := 0.55
 const HEADLIGHT_SIGHT := 45.0
 const HEADLIGHT_RANGE := 28.0
+## Dégâts : structure, part de la vitesse pneu crevé, chance qu'une balle
+## près d'une roue crève le pneu, dégâts qui mettent le moteur hors d'usage,
+## seuil de fumée (part du moteur), part des balles tirées sur un passager
+## qui touchent la carrosserie, durée de réparation (s), distance du
+## réparateur au point de réparation (m).
+const STRUCTURE := 400.0
+const FLAT_SHARE := 0.5
+const TIRE_CHANCE := 0.35
+const ENGINE_TOUGHNESS := 180.0
+const ENGINE_SMOKE := 0.5
+const RIDER_COVER := 0.5
+const REPAIR_TIME := 6.0
+const REPAIR_REACH := 1.4
 ## Moteur coupé : vitesse en roue libre (m/s) et distance au plus par trajet
 ## (m).
 const COAST_SPEED := 2.0
@@ -125,6 +145,16 @@ var _ramp_tween: Tween
 var coasting: bool = false
 ## Phares allumés (de nuit) ; carte de nuit.
 var headlights: bool = false
+## Dégâts : structure restante, pneu crevé, usure du moteur (1 : hors
+## d'usage), épave ; réparateur et temps restant.
+var structure: float = STRUCTURE
+var tire_flat: bool = false
+var engine_damage: float = 0.0
+var is_wrecked: bool = false
+var _repairer: Commando
+var _repair_left: float = 0.0
+var _gauge: Label3D
+var _smoke: CPUParticles3D
 var _night: bool = false
 var _lamps: Array[Node3D] = []
 var _coast_left: float = 0.0
@@ -132,6 +162,7 @@ var _coast_left: float = 0.0
 
 func _enter_tree() -> void:
 	add_to_group(GROUP)
+	add_to_group(Explosion.VEHICLES_GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
@@ -429,6 +460,10 @@ func _update_boarders() -> void:
 func drive_problem() -> String:
 	if slung_by:
 		return "élingué"
+	if is_wrecked:
+		return "épave"
+	if engine_damage >= 1.0:
+		return "moteur hors d'usage"
 	if driver() == null:
 		return "personne au volant"
 	if is_maneuvering():
@@ -718,6 +753,8 @@ func _drive(delta: float) -> void:
 	var speed := SPEED * lerpf(1.0, SLOW_SHARE, sharpness)
 	if _night and not headlights:
 		speed *= NIGHT_DARK_SHARE
+	if tire_flat:
+		speed *= FLAT_SHARE
 	if coasting:
 		speed = minf(speed, COAST_SPEED)
 	if _path_index == _path.size() - 1:
@@ -776,7 +813,225 @@ func _physics_process(delta: float) -> void:
 		_drive(delta)
 	else:
 		_update_boarders()
+		_update_repair(delta)
 	_gun.update(delta, gun_firing and gunner() != null and not model.is_folded)
+
+
+# --- Dégâts ----------------------------------------------------------------------
+
+## Une balle touche la carrosserie en `at` : structure, pneu, moteur.
+func take_shot(damage: float, at: Vector3, _from: Vector3) -> void:
+	if is_wrecked:
+		return
+	var local := to_local(at)
+	for wheel in SabreModel.WHEELS:
+		if local.y < SabreModel.WHEEL_RADIUS * 2.0 and Vector2(local.x - wheel.x, local.z - wheel.y).length() < 0.75 \
+				and randf() < TIRE_CHANCE:
+			_puncture()
+			break
+	if local.z < SabreModel.CREW_FRONT:
+		_hit_engine(damage)
+	_damage(damage)
+
+
+## Une balle tirée sur un passager : la carrosserie l'arrête une fois sur
+## deux (`RIDER_COVER`), à un point pris au hasard sur la caisse côté tireur.
+## Renvoie vrai si elle l'a arrêtée.
+func shields_rider(damage: float, from: Vector3) -> bool:
+	if is_wrecked or randf() >= RIDER_COVER:
+		return false
+	var toward := to_local(from)
+	toward.y = 0.0
+	toward = toward.normalized() if toward.length() > 0.1 else Vector3.FORWARD
+	var at := Vector3(toward.x * SabreModel.HALF_WIDTH, randf_range(0.4, 1.3), clampf(toward.z * 2.4, -2.4, 2.4) + randf_range(-0.8, 0.8))
+	take_shot(damage, to_global(at), from)
+	return true
+
+
+## Souffle d'une explosion à `at` (rayon `radius`).
+func blast(at: Vector3, radius: float) -> void:
+	if is_wrecked:
+		return
+	var distance := maxf(at.distance_to(global_position + Vector3.UP * 0.8) - 1.5, 0.0)
+	if distance > radius:
+		return
+	var share := 1.0 - distance / radius
+	_hit_engine(ENGINE_TOUGHNESS * 0.7 * share)
+	if share > 0.3:
+		_puncture()
+	_damage(STRUCTURE * 0.5 * share)
+
+
+func _puncture() -> void:
+	if tire_flat:
+		return
+	tire_flat = true
+	_announce("Pneu crevé : vitesse réduite")
+
+
+func _hit_engine(damage: float) -> void:
+	var before := engine_damage
+	engine_damage = minf(engine_damage + damage / ENGINE_TOUGHNESS, 1.0)
+	if before < 1.0 and engine_damage >= 1.0:
+		_announce("Moteur hors d'usage")
+		if is_driving and not is_maneuvering():
+			stop_driving()
+	elif before < ENGINE_SMOKE and engine_damage >= ENGINE_SMOKE:
+		_announce("Moteur touché")
+
+
+func _damage(amount: float) -> void:
+	structure = maxf(structure - amount, 0.0)
+	if structure <= 0.0:
+		_wreck()
+	_show_damage()
+
+
+func _announce(text: String) -> void:
+	var who := crew()
+	if not who.is_empty():
+		who[0].flash_message(text)
+
+
+## Épave : l'équipage saute à terre, le véhicule brûle.
+func _wreck() -> void:
+	if is_wrecked:
+		return
+	is_wrecked = true
+	if is_driving:
+		stop_driving()
+	gun_firing = false
+	for unit in crew():
+		dismount(unit)
+		unit.health.take_damage(20.0)
+	_set_wreck_look()
+	Explosion.detonate(get_parent(), global_position + Vector3.UP, 3.0, 0.0, 40.0)
+
+
+func _set_wreck_look() -> void:
+	var char := StandardMaterial3D.new()
+	char.albedo_color = Color(0.12, 0.11, 0.1)
+	char.roughness = 1.0
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		(node as MeshInstance3D).material_override = char
+	model.fold(false)
+
+
+## Jauge de structure (dès le premier coup), fumée du moteur touché.
+func _show_damage() -> void:
+	var damaged := structure < STRUCTURE or tire_flat or engine_damage > 0.0
+	if damaged and _gauge == null:
+		_gauge = Label3D.new()
+		_gauge.name = "Structure"
+		_gauge.fixed_size = true
+		_gauge.font_size = 24
+		_gauge.outline_size = 8
+		_gauge.pixel_size = 0.0012
+		_gauge.outline_modulate = Color(0.0, 0.0, 0.0, 0.8)
+		_gauge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_gauge.no_depth_test = true
+		_gauge.shaded = false
+		_gauge.position = Vector3(0.0, 3.2, 0.0)
+		add_child(_gauge)
+	if _gauge:
+		_gauge.visible = damaged
+		var parts: Array[String] = ["Épave" if is_wrecked else "Sabre %d %%" % ceili(structure / STRUCTURE * 100.0)]
+		if not is_wrecked:
+			if tire_flat:
+				parts.append("pneu crevé")
+			if engine_damage >= 1.0:
+				parts.append("moteur HS")
+			elif engine_damage >= ENGINE_SMOKE:
+				parts.append("moteur touché")
+		_gauge.text = " • ".join(parts)
+		_gauge.modulate = Color(1.0, 0.35, 0.25) if is_wrecked or engine_damage >= 1.0 or structure < STRUCTURE * 0.35 else Color(1.0, 0.85, 0.4)
+	var smoking := is_wrecked or engine_damage >= ENGINE_SMOKE
+	if smoking and _smoke == null:
+		_smoke = _make_smoke()
+		add_child(_smoke)
+	if _smoke:
+		_smoke.emitting = smoking
+		_smoke.color = Color(0.12, 0.11, 0.1, 0.7) if is_wrecked else Color(0.45, 0.44, 0.42, 0.55)
+
+
+func _make_smoke() -> CPUParticles3D:
+	var smoke := CPUParticles3D.new()
+	smoke.name = "Smoke"
+	smoke.position = Vector3(0.0, 1.3, -1.8)
+	smoke.amount = 24
+	smoke.lifetime = 3.0
+	smoke.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	smoke.emission_sphere_radius = 0.4
+	smoke.direction = Vector3.UP
+	smoke.spread = 15.0
+	smoke.gravity = Vector3(0.0, 1.2, 0.0)
+	smoke.initial_velocity_min = 0.6
+	smoke.initial_velocity_max = 1.2
+	smoke.scale_amount_min = 1.0
+	smoke.scale_amount_max = 2.2
+	var puff := SphereMesh.new()
+	puff.radius = 0.3
+	puff.height = 0.6
+	puff.radial_segments = 8
+	puff.rings = 4
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	puff.material = material
+	smoke.mesh = puff
+	return smoke
+
+
+## Raison pour laquelle on ne peut pas réparer (vide : c'est possible).
+func repair_problem() -> String:
+	if is_wrecked:
+		return "épave"
+	if is_driving:
+		return "en route"
+	if not tire_flat and engine_damage <= 0.0:
+		return "rien à réparer"
+	return ""
+
+
+## Point où se tient le réparateur, devant le capot.
+func repair_point() -> Vector3:
+	return _on_navmesh(to_global(Vector3(0.0, 0.0, -3.3)))
+
+
+## Envoie `unit` (à pied) réparer à l'avant. Renvoie faux si impossible.
+func request_repair(unit: Commando, run: bool) -> bool:
+	if repair_problem() != "" or unit == null or unit.is_dead or unit.riding:
+		return false
+	_repairer = unit
+	_repair_left = REPAIR_TIME
+	unit.move_to(repair_point(), run)
+	return true
+
+
+## Réparation : le réparateur, arrivé et immobile, travaille `REPAIR_TIME`
+## s ; il renonce si on l'envoie ailleurs.
+func _update_repair(delta: float) -> void:
+	var unit := _repairer
+	if unit == null:
+		return
+	var spot := repair_point()
+	if not is_instance_valid(unit) or unit.is_dead or unit.riding or repair_problem() != "" \
+			or (unit._agent.target_position.distance_to(spot) > 1.5 and unit.global_position.distance_to(spot) > REPAIR_REACH):
+		_repairer = null
+		return
+	if unit.global_position.distance_to(spot) > REPAIR_REACH or unit.is_walking():
+		return
+	var before := ceili(_repair_left)
+	_repair_left -= delta
+	if ceili(_repair_left) != before and _repair_left > 0.0:
+		unit.flash_message("Réparation : %d s" % ceili(_repair_left))
+		Sfx.play_at(&"clink", unit.global_position + Vector3.UP, -8.0)
+	if _repair_left <= 0.0:
+		_repairer = null
+		tire_flat = false
+		engine_damage = 0.0
+		unit.flash_message("Sabre réparé (pneus, moteur)")
+		_show_damage()
 
 
 # --- Sauvegarde ---------------------------------------------------------------
@@ -786,7 +1041,8 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "coast_left": _coast_left,
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights,
+		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
 
@@ -800,6 +1056,14 @@ func load_state(data: Dictionary) -> void:
 	if stowed_in:
 		stowed_in.cargo = self
 	model.fold(stowed_in != null)
+	_repairer = null
+	structure = data.get("structure", STRUCTURE)
+	tire_flat = data.get("tire_flat", false)
+	engine_damage = data.get("engine", 0.0)
+	if data.get("wrecked", false) and not is_wrecked:
+		is_wrecked = true
+		_set_wreck_look()
+	_show_damage()
 	coasting = data.get("coasting", false)
 	set_headlights(data.get("headlights", false), false)
 	_coast_left = data.get("coast_left", COAST_RANGE)

@@ -920,3 +920,13 @@
 - Au volant, de nuit : « Allumer les phares ». Deux projecteurs éclairent la route sur 28 m ; le Sabre roule à pleine vitesse, mais une sentinelle qui le voit le repère jusqu'à 45 m, quelle que soit la posture de l'équipage (`Sabre.sight_zone`).
 - Correction : au-delà de la portée du cône (cas des phares), la détection montait à reculons ; elle monte désormais au plus lent.
 - La sauvegarde rapide garde l'état des phares.
+
+## Structure et pannes du Sabre (9.8)
+
+- Jauge de structure (400 points) au-dessus du Sabre dès le premier dégât, avec l'état des pneus et du moteur.
+- Une balle tirée sur un passager touche la carrosserie une fois sur deux (`Sabre.shields_rider`) : le passager est épargné, le véhicule encaisse. Les tirs des opérateurs (et les rafales) qui touchent la caisse l'abîment aussi (`take_shot`).
+- Une balle près d'une roue peut crever un pneu (vitesse divisée par deux). Dans le capot, elle use le moteur : il fume à mi-usure, puis lâche (« moteur hors d'usage », véhicule immobilisé).
+- Les explosions l'abîment selon la distance (`Explosion.VEHICLES_GROUP`) : structure, moteur, pneus.
+- À zéro, c'est une épave noircie et fumante ; l'équipage saute à terre, blessé.
+- Clic milieu sur le Sabre, avec un opérateur à pied sélectionné : menu du véhicule, « Réparer ». Il va à l'avant et répare pneus et moteur en 6 s, s'il reste sur place ; la caisse reste abîmée.
+- La sauvegarde rapide garde structure, pneus, moteur et épave.

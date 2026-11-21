@@ -88,6 +88,10 @@ var _menu_aircraft: Tiltrotor
 var _menu_crew: Commando
 ## Menu radio ouvert (sur un opérateur au sol).
 var _menu_radio: bool = false
+## Sabre du menu du véhicule (ouvert depuis le sol) et opérateurs à pied
+## sélectionnés qui en reçoivent les ordres.
+var _menu_vehicle: Sabre
+var _menu_walkers: Array[Commando] = []
 ## Véhicule et passager du menu de bord du Sabre ouvert.
 var _menu_sabre: Sabre
 ## Convertible visé par l'action armée (`ACTION_FLY`).
@@ -129,7 +133,9 @@ func _ready() -> void:
 		_menu_crew = null
 		_menu_radio = false
 		_menu_sabre = null
-		_menu_rider = null)
+		_menu_rider = null
+		_menu_vehicle = null
+		_menu_walkers = [])
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
 			cancel_pending_action()
@@ -441,7 +447,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_middle_start = middle.position
 		elif _middle_start != Vector2.INF:
 			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
-				if open_vip_menu(middle.position) or open_sabre_menu(middle.position) or open_aircraft_menu(middle.position) \
+				if open_vip_menu(middle.position) or open_sabre_menu(middle.position) or open_vehicle_menu(middle.position) \
+						or open_aircraft_menu(middle.position) \
 						or open_radio_menu(middle.position) or open_melee_menu(middle.position):
 					get_viewport().set_input_as_handled()
 			_middle_start = Vector2.INF
@@ -743,6 +750,61 @@ func open_sabre_menu(screen_position: Vector2) -> bool:
 	return true
 
 
+## Ouvre le menu du véhicule sur le Sabre sous `screen_position` (pas sur un
+## passager), pour les opérateurs à pied sélectionnés. Renvoie faux sinon.
+func open_vehicle_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_GROUND)
+	var sabre := hit.get("collider") as Sabre
+	if sabre == null:
+		return false
+	cancel_pending_action()
+	_menu_vehicle = sabre
+	_menu_walkers = walkers()
+	_radial.open(screen_position, vehicle_options(sabre, _menu_walkers), "Sabre")
+	Sfx.play_ui(&"select")
+	return true
+
+
+## Opérateurs sélectionnés à pied (ni à bord ni en vol).
+static func walkers() -> Array[Commando]:
+	var result: Array[Commando] = []
+	for unit: Commando in SelectionManager.selected:
+		if is_instance_valid(unit) and not unit.is_dead and unit.riding == null and unit.airborne_in == null:
+			result.append(unit)
+	return result
+
+
+## Options du menu du véhicule pour `units` (à pied) : réparer.
+static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dictionary]:
+	var nobody := "sélectionnez un opérateur à pied" if units.is_empty() else ""
+	var options: Array[Dictionary] = []
+	var repair := nobody if nobody != "" else sabre.repair_problem()
+	options.append({"id": &"repair", "label": "Réparer",
+		"detail": "pneus et moteur, %d s à l'avant" % int(Sabre.REPAIR_TIME) if repair == "" else repair, "enabled": repair == ""})
+	return options
+
+
+## Ordre du menu du véhicule.
+func _on_vehicle_order(id: StringName) -> void:
+	var sabre := _menu_vehicle
+	var units := _menu_walkers
+	_menu_vehicle = null
+	_menu_walkers = []
+	var ok := false
+	if is_instance_valid(sabre) and not units.is_empty():
+		var run := false
+		match id:
+			&"repair":
+				var nearest := units[0]
+				for unit in units:
+					if unit.global_position.distance_to(sabre.global_position) < nearest.global_position.distance_to(sabre.global_position):
+						nearest = unit
+				ok = sabre.request_repair(nearest, run)
+				if ok:
+					_spawn_marker(sabre.repair_point(), marker_run_color if run else marker_color)
+	Sfx.play_ui(&"order" if ok else &"denied")
+
+
 ## Options du menu de bord du Sabre, ouvert sur `rider` : descendre (lui,
 ## tout le monde), prendre le volant ou la tourelle, ouvrir ou cesser le feu
 ## avec la 12,7.
@@ -919,6 +981,9 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 func _on_radial_chosen(id: StringName) -> void:
 	if _menu_vip:
 		_on_vip_order(id)
+		return
+	if _menu_vehicle:
+		_on_vehicle_order(id)
 		return
 	if _menu_sabre:
 		var sabre := _menu_sabre

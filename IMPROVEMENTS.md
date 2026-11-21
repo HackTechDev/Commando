@@ -129,7 +129,6 @@ Armement :
 
 Dégâts et logistique :
 
-- **9.8 Structure et pannes** : une jauge comme celle du convertible. Pneus crevés : vitesse réduite. Moteur touché : fumée puis immobilisation. Un opérateur répare en restant quelques secondes à l'avant.
 - **9.9 Ravitaillement** : les jerricans et les caisses de munitions du plateau. Un opérateur à côté du véhicule refait ses chargeurs et récupère grenades et fumigènes (lié à 2.10 et à l'inventaire).
 - **9.10 Transport de blessés et de corps** : déposer un opérateur à terre ou un otage sur le plateau arrière pour l'évacuer, ce qui libère le porteur.
 - **9.11 Escorte de VIP** : le VIP monte à une place passagère ; l'objectif est de le conduire jusqu'à l'extraction.
