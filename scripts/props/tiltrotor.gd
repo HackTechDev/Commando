@@ -54,7 +54,8 @@ extends StaticBody3D
 ##
 ## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
 ## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
-## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points ; sous la moitié, il
+## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points, une roquette
+## (`Enemy.launcher`) `ROCKET_DAMAGE` ; sous la moitié, il
 ## fume ; à zéro, il est hors d'usage (`is_disabled`) : il se pose en urgence
 ## à la verticale (ou sur sa zone, en approche) et ne revole plus.
 ##
@@ -136,6 +137,8 @@ const DEPART_DELAY := 1.5
 ## de la structure sous laquelle il fume, durée de la descente d'urgence (s).
 const STRUCTURE := 400.0
 const BULLET_SHARE := 0.25
+## Dégâts d'une roquette qui touche (`take_rocket`) : deux suffisent.
+const ROCKET_DAMAGE := 230.0
 const SMOKE_SHARE := 0.5
 const EMERGENCY_TIME := 2.5
 ## Canon latéral : portée, dégâts, rafale (coups, intervalle, pause en s),
@@ -996,6 +999,16 @@ func take_hit(damage: float, at: Vector3, from: Vector3) -> void:
 	ShotImpact.spark(get_parent() as Node3D, at, from)
 	Sfx.play_at(&"ricochet", at, -4.0)
 	structure = maxf(structure - damage * BULLET_SHARE, 0.0)
+	_show_damage()
+	if structure <= 0.0:
+		_shot_down()
+
+
+## Une roquette explose contre la coque (`Rocket`) : lourds dégâts.
+func take_rocket(at: Vector3) -> void:
+	if not is_in_air() or is_disabled:
+		return
+	structure = maxf(structure - ROCKET_DAMAGE, 0.0)
 	_show_damage()
 	if structure <= 0.0:
 		_shot_down()

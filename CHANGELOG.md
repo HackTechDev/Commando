@@ -849,3 +849,10 @@
 
 - Depuis la soute d'un convertible en vol, un fusil de précision (portée d'au moins 20 m : Hécate, HK417) porte plus loin grâce à la hauteur : +1/30 de sa portée par mètre, jusqu'à 1,6 fois (`Commando.fire_range`). L'Hécate passe de 48 à 77 m à 30 m de haut.
 - En vol, les vibrations réduisent la précision de toutes les armes : 85 % de la précision au sol appareil stabilisé, 45 % juste après un mouvement, montée ou déplacement, qui remonte en 4 s (`Tiltrotor.steadiness`).
+
+## Lance-roquettes ennemi (8.8)
+
+- `Enemy.launcher` : un garde porte un lance-roquettes en travers du dos (`SoldierModel.set_launcher`), avec `rockets` roquettes (2 par défaut).
+- Contre un convertible en vol à moins de 60 m qu'il voit, il tire en priorité, même s'il a des opérateurs en vue : 2,2 s de visée, une roquette avec un écart de quelques mètres, 6 s de rechargement.
+- `Rocket` : file à 34 m/s avec une traînée de fumée. Près de la coque (fusée de proximité), elle explose et ôte 230 points de structure sur 400 (`Tiltrotor.take_rocket`) : deux roquettes abattent l'appareil. Sinon, elle explose sur le premier obstacle (petite charge) ou se perd après 110 m.
+- Sans roquettes, il redevient un garde ordinaire ; le tube disparaît. La sauvegarde garde les roquettes restantes.

@@ -119,7 +119,6 @@ Insertion et extraction :
 
 Combat :
 
-- **8.8 Lance-roquettes ennemi** : un ennemi spécial capable d'abattre l'appareil, à neutraliser avant de le faire venir.
 
 Discrétion :
 

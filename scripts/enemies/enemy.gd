@@ -36,6 +36,11 @@ const MELEE_MAX_HEIGHT := 0.8
 ## Ne voit rien (mannequin d'entraînement) : il ne passe jamais en alerte de
 ## lui-même, et son cône n'est pas affiché.
 @export var blind: bool = false
+## Porte un lance-roquettes : il tire en priorité sur un convertible en vol à
+## portée (`LAUNCHER_RANGE`), même s'il voit des opérateurs ; roquettes en
+## nombre limité (`rockets`).
+@export var launcher: bool = false
+@export var rockets: int = 2
 
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
@@ -88,6 +93,12 @@ const GAUGE_HEIGHT_DOWN := 1.0
 const AIR_RANGE_SHARE := 1.5
 const AIR_CHECK_INTERVAL := 0.25
 const AIR_HIT_BONUS := 0.15
+## Lance-roquettes : portée contre un appareil en vol (m), temps de visée,
+## rechargement (s), écart au point visé (m).
+const LAUNCHER_RANGE := 60.0
+const LAUNCHER_AIM := 2.2
+const LAUNCHER_RELOAD := 6.0
+const LAUNCHER_SPREAD := 3.0
 
 var state: State = State.PATROL
 var is_dead: bool = false
@@ -153,6 +164,9 @@ var _traversal: LinkTraversal
 ## Convertible en l'air pris pour cible (aucun opérateur en vue), ou null.
 var _aircraft: Tiltrotor
 var _aircraft_check_left: float = 0.0
+## Lance-roquettes : visée en cours (s) et rechargement restant (s).
+var _launch_aim: float = 0.0
+var _launch_reload: float = 0.0
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
@@ -175,6 +189,7 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	EventBus.noise_emitted.connect(_on_noise)
 	_model.set_armed(armed)
+	_model.set_launcher(launcher)
 	_agent.velocity_computed.connect(_apply_velocity)
 	_traversal = LinkTraversal.new(self, _model)
 	_agent.link_reached.connect(_on_link_reached)
@@ -1061,16 +1076,27 @@ func _update_aircraft_target(delta: float) -> void:
 	if _aircraft_check_left > 0.0:
 		return
 	_aircraft_check_left = AIR_CHECK_INTERVAL
+	var previous := _aircraft
 	_aircraft = null
-	if not can_fire() or _target != null:
+	var anti_air := has_rockets()
+	if not anti_air and (not can_fire() or _target != null):
+		_launch_aim = 0.0
 		return
 	var eye := global_position + Vector3.UP * 1.5
+	var reach := LAUNCHER_RANGE if anti_air else stats.fire_range * AIR_RANGE_SHARE
 	for node in get_tree().get_nodes_in_group(Tiltrotor.GROUP):
 		var aircraft := node as Tiltrotor
-		if aircraft and aircraft.is_in_air() and not aircraft.is_disabled \
-				and aircraft.exposed_to(eye, stats.fire_range * AIR_RANGE_SHARE):
+		if aircraft and aircraft.is_in_air() and not aircraft.is_disabled and aircraft.exposed_to(eye, reach):
 			_aircraft = aircraft
+			if aircraft != previous:
+				_launch_aim = 0.0
 			return
+	_launch_aim = 0.0
+
+
+## Vrai s'il porte un lance-roquettes chargé et peut s'en servir.
+func has_rockets() -> bool:
+	return launcher and rockets > 0 and armed and not disarmed and not is_dead
 
 
 ## Tire sur le convertible pris pour cible, sur place.
@@ -1079,6 +1105,9 @@ func _engage_aircraft(delta: float) -> void:
 	var to_target := target - global_position
 	to_target.y = 0.0
 	_face(to_target, delta)
+	if has_rockets():
+		_launch_rocket(delta, target, to_target)
+		return
 	_fire_cooldown -= delta
 	if _fire_cooldown > 0.0 or not can_fire():
 		return
@@ -1108,6 +1137,30 @@ func _engage_aircraft(delta: float) -> void:
 	_model.play_shot()
 	Sfx.play_at(&"shot", muzzle)
 	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius, &"gunshot")
+
+
+## Lance-roquettes : visée (`LAUNCHER_AIM`), puis une roquette vers
+## l'appareil, avec un écart ; rechargement entre deux.
+func _launch_rocket(delta: float, target: Vector3, to_target: Vector3) -> void:
+	_launch_reload = maxf(_launch_reload - delta, 0.0)
+	var forward := -global_basis.z
+	if to_target.length() > 0.5 and forward.angle_to(to_target) > 0.3:
+		return
+	_launch_aim += delta
+	if _launch_aim < LAUNCHER_AIM or _launch_reload > 0.0:
+		return
+	_launch_aim = 0.0
+	_launch_reload = LAUNCHER_RELOAD
+	rockets -= 1
+	var muzzle := global_position + Vector3.UP * 1.55 + forward * 0.5
+	var scatter := Vector3(randf_range(-1.0, 1.0), randf_range(-0.5, 0.5), randf_range(-1.0, 1.0)) * LAUNCHER_SPREAD
+	var scene := get_tree().current_scene as Node3D
+	if scene == null:
+		scene = get_parent() as Node3D
+	Rocket.launch(scene, muzzle, target + scatter, [get_rid()])
+	EventBus.noise_emitted.emit(global_position, stats.gunshot_noise_radius * 1.5, &"gunshot")
+	if rockets <= 0:
+		_model.set_launcher(false)
 
 
 func _face(direction: Vector3, delta: float) -> void:
@@ -1153,12 +1206,15 @@ func save_state() -> Dictionary:
 		"disarmed": disarmed,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
+		"rockets": rockets,
 	}
 
 
 ## Rend l'état `data` : l'ennemi est replacé immobile, sans action en cours.
 func load_state(data: Dictionary) -> void:
 	_traversal.cancel()
+	rockets = data.get("rockets", rockets)
+	_model.set_launcher(launcher and rockets > 0)
 	_cancel_melee()
 	velocity = Vector3.ZERO
 	# Porté ou non : c'est le porteur qui le reprend (`Commando.load_state`).

@@ -1990,6 +1990,32 @@ func set_armed(value: bool) -> void:
 		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
 
+## Lance-roquettes porté en travers du dos (ennemi antiaérien) : tube vert,
+## poignée, roquette en tête.
+func set_launcher(carried: bool) -> void:
+	var existing := _torso.get_node_or_null("Launcher")
+	if existing:
+		existing.visible = carried
+		return
+	if not carried:
+		return
+	var tube := _pivot(_torso, Vector3(0.0, 0.32, 0.2), "Launcher")
+	tube.rotation = Vector3(0.0, 0.0, 0.75)
+	var olive := _mat(Color(0.3, 0.33, 0.22), 0.8)
+	_cylinder(tube, 0.045, 0.95, Vector3.ZERO, olive)
+	_cylinder(tube, 0.05, 0.06, Vector3(0.0, -0.46, 0.0), _m_weapon)
+	_box(tube, Vector3(0.03, 0.1, 0.04), Vector3(0.0, -0.08, -0.06), _m_weapon)
+	var head := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 0.075
+	cone.height = 0.2
+	head.mesh = cone
+	head.material_override = olive
+	head.position = Vector3(0.0, 0.57, 0.0)
+	tube.add_child(head)
+
+
 ## Piste `name` du mouvement `move` à l'instant `t` (0 si elle manque).
 ## Instant (0 à 1) où l'objet quitte la main, pour le geste `style`.
 static func throw_release(style: ThrowStyle) -> float:
