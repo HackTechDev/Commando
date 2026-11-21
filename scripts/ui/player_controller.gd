@@ -774,10 +774,14 @@ static func walkers() -> Array[Commando]:
 	return result
 
 
-## Options du menu du véhicule pour `units` (à pied) : réparer.
+## Options du menu du véhicule pour `units` (à pied) : s'abriter derrière,
+## réparer.
 static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dictionary]:
 	var nobody := "sélectionnez un opérateur à pied" if units.is_empty() else ""
 	var options: Array[Dictionary] = []
+	var cover := nobody if nobody != "" else sabre.cover_problem()
+	options.append({"id": &"cover", "label": "S'abriter derrière",
+		"detail": "accroupis, côté opposé aux ennemis" if cover == "" else cover, "enabled": cover == ""})
 	var repair := nobody if nobody != "" else sabre.repair_problem()
 	options.append({"id": &"repair", "label": "Réparer",
 		"detail": "pneus et moteur, %d s à l'avant" % int(Sabre.REPAIR_TIME) if repair == "" else repair, "enabled": repair == ""})
@@ -794,6 +798,11 @@ func _on_vehicle_order(id: StringName) -> void:
 	if is_instance_valid(sabre) and not units.is_empty():
 		var run := false
 		match id:
+			&"cover":
+				ok = sabre.take_cover(units, run)
+				if ok:
+					for point in sabre.cover_points(units.size()):
+						_spawn_marker(point, marker_color)
 			&"repair":
 				var nearest := units[0]
 				for unit in units:

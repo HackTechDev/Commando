@@ -1076,6 +1076,12 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 		Sfx.play_at(&"ricochet", stop, -2.0)
 		ShotImpact.spark(scene, stop, muzzle)
 		shots_blocked += 1
+	elif hit and not (_target is Commando and (_target as Commando).riding) \
+			and Sabre.blocks_shot(get_tree(), muzzle, aim, stats.fire_damage) != null:
+		# Abrité derrière un Sabre : la caisse prend la balle.
+		Sfx.play_at(&"ricochet", aim, -2.0)
+		ShotImpact.spark(scene, aim, muzzle)
+		shots_blocked += 1
 	elif hit and _target is Commando and (_target as Commando).riding \
 			and (_target as Commando).riding.shields_rider(stats.fire_damage, muzzle):
 		# Passager du Sabre : la carrosserie a pris la balle.

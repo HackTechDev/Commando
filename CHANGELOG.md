@@ -930,3 +930,9 @@
 - À zéro, c'est une épave noircie et fumante ; l'équipage saute à terre, blessé.
 - Clic milieu sur le Sabre, avec un opérateur à pied sélectionné : menu du véhicule, « Réparer ». Il va à l'avant et répare pneus et moteur en 6 s, s'il reste sur place ; la caisse reste abîmée.
 - La sauvegarde rapide garde structure, pneus, moteur et épave.
+
+## Le Sabre comme couvert (9.3)
+
+- Menu du véhicule (clic milieu sur le Sabre, opérateurs à pied sélectionnés) : « S'abriter derrière ». Ils se placent côte à côte le long de la caisse, du côté opposé aux ennemis (en alerte ou méfiants, sinon le plus proche), et s'accroupissent.
+- Accroupis derrière, les sentinelles ne les voient pas. Une balle tirée sur quelqu'un à travers le véhicule frappe la carrosserie, qui s'abîme (`Sabre.blocks_shot`, jauge de 9.8).
+- Refusé quand le Sabre roule, est dans une soute ou est élingué.

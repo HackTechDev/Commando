@@ -39,6 +39,10 @@ extends StaticBody3D
 ## en restant quelques secondes à l'avant : pneus et moteur, pas la caisse.
 ## Les balles tirées sur un passager touchent souvent la carrosserie.
 ##
+## Couvert (`cover_points`) : à l'arrêt, des opérateurs à pied s'abritent
+## accroupis derrière la caisse, du côté opposé aux ennemis. Les balles qui
+## les visent à travers le véhicule frappent la carrosserie (`blocks_shot`).
+##
 ## Moteur coupé (`coasting`) : le conducteur avance en roue libre, à
 ## `COAST_SPEED`, sans aucun bruit, sur `COAST_RANGE` m au plus en tout,
 ## jusqu'à ce qu'on relance le moteur.
@@ -980,6 +984,88 @@ func _make_smoke() -> CPUParticles3D:
 	puff.material = material
 	smoke.mesh = puff
 	return smoke
+
+
+# --- Couvert ----------------------------------------------------------------------
+
+## Raison pour laquelle on ne peut pas s'abriter derrière (vide : c'est
+## possible).
+func cover_problem() -> String:
+	if is_driving:
+		return "en route"
+	if stowed_in or slung_by:
+		return "pas au sol"
+	return ""
+
+
+## Direction (à plat) des ennemis à craindre vus depuis le véhicule :
+## moyenne des ennemis en alerte ou méfiants, sinon le plus proche debout.
+func threat_direction() -> Vector3:
+	var sum := Vector3.ZERO
+	var nearest := Vector3.ZERO
+	var nearest_distance := INF
+	for node in get_tree().get_nodes_in_group(&"enemies"):
+		var enemy := node as Enemy
+		if enemy == null or enemy.state == Enemy.State.STUNNED:
+			continue
+		var to_enemy := enemy.global_position - global_position
+		to_enemy.y = 0.0
+		if enemy.state != Enemy.State.PATROL:
+			sum += to_enemy.normalized()
+		if to_enemy.length() < nearest_distance:
+			nearest_distance = to_enemy.length()
+			nearest = to_enemy.normalized()
+	var direction := sum if sum.length() > 0.1 else nearest
+	return direction.normalized() if direction.length() > 0.1 else -global_basis.z
+
+
+## `count` points au sol, côte à côte, derrière la caisse par rapport aux
+## ennemis (`threat_direction`).
+func cover_points(count: int) -> Array[Vector3]:
+	var threat := threat_direction()
+	var local := global_basis.inverse() * threat
+	local.y = 0.0
+	local = local.normalized()
+	# Distance du centre au bord de la caisse dans cette direction.
+	var half_length := 2.5
+	var edge := minf(SabreModel.HALF_WIDTH / maxf(absf(local.x), 0.01), half_length / maxf(absf(local.z), 0.01))
+	var across := Vector3(-threat.z, 0.0, threat.x)
+	# Longueur abritée, le long de la caisse vue des ennemis.
+	var span := absf(local.x) * half_length * 2.0 + absf(local.z) * SabreModel.HALF_WIDTH * 2.0
+	var points: Array[Vector3] = []
+	for i in count:
+		var offset := 0.0 if count == 1 else lerpf(-0.5, 0.5, float(i) / (count - 1)) * minf(span - 0.6, count * 0.9)
+		points.append(_on_navmesh(global_position - threat * (edge + 0.65) + across * offset))
+	return points
+
+
+## Envoie `units` s'abriter derrière le véhicule, accroupis.
+func take_cover(units: Array[Commando], run: bool) -> bool:
+	if cover_problem() != "" or units.is_empty():
+		return false
+	var points := cover_points(units.size())
+	for i in units.size():
+		var unit := units[i]
+		unit.move_to(points[i], run)
+		if unit.posture != SoldierModel.Posture.CROUCHED:
+			unit.toggle_posture(SoldierModel.Posture.CROUCHED)
+	return true
+
+
+## Balle tirée de `from` vers `to` (sur quelqu'un qui n'est pas à bord) :
+## si la caisse est sur la trajectoire, elle la prend. Renvoie le Sabre
+## touché, ou null.
+static func blocks_shot(tree: SceneTree, from: Vector3, to: Vector3, damage: float) -> Sabre:
+	var any := tree.get_first_node_in_group(GROUP) as Sabre
+	if any == null:
+		return null
+	var query := PhysicsRayQueryParameters3D.create(from, to, LAYER_OCCLUDERS)
+	var hit := any.get_world_3d().direct_space_state.intersect_ray(query)
+	var sabre := hit.get("collider") as Sabre
+	if sabre == null or sabre.is_wrecked:
+		return null
+	sabre.take_shot(damage, hit["position"], from)
+	return sabre
 
 
 ## Raison pour laquelle on ne peut pas réparer (vide : c'est possible).
