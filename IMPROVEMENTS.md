@@ -125,7 +125,6 @@ Discrétion :
 
 Logistique :
 
-- **8.14 Transport de corps et de documents** : ramener à bord un corps ou les documents d'un officier ennemi, comme objectif de mission.
 - **8.15 Élingage** : avec les crochets du modèle, soulever une caisse, du matériel ou un véhicule et le déposer ailleurs (bloquer une porte, créer un abri).
 
 Cartes et missions :

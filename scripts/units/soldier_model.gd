@@ -1990,6 +1990,22 @@ func set_armed(value: bool) -> void:
 		_arm_joints[i].quaternion = _arm_poses[ArmPose.RIFLE][i]
 
 
+## Sacoche de documents d'un officier, sur la hanche gauche (cuir brun,
+## rabat, bandoulière).
+func set_documents(carried: bool) -> void:
+	var existing := _torso.get_node_or_null("Documents")
+	if existing:
+		existing.visible = carried
+		return
+	if not carried:
+		return
+	var case := _pivot(_torso, Vector3.ZERO, "Documents")
+	var leather := _mat(Color(0.32, 0.18, 0.08), 0.6)
+	_box(case, Vector3(0.06, 0.2, 0.26), Vector3(-0.2, -0.02, 0.0), leather)
+	_box(case, Vector3(0.065, 0.08, 0.26), Vector3(-0.2, 0.06, 0.0), _mat(Color(0.22, 0.12, 0.05), 0.6))
+	_box(case, Vector3(0.02, 0.5, 0.03), Vector3(-0.05, 0.25, -0.02), leather).rotation.z = -0.55
+
+
 ## Lance-roquettes porté en travers du dos (ennemi antiaérien) : tube vert,
 ## poignée, roquette en tête.
 func set_launcher(carried: bool) -> void:

@@ -61,6 +61,9 @@ extends StaticBody3D
 ## opérateur à bord y reprend sa dotation de départ (munitions, grenades,
 ## fumigènes, trousses de soins, charges).
 ##
+## Documents (`documents_objective`) : rapporter à bord ceux d'un officier
+## (`Enemy.documents`), sur un opérateur ou avec le corps.
+##
 ## Évacuation (`evacuate`) : un opérateur blessé à bord quitte la mission,
 ## sauvé ; il ne compte pas comme perdu.
 ##
@@ -200,6 +203,9 @@ const AIM_POINT := Vector3(0.0, 2.2, 0.5)
 @export var extraction: bool = false
 ## La mission commence à bord, en vol stationnaire (voir plus haut).
 @export var insertion: bool = false
+## Objectif rempli quand des documents d'officier arrivent à bord : un
+## opérateur qui les porte, ou le corps de l'officier (vide : aucun).
+@export var documents_objective: StringName = &""
 ## Lots de ravitaillement dans la soute (un par opérateur ravitaillé).
 @export var supplies: int = 3
 
@@ -241,6 +247,7 @@ var is_inbound: bool = false
 var _landing: Vector3
 var _landing_yaw: float = 0.0
 ## Passage de diversion en cours ; diversion déjà faite (une par mission).
+var _documents_aboard: bool = false
 var is_diverting: bool = false
 var diversion_used: bool = false
 var _flight: Tween
@@ -1231,6 +1238,28 @@ func resupply(unit: Commando) -> bool:
 	return true
 
 
+# --- Documents -------------------------------------------------------------------
+
+## Documents arrivés à bord (opérateur qui les porte, corps de l'officier) :
+## objectif `documents_objective` rempli.
+func _check_documents() -> void:
+	if documents_objective == &"" or _documents_aboard:
+		return
+	var found := false
+	for unit in passengers():
+		if unit.has_documents:
+			found = true
+	for node in get_tree().get_nodes_in_group(Enemy.DOCUMENTS_GROUP):
+		var officer := node as Enemy
+		if officer and officer.documents and officer.is_body() and cabin_contains(officer.body_center()):
+			found = true
+	if found:
+		_documents_aboard = true
+		for unit in passengers():
+			unit.flash_message("Documents à bord")
+		EventBus.objective_completed.emit(documents_objective)
+
+
 # --- Évacuation des blessés -----------------------------------------------------
 
 ## Raison pour laquelle `unit` ne peut pas être évacué (vide : c'est
@@ -1472,6 +1501,7 @@ func _physics_process(delta: float) -> void:
 				return
 		else:
 			_depart_left = DEPART_DELAY
+	_check_documents()
 	var aboard := false
 	for node in get_tree().get_nodes_in_group(&"commandos"):
 		var unit := node as Commando
@@ -1526,7 +1556,7 @@ func destroy() -> void:
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
 		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y, "hover_height": hover_height,
-		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "supplies": supplies, "structure": structure, "disabled": is_disabled, "insertion": insertion}
+		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "supplies": supplies, "documents_aboard": _documents_aboard, "structure": structure, "disabled": is_disabled, "insertion": insertion}
 
 
 func load_state(data: Dictionary) -> void:
@@ -1560,6 +1590,7 @@ func load_state(data: Dictionary) -> void:
 	insertion = data.get("insertion", insertion)
 	diversion_used = data.get("diversion_used", diversion_used)
 	supplies = data.get("supplies", supplies)
+	_documents_aboard = data.get("documents_aboard", _documents_aboard)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	structure = data.get("structure", STRUCTURE)

@@ -40,6 +40,10 @@ const MELEE_MAX_HEIGHT := 0.8
 ## portée (`LAUNCHER_RANGE`), même s'il voit des opérateurs ; roquettes en
 ## nombre limité (`rockets`).
 @export var launcher: bool = false
+## Officier : porte une sacoche de documents. Un opérateur la récupère sur son
+## corps (mort ou assommé) ; documents ou corps à rapporter à bord du
+## convertible (`Tiltrotor.documents_objective`).
+@export var documents: bool = false
 @export var rockets: int = 2
 
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
@@ -78,6 +82,8 @@ const HELP_RADIUS_MUFFLED := 4.0
 const INVESTIGATE_LOOK_TIME := 3.0
 ## Tous les ennemis, vivants ou non (corps à découvrir).
 const ALL_GROUP := &"all_enemies"
+## Ennemis qui portent des documents (`documents`).
+const DOCUMENTS_GROUP := &"documents"
 ## Intervalle (s) entre deux recherches de corps dans le champ de vision.
 const BODY_CHECK_INTERVAL := 0.3
 ## Rayon (m) du cri d'un ennemi qui découvre un corps.
@@ -190,6 +196,9 @@ func _ready() -> void:
 	EventBus.noise_emitted.connect(_on_noise)
 	_model.set_armed(armed)
 	_model.set_launcher(launcher)
+	if documents:
+		add_to_group(DOCUMENTS_GROUP)
+		_model.set_documents(true)
 	_agent.velocity_computed.connect(_apply_velocity)
 	_traversal = LinkTraversal.new(self, _model)
 	_agent.link_reached.connect(_on_link_reached)
@@ -1094,6 +1103,16 @@ func _update_aircraft_target(delta: float) -> void:
 	_launch_aim = 0.0
 
 
+## Donne ou retire les documents (sacoche visible).
+func set_documents(carried: bool) -> void:
+	documents = carried
+	_model.set_documents(carried)
+	if carried:
+		add_to_group(DOCUMENTS_GROUP)
+	elif is_in_group(DOCUMENTS_GROUP):
+		remove_from_group(DOCUMENTS_GROUP)
+
+
 ## Vrai s'il porte un lance-roquettes chargé et peut s'en servir.
 func has_rockets() -> bool:
 	return launcher and rockets > 0 and armed and not disarmed and not is_dead
@@ -1206,7 +1225,7 @@ func save_state() -> Dictionary:
 		"disarmed": disarmed,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
-		"rockets": rockets,
+		"rockets": rockets, "documents": documents,
 	}
 
 
@@ -1214,6 +1233,7 @@ func save_state() -> Dictionary:
 func load_state(data: Dictionary) -> void:
 	_traversal.cancel()
 	rockets = data.get("rockets", rockets)
+	set_documents(data.get("documents", documents))
 	_model.set_launcher(launcher and rockets > 0)
 	_cancel_melee()
 	velocity = Vector3.ZERO

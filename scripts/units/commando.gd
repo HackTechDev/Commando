@@ -23,6 +23,8 @@ enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET }
 const MASK_OCCLUDERS := 0b10
 ## Blessé (évacuable) sous cette part de sa santé.
 const WOUNDED_SHARE := 0.6
+## Distance (m) au corps d'un officier pour lui prendre ses documents.
+const DOCUMENTS_REACH := 1.4
 ## Tir depuis un convertible en vol : portée minimale d'un fusil de précision,
 ## hauteur qui double la portée (m), bonus maximal.
 const MARKSMAN_RANGE := 20.0
@@ -174,6 +176,9 @@ var airborne_in: Tiltrotor
 var riding: Sabre
 ## Évacué (voir `evacuate`) : hors de la mission, ni mort ni perdu.
 var is_evacuated: bool = false
+## Porte les documents d'un officier (`Enemy.documents`).
+var has_documents: bool = false
+var _documents_check_left: float = 0.0
 ## Ennemi tenu en bouclier humain, devant l'opérateur.
 var hostage: Enemy
 
@@ -369,6 +374,7 @@ func _physics_process(delta: float) -> void:
 	var hands_free := (_order != null and _order.hands_free()) or (_gesture != null and _gesture.hands_free())
 	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or hands_free or is_traversing())
 	_update_reload(delta)
+	_update_documents(delta)
 	_model.aiming = not is_dead and ((_order is AttackOrder and (_order as AttackOrder).is_aiming()) or (_order is FireAtOrder and (_order as FireAtOrder).is_aiming()))
 	_model.look_target = _look_point()
 	_model.shield_raised = is_shield_up()
@@ -1571,6 +1577,25 @@ func _weapon_height() -> float:
 	return 1.4
 
 
+## Près du corps d'un officier (mort ou assommé, pas porté), l'opérateur
+## prend ses documents.
+func _update_documents(delta: float) -> void:
+	_documents_check_left -= delta
+	if _documents_check_left > 0.0 or is_dead:
+		return
+	_documents_check_left = 0.25
+	for node in get_tree().get_nodes_in_group(Enemy.DOCUMENTS_GROUP):
+		var officer := node as Enemy
+		if officer == null or officer.carrier != null or not (officer.is_dead or officer.state == Enemy.State.STUNNED):
+			continue
+		if officer.body_center().distance_to(global_position) <= DOCUMENTS_REACH:
+			officer.set_documents(false)
+			has_documents = true
+			flash_message("Documents récupérés")
+			Sfx.play_at(&"clink", global_position + Vector3.UP, -6.0)
+			EventBus.unit_ammo_changed.emit(self)
+
+
 ## Blessé : santé sous `WOUNDED_SHARE`, encore en vie.
 func is_wounded() -> bool:
 	return not is_dead and health.health < health.max_health * WOUNDED_SHARE
@@ -1835,7 +1860,7 @@ func save_state() -> Dictionary:
 	data.merge({
 		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
-		"evacuated": is_evacuated,
+		"evacuated": is_evacuated, "documents": has_documents,
 		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
@@ -1857,6 +1882,7 @@ func load_state(data: Dictionary) -> void:
 	super(data)
 	if is_dead:
 		return
+	has_documents = data.get("documents", false)
 	var gone: bool = data.get("evacuated", false)
 	if gone != is_evacuated:
 		_set_evacuated(gone)

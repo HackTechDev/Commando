@@ -874,3 +874,10 @@
 - Un opérateur blessé (moins de 60 % de sa santé) à bord du convertible : « Évacuer le blessé » au menu de bord. Il quitte la mission, sauvé (`Commando.evacuate`) : caché, hors du groupe des opérateurs, il n'est plus une cible et l'appareil d'extraction ne l'attend plus.
 - Il ne compte pas comme perdu (`no_operator_lost` reste rempli). Son portrait affiche « Évacué » et ne se sélectionne plus.
 - On n'évacue pas le dernier opérateur. La sauvegarde rapide garde l'évacuation.
+
+## Transport de corps et de documents (8.14)
+
+- `Enemy.documents` : un officier porte une sacoche de documents en cuir à la hanche (`SoldierModel.set_documents`).
+- Un opérateur qui passe près de son corps (mort ou assommé, et que personne ne porte) prend les documents : « Documents récupérés », mention « Documents » sur son portrait.
+- `Tiltrotor.documents_objective` : l'objectif est rempli dès que les documents sont à bord, sur un opérateur ou avec le corps de l'officier porté dans la soute.
+- La sauvegarde rapide garde qui porte les documents.

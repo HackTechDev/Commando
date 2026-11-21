@@ -106,6 +106,8 @@ func _refresh() -> void:
 		gear.append("Charges %d" % _unit.explosives)
 	if _unit.medkits > 0:
 		gear.append("Trousse")
+	if _unit.has_documents:
+		gear.append("Documents")
 	_gear.text = "  •  ".join(gear)
 	_gear.visible = not gear.is_empty()
 	# Couteau de lancer : rappel discret tant qu'il n'est pas ramassé.
