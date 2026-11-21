@@ -118,7 +118,6 @@ Insertion et extraction :
 
 - **8.2 Insertion en début de mission** : la partie commence en vol stationnaire au-dessus de la carte, et le joueur choisit où descendre en rappel. Un point trop proche des sentinelles déclenche l'alerte (bruit).
 - **8.3 Hélitreuillage** : remonter par la corde un opérateur ou le VIP depuis le sol ou un toit inaccessible (rappel à l'envers).
-- **8.4 Déplacement en vol stationnaire** : clic sur la carte pour déplacer l'appareil d'un point à l'autre, et déposer une équipe sur un toit, une autre au sol ailleurs.
 
 Combat :
 

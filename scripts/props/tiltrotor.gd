@@ -21,7 +21,10 @@ extends StaticBody3D
 ## avec les opérateurs à bord (`Commando.airborne_in` : en vol, ils ne
 ## font que tirer, et seulement porte ouverte). La porte (rampe) s'ouvre
 ## et se ferme en l'air ; porte ouverte, un opérateur descend en rappel
-## (`rappel`) le long d'une corde jusqu'au sol.
+## (`rappel`) le long d'une corde jusqu'au premier sol sous la rampe
+## (terrain, toit, caisse). En vol stationnaire, l'appareil se déplace
+## (`fly_to`) : il pivote, vole jusqu'au point visé et s'arrête le bout de la
+## rampe au-dessus ; il ne se pose que sur un terrain plat.
 ##
 ## Extraction (`extraction`) : l'appareil n'est pas là au début de la
 ## mission. Un opérateur l'appelle (`call_in`) : il arrive en vol, bruyant
@@ -80,6 +83,12 @@ const CLIMB_DISTANCE := 60.0
 ## vitesse de descente en rappel (m/s).
 const HOVER_HEIGHT := 10.0
 const HOVER_TIME := 4.0
+## Déplacement en vol stationnaire : vitesse (m/s), temps pour pivoter
+## d'un radian (s), écart toléré entre le centre et les extrémités de
+## l'appareil pour se poser (m).
+const FLY_SPEED := 9.0
+const TURN_TIME := 0.9
+const LANDING_TOLERANCE := 0.4
 const RAPPEL_SPEED := 2.5
 ## Extraction : arrivée depuis l'arrière (distance, hauteur au départ, s),
 ## intervalle du bruit des rotors pendant l'approche, attente (s) avant de
@@ -396,13 +405,13 @@ func take_off(pilot: Commando) -> bool:
 	is_flying = true
 	for unit in passengers():
 		unit.stop()
-		_passengers[unit] = to_local(unit.global_position)
+		_passengers[unit] = _local_transform(unit)
 	for vip in vips_aboard():
-		_passengers[vip] = to_local(vip.global_position)
+		_passengers[vip] = _local_transform(vip)
 	if pilot:
 		pilot.stop()
 	if cargo:
-		_passengers[cargo] = to_local(cargo.global_position)
+		_passengers[cargo] = _local_transform(cargo)
 	EventBus.noise_emitted.emit(global_position, ROTOR_NOISE, &"help")
 	var flight := create_tween()
 	flight.tween_property(model, "rotor_speed", FLIGHT_ROTOR_SPEED, SPIN_UP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -454,6 +463,8 @@ func land_problem() -> String:
 		return "rappel en cours"
 	if _someone_below():
 		return "quelqu'un sous l'appareil"
+	if not _flat_below():
+		return "terrain impropre"
 	return ""
 
 
@@ -507,10 +518,15 @@ func _carry(units: Array[Commando]) -> void:
 		unit.stop()
 		unit.airborne_in = null
 		unit.process_mode = Node.PROCESS_MODE_DISABLED
-		_passengers[unit] = to_local(unit.global_position)
+		_passengers[unit] = _local_transform(unit)
 	# Le véhicule garé dans la soute suit aussi.
 	if cargo:
-		_passengers[cargo] = to_local(cargo.global_position)
+		_passengers[cargo] = _local_transform(cargo)
+
+
+## Place de `node` dans le repère de l'appareil.
+func _local_transform(node: Node3D) -> Transform3D:
+	return global_transform.affine_inverse() * node.global_transform
 
 
 ## Vrai si une unité se tient au sol sous l'emprise de l'appareil (sans les
@@ -538,6 +554,81 @@ func ramp_tip() -> Vector3:
 	return model.ramp_pivot.to_global(Vector3(0, 0, TiltrotorModel.ramp_length()))
 
 
+## Pied de la corde : premier sol (terrain, toit, caisse) sous le bout de la
+## rampe.
+func rope_foot() -> Vector3:
+	var tip := ramp_tip()
+	return _surface_below(tip, Vector3(tip.x, ground_y, tip.z))
+
+
+## Premier sol sous `from` (l'appareil ignoré), ou `fallback`.
+func _surface_below(from: Vector3, fallback: Vector3) -> Vector3:
+	var start := Vector3(from.x, maxf(from.y, global_position.y + 6.0), from.z)
+	var query := PhysicsRayQueryParameters3D.create(start, start + Vector3.DOWN * 300.0, 0b11, body_rids())
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	return hit["position"] if not hit.is_empty() else fallback
+
+
+## Vrai si le sol sous l'appareil est plat : nez, queue et nacelles au
+## niveau du centre.
+func _flat_below() -> bool:
+	var center := _surface_below(global_position, Vector3.INF)
+	if center == Vector3.INF:
+		return false
+	for local: Vector3 in [Vector3(0, 0, -8.0), Vector3(0, 0, 8.0), Vector3(-5.2, 0, 4.4), Vector3(5.2, 0, 4.4), Vector3(-4.8, 0, -3.0), Vector3(4.8, 0, -3.0)]:
+		var point := _surface_below(to_global(local * SCALE), Vector3.INF)
+		if point == Vector3.INF or absf(point.y - center.y) > LANDING_TOLERANCE:
+			return false
+	ground_y = center.y
+	return true
+
+
+## Raison pour laquelle l'appareil ne peut pas se déplacer (vide : c'est
+## possible).
+func fly_problem() -> String:
+	if is_disabled:
+		return "appareil endommagé"
+	if not is_airborne or is_moving:
+		return "pas en vol stationnaire"
+	if _rappelling > 0:
+		return "rappel en cours"
+	return ""
+
+
+## Vole en vol stationnaire jusqu'au-dessus de `point` : pivote vers lui,
+## avance, et s'arrête le bout de la rampe au-dessus du point (pour y
+## descendre en rappel). Renvoie faux si c'est impossible.
+func fly_to(point: Vector3) -> bool:
+	if fly_problem() != "":
+		return false
+	var flat := point - global_position
+	flat.y = 0.0
+	if flat.length() < 1.0:
+		return false
+	var yaw := atan2(-flat.x, -flat.z)
+	var turn := wrapf(yaw - global_rotation.y, -PI, PI)
+	var goal := point - Basis(Vector3.UP, yaw) * Vector3(0, 0, TiltrotorModel.RAMP_END * SCALE)
+	var below := _surface_below(Vector3(goal.x, global_position.y, goal.z), Vector3(goal.x, ground_y, goal.z))
+	var height := global_position.y - ground_y
+	goal.y = maxf(point.y, below.y) + height
+	is_moving = true
+	is_airborne = false
+	if _rope:
+		_rope.queue_free()
+		_rope = null
+	_carry(passengers())
+	_noise_left = 0.0
+	_flight = create_tween()
+	if absf(turn) > 0.01:
+		_flight.tween_property(self, "global_rotation:y", global_rotation.y + turn, absf(turn) * TURN_TIME).set_trans(Tween.TRANS_SINE)
+	var travel := Vector2(goal.x - global_position.x, goal.z - global_position.z).length()
+	_flight.tween_property(self, "global_position", goal, maxf(travel / FLY_SPEED, 1.5)).set_trans(Tween.TRANS_SINE)
+	_flight.tween_callback(func() -> void:
+		ground_y = goal.y - height
+		_arrived(true))
+	return true
+
+
 ## Raison pour laquelle `unit` ne peut pas descendre en rappel (vide :
 ## c'est possible).
 func rappel_problem(unit: Commando) -> String:
@@ -556,7 +647,7 @@ func rappel(unit: Commando) -> bool:
 	if rappel_problem(unit) != "":
 		return false
 	var tip := ramp_tip()
-	var foot := Vector3(tip.x, ground_y, tip.z)
+	var foot := rope_foot()
 	_show_rope(tip, foot)
 	unit.stop()
 	unit.airborne_in = null
@@ -937,16 +1028,17 @@ func _ready_to_leave() -> bool:
 func _physics_process(delta: float) -> void:
 	for unit: Node3D in _passengers:
 		if is_instance_valid(unit):
-			unit.global_position = to_global(_passengers[unit])
+			unit.global_transform = global_transform * (_passengers[unit] as Transform3D)
 	_update_gun(delta)
 	_revealed_left = maxf(_revealed_left - delta, 0.0)
 	_update_strobe(delta)
-	if is_inbound:
+	if is_inbound or is_moving:
 		# Bruit des rotors au sol sous l'appareil : les ennemis accourent.
 		_noise_left -= delta
 		if _noise_left <= 0.0:
 			_noise_left = APPROACH_NOISE_INTERVAL
-			EventBus.noise_emitted.emit(Vector3(global_position.x, _landing.y, global_position.z), ROTOR_NOISE, &"help")
+			var floor_y := _landing.y if is_inbound else ground_y
+			EventBus.noise_emitted.emit(Vector3(global_position.x, floor_y, global_position.z), ROTOR_NOISE, &"help")
 	if is_flying or is_away or is_inbound:
 		return
 	_check_left -= delta
@@ -1014,6 +1106,7 @@ func destroy() -> void:
 ## Sauvegarde rapide (`QuickSave`).
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
+		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y,
 		"away": is_away or is_inbound, "structure": structure, "disabled": is_disabled}
 
 
@@ -1032,6 +1125,13 @@ func load_state(data: Dictionary) -> void:
 			global_position = _landing
 			model.rotor_speed = 0.0
 			_set_solid(true)
+	var saved_position: Vector3 = data.get("position", Vector3.INF)
+	if saved_position != Vector3.INF and not (is_away or is_inbound):
+		if _flight and not is_inbound:
+			_flight.kill()
+			is_moving = false
+		global_position = saved_position
+		global_rotation.y = data.get("yaw", global_rotation.y)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	structure = data.get("structure", STRUCTURE)
@@ -1044,7 +1144,8 @@ func load_state(data: Dictionary) -> void:
 	var airborne: bool = data.get("airborne", false)
 	if airborne != is_airborne and not is_moving:
 		ground_y = data.get("ground_y", ground_y if is_airborne else global_position.y)
-		global_position.y = ground_y + (HOVER_HEIGHT if airborne else 0.0)
+		if saved_position == Vector3.INF:
+			global_position.y = ground_y + (HOVER_HEIGHT if airborne else 0.0)
 		is_airborne = airborne
 		model.rotor_speed = FLIGHT_ROTOR_SPEED if airborne else rotor_speed
 		if _rope and not airborne:

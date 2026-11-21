@@ -819,3 +819,10 @@
 ## Translucidité dans l'export web
 
 - La coque du convertible (opérateur à bord) et le haut des bâtiments (opérateur à l'intérieur) s'estompent désormais aussi dans l'export web. `GeometryInstance3D.transparency`, ignoré par le rendu Compatibility (WebGL 2), est remplacé par `MeshFade`, qui estompe des copies des matériaux de chaque surface par leur canal alpha.
+
+## Déplacement en vol stationnaire (8.4)
+
+- En vol stationnaire, « Déplacer » dans le menu de bord, puis clic sur la carte : le convertible pivote, vole jusqu'au point (9 m/s, bruit des rotors au sol sous lui) et s'arrête le bout de la rampe au-dessus (`Tiltrotor.fly_to`).
+- La corde de rappel descend jusqu'au premier sol sous la rampe (`rope_foot`) : terrain, toit ou caisse. Une équipe se dépose sur un toit, une autre au sol ailleurs.
+- L'appareil ne se pose que sur un terrain plat : nez, queue et nacelles au niveau du centre (« terrain impropre » sinon).
+- Les passagers et le véhicule en soute suivent l'appareil, rotation comprise ; la sauvegarde rapide garde sa position et son cap.

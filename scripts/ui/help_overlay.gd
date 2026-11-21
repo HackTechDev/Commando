@@ -16,7 +16,7 @@ const SECTIONS: Array = [
 		[["Clic droit sur une caisse"], "Grimper dessus"],
 		[["Clic droit sur une porte"], "L'ouvrir, la fermer ou la crocheter"],
 		[["Clic droit sur le convertible"], "Monter à bord (soute)"],
-		[["Clic milieu sur un opérateur à bord"], "Porte, canon latéral, monter / atterrir, rappel, piloter"],
+		[["Clic milieu sur un opérateur à bord"], "Porte, canon latéral, monter / atterrir, déplacer, rappel, piloter"],
 		[["Clic milieu sur un opérateur au sol"], "Appeler l'extraction (si la carte en a une)"],
 		[["Clic droit sur le Sabre"], "Monter à bord (cinq places)"],
 		[["Clic droit au sol, passager du Sabre"], "Rouler jusque-là (il faut quelqu'un au volant)"],

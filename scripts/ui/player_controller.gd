@@ -42,6 +42,9 @@ const ACTION_CARRY := &"carry"
 const BODY_PICK_RADIUS := 1.2
 ## Grappin : puis clic gauche sur un point en hauteur.
 const ACTION_GRAPPLE := &"grapple"
+## Déplacement du convertible en vol stationnaire : puis clic gauche sur la
+## carte (`_action_aircraft`).
+const ACTION_FLY := &"fly"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -85,6 +88,8 @@ var _menu_crew: Commando
 var _menu_radio: Tiltrotor
 ## Véhicule et passager du menu de bord du Sabre ouvert.
 var _menu_sabre: Sabre
+## Convertible visé par l'action armée (`ACTION_FLY`).
+var _action_aircraft: Tiltrotor
 var _menu_rider: Commando
 var _cursor_left: float = 0.0
 ## Pause tactique en cours (le jeu est en pause, les ordres restent possibles).
@@ -161,6 +166,15 @@ func toggle_pending_action(action: StringName) -> void:
 	if action == pending_action or SelectionManager.selected.is_empty():
 		cancel_pending_action()
 		return
+	pending_action = action
+	Sfx.play_ui(&"arm")
+	_cursor_left = 0.0
+	pending_action_changed.emit(pending_action)
+
+
+## Arme une action du convertible `aircraft` (sans dépendre de la sélection).
+func arm_aircraft_action(action: StringName, aircraft: Tiltrotor) -> void:
+	_action_aircraft = aircraft
 	pending_action = action
 	Sfx.play_ui(&"arm")
 	_cursor_left = 0.0
@@ -318,6 +332,9 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 			return GameCursor.Kind.FORBIDDEN
 		ACTION_GRAPPLE:
 			return _grapple_cursor(screen_position)
+		ACTION_FLY:
+			var spot := _raycast(screen_position, MASK_GROUND)
+			return GameCursor.Kind.ORDERS if not spot.is_empty() and not _is_aircraft_part(spot["collider"]) else GameCursor.Kind.FORBIDDEN
 		ACTION_CRATE:
 			var crate := _raycast(screen_position, MASK_GROUND).get("collider") as Climbable
 			return GameCursor.Kind.CRATE if crate and crate.movable else GameCursor.Kind.FORBIDDEN
@@ -787,6 +804,9 @@ static func aircraft_options(aircraft: Tiltrotor, crew: Commando = null) -> Arra
 		var rappel := aircraft.rappel_problem(crew)
 		options.append({"id": &"rappel", "label": "Descendre en rappel",
 			"detail": "par la rampe, jusqu'au sol" if rappel == "" else rappel, "enabled": rappel == ""})
+		var flying := aircraft.fly_problem()
+		options.append({"id": &"fly", "label": "Déplacer",
+			"detail": "puis clic sur la carte : rampe au-dessus du point" if flying == "" else flying, "enabled": flying == ""})
 		var landing := aircraft.land_problem()
 		options.append({"id": &"land", "label": "Atterrir", "detail": "avec ceux à bord" if landing == "" else landing,
 			"enabled": landing == ""})
@@ -884,6 +904,9 @@ func _on_radial_chosen(id: StringName) -> void:
 				done = aircraft.land()
 			elif id == &"rappel":
 				done = aircraft.rappel(crew)
+			elif id == &"fly":
+				arm_aircraft_action(ACTION_FLY, aircraft)
+				return
 			elif id == &"gun":
 				if aircraft.gunner == crew:
 					aircraft.leave_gun()
@@ -955,7 +978,24 @@ func _feedback(accepted: bool) -> void:
 	Sfx.play_ui(&"order" if accepted else &"denied")
 
 
+## Vrai si `collider` est la coque ou le plancher d'un convertible.
+static func _is_aircraft_part(collider: Object) -> bool:
+	var node := collider as Node
+	return node is Tiltrotor or (node != null and node.get_parent() is Tiltrotor)
+
+
 func _use_pending_action(screen_position: Vector2) -> void:
+	if pending_action == ACTION_FLY:
+		var spot := _raycast(screen_position, MASK_GROUND)
+		var aircraft := _action_aircraft
+		_action_aircraft = null
+		if not spot.is_empty() and not _is_aircraft_part(spot["collider"]) and is_instance_valid(aircraft) and aircraft.fly_to(spot["position"]):
+			_spawn_marker(spot["position"], marker_color)
+			Sfx.play_ui(&"order")
+		else:
+			Sfx.play_ui(&"denied")
+		cancel_pending_action()
+		return
 	if pending_action == ACTION_GRAPPLE:
 		var spot := _raycast(screen_position, MASK_GROUND)
 		if not spot.is_empty():
