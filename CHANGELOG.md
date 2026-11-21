@@ -962,3 +962,9 @@
 - Tireur de la tourelle : « 12,7 : tir désigné », puis clic sur un ennemi ou un objet destructible (caisse, bidon, mur fragile, véhicule).
 - La mitrailleuse y concentre son feu, même sans feu à volonté et même si d'autres ennemis sont plus près, tant que la cible tient debout et reste à portée (`MountedGun.designated`). Ensuite elle reprend le feu à volonté s'il était ouvert, sinon elle se tait.
 - « 12,7 : cesser le feu » annule aussi la désignation.
+
+## Ravitaillement au Sabre (9.9)
+
+- Les jerricans et les caisses du plateau emportent quatre lots (`Sabre.supplies`). Un opérateur y reprend sa dotation de départ : munitions de réserve, grenades, fumigènes, trousses et charges (`Commando.resupply`, comme dans la soute du convertible).
+- À bord : « Se ravitailler » au menu de sa place. À pied : menu du véhicule, « Se ravitailler » ; les opérateurs sélectionnés à qui il manque quelque chose vont au hayon et se servent en arrivant.
+- La sauvegarde rapide garde les lots restants.

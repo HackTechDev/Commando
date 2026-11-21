@@ -71,6 +71,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | De nuit, au volant du Sabre : « Allumer / Éteindre les phares » (éteints : 55 % de la vitesse, repéré de près seulement ; allumés : pleine vitesse, repéré jusqu'à 45 m) | Clic milieu sur le conducteur |
 | S'abriter derrière le Sabre : accroupis le long de la caisse, côté opposé aux ennemis (la carrosserie prend les balles et s'abîme) | Clic milieu sur le Sabre avec des opérateurs à pied sélectionnés, « S'abriter derrière » |
 | Leurre : laisser le moteur du Sabre tourner au ralenti à l'arrêt, même vide ; son bruit attire les gardes | Clic milieu sur le conducteur, ou sur le Sabre avec un opérateur à pied tout près, « Moteur au ralenti » |
+| Se ravitailler au Sabre (dotation de départ ; quatre lots) | Clic milieu sur un passager, ou sur le Sabre avec des opérateurs à pied sélectionnés (ils vont au hayon), « Se ravitailler » |
 | Réparer le Sabre (pneu crevé, moteur touché ou hors d'usage) : l'opérateur va à l'avant, 6 s sur place | Clic milieu sur le Sabre avec un opérateur à pied sélectionné, « Réparer » |
 | Chef de bord ou arrière gauche du Sabre : « 7,62 : feu à volonté » (avant et droite, ou arrière et gauche ; 32 m) / « Cesser le feu » | Clic milieu sur le passager |
 | Passager du Sabre (pas le conducteur) : « Missile antichar », puis clic sur la cible (90 m, à l'arrêt, 2,5 s de visée ; un par mission) | Clic milieu sur le passager |

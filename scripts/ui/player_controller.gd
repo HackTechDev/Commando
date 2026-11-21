@@ -787,7 +787,7 @@ static func walkers() -> Array[Commando]:
 
 
 ## Options du menu du véhicule pour `units` (à pied) : s'abriter derrière,
-## moteur au ralenti (leurre, opérateur tout près), réparer.
+## moteur au ralenti (leurre, opérateur tout près), se ravitailler, réparer.
 static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dictionary]:
 	var nobody := "sélectionnez un opérateur à pied" if units.is_empty() else ""
 	var options: Array[Dictionary] = []
@@ -798,6 +798,12 @@ static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dicti
 	var idle := nobody if nobody != "" else ("trop loin : approchez un opérateur" if not near else ("" if sabre.idling else sabre.idle_problem()))
 	options.append({"id": &"idle", "label": "Couper le ralenti" if sabre.idling else "Moteur au ralenti",
 		"detail": ("le leurre se tait" if sabre.idling else "leurre : le bruit attire les gardes") if idle == "" else idle, "enabled": idle == ""})
+	var supply := nobody
+	if supply == "":
+		var needy := units.filter(func(unit: Commando) -> bool: return sabre.resupply_problem(unit) == "")
+		supply = "" if not needy.is_empty() else sabre.resupply_problem(units[0])
+	options.append({"id": &"resupply", "label": "Se ravitailler (%d)" % sabre.supplies,
+		"detail": "au hayon : dotation de départ" if supply == "" else supply, "enabled": supply == ""})
 	var repair := nobody if nobody != "" else sabre.repair_problem()
 	options.append({"id": &"repair", "label": "Réparer",
 		"detail": "pneus et moteur, %d s à l'avant" % int(Sabre.REPAIR_TIME) if repair == "" else repair, "enabled": repair == ""})
@@ -821,6 +827,12 @@ func _on_vehicle_order(id: StringName) -> void:
 						_spawn_marker(point, marker_color)
 			&"idle":
 				ok = sabre.set_idling(not sabre.idling)
+			&"resupply":
+				for unit in units:
+					if sabre.request_resupply(unit, run):
+						ok = true
+				if ok:
+					_spawn_marker(sabre.supply_point(), marker_color)
 			&"repair":
 				var nearest := units[0]
 				for unit in units:
@@ -865,6 +877,9 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 		var firing := sabre.side_firing[side]
 		options.append({"id": &"side_gun", "label": "7,62 : cesser le feu" if firing else "7,62 : feu à volonté",
 			"detail": "la mitrailleuse se tait" if firing else ("à l'avant et à droite" if side == 0 else "à l'arrière et à gauche") + ", %d m" % int(Sabre.SIDE_RANGE)})
+	var supply := sabre.resupply_problem(rider)
+	options.append({"id": &"resupply", "label": "Se ravitailler (%d)" % sabre.supplies,
+		"detail": "dotation de départ, sur le plateau" if supply == "" else supply, "enabled": supply == ""})
 	if index != Sabre.DRIVER_SEAT:
 		var missile := sabre.missile_problem(rider)
 		options.append({"id": &"missile", "label": "Missile antichar (%d)" % sabre.missiles,
@@ -1058,6 +1073,8 @@ func _on_radial_chosen(id: StringName) -> void:
 					ok = sabre.set_coasting(not sabre.coasting)
 				&"idle":
 					ok = sabre.set_idling(not sabre.idling)
+				&"resupply":
+					ok = sabre.request_resupply(rider, false)
 				&"missile":
 					if sabre.missile_problem(rider) == "":
 						_action_sabre = sabre

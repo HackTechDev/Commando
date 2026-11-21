@@ -53,6 +53,10 @@ extends StaticBody3D
 ## accroupis derrière la caisse, du côté opposé aux ennemis. Les balles qui
 ## les visent à travers le véhicule frappent la carrosserie (`blocks_shot`).
 ##
+## Ravitaillement (`request_resupply`) : les jerricans et les caisses du
+## plateau emportent `supplies` lots ; un opérateur au hayon (ou à bord) y
+## reprend sa dotation de départ (`Commando.resupply`).
+##
 ## Leurre (`set_idling`) : à l'arrêt, le moteur tourne au ralenti, même
 ## sans personne à bord ; son bruit attire les gardes (bruit `distraction`)
 ## pendant que l'équipe contourne à pied.
@@ -90,6 +94,8 @@ const ENGINE_SMOKE := 0.5
 const RIDER_COVER := 0.5
 const REPAIR_TIME := 6.0
 const REPAIR_REACH := 1.4
+## Ravitaillement : distance au hayon (m).
+const SUPPLY_REACH := 1.6
 ## Leurre : intervalle du bruit au ralenti (s), distance (m) à laquelle un
 ## opérateur à pied peut lancer ou couper le moteur.
 const IDLE_INTERVAL := 1.5
@@ -159,6 +165,8 @@ const ARRIVAL_RADIUS := 5.0
 @export var start_stowed_in: NodePath
 ## Missiles antichar à bord.
 @export var missiles: int = 1
+## Lots de ravitaillement sur le plateau (un par opérateur ravitaillé).
+@export var supplies: int = 4
 
 var model: SabreModel
 ## Occupant de chaque place (null : libre), dans l'ordre de `SabreModel.SEATS`.
@@ -203,6 +211,8 @@ var tire_flat: bool = false
 var engine_damage: float = 0.0
 var is_wrecked: bool = false
 var _repairer: Commando
+## Opérateurs en route vers le hayon pour se ravitailler : unité -> vrai.
+var _suppliers: Dictionary = {}
 var _repair_left: float = 0.0
 var _gauge: Label3D
 var _smoke: CPUParticles3D
@@ -1015,6 +1025,7 @@ func _physics_process(delta: float) -> void:
 		_update_boarders()
 		_update_repair(delta)
 		_update_idle(delta)
+		_update_suppliers()
 	_gun.update(delta, (gun_firing or _gun.designated != null) and gunner() != null and not model.is_folded and not is_wrecked)
 	_update_missile(delta)
 	for index in _side_guns.size():
@@ -1284,6 +1295,65 @@ static func blocks_shot(tree: SceneTree, from: Vector3, to: Vector3, damage: flo
 	return sabre
 
 
+# --- Ravitaillement -------------------------------------------------------------
+
+## Raison pour laquelle `unit` ne peut pas se ravitailler (vide : c'est
+## possible).
+func resupply_problem(unit: Commando) -> String:
+	if supplies <= 0:
+		return "plateau vide"
+	if unit == null or unit.is_dead:
+		return "personne"
+	if unit.missing_supplies().is_empty():
+		return "rien ne manque"
+	if is_driving and seat_of(unit) < 0:
+		return "en route"
+	return ""
+
+
+## Point au sol derrière le hayon.
+func supply_point() -> Vector3:
+	return _on_navmesh(to_global(Vector3(0.0, 0.0, 3.4)))
+
+
+## `unit` se ravitaille : sur place s'il est à bord, sinon il va au hayon.
+func request_resupply(unit: Commando, run: bool) -> bool:
+	if resupply_problem(unit) != "":
+		return false
+	if seat_of(unit) >= 0:
+		return _hand_out(unit)
+	_suppliers[unit] = true
+	unit.move_to(supply_point(), run)
+	return true
+
+
+## Un lot du plateau pour `unit`.
+func _hand_out(unit: Commando) -> bool:
+	if resupply_problem(unit) != "":
+		return false
+	var taken := unit.resupply()
+	supplies -= 1
+	var parts: Array[String] = []
+	for key: String in taken:
+		parts.append("%s +%d" % [key, taken[key]])
+	unit.flash_message("Ravitaillé : " + ", ".join(parts))
+	return true
+
+
+func _update_suppliers() -> void:
+	var spot := supply_point()
+	for unit: Commando in _suppliers.keys():
+		if not is_instance_valid(unit) or unit.is_dead or unit.riding or resupply_problem(unit) != "":
+			_suppliers.erase(unit)
+			continue
+		if unit._agent.target_position.distance_to(spot) > 1.5 and not unit.is_walking() and unit.global_position.distance_to(spot) > SUPPLY_REACH:
+			_suppliers.erase(unit)
+			continue
+		if unit.global_position.distance_to(spot) <= SUPPLY_REACH:
+			_suppliers.erase(unit)
+			_hand_out(unit)
+
+
 ## Raison pour laquelle on ne peut pas réparer (vide : c'est possible).
 func repair_problem() -> String:
 	if is_wrecked:
@@ -1343,7 +1413,7 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(), "missiles": missiles,
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(), "missiles": missiles, "supplies": supplies,
 		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
@@ -1368,6 +1438,8 @@ func load_state(data: Dictionary) -> void:
 	_show_damage()
 	idling = data.get("idling", false)
 	missiles = data.get("missiles", missiles)
+	supplies = data.get("supplies", supplies)
+	_suppliers.clear()
 	_missile_gunner = null
 	var sides: Array = data.get("side_firing", [false, false])
 	for index in mini(sides.size(), side_firing.size()):
