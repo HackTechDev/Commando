@@ -649,6 +649,11 @@ func _order(screen_position: Vector2, run: bool) -> void:
 	# Convertible : on embarque (la soute, par la rampe arrière).
 	var aircraft := hit["collider"] as Tiltrotor
 	if aircraft:
+		# En vol stationnaire, porte ouverte : on rejoint la corde pour être
+		# hélitreuillé.
+		if aircraft.is_airborne and SelectionManager.order_winch(aircraft, run):
+			_spawn_marker(aircraft.rope_foot(), marker_run_color if run else marker_color)
+			return
 		if aircraft.is_airborne or aircraft.is_moving or aircraft.is_flying:
 			Sfx.play_ui(&"denied")
 			return

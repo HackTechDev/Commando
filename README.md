@@ -61,6 +61,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |
 | Grimper sur une caisse | Clic droit sur la caisse (un ordre au sol fait redescendre) |
 | Monter dans le convertible (soute, par la rampe arrière) | Clic droit sur l'appareil ; clic droit au sol pour redescendre |
+| Hélitreuillage : en vol stationnaire, porte ouverte, les opérateurs sélectionnés rejoignent le pied de la corde et sont treuillés jusqu'à la soute (le VIP qui les suit aussi) | Clic droit sur l'appareil en vol |
 | Appeler le convertible d'extraction (cartes qui en ont un) : il se pose sur sa zone, repart seul quand tout le monde est à bord et les objectifs remplis | Clic milieu sur un opérateur au sol, « Appeler l'extraction » |
 | Monter dans le Sabre (véhicule léger, cinq places : volant, chef de bord, arrière gauche, arrière droit, tourelle) | Clic droit sur le véhicule |
 | Rouler en Sabre jusqu'à un point (chemin de navigation, il faut quelqu'un au volant ; le moteur s'entend à 24 m) | Clic droit au sol avec un opérateur à bord sélectionné |

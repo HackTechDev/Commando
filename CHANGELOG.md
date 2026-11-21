@@ -826,3 +826,9 @@
 - La corde de rappel descend jusqu'au premier sol sous la rampe (`rope_foot`) : terrain, toit ou caisse. Une équipe se dépose sur un toit, une autre au sol ailleurs.
 - L'appareil ne se pose que sur un terrain plat : nez, queue et nacelles au niveau du centre (« terrain impropre » sinon).
 - Les passagers et le véhicule en soute suivent l'appareil, rotation comprise ; la sauvegarde rapide garde sa position et son cap.
+
+## Hélitreuillage (8.3)
+
+- En vol stationnaire, porte ouverte : clic droit sur l'appareil avec des opérateurs au sol (ou sur un toit) sélectionnés. Ils rejoignent le pied de la corde et y sont treuillés jusqu'à la soute (`Tiltrotor.request_winch`, 1,8 m/s).
+- Un VIP qui se tient au pied de la corde est treuillé aussi (il suit son escorte).
+- Pendant un treuillage, l'appareil ne se déplace pas et ne se pose pas.

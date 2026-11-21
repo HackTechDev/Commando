@@ -112,8 +112,6 @@ func order_move(target: Vector3, run: bool) -> void:
 		_issue(selected[i], selected[i].move_to.bind(point, run), point, &"move")
 
 
-## Fait embarquer les unités sélectionnées dans la soute de `aircraft`, les
-## unes derrière les autres.
 ## Envoie les unités sélectionnées (pas encore à bord) monter dans `sabre`.
 ## Renvoie vrai si au moins une a obéi.
 func order_mount(sabre: Sabre, run: bool) -> bool:
@@ -123,6 +121,18 @@ func order_mount(sabre: Sabre, run: bool) -> bool:
 	return any
 
 
+## Envoie les unités sélectionnées au pied de la corde de `aircraft` (en vol
+## stationnaire), pour y être hélitreuillées. Renvoie vrai si au moins une a
+## obéi.
+func order_winch(aircraft: Tiltrotor, run: bool) -> bool:
+	var any := false
+	for unit in selected:
+		any = aircraft.request_winch(unit, run) or any
+	return any
+
+
+## Fait embarquer les unités sélectionnées dans la soute de `aircraft`, les
+## unes derrière les autres.
 func order_board(aircraft: Tiltrotor, run: bool) -> void:
 	for i in selected.size():
 		var point := aircraft.cabin_point(i)

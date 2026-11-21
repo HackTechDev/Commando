@@ -26,6 +26,11 @@ extends StaticBody3D
 ## (`fly_to`) : il pivote, vole jusqu'au point visé et s'arrête le bout de la
 ## rampe au-dessus ; il ne se pose que sur un terrain plat.
 ##
+## Hélitreuillage (`request_winch`) : porte ouverte en vol stationnaire, un
+## opérateur au sol (ou sur un toit) rejoint le pied de la corde et y est
+## treuillé jusqu'à la soute ; un VIP qui se tient au pied de la corde l'est
+## aussi.
+##
 ## Extraction (`extraction`) : l'appareil n'est pas là au début de la
 ## mission. Un opérateur l'appelle (`call_in`) : il arrive en vol, bruyant
 ## (les ennemis accourent), attend au-dessus de son point de pose que la place
@@ -89,6 +94,11 @@ const HOVER_TIME := 4.0
 const FLY_SPEED := 9.0
 const TURN_TIME := 0.9
 const LANDING_TOLERANCE := 0.4
+## Hélitreuillage : vitesse de montée (m/s), distance au pied de la corde
+## (à plat, en hauteur) à laquelle on est accroché.
+const WINCH_SPEED := 1.8
+const WINCH_REACH := 1.3
+const WINCH_HEIGHT := 1.2
 const RAPPEL_SPEED := 2.5
 ## Extraction : arrivée depuis l'arrière (distance, hauteur au départ, s),
 ## intervalle du bruit des rotors pendant l'approche, attente (s) avant de
@@ -162,6 +172,10 @@ var is_moving: bool = false
 var ground_y: float = 0.0
 var _rope: MeshInstance3D
 var _rappelling: int = 0
+## Unités en cours de treuillage, et opérateurs en route vers la corde
+## (unité -> vrai).
+var _winching: int = 0
+var _winch_requests: Dictionary = {}
 var _ramp_shape: CollisionShape3D
 ## Passagers pendant le vol : unité (opérateur ou VIP) -> position dans le
 ## repère de l'appareil.
@@ -461,6 +475,8 @@ func land_problem() -> String:
 		return "pas en vol"
 	if _rappelling > 0:
 		return "rappel en cours"
+	if _winching > 0:
+		return "treuillage en cours"
 	if _someone_below():
 		return "quelqu'un sous l'appareil"
 	if not _flat_below():
@@ -592,6 +608,8 @@ func fly_problem() -> String:
 		return "pas en vol stationnaire"
 	if _rappelling > 0:
 		return "rappel en cours"
+	if _winching > 0:
+		return "treuillage en cours"
 	return ""
 
 
@@ -664,6 +682,84 @@ func rappel(unit: Commando) -> bool:
 		if rappel_objective != &"":
 			EventBus.objective_completed.emit(rappel_objective))
 	return true
+
+
+# --- Hélitreuillage -------------------------------------------------------------
+
+## Raison pour laquelle on ne peut pas treuiller (vide : c'est possible).
+func winch_problem() -> String:
+	if is_disabled:
+		return "appareil endommagé"
+	if not is_airborne or is_moving:
+		return "pas en vol stationnaire"
+	if is_ramp_closed:
+		return "porte fermée"
+	return ""
+
+
+## Envoie `unit` (au sol) au pied de la corde pour y être treuillé. Renvoie
+## faux si c'est impossible.
+func request_winch(unit: Commando, run: bool) -> bool:
+	if winch_problem() != "" or unit == null or unit.is_dead or unit.airborne_in or unit.riding:
+		return false
+	var foot := rope_foot()
+	_show_rope(ramp_tip(), foot)
+	_winch_requests[unit] = true
+	var map := get_world_3d().navigation_map
+	unit.move_to(NavigationServer3D.map_get_closest_point(map, foot), run)
+	return true
+
+
+## Accroche les opérateurs arrivés au pied de la corde, et les VIP qui s'y
+## tiennent.
+func _update_winch() -> void:
+	if not _rope or winch_problem() != "":
+		_winch_requests.clear()
+		return
+	var foot := rope_foot()
+	for unit: Commando in _winch_requests.keys():
+		if not is_instance_valid(unit) or unit.is_dead or unit.airborne_in:
+			_winch_requests.erase(unit)
+			continue
+		if _at_rope_foot(unit, foot):
+			_winch_requests.erase(unit)
+			_hoist(unit)
+		elif not unit.is_walking() and unit._agent.target_position.distance_to(foot) > 2.0:
+			# Un autre ordre l'emmène ailleurs.
+			_winch_requests.erase(unit)
+	for node in get_tree().get_nodes_in_group(&"vips"):
+		var vip := node as Vip
+		if vip and not vip.is_dead and not vip.is_evacuated and vip.process_mode != Node.PROCESS_MODE_DISABLED and _at_rope_foot(vip, foot):
+			_hoist(vip)
+
+
+func _at_rope_foot(unit: Node3D, foot: Vector3) -> bool:
+	var flat := Vector2(unit.global_position.x - foot.x, unit.global_position.z - foot.z).length()
+	return flat <= WINCH_REACH and absf(unit.global_position.y - foot.y) <= WINCH_HEIGHT
+
+
+## Treuille `unit` le long de la corde jusqu'au bout de la rampe, puis dans
+## la soute, physique suspendue.
+func _hoist(unit: CharacterBody3D) -> void:
+	if unit is Commando:
+		(unit as Commando).stop()
+	unit.process_mode = Node.PROCESS_MODE_DISABLED
+	unit.velocity = Vector3.ZERO
+	_winching += 1
+	var tip := ramp_tip()
+	var foot := rope_foot()
+	var seat := cabin_point(passengers().size() + _winching)
+	Sfx.play_at(&"clink", foot + Vector3.UP, -4.0)
+	var lift := create_tween()
+	lift.tween_property(unit, "global_position", Vector3(foot.x, unit.global_position.y, foot.z), 0.3)
+	lift.tween_property(unit, "global_position", tip + Vector3.DOWN * 0.2, maxf(tip.y - unit.global_position.y, 0.5) / WINCH_SPEED).set_trans(Tween.TRANS_SINE)
+	lift.tween_property(unit, "global_position", seat, clampf(tip.distance_to(seat) / 3.0, 0.4, 2.5))
+	lift.tween_callback(func() -> void:
+		_winching -= 1
+		unit.process_mode = Node.PROCESS_MODE_INHERIT
+		unit.velocity = Vector3.ZERO
+		if unit is Commando and is_airborne:
+			(unit as Commando).airborne_in = self)
 
 
 ## Corde de rappel, du bout de la rampe au sol.
@@ -1030,6 +1126,8 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(unit):
 			unit.global_transform = global_transform * (_passengers[unit] as Transform3D)
 	_update_gun(delta)
+	if is_airborne:
+		_update_winch()
 	_revealed_left = maxf(_revealed_left - delta, 0.0)
 	_update_strobe(delta)
 	if is_inbound or is_moving:
