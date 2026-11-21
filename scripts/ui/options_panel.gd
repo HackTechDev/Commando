@@ -103,6 +103,12 @@ func _build() -> void:
 	edge.button_pressed = Settings.edge_scroll()
 	edge.toggled.connect(func(on: bool) -> void: Settings.set_value("display", "edge_scroll", on))
 	column.add_child(edge)
+	var follow := CheckBox.new()
+	follow.name = "FollowVehicle"
+	follow.text = "La caméra suit le véhicule en route"
+	follow.button_pressed = Settings.follow_vehicle()
+	follow.toggled.connect(func(on: bool) -> void: Settings.set_value("display", "follow_vehicle", on))
+	column.add_child(follow)
 	var parry := CheckBox.new()
 	parry.name = "AutoParry"
 	parry.text = "Parade automatique (au hasard, sans la touche %s)" % KeyNames.label(&"parry")

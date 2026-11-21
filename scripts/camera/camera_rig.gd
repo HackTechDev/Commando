@@ -5,6 +5,10 @@ extends Node3D
 ## Déplacement (touches, bord d'écran, glisser molette), zoom sur `size`,
 ## rotation libre et continue tant que la touche est maintenue, limites de
 ## déplacement.
+##
+## Suivi du véhicule (option `Settings.follow_vehicle`) : tant qu'un Sabre
+## roule avec un passager sélectionné, la caméra reste centrée sur lui. Un
+## déplacement manuel suspend le suivi jusqu'à l'arrêt du véhicule.
 
 @export var pitch_degrees: float = -35.264
 @export var distance: float = 60.0
@@ -31,6 +35,10 @@ var _target_size: float
 ## les sons dépendent de ce qu'on regarde, pas de la position de la caméra
 ## orthographique (très éloignée).
 var _listener: AudioListener3D
+## Véhicule suivi, et vrai si le joueur a repris la main sur la caméra
+## pendant ce trajet.
+var _followed: Sabre
+var _follow_released: bool = false
 
 @onready var _camera: Camera3D = $Camera3D
 
@@ -56,6 +64,8 @@ func _process(delta: float) -> void:
 	if input != Vector2.ZERO:
 		var move := basis.x * input.x + basis.z * input.y
 		_target_position += move * pan_speed * _camera.size * delta
+		_follow_released = _followed != null
+	_follow_vehicle()
 	_clamp_target()
 	var turn := Input.get_axis(&"camera_rotate_left", &"camera_rotate_right")
 	_target_yaw += turn * deg_to_rad(rotation_speed) * delta
@@ -77,7 +87,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		var units_per_pixel := _camera.size / float(get_viewport().get_visible_rect().size.y)
 		var depth_factor := 1.0 / sin(deg_to_rad(absf(pitch_degrees)))
 		_target_position += (-basis.x * motion.relative.x - basis.z * motion.relative.y * depth_factor) * units_per_pixel
+		_follow_released = _followed != null
 		_clamp_target()
+
+
+## Sabre en route avec un passager sélectionné, ou null.
+func followed_vehicle() -> Sabre:
+	for unit in SelectionManager.selected:
+		var commando := unit as Commando
+		if commando and is_instance_valid(commando) and commando.riding and commando.riding.is_driving:
+			return commando.riding
+	return null
+
+
+## Suit le véhicule en route (sauf si le joueur a repris la main).
+func _follow_vehicle() -> void:
+	var vehicle := followed_vehicle() if Settings.follow_vehicle() else null
+	if vehicle != _followed:
+		_followed = vehicle
+		_follow_released = false
+	if _followed and not _follow_released:
+		_target_position = Vector3(_followed.global_position.x, 0.0, _followed.global_position.z)
 
 
 ## Fixe le zoom (taille orthographique), borné.

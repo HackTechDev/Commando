@@ -99,6 +99,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Accroupi / rampé | C / X (bascule) |
 | Roulade vers le curseur (finit couché) | , (touche à droite de N en AZERTY) |
 | Déplacer la caméra | ZQSD, flèches, bord d'écran, clic molette maintenu |
+| Suivre le Sabre en route (passager sélectionné ; reprendre la caméra à la main suspend le suivi jusqu'à l'arrêt) | Automatique, option « La caméra suit le véhicule en route » |
 | Zoom | Molette |
 | Rotation de la caméra | A / E (maintenir) |
 | Centrer sur l'unité | Origine |

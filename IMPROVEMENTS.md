@@ -135,4 +135,3 @@ Cartes et missions :
 
 Commandes et confort :
 
-- **9.19 Caméra qui suit** le véhicule pendant le trajet (option).

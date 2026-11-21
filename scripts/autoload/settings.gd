@@ -59,6 +59,11 @@ func edge_scroll() -> bool:
 	return value("display", "edge_scroll", true)
 
 
+## La caméra suit le Sabre qui roule avec un passager sélectionné.
+func follow_vehicle() -> bool:
+	return value("display", "follow_vehicle", true)
+
+
 func fullscreen() -> bool:
 	return value("display", "fullscreen", false)
 

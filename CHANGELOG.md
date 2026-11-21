@@ -995,3 +995,9 @@
 - Au bout de l'itinéraire, points de passage compris, les passagers sautent à terre et se postent accroupis derrière la caisse, du côté opposé aux ennemis (même placement que « S'abriter derrière »).
 - Le conducteur reste au volant et le tireur de la 12,7 à la tourelle, pour couvrir ou repartir. Un VIP reste assis.
 - Pas de débarquement sur un arrêt forcé (route bloquée, élan épuisé, ordre d'arrêt).
+
+## Caméra qui suit le véhicule (9.19)
+
+- Tant que le Sabre roule avec un passager sélectionné, la caméra reste centrée sur lui.
+- Déplacer la caméra à la main (touches, bord d'écran, glisser) suspend le suivi jusqu'à l'arrêt du véhicule ; il reprend au trajet suivant.
+- Option « La caméra suit le véhicule en route » (activée par défaut), dans les options du menu pause et du menu principal.
