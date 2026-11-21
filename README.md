@@ -64,6 +64,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Hélitreuillage : en vol stationnaire, porte ouverte, les opérateurs sélectionnés rejoignent le pied de la corde et sont treuillés jusqu'à la soute (le VIP qui les suit aussi) | Clic droit sur l'appareil en vol |
 | Appeler le convertible d'extraction (cartes qui en ont un) : il se pose sur sa zone, repart seul quand tout le monde est à bord et les objectifs remplis | Clic milieu sur un opérateur au sol, « Appeler l'extraction » |
 | Renvoyer l'appareil d'insertion, une fois la soute vide (il pourra revenir en extraction) | Clic milieu sur un opérateur au sol, « Renvoyer l'appareil » |
+| Diversion : l'appareil parti passe une fois en rase-mottes au-dessus d'un point ; les sentinelles alentour vont voir | Clic milieu sur un opérateur au sol, « Diversion », puis clic sur la carte |
 | Monter dans le Sabre (véhicule léger, cinq places : volant, chef de bord, arrière gauche, arrière droit, tourelle) | Clic droit sur le véhicule |
 | Rouler en Sabre jusqu'à un point (chemin de navigation, il faut quelqu'un au volant ; le moteur s'entend à 24 m) | Clic droit au sol avec un opérateur à bord sélectionné |
 | Garer le Sabre dans la soute du convertible (posé, rampe abaissée, moitié avant de la soute libre) : il monte la rampe, arceau et antennes repliés, et voyage avec l'appareil ; clic droit au sol pour le faire ressortir en marche arrière | Clic droit sur le convertible avec un opérateur à bord du Sabre sélectionné |

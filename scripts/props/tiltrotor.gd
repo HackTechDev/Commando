@@ -52,6 +52,11 @@ extends StaticBody3D
 ## grâce à la hauteur (`Commando.fire_range`), mais les vibrations réduisent
 ## la précision, surtout juste après un mouvement (`steadiness`).
 ##
+## Diversion (`divert`) : l'appareil parti (extraction pas encore appelée,
+## insertion renvoyée), on le fait passer une fois en rase-mottes au-dessus
+## d'un point de la carte : le bruit attire les sentinelles alentour, qui
+## vont voir (bruit `distraction`), pendant que l'équipe passe ailleurs.
+##
 ## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
 ## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
 ## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points, une roquette
@@ -133,6 +138,13 @@ const APPROACH_HEIGHT := 30.0
 const APPROACH_TIME := 14.0
 const APPROACH_NOISE_INTERVAL := 1.5
 const DEPART_DELAY := 1.5
+## Diversion : hauteur du passage, demi-longueur du trajet (m), vitesse
+## (m/s), rayon et intervalle du bruit.
+const DIVERSION_HEIGHT := 15.0
+const DIVERSION_REACH := 70.0
+const DIVERSION_SPEED := 16.0
+const DIVERSION_NOISE := 34.0
+const DIVERSION_NOISE_INTERVAL := 0.8
 ## Riposte : points de structure, part des dégâts d'une balle encaissée, part
 ## de la structure sous laquelle il fume, durée de la descente d'urgence (s).
 const STRUCTURE := 400.0
@@ -219,6 +231,9 @@ var is_inbound: bool = false
 ## Point de pose (position de l'appareil dans la scène).
 var _landing: Vector3
 var _landing_yaw: float = 0.0
+## Passage de diversion en cours ; diversion déjà faite (une par mission).
+var is_diverting: bool = false
+var diversion_used: bool = false
 var _flight: Tween
 var _noise_left: float = 0.0
 var _depart_left: float = DEPART_DELAY
@@ -1061,6 +1076,10 @@ func _shot_down() -> void:
 		_flight.parallel().tween_property(model, "rotor_speed", 0.6, EMERGENCY_TIME * 1.6)
 		_flight.tween_callback(_touched_down)
 		return
+	if is_diverting:
+		# Abattu pendant une diversion : il tombe là où il est.
+		is_diverting = false
+		ground_y = _surface_below(global_position, Vector3(global_position.x, ground_y, global_position.z)).y
 	is_moving = true
 	is_airborne = false
 	_carry(passengers())
@@ -1174,6 +1193,72 @@ func dismiss() -> bool:
 		global_rotation.y = _landing_yaw
 		_go_away())
 	return true
+
+
+# --- Diversion -------------------------------------------------------------------
+
+## Raison pour laquelle on ne peut pas faire diversion (vide : c'est
+## possible).
+func diversion_problem() -> String:
+	if is_destroyed:
+		return "appareil détruit"
+	if is_disabled:
+		return "appareil endommagé"
+	if diversion_used:
+		return "diversion déjà faite"
+	if not is_away:
+		return "appareil sur zone"
+	return ""
+
+
+## Appareil parti qui peut faire diversion (ou qui l'a déjà faite), ou null.
+static func diverter(tree: SceneTree) -> Tiltrotor:
+	for node in tree.get_nodes_in_group(GROUP):
+		var aircraft := node as Tiltrotor
+		if aircraft and aircraft.is_away and not aircraft.is_destroyed:
+			return aircraft
+	return null
+
+
+## Passage en rase-mottes au-dessus de `point`, venu du côté de la zone de
+## pose et filant au-delà ; il repart ensuite. Renvoie faux si c'est
+## impossible.
+func divert(point: Vector3) -> bool:
+	if diversion_problem() != "":
+		return false
+	var across := Vector3(point.x - _landing.x, 0.0, point.z - _landing.z)
+	if across.length() < 1.0:
+		across = -global_basis.z
+	across = across.normalized()
+	var height := Vector3.UP * (point.y + DIVERSION_HEIGHT)
+	var start := Vector3(point.x, 0.0, point.z) - across * DIVERSION_REACH + height
+	var finish := Vector3(point.x, 0.0, point.z) + across * DIVERSION_REACH + height
+	diversion_used = true
+	is_away = false
+	is_diverting = true
+	is_moving = true
+	visible = true
+	_set_solid(true)
+	_apply_ramp(true, false)
+	model.rotor_speed = FLIGHT_ROTOR_SPEED
+	global_position = start
+	global_rotation.y = atan2(-across.x, -across.z)
+	ground_y = point.y
+	_noise_left = 0.0
+	_flight = create_tween()
+	_flight.tween_property(self, "global_position", finish, DIVERSION_REACH * 2.0 / DIVERSION_SPEED)
+	_flight.tween_callback(_end_diversion)
+	return true
+
+
+## Fin du passage : l'appareil repart, de nouveau à appeler.
+func _end_diversion() -> void:
+	is_diverting = false
+	is_moving = false
+	model.rotor_speed = 0.0
+	global_position = _landing
+	global_rotation.y = _landing_yaw
+	_go_away()
 
 
 ## Raison pour laquelle on ne peut pas appeler l'appareil (vide : c'est
@@ -1296,7 +1381,13 @@ func _physics_process(delta: float) -> void:
 	_revealed_left = maxf(_revealed_left - delta, 0.0)
 	_settle_left = maxf(_settle_left - delta, 0.0)
 	_update_strobe(delta)
-	if (is_inbound or is_moving or is_airborne) and not is_destroyed:
+	if is_diverting and not is_disabled:
+		# Passage bruyant : les sentinelles vont voir.
+		_noise_left -= delta
+		if _noise_left <= 0.0:
+			_noise_left = DIVERSION_NOISE_INTERVAL
+			EventBus.noise_emitted.emit(Vector3(global_position.x, ground_y, global_position.z), DIVERSION_NOISE, &"distraction")
+	elif (is_inbound or is_moving or is_airborne) and not is_destroyed:
 		# Bruit des rotors au sol sous l'appareil : les ennemis accourent.
 		_noise_left -= delta
 		if _noise_left <= 0.0:
@@ -1371,16 +1462,21 @@ func destroy() -> void:
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
 		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y, "hover_height": hover_height,
-		"away": is_away or is_inbound, "structure": structure, "disabled": is_disabled, "insertion": insertion}
+		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "structure": structure, "disabled": is_disabled, "insertion": insertion}
 
 
 func load_state(data: Dictionary) -> void:
 	# Extraction : en approche, l'appareil est rendu « pas encore appelé ».
 	var away: bool = data.get("away", false)
-	if away != (is_away or is_inbound) and extraction:
+	if away != (is_away or is_inbound or is_diverting):
 		if _flight:
 			_flight.kill()
 		is_inbound = false
+		if is_diverting:
+			is_diverting = false
+			is_moving = false
+			global_position = _landing
+			global_rotation.y = _landing_yaw
 		if away:
 			_go_away()
 		else:
@@ -1398,6 +1494,7 @@ func load_state(data: Dictionary) -> void:
 		global_rotation.y = data.get("yaw", global_rotation.y)
 	hover_height = data.get("hover_height", HOVER_HEIGHT)
 	insertion = data.get("insertion", insertion)
+	diversion_used = data.get("diversion_used", diversion_used)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	structure = data.get("structure", STRUCTURE)

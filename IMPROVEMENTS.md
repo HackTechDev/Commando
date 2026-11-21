@@ -122,7 +122,6 @@ Combat :
 
 Discrétion :
 
-- **8.11 Diversion** : faire passer l'appareil d'un côté de la carte pour attirer les sentinelles pendant que l'équipe s'infiltre de l'autre.
 
 Logistique :
 

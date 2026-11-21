@@ -45,6 +45,8 @@ const ACTION_GRAPPLE := &"grapple"
 ## Déplacement du convertible en vol stationnaire : puis clic gauche sur la
 ## carte (`_action_aircraft`).
 const ACTION_FLY := &"fly"
+## Diversion par le convertible parti : puis clic gauche sur la carte.
+const ACTION_DIVERT := &"divert"
 
 const DRAG_THRESHOLD := 6.0
 const RAY_LENGTH := 500.0
@@ -332,7 +334,7 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 			return GameCursor.Kind.FORBIDDEN
 		ACTION_GRAPPLE:
 			return _grapple_cursor(screen_position)
-		ACTION_FLY:
+		ACTION_FLY, ACTION_DIVERT:
 			var spot := _raycast(screen_position, MASK_GROUND)
 			return GameCursor.Kind.ORDERS if not spot.is_empty() and not _is_aircraft_part(spot["collider"]) else GameCursor.Kind.FORBIDDEN
 		ACTION_CRATE:
@@ -786,7 +788,7 @@ func open_radio_menu(screen_position: Vector2) -> bool:
 
 
 ## Options du menu radio : renvoyer l'appareil d'insertion (soute vide),
-## appeler l'extraction.
+## diversion par l'appareil parti, appeler l'extraction.
 static func radio_options(tree: SceneTree) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var inserted := Tiltrotor.dismissable(tree)
@@ -795,6 +797,11 @@ static func radio_options(tree: SceneTree) -> Array[Dictionary]:
 		options.append({"id": &"dismiss", "label": "Renvoyer l'appareil",
 			"detail": "il quitte la zone" + (" (rappel possible)" if inserted.extraction else "") if problem == "" else problem,
 			"enabled": problem == ""})
+	var diverter := Tiltrotor.diverter(tree)
+	if diverter:
+		var problem := diverter.diversion_problem()
+		options.append({"id": &"divert", "label": "Diversion",
+			"detail": "puis clic sur la carte : passage en rase-mottes (une fois)" if problem == "" else problem, "enabled": problem == ""})
 	var awaited := Tiltrotor.awaiting_call(tree)
 	if awaited:
 		var problem := awaited.call_problem()
@@ -911,6 +918,13 @@ func _on_radial_chosen(id: StringName) -> void:
 		return
 	if _menu_radio:
 		_menu_radio = false
+		if id == &"divert":
+			var diverter := Tiltrotor.diverter(get_tree())
+			if diverter and diverter.diversion_problem() == "":
+				arm_aircraft_action(ACTION_DIVERT, diverter)
+			else:
+				Sfx.play_ui(&"denied")
+			return
 		var aircraft: Tiltrotor = Tiltrotor.awaiting_call(get_tree()) if id == &"extract" else Tiltrotor.dismissable(get_tree())
 		var done := false
 		if aircraft:
@@ -1017,11 +1031,12 @@ static func _is_aircraft_part(collider: Object) -> bool:
 
 
 func _use_pending_action(screen_position: Vector2) -> void:
-	if pending_action == ACTION_FLY:
+	if pending_action == ACTION_FLY or pending_action == ACTION_DIVERT:
 		var spot := _raycast(screen_position, MASK_GROUND)
 		var aircraft := _action_aircraft
 		_action_aircraft = null
-		if not spot.is_empty() and not _is_aircraft_part(spot["collider"]) and is_instance_valid(aircraft) and aircraft.fly_to(spot["position"]):
+		var valid := not spot.is_empty() and not _is_aircraft_part(spot["collider"]) and is_instance_valid(aircraft)
+		if valid and (aircraft.divert(spot["position"]) if pending_action == ACTION_DIVERT else aircraft.fly_to(spot["position"])):
 			_spawn_marker(spot["position"], marker_color)
 			Sfx.play_ui(&"order")
 		else:

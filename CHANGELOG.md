@@ -856,3 +856,9 @@
 - Contre un convertible en vol à moins de 60 m qu'il voit, il tire en priorité, même s'il a des opérateurs en vue : 2,2 s de visée, une roquette avec un écart de quelques mètres, 6 s de rechargement.
 - `Rocket` : file à 34 m/s avec une traînée de fumée. Près de la coque (fusée de proximité), elle explose et ôte 230 points de structure sur 400 (`Tiltrotor.take_rocket`) : deux roquettes abattent l'appareil. Sinon, elle explose sur le premier obstacle (petite charge) ou se perd après 110 m.
 - Sans roquettes, il redevient un garde ordinaire ; le tube disparaît. La sauvegarde garde les roquettes restantes.
+
+## Diversion par le convertible (8.11)
+
+- Appareil parti (extraction pas encore appelée, ou insertion renvoyée) : « Diversion » au menu radio, puis clic sur la carte. Il passe une fois en rase-mottes (15 m) au-dessus du point, venu du côté de sa zone de pose, et file au-delà (`Tiltrotor.divert`).
+- Pendant le passage, le bruit (34 m, toutes les 0,8 s) rend les sentinelles méfiantes : elles vont voir (`distraction`), sans donner l'alerte.
+- Une diversion par mission. L'appareil reste ensuite à appeler pour l'extraction ; abattu pendant le passage, il tombe sur place.
