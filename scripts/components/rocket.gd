@@ -1,10 +1,11 @@
 class_name Rocket
 extends Node3D
-## Roquette tirée par un ennemi armé d'un lance-roquettes : file en ligne
-## droite en laissant une traînée de fumée. Près de la coque d'un convertible
-## en vol, elle explose et l'endommage lourdement (`Tiltrotor.take_rocket`) ;
-## sinon elle explose sur le premier obstacle, ou se perd au bout de sa
-## course.
+## Roquette tirée par un ennemi armé d'un lance-roquettes, ou missile
+## antichar du Sabre : file en ligne droite en laissant une traînée de
+## fumée. Antiaérienne (`anti_air`), près de la coque d'un convertible en
+## vol, elle explose et l'endommage lourdement (`Tiltrotor.take_rocket`) ;
+## sinon elle explose sur le premier obstacle (charge `blast_radius`,
+## `blast_damage`), ou se perd au bout de sa course.
 
 const SPEED := 34.0
 const MAX_TRAVEL := 110.0
@@ -19,13 +20,20 @@ var _velocity: Vector3
 var _travel: float = 0.0
 var _trail_left: float = 0.0
 var _exclude: Array[RID] = []
+var anti_air: bool = true
+var blast_radius: float = 3.0
+var blast_damage: float = 90.0
 
 
 ## Tire une roquette de `from` vers `toward`.
-static func launch(parent: Node, from: Vector3, toward: Vector3, exclude: Array[RID]) -> Rocket:
+static func launch(parent: Node, from: Vector3, toward: Vector3, exclude: Array[RID],
+		radius: float = 3.0, damage: float = 90.0, against_aircraft: bool = true) -> Rocket:
 	var rocket := Rocket.new()
 	rocket._velocity = (toward - from).normalized() * SPEED
 	rocket._exclude = exclude
+	rocket.blast_radius = radius
+	rocket.blast_damage = damage
+	rocket.anti_air = against_aircraft
 	parent.add_child(rocket)
 	rocket.global_position = from
 	rocket._build()
@@ -64,7 +72,7 @@ func _physics_process(delta: float) -> void:
 	var next := global_position + step
 	for node in get_tree().get_nodes_in_group(Tiltrotor.GROUP):
 		var aircraft := node as Tiltrotor
-		if aircraft and aircraft.is_in_air() and aircraft.distance_to_hull(next) <= PROXIMITY:
+		if anti_air and aircraft and aircraft.is_in_air() and aircraft.distance_to_hull(next) <= PROXIMITY:
 			aircraft.take_rocket(next)
 			_explode(next)
 			return
@@ -116,7 +124,7 @@ func _puff() -> void:
 ## petite charge (`grounded`).
 func _explode(at: Vector3, grounded: bool = false) -> void:
 	if grounded:
-		Explosion.detonate(get_parent(), at, 3.0, 90.0, 35.0)
+		Explosion.detonate(get_parent(), at, blast_radius, blast_damage, 35.0)
 	else:
 		Explosion.detonate(get_parent(), at, 2.0, 0.0, 40.0)
 	queue_free()

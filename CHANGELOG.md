@@ -949,3 +949,10 @@
 - Champ de tir limité : avant et droite pour le chef de bord, arrière et gauche pour l'arrière gauche. Les armes pivotent désormais sur leur bras (`SabreModel.side_gun_pivots`).
 - Même composant que la 12,7 (`MountedGun`), mais 32 m de portée au lieu de 45, 35 de dégâts au lieu de 60, et un bruit de 40 m au lieu de 55. Elles tirent aussi en roulant, pas dans une soute ni sur une épave.
 - La sauvegarde rapide garde leur état.
+
+## Missile antichar du Sabre (9.6)
+
+- Tout passager sauf le conducteur : « Missile antichar » au menu de sa place, puis clic sur la cible (sol, mur, caisse, ennemi, véhicule), à 90 m au plus, véhicule à l'arrêt.
+- Après 2,5 s de visée, interrompue si le Sabre repart ou si le tireur quitte sa place, le missile part du tube avec une traînée de fumée et explose sur le premier obstacle : rayon de 4,5 m, 160 de dégâts, murs fragiles abattus, caisses détruites, véhicules endommagés.
+- Un seul missile par mission (`Sabre.missiles`), gardé par la sauvegarde rapide.
+- `Rocket` sert aussi au missile : charge réglable, et la fusée de proximité contre les appareils devient optionnelle.

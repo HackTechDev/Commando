@@ -19,6 +19,11 @@ extends StaticBody3D
 ## limité (avant et droite, arrière et gauche), moins puissante, moins
 ## bruyante et de moindre portée que la 12,7.
 ##
+## Missile antichar (`fire_missile`) : un passager (pas le conducteur)
+## désigne une cible, véhicule à l'arrêt ; après `MISSILE_AIM` s de visée, le
+## missile part du tube et explose sur la cible (bunker, véhicule, mur).
+## `missiles` coup(s) par mission.
+##
 ## Tourelle : l'opérateur à la place du tireur ouvre le feu à volonté
 ## (`set_gun_firing`) avec la mitrailleuse de 12,7 (`MountedGun`, tout
 ## autour du véhicule).
@@ -115,6 +120,13 @@ const GUN_ROUND_INTERVAL := 0.12
 const GUN_BURST_PAUSE := 1.0
 const GUN_SPREAD := 0.03
 const GUN_NOISE := 55.0
+## Missile antichar : temps de visée (s), portée (m), charge (rayon, dégâts),
+## bouche du tube.
+const MISSILE_AIM := 2.5
+const MISSILE_RANGE := 90.0
+const MISSILE_RADIUS := 4.5
+const MISSILE_DAMAGE := 160.0
+const MISSILE_TUBE := Vector3(-0.62, 1.6, 0.9)
 ## Mitrailleuses de 7,62 : place qui sert chacune (`SabreModel.SIDE_GUNS`),
 ## réglages.
 const SIDE_GUN_SEATS: Array[int] = [2, 3]
@@ -145,6 +157,8 @@ const ARRIVAL_RADIUS := 5.0
 ## Convertible dans la soute duquel le véhicule commence la mission (vide :
 ## au sol, à sa place).
 @export var start_stowed_in: NodePath
+## Missiles antichar à bord.
+@export var missiles: int = 1
 
 var model: SabreModel
 ## Occupant de chaque place (null : libre), dans l'ordre de `SabreModel.SEATS`.
@@ -156,6 +170,10 @@ var _gun: MountedGun
 ## 7,62 : armes et feu à volonté (dans l'ordre de `SIDE_GUN_SEATS`).
 var _side_guns: Array[MountedGun] = []
 var side_firing: Array[bool] = [false, false]
+## Missile en cours de visée : tireur, cible, temps restant (s).
+var _missile_gunner: Commando
+var _missile_target := Vector3.ZERO
+var _missile_left: float = 0.0
 var _path := PackedVector3Array()
 var _path_index: int = 0
 var _blocked_left: float = 0.0
@@ -497,6 +515,63 @@ func set_side_firing(unit: Commando, firing: bool) -> bool:
 	if firing:
 		unit.flash_message("7,62 : feu à volonté")
 	return true
+
+
+## Raison pour laquelle `unit` ne peut pas tirer de missile (vide : c'est
+## possible).
+func missile_problem(unit: Commando) -> String:
+	if missiles <= 0:
+		return "plus de missile"
+	if seat_of(unit) < 0:
+		return "pas à bord"
+	if seat_of(unit) == DRIVER_SEAT:
+		return "le conducteur conduit"
+	if is_wrecked:
+		return "épave"
+	if is_driving:
+		return "à l'arrêt seulement"
+	if stowed_in or slung_by:
+		return "pas au sol"
+	if _missile_gunner:
+		return "visée en cours"
+	return ""
+
+
+## `unit` vise `target` avec le missile ; il part après `MISSILE_AIM` s.
+## Renvoie la raison d'un refus (vide : visée commencée).
+func fire_missile(unit: Commando, target: Vector3) -> String:
+	var problem := missile_problem(unit)
+	if problem != "":
+		return problem
+	if target.distance_to(global_position) > MISSILE_RANGE:
+		return "hors de portée (%d m)" % int(MISSILE_RANGE)
+	_missile_gunner = unit
+	_missile_target = target
+	_missile_left = MISSILE_AIM
+	unit.flash_message("Missile : visée…")
+	return ""
+
+
+## Visée du missile : interrompue si le véhicule repart ou si le tireur
+## quitte sa place ; sinon le missile part.
+func _update_missile(delta: float) -> void:
+	if _missile_gunner == null:
+		return
+	if not is_instance_valid(_missile_gunner) or seat_of(_missile_gunner) < 0 or is_driving or is_wrecked:
+		_missile_gunner = null
+		return
+	_missile_left -= delta
+	if _missile_left > 0.0:
+		return
+	var from := to_global(MISSILE_TUBE)
+	missiles -= 1
+	_missile_gunner.flash_message("Missile parti" + ("" if missiles > 0 else " (dernier)"))
+	_missile_gunner = null
+	var scene := get_tree().current_scene as Node3D
+	if scene == null:
+		scene = get_parent() as Node3D
+	Rocket.launch(scene, from, _missile_target, body_rids(), MISSILE_RADIUS, MISSILE_DAMAGE, false)
+	EventBus.noise_emitted.emit(global_position, GUN_NOISE, &"gunshot")
 
 
 ## Champ de tir de la 7,62 `index` : avant et droite (chef de bord), arrière
@@ -916,6 +991,7 @@ func _physics_process(delta: float) -> void:
 		_update_repair(delta)
 		_update_idle(delta)
 	_gun.update(delta, gun_firing and gunner() != null and not model.is_folded)
+	_update_missile(delta)
 	for index in _side_guns.size():
 		var crew_member := seats[SIDE_GUN_SEATS[index]]
 		if side_firing[index] and crew_member == null:
@@ -1242,7 +1318,7 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(),
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(), "missiles": missiles,
 		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
@@ -1266,6 +1342,8 @@ func load_state(data: Dictionary) -> void:
 		_set_wreck_look()
 	_show_damage()
 	idling = data.get("idling", false)
+	missiles = data.get("missiles", missiles)
+	_missile_gunner = null
 	var sides: Array = data.get("side_firing", [false, false])
 	for index in mini(sides.size(), side_firing.size()):
 		side_firing[index] = bool(sides[index])
