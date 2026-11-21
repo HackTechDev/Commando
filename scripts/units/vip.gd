@@ -38,6 +38,8 @@ const RETARGET_DISTANCE := 0.5
 @export var hair_color: int = 2
 
 var leader: Commando
+## Sabre à bord duquel il est assis (escorte), ou null.
+var riding: Sabre
 var is_evacuated: bool = false
 
 var _running: bool = false
@@ -89,6 +91,11 @@ func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 	if _traversal.update(delta):
+		return
+	# Assis dans un Sabre : il ne bouge pas de sa place.
+	if riding:
+		velocity = Vector3.ZERO
+		_update_leader()
 		return
 	var horizontal := Vector3.ZERO
 	if is_evacuated:

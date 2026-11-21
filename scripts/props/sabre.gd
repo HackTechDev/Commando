@@ -57,6 +57,11 @@ extends StaticBody3D
 ## plateau emportent `supplies` lots ; un opérateur au hayon (ou à bord) y
 ## reprend sa dotation de départ (`Commando.resupply`).
 ##
+## Escorte : un VIP qui suit un opérateur monté à bord le rejoint et
+## s'assoit à une place passagère libre (`vip_seats`) ; il descend avec
+## « Tout le monde descend », ou de lui-même à son arrivée dans la zone
+## d'extraction.
+##
 ## Plateau (`request_bed`) : un opérateur qui porte un corps, ou tient un
 ## otage (qu'il ligote), le couche sur le plateau arrière depuis le hayon,
 ## ce qui lui libère les mains ; le véhicule l'emporte, caché sous la bâche.
@@ -123,6 +128,10 @@ const BLOCK_GIVE_UP := 3.0
 const BOARD_REACH := 1.3
 ## Ordre dans lequel les places sont prises (indices de `SabreModel.SEATS`).
 const SEAT_ORDER: Array[int] = [0, 2, 3, 4, 1]
+## Places qu'un VIP peut prendre (passagers), par ordre de préférence.
+const VIP_SEAT_ORDER: Array[int] = [4, 3, 2]
+## Distance au véhicule (m) à laquelle un VIP qui suit un passager monte.
+const VIP_BOARD_REACH := 2.8
 const DRIVER_SEAT := 0
 const GUNNER_SEAT := 1
 ## Mitrailleuse de 12,7 : réglages de `MountedGun`.
@@ -178,6 +187,8 @@ const ARRIVAL_RADIUS := 5.0
 var model: SabreModel
 ## Occupant de chaque place (null : libre), dans l'ordre de `SabreModel.SEATS`.
 var seats: Array[Commando] = [null, null, null, null, null]
+## VIP assis à chaque place (null : aucun).
+var vip_seats: Array[Vip] = [null, null, null, null, null]
 var is_driving: bool = false
 ## La 12,7 tire à volonté (si quelqu'un est à la tourelle).
 var gun_firing: bool = false
@@ -395,9 +406,67 @@ func crew() -> Array[Commando]:
 
 func _free_seat() -> int:
 	for index in SEAT_ORDER:
-		if seats[index] == null:
+		if seats[index] == null and vip_seats[index] == null:
 			return index
 	return -1
+
+
+## VIP à bord.
+func vips() -> Array[Vip]:
+	var aboard: Array[Vip] = []
+	for vip in vip_seats:
+		if vip:
+			aboard.append(vip)
+	return aboard
+
+
+## Fait asseoir `vip` à une place passagère libre. Renvoie faux sinon.
+func seat_vip(vip: Vip) -> bool:
+	if vip == null or vip.is_dead or vip.is_evacuated or vip.riding or is_driving:
+		return false
+	for index in VIP_SEAT_ORDER:
+		if seats[index] == null and vip_seats[index] == null:
+			vip_seats[index] = vip
+			vip.riding = self
+			_place_vip(vip, index)
+			Sfx.play_at(&"clink", vip.global_position + Vector3.UP, -6.0)
+			return true
+	return false
+
+
+func _place_vip(vip: Vip, index: int) -> void:
+	vip.velocity = Vector3.ZERO
+	vip.global_position = to_global(SabreModel.SEATS[index] + Vector3.UP * 0.02)
+	vip.global_rotation = Vector3(0.0, global_rotation.y, 0.0)
+	vip.posture = SoldierModel.Posture.CROUCHED
+
+
+## Fait descendre `vip` à côté de sa place.
+func dismount_vip(vip: Vip) -> bool:
+	var index := vip_seats.find(vip)
+	if index < 0 or is_driving:
+		return false
+	vip_seats[index] = null
+	vip.riding = null
+	vip.process_mode = Node.PROCESS_MODE_INHERIT
+	var local := SabreModel.SEATS[index]
+	var side := -1.0 if local.x < 0.0 else 1.0
+	var beside := Vector3(side * 0.7, 0.0, 3.3) if stowed_in else Vector3(side * (SabreModel.HALF_WIDTH + 0.9), 0.0, local.z)
+	vip.global_position = _on_navmesh(to_global(beside))
+	vip.velocity = Vector3.ZERO
+	vip.posture = SoldierModel.Posture.STANDING
+	return true
+
+
+## Un VIP qui suit un passager de ce véhicule monte quand il arrive à côté.
+func _update_vip_boarding() -> void:
+	for node in get_tree().get_nodes_in_group(&"vips"):
+		var vip := node as Vip
+		if vip == null or vip.riding or vip.is_dead or vip.is_evacuated or vip.leader == null or vip.leader.riding != self:
+			continue
+		var flat := Vector2(vip.global_position.x - global_position.x, vip.global_position.z - global_position.z)
+		if flat.length() <= VIP_BOARD_REACH + 1.5:
+			seat_vip(vip)
 
 
 ## Point de montée le plus proche de `from`, au sol, à côté d'une portière.
@@ -439,7 +508,11 @@ func _ground_start(toward: Vector3) -> Vector3:
 func request_board(unit: Commando, run: bool) -> bool:
 	if unit == null or unit.is_dead or unit.riding != null or is_driving or slung_by:
 		return false
-	if _free_seat() < 0 or _boarders.size() >= seats.count(null):
+	var free := 0
+	for index in seats.size():
+		if seats[index] == null and vip_seats[index] == null:
+			free += 1
+	if _free_seat() < 0 or _boarders.size() >= free:
 		return false
 	_boarders[unit] = true
 	unit.move_to(boarding_point(unit.global_position), run)
@@ -489,12 +562,14 @@ func dismount(unit: Commando) -> bool:
 	return true
 
 
-## Tout le monde descend. Renvoie faux en route.
+## Tout le monde descend (VIP compris). Renvoie faux en route.
 func dismount_all() -> bool:
 	if is_driving:
 		return false
 	for unit in crew():
 		dismount(unit)
+	for vip in vips():
+		dismount_vip(vip)
 	return true
 
 
@@ -774,6 +849,8 @@ func _begin_driving() -> void:
 	for unit in crew():
 		unit.stop()
 		unit.process_mode = Node.PROCESS_MODE_DISABLED
+	for vip in vips():
+		vip.process_mode = Node.PROCESS_MODE_DISABLED
 
 
 # --- Transport aérien -----------------------------------------------------------
@@ -902,6 +979,11 @@ static func _deck_height(z: float) -> float:
 ## plateau).
 func _carry_crew() -> void:
 	_carry_bed()
+	for index in vip_seats.size():
+		var vip := vip_seats[index]
+		if vip:
+			vip.global_position = to_global(SabreModel.SEATS[index] + Vector3.UP * 0.02)
+			vip.global_rotation = Vector3(0.0, global_rotation.y, 0.0)
 	for index in seats.size():
 		var unit := seats[index]
 		if unit:
@@ -925,6 +1007,10 @@ func stop_driving() -> void:
 		if unit:
 			unit.process_mode = Node.PROCESS_MODE_INHERIT
 			_place(unit, index)
+		var vip := vip_seats[index]
+		if vip:
+			vip.process_mode = Node.PROCESS_MODE_INHERIT
+			_place_vip(vip, index)
 	EventBus.navigation_obstacle_moved.emit()
 	EventBus.sight_blockers_changed.emit()
 	if arrival_objective != &"" and stowed_in == null and not _arrived_once and global_position.distance_to(arrival_point) <= ARRIVAL_RADIUS:
@@ -1021,6 +1107,17 @@ func _is_blocked() -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	# Un VIP tué libère sa place ; arrivé dans la zone d'extraction, il
+	# descend.
+	for index in vip_seats.size():
+		var vip := vip_seats[index]
+		if vip and (not is_instance_valid(vip) or vip.is_dead):
+			if is_instance_valid(vip):
+				vip.riding = null
+				vip.process_mode = Node.PROCESS_MODE_INHERIT
+			vip_seats[index] = null
+		elif vip and vip.is_evacuated and not is_driving:
+			dismount_vip(vip)
 	# Un passager tombé libère sa place.
 	for index in seats.size():
 		var unit := seats[index]
@@ -1039,6 +1136,7 @@ func _physics_process(delta: float) -> void:
 		_update_idle(delta)
 		_update_suppliers()
 		_update_loaders()
+		_update_vip_boarding()
 	_gun.update(delta, (gun_firing or _gun.designated != null) and gunner() != null and not model.is_folded and not is_wrecked)
 	_update_missile(delta)
 	for index in _side_guns.size():
@@ -1534,6 +1632,7 @@ func save_state() -> Dictionary:
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
 	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(), "missiles": missiles, "supplies": supplies,
+		"vips": vip_seats.map(func(vip: Vip) -> String: return String(vip.get_path()) if is_instance_valid(vip) else ""),
 		"bed": bed.map(func(body: Enemy) -> String: return String(body.get_path()) if is_instance_valid(body) else ""),
 		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
@@ -1567,6 +1666,11 @@ func load_state(data: Dictionary) -> void:
 			bed[slot].on_vehicle = null
 		bed[slot] = null
 	_restore_bed.call_deferred(data.get("bed", []))
+	for index in vip_seats.size():
+		if is_instance_valid(vip_seats[index]):
+			vip_seats[index].riding = null
+		vip_seats[index] = null
+	_restore_vips.call_deferred(data.get("vips", []))
 	_missile_gunner = null
 	var sides: Array = data.get("side_firing", [false, false])
 	for index in mini(sides.size(), side_firing.size()):
@@ -1577,6 +1681,16 @@ func load_state(data: Dictionary) -> void:
 	global_position = data.get("position", global_position)
 	global_rotation = Vector3(0.0, data.get("yaw", global_rotation.y), 0.0)
 	_restore_crew.call_deferred(data.get("seats", []), data.get("gun", false))
+
+
+## Rassoit les VIP de la sauvegarde.
+func _restore_vips(paths: Array) -> void:
+	for index in mini(paths.size(), vip_seats.size()):
+		var vip := get_node_or_null(NodePath(String(paths[index]))) as Vip if String(paths[index]) != "" else null
+		if vip and not vip.is_dead:
+			vip_seats[index] = vip
+			vip.riding = self
+			_place_vip(vip, index)
 
 
 ## Remet sur le plateau les corps de la sauvegarde (une fois leur état rendu).

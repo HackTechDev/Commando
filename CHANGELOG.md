@@ -975,3 +975,10 @@
 - Deux places. Les corps suivent le véhicule, cachés sous la bâche : les gardes ne les découvrent pas. Le corps d'un officier (8.14) remplit l'objectif des documents si le Sabre monte dans la soute du convertible.
 - « Décharger le plateau » les dépose au sol derrière le hayon ; on peut aussi reprendre un corps sur l'épaule.
 - La sauvegarde rapide garde ce qui est sur le plateau.
+
+## Escorte du VIP en Sabre (9.11)
+
+- Un VIP qui suit un opérateur monté dans le Sabre le rejoint et s'assoit à une place passagère libre (arrière droite, arrière gauche, puis chef de bord). Il ne prend jamais le volant ni la tourelle.
+- À bord, il suit le véhicule, profite de la nuit (phares éteints) et de l'abri partiel de la caisse comme un opérateur.
+- Il descend avec « Tout le monde descend », ou de lui-même quand le véhicule entre dans la zone d'extraction, ce qui remplit l'objectif d'escorte.
+- La sauvegarde rapide garde les VIP à bord.

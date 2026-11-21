@@ -124,7 +124,6 @@ Armement :
 
 Dégâts et logistique :
 
-- **9.11 Escorte de VIP** : le VIP monte à une place passagère ; l'objectif est de le conduire jusqu'à l'extraction.
 
 Cartes et missions :
 

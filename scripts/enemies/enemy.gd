@@ -807,10 +807,11 @@ func _update_detection(delta: float) -> void:
 	_target = null
 	for unit in Unit.targets(get_tree()):
 		var zone := _vision.check(unit, state == State.ALERT)
-		# Passager du Sabre, la nuit : phares éteints ou allumés.
-		var rider := unit as Commando
-		if rider and rider.riding:
-			zone = rider.riding.sight_zone(zone, _vision)
+		# Passager du Sabre (opérateur ou VIP), la nuit : phares éteints ou
+		# allumés.
+		var ride := unit.get(&"riding") as Sabre
+		if ride:
+			zone = ride.sight_zone(zone, _vision)
 		if zone == VisionComponent.Zone.NONE:
 			continue
 		var distance := global_position.distance_to(unit.global_position)
@@ -1089,14 +1090,14 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 		Sfx.play_at(&"ricochet", stop, -2.0)
 		ShotImpact.spark(scene, stop, muzzle)
 		shots_blocked += 1
-	elif hit and not (_target is Commando and (_target as Commando).riding) \
+	elif hit and _target.get(&"riding") == null \
 			and Sabre.blocks_shot(get_tree(), muzzle, aim, stats.fire_damage) != null:
 		# Abrité derrière un Sabre : la caisse prend la balle.
 		Sfx.play_at(&"ricochet", aim, -2.0)
 		ShotImpact.spark(scene, aim, muzzle)
 		shots_blocked += 1
-	elif hit and _target is Commando and (_target as Commando).riding \
-			and (_target as Commando).riding.shields_rider(stats.fire_damage, muzzle):
+	elif hit and _target.get(&"riding") != null \
+			and (_target.get(&"riding") as Sabre).shields_rider(stats.fire_damage, muzzle):
 		# Passager du Sabre : la carrosserie a pris la balle.
 		Sfx.play_at(&"ricochet", aim, -2.0)
 		ShotImpact.spark(scene, aim, muzzle)

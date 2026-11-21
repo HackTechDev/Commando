@@ -870,7 +870,7 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 	var moving := "en route" if sabre.is_driving else ""
 	var options: Array[Dictionary] = [
 		{"id": &"dismount", "label": "Descendre", "detail": "à côté de sa place" if moving == "" else moving, "enabled": moving == ""},
-		{"id": &"dismount_all", "label": "Tout le monde descend", "detail": "%d à bord" % sabre.crew().size() if moving == "" else moving,
+		{"id": &"dismount_all", "label": "Tout le monde descend", "detail": "%d à bord" % (sabre.crew().size() + sabre.vips().size()) if moving == "" else moving,
 			"enabled": moving == ""},
 	]
 	var index := sabre.seat_of(rider)
