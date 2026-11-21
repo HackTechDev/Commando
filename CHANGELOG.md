@@ -1068,3 +1068,9 @@
   - un officier au 4e étage porte des documents ;
   - l'extraction attend 90 s en vol stationnaire au-dessus de la terrasse : on y est treuillé.
 - Vérifié par scénarios : chemins de navigation vers chaque étage et le toit ; montée à pied, la coupe suivant l'étage ; rendus de la coupe aux 2e et 4e étages ; mission de bout en bout (documents, appel, treuil des trois opérateurs, « RÉUSSITE »). La suite GUT n'a pas été lancée.
+
+## Kit de génération de cartes et « Oued sec »
+
+- `tools/mapkit.py` : outils communs aux générateurs (`MapBuilder`). Il couvre le décor (piste, rochers, buissons, caisses, murs, bâtiments, lampadaires, aire de poser), les unités, les ennemis et leurs rondes, les pick-ups, l'appareil ennemi, les renforts, les véhicules et objets de mission. Il gère le jour et la nuit.
+- Nouvelle carte « Oued sec » (`tools/gen_wadi.py`), de jour, en Sabre. Il faut détruire un relais radar retranché (missile antichar, tir désigné ou charge). Sur la piste : un barrage gardé, trois engins (mines et IED), un pick-up armé. À l'arrivée, le Sabre doit monter dans la soute de l'extraction.
+- Vérifié par scénario : chemins du départ au relais et à l'extraction ; un missile tiré à 30 m détruit le relais et remplit l'objectif. La suite GUT n'a pas été lancée.

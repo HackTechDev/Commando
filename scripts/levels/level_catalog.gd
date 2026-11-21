@@ -131,6 +131,18 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Oued sec",
+		"scene": "res://scenes/levels/wadi/wadi.tscn",
+		"description": "De jour, en Sabre. Un relais radar retranché sur l'éperon nord-ouest guide l'ennemi : détruisez-le. Le missile antichar du Sabre l'atteint de loin (un seul : véhicule à l'arrêt, 2,5 s de visée) ; la 12,7 en tir désigné ou une charge d'Alpha font aussi l'affaire. La piste traverse un barrage gardé (forcez-le ou levez-le à pied) et cache trois engins : un éclaireur devant le véhicule les repère. Un pick-up armé tourne à l'est. Au bout de la piste, appelez l'extraction par radio et faites monter le Sabre dans sa soute (clic droit sur l'appareil avec un passager sélectionné).",
+		"camo": "desert",
+		"objectives": [
+			{"id": "sabotage", "text": "Détruire le relais radar (missile, 12,7 ou charge)"},
+			{"id": "sabre_extracted", "text": "Faire monter le Sabre dans la soute du convertible d'extraction"},
+			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
