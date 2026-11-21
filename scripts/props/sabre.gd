@@ -191,6 +191,9 @@ const ARRIVAL_RADIUS := 5.0
 ## (monde) avec quelqu'un au volant (vide : aucun).
 @export var arrival_objective: StringName = &""
 @export var arrival_point: Vector3 = Vector3.ZERO
+## Objectif rempli quand le véhicule entre dans la soute d'un convertible
+## (vide : aucun) : convoi jusqu'à l'extraction.
+@export var stow_objective: StringName = &""
 ## Convertible dans la soute duquel le véhicule commence la mission (vide :
 ## au sol, à sa place).
 @export var start_stowed_in: NodePath
@@ -1056,7 +1059,9 @@ func _climb_in(aircraft: Tiltrotor) -> void:
 	_ramp_tween.tween_callback(func() -> void:
 		_ramp_move(aircraft, foot, STOW_Z, func() -> void:
 			stowed_in = aircraft
-			stop_driving()))
+			stop_driving()
+			if stow_objective != &"":
+				EventBus.objective_completed.emit(stow_objective)))
 
 
 ## Sorti de la soute de `aircraft` (au pied de la rampe).

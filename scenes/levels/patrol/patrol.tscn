@@ -289,6 +289,7 @@ display_name = "Charlie"
 
 [node name="CameraRig" parent="." instance=ExtResource("2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 20)
+bounds = AABB(-48, 0, -48, 96, 0, 96)
 
 [node name="PatrolPaths" type="Node3D" parent="."]
 

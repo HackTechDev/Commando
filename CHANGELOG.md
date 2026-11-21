@@ -1026,3 +1026,15 @@
 - Destructible : 300 de structure, blindage léger (les balles ne font que 35 % de leurs dégâts). Grenades, charges, mines et missile comptent pleinement. Détruit, c'est une épave noircie et fumante.
 - La 12,7 et les 7,62 du Sabre au feu à volonté le prennent pour cible d'elles-mêmes quand aucun ennemi à pied n'est à portée ; le tir désigné marche aussi.
 - La sauvegarde rapide garde sa position, sa structure et son épave.
+
+## Convoi de nuit (9.12)
+
+- Nouvelle carte « Convoi de nuit » (générateur `tools/gen_convoy.py`). De nuit, l'équipe ramène son Sabre par une piste sinueuse jusqu'au terrain d'extraction ; le convertible ne repart qu'avec le véhicule dans sa soute.
+- Sur la route :
+  - un poste fermé par une barrière, avec deux sentinelles sous un lampadaire ;
+  - une mine et un IED ;
+  - un guetteur et une ronde dans les rochers ;
+  - un pick-up armé à l'est ;
+  - deux gardes au terrain d'extraction.
+- Nouvel objectif de véhicule : `Sabre.stow_objective`, rempli quand le Sabre entre dans la soute d'un convertible. Ici « Faire monter le Sabre dans la soute du convertible d'extraction », exigé avant le départ de l'extraction.
+- La caméra de « Patrouille Sabre » et du « Convoi de nuit » couvre toute la carte (100 m), pour la caméra qui suit le véhicule.

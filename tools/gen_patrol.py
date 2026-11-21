@@ -174,7 +174,7 @@ for i, (x, z) in enumerate([(-24, -14), (14, 8)]):
 nodes.append('[node name="Units" type="Node3D" parent="."]')
 for i, (name, x, z) in enumerate([("Alpha", -30, 26.6), ("Bravo", -30.8, 25.2), ("Charlie", -29.2, 25.2)]):
     nodes.append(f'[node name="{name}" parent="Units" instance=ExtResource("3")]\ntransform = {tf(x, z, 0, 1.5)}\nunit_index = {i + 1}\ndisplay_name = "{name}"')
-nodes.append(f'[node name="CameraRig" parent="." instance=ExtResource("2")]\ntransform = {tf(-30, 20)}')
+nodes.append(f'[node name="CameraRig" parent="." instance=ExtResource("2")]\ntransform = {tf(-30, 20)}\nbounds = AABB(-48, 0, -48, 96, 0, 96)')
 nodes.append('[node name="PatrolPaths" type="Node3D" parent="."]')
 nodes.append('[node name="PatrolRidge" type="Path3D" parent="PatrolPaths"]\ncurve = SubResource("patrol_ridge")')
 nodes.append('[node name="TechLoop" type="Path3D" parent="PatrolPaths"]\ncurve = SubResource("tech_loop")')

@@ -127,7 +127,6 @@ Dégâts et logistique :
 
 Cartes et missions :
 
-- **9.12 Convoi de nuit** : rejoindre en Sabre le convertible d'extraction, puis embarquer (les deux véhicules dans une même mission).
 - **9.16 Raid éclair** : objectif chronométré (détruire un dépôt et repartir avant l'arrivée des renforts).
 
 Commandes et confort :
