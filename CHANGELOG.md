@@ -901,3 +901,10 @@
 - Décompte au-dessus des opérateurs, toutes les 10 s puis chaque seconde à la fin.
 - Elle repart dès que toute l'équipe (et les VIP) est à bord et les objectifs remplis : réussite. À la fin du temps, elle repart avec ceux qui sont à bord : échec s'il manque quelqu'un ou si les objectifs sont inachevés. Abattue pendant l'attente, l'extraction échoue.
 - « Patrouille Sabre » : extraction en 60 s à l'ouest du poste de contrôle (objectif `extracted`).
+
+## Appareil ennemi (8.18)
+
+- `EnemyAircraft` : convertible ennemi (livrée grise) en ronde, en boucle sur un chemin (`patrol_path`) à 25 m, à 7 m/s.
+- Sous lui, un cercle au sol montre ce qu'il voit : de jour, 10 m de rayon sous et devant l'appareil ; de nuit, la tache de son projecteur (7 m), qui balaie de part et d'autre.
+- Un opérateur à découvert dans le cercle (ni dans une cachette, ni sous un toit, ni masqué par un mur) est repéré en 0,5 s : le cercle rougit, puis l'alerte part autour de lui (45 m) et les gardes accourent. Ensuite, 10 s avant une nouvelle alerte.
+- Hors d'atteinte : on l'évite. « Nuit sans lune » en a un, qui tourne au-dessus du dépôt.

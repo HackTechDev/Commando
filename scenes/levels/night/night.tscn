@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
 [ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="tiltrotor"]
 [ext_resource type="Script" path="res://scripts/props/sabotage_target.gd" id="sabotage"]
+[ext_resource type="Script" path="res://scripts/enemies/enemy_aircraft.gd" id="enemy_air"]
 
 [sub_resource type="Curve3D" id="patrol_gate"]
 _data = {
@@ -25,6 +26,13 @@ _data = {
 "tilts": PackedFloat32Array(0, 0, 0, 0)
 }
 point_count = 4
+
+[sub_resource type="Curve3D" id="patrol_air"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -22, 0, -28, 0, 0, 0, 0, 0, 0, 22, 0, -28, 0, 0, 0, 0, 0, 0, 22, 0, 12, 0, 0, 0, 0, 0, 0, -22, 0, 12, 0, 0, 0, 0, 0, 0, -22, 0, -28),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -369,6 +377,9 @@ curve = SubResource("patrol_gate")
 [node name="PatrolYard" type="Path3D" parent="PatrolPaths"]
 curve = SubResource("patrol_yard")
 
+[node name="PatrolAir" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_air")
+
 [node name="Enemies" type="Node3D" parent="."]
 
 [node name="GatePatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
@@ -387,5 +398,9 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -9.2, 0, -15)
 
 [node name="BarracksGuard" parent="Enemies" instance=ExtResource("7")]
 transform = Transform3D(-0.766, 0, 0.6428, 0, 1, 0, -0.6428, 0, -0.766, 11.2, 0, -14)
+
+[node name="Gunship" type="Node3D" parent="Enemies"]
+script = ExtResource("enemy_air")
+patrol_path = NodePath("../../PatrolPaths/PatrolAir")
 
 [node name="HUD" parent="." instance=ExtResource("6")]

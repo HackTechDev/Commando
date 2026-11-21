@@ -128,7 +128,6 @@ Logistique :
 
 Cartes et missions :
 
-- **8.18 Appareil ennemi** : un convertible ennemi patrouille, avec son cône de vision vu du ciel et un projecteur la nuit.
 
 ## 9. Sabre
 
