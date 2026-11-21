@@ -749,7 +749,7 @@
 - Menu de bord (clic milieu sur un opérateur dans la soute) : « Ouverture » / « Fermeture » de la porte (la rampe), « Monter » (vol stationnaire à 10 m avec ceux à bord), en vol « Descendre en rappel » et « Atterrir » ; « Piloter » (décollage qui termine la mission) seulement là où il a un sens (`ends_mission`).
 - En vol, les opérateurs à bord (`Commando.airborne_in`) ne reçoivent que des ordres de tir. Porte fermée, ils ne tirent pas ; porte ouverte, ils tirent par l'ouverture (la coque n'arrête plus leurs balles, ni leurs tirs manqués).
 - Rappel : l'opérateur rejoint le bout de la rampe abaissée et descend une corde jusqu'au sol (2,5 m/s). On n'atterrit pas pendant un rappel ni avec quelqu'un sous l'appareil. La navigation est recalculée à la montée et à l'atterrissage (le sol sous l'appareil se libère en vol). État de vol gardé par la sauvegarde rapide.
-- Carte « Héliportage » (`build/gen_heliport.py`) : le convertible seul sur sa plateforme, l'équipe à côté, trois cibles d'entraînement. Objectifs : monter en vol stationnaire, descendre en rappel, abattre les cibles depuis l'appareil.
+- Carte « Héliportage » (`tools/gen_heliport.py`) : le convertible seul sur sa plateforme, l'équipe à côté, trois cibles d'entraînement. Objectifs : monter en vol stationnaire, descendre en rappel, abattre les cibles depuis l'appareil.
 - Libellés du menu de bord : « Ouvrir » / « Fermer » deviennent « Ouverture » / « Fermeture ».
 
 ## Carte de nuit et vision nocturne
