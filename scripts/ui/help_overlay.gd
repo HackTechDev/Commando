@@ -21,7 +21,7 @@ const SECTIONS: Array = [
 		[["Clic droit sur le Sabre"], "Monter à bord (cinq places)"],
 		[["Clic milieu sur le Sabre, opérateur à pied"], "Menu du véhicule : s'abriter, ralenti, réparer"],
 		[["Clic droit au sol, passager du Sabre"], "Rouler jusque-là (il faut quelqu'un au volant)"],
-		[["Clic milieu sur un passager du Sabre"], "Descendre, volant, tourelle, 12,7, phares, moteur"],
+		[["Clic milieu sur un passager du Sabre"], "Descendre, volant, tourelle, 12,7, 7,62, phares, moteur"],
 		[["Clic droit sur le convertible, passager du Sabre"], "Garer le Sabre dans la soute (rampe abaissée)"],
 		[["Clic droit sur un toit"], "Y monter par l'échelle, enjamber les murets"],
 		[[&"posture_crouch", &"posture_prone"], "Accroupi / rampé"],

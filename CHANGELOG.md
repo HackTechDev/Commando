@@ -942,3 +942,10 @@
 - « Moteur au ralenti » : au volant, ou depuis le menu du véhicule avec un opérateur à pied à moins de 3,5 m. Le Sabre arrêté fait du bruit (24 m, toutes les 1,5 s), même vide : les gardes deviennent méfiants et viennent voir (`distraction`), sans donner l'alerte.
 - Il s'arrête en roulant, si le moteur lâche ou si le véhicule est détruit ; « Couper le ralenti » pour le faire taire.
 - Un garde à poste fixe ne quitte pas sa place pour un bruit, mais se tourne désormais vers lui et le surveille (avant, il balayait au hasard) : le leurre détourne aussi son regard.
+
+## 7,62 latérales servies (9.5)
+
+- Le chef de bord (avant droit) et l'arrière gauche servent chacun une mitrailleuse de 7,62 : « 7,62 : feu à volonté » dans le menu de leur place.
+- Champ de tir limité : avant et droite pour le chef de bord, arrière et gauche pour l'arrière gauche. Les armes pivotent désormais sur leur bras (`SabreModel.side_gun_pivots`).
+- Même composant que la 12,7 (`MountedGun`), mais 32 m de portée au lieu de 45, 35 de dégâts au lieu de 60, et un bruit de 40 m au lieu de 55. Elles tirent aussi en roulant, pas dans une soute ni sur une épave.
+- La sauvegarde rapide garde leur état.

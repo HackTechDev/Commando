@@ -121,7 +121,6 @@ Tactique et discrétion :
 
 Armement :
 
-- **9.5 7,62 latérales servies** : le chef de bord et l'arrière gauche servent chacun une mitrailleuse, avec un champ de tir limité (avant droit, arrière gauche). Même composant `MountedGun`, portée plus courte et bruit moindre.
 - **9.6 Missile antichar** : tir unique sur une cible désignée (bunker, véhicule ennemi, mur), avec un temps de visée et une explosion. Une seule munition par mission.
 - **9.7 Tir désigné à la 12,7** : en plus du feu à volonté, clic droit sur un ennemi ou une caisse pour y concentrer le feu.
 

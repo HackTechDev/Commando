@@ -848,6 +848,11 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 		options.append({"id": &"coast", "label": "Relancer le moteur" if sabre.coasting else "Couper le moteur",
 			"detail": ("le moteur s'entend de nouveau" if sabre.coasting else "roue libre silencieuse, %d m/s, %d m" % [int(Sabre.COAST_SPEED), int(Sabre.COAST_RANGE)]) if moving == "" else moving,
 			"enabled": moving == "" and sabre.stowed_in == null})
+	var side := sabre.side_gun_of(rider)
+	if side >= 0:
+		var firing := sabre.side_firing[side]
+		options.append({"id": &"side_gun", "label": "7,62 : cesser le feu" if firing else "7,62 : feu à volonté",
+			"detail": "la mitrailleuse se tait" if firing else ("à l'avant et à droite" if side == 0 else "à l'arrière et à gauche") + ", %d m" % int(Sabre.SIDE_RANGE)})
 	if index == Sabre.GUNNER_SEAT:
 		options.append({"id": &"gun", "label": "12,7 : cesser le feu" if sabre.gun_firing else "12,7 : feu à volonté",
 			"detail": "la mitrailleuse se tait" if sabre.gun_firing else "tir automatique tout autour (bruyant)"})
@@ -1029,6 +1034,9 @@ func _on_radial_chosen(id: StringName) -> void:
 					ok = sabre.set_coasting(not sabre.coasting)
 				&"idle":
 					ok = sabre.set_idling(not sabre.idling)
+				&"side_gun":
+					var side := sabre.side_gun_of(rider)
+					ok = side >= 0 and sabre.set_side_firing(rider, not sabre.side_firing[side])
 		Sfx.play_ui(&"order" if ok else &"denied")
 		return
 	if _menu_radio:

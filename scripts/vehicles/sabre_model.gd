@@ -38,11 +38,17 @@ const CAGE_DROP := 0.6
 const ANTENNA_FOLD := 1.35
 ## Bouche de la 12,7 dans le repère de son pivot.
 const GUN_MUZZLE := Vector3(0.0, 0.08, -1.55)
+## Mitrailleuses de 7,62 : affût (pied du bras), direction au repos, bouche
+## dans le repère du pivot.
+const SIDE_GUNS: Array[Array] = [[Vector3(1.0, 1.45, -0.55), Vector3(0.25, 0.0, -1.0)], [Vector3(-1.0, 1.45, 1.2), Vector3(-0.35, 0.0, 1.0)]]
+const SIDE_MUZZLE := Vector3(0.0, 0.0, -1.05)
 
 @export var livery: Livery = Livery.SAND
 
 ## Pivot de la 12,7 (bouche vers -Z).
 var gun_pivot: Node3D
+## Pivots des 7,62 (chef de bord, arrière gauche ; bouche vers -Z).
+var side_gun_pivots: Array[Node3D] = []
 ## Roues (nœuds qui tournent) et pivots de braquage des roues avant.
 var wheels: Array[Node3D] = []
 var steer_pivots: Array[Node3D] = []
@@ -100,8 +106,9 @@ func _build() -> void:
 	_build_hull()
 	_build_crew_area()
 	_build_rear()
-	_build_side_guns()
+	_build_side_mounts()
 	_commit("Body")
+	_build_side_guns()
 	cage = Node3D.new()
 	cage.name = "Cage"
 	add_child(cage)
@@ -226,16 +233,30 @@ func _build_rear() -> void:
 
 ## Mitrailleuses de 7,62 mm sur bras pivotants : chef de bord (avant droit,
 ## vers l'avant) et arrière gauche (vers l'arrière).
-func _build_side_guns() -> void:
-	for gun: Array in [[Vector3(1.0, 1.45, -0.55), Vector3(0.25, 0.0, -1.0)], [Vector3(-1.0, 1.45, 1.2), Vector3(-0.35, 0.0, 1.0)]]:
+## Bras fixes des 7,62 (la caisse).
+func _build_side_mounts() -> void:
+	for gun: Array in SIDE_GUNS:
 		var mount: Vector3 = gun[0]
-		var aim: Vector3 = (gun[1] as Vector3).normalized()
 		_cylinder(&"metal", mount, mount + Vector3.UP * 0.3, 0.03, 6)
-		var breech := mount + Vector3.UP * 0.34
-		_box(&"dark", breech, Vector3(0.1, 0.12, 0.1))
-		_cylinder(&"dark", breech - aim * 0.25, breech + aim * 0.35, 0.05, 6)
-		_cylinder(&"dark", breech + aim * 0.35, breech + aim * 1.05, 0.022, 6)
-		_box(&"jerrican", breech + Vector3(0, -0.12, 0) + aim.cross(Vector3.UP) * 0.1, Vector3(0.1, 0.12, 0.16))
+
+
+## Les 7,62 elles-mêmes, chacune sur son pivot en haut du bras : boîtier,
+## canon, caisse de munitions.
+func _build_side_guns() -> void:
+	for index in SIDE_GUNS.size():
+		var gun: Array = SIDE_GUNS[index]
+		var pivot := Node3D.new()
+		pivot.name = "SideGun%d" % index
+		pivot.position = (gun[0] as Vector3) + Vector3.UP * 0.34
+		add_child(pivot)
+		var aim: Vector3 = (gun[1] as Vector3).normalized()
+		pivot.basis = Basis.looking_at(aim, Vector3.UP)
+		_box(&"dark", Vector3.ZERO, Vector3(0.1, 0.12, 0.1))
+		_cylinder(&"dark", Vector3(0, 0, 0.25), Vector3(0, 0, -0.35), 0.05, 6)
+		_cylinder(&"dark", Vector3(0, 0, -0.35), Vector3(0, 0, -1.05), 0.022, 6)
+		_box(&"jerrican", Vector3(0.1, -0.12, 0), Vector3(0.1, 0.12, 0.16))
+		_commit("Gun", pivot)
+		side_gun_pivots.append(pivot)
 
 
 ## Mitrailleuse de 12,7 mm sur son pivot, au centre de l'anneau : affût,

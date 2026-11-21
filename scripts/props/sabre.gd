@@ -14,6 +14,11 @@ extends StaticBody3D
 ## `BLOCK_GIVE_UP` s). Le moteur s'entend (`ENGINE_NOISE`). Pendant le
 ## trajet, les passagers sont emportés (physique suspendue).
 ##
+## 7,62 latérales : le chef de bord (avant droit) et l'arrière gauche
+## servent chacun une mitrailleuse (`set_side_firing`), au champ de tir
+## limité (avant et droite, arrière et gauche), moins puissante, moins
+## bruyante et de moindre portée que la 12,7.
+##
 ## Tourelle : l'opérateur à la place du tireur ouvre le feu à volonté
 ## (`set_gun_firing`) avec la mitrailleuse de 12,7 (`MountedGun`, tout
 ## autour du véhicule).
@@ -110,6 +115,16 @@ const GUN_ROUND_INTERVAL := 0.12
 const GUN_BURST_PAUSE := 1.0
 const GUN_SPREAD := 0.03
 const GUN_NOISE := 55.0
+## Mitrailleuses de 7,62 : place qui sert chacune (`SabreModel.SIDE_GUNS`),
+## réglages.
+const SIDE_GUN_SEATS: Array[int] = [2, 3]
+const SIDE_RANGE := 32.0
+const SIDE_DAMAGE := 35.0
+const SIDE_BURST := 4
+const SIDE_ROUND_INTERVAL := 0.1
+const SIDE_BURST_PAUSE := 1.1
+const SIDE_SPREAD := 0.04
+const SIDE_NOISE := 40.0
 ## Manœuvres sur la rampe du convertible : vitesse (m/s), écart entre les
 ## essieux (m), place dans la soute (centre du véhicule, z local de l'appareil,
 ## nez contre la cloison), point de départ au pied de la rampe (recul depuis
@@ -138,6 +153,9 @@ var is_driving: bool = false
 ## La 12,7 tire à volonté (si quelqu'un est à la tourelle).
 var gun_firing: bool = false
 var _gun: MountedGun
+## 7,62 : armes et feu à volonté (dans l'ordre de `SIDE_GUN_SEATS`).
+var _side_guns: Array[MountedGun] = []
+var side_firing: Array[bool] = [false, false]
 var _path := PackedVector3Array()
 var _path_index: int = 0
 var _blocked_left: float = 0.0
@@ -209,6 +227,18 @@ func _ready() -> void:
 	_gun.spread = GUN_SPREAD
 	_gun.noise = GUN_NOISE
 	_gun.excluded = body_rids
+	for index in SIDE_GUN_SEATS.size():
+		var side := MountedGun.new(self, model.side_gun_pivots[index], SabreModel.SIDE_MUZZLE)
+		side.reach = SIDE_RANGE
+		side.damage = SIDE_DAMAGE
+		side.burst = SIDE_BURST
+		side.round_interval = SIDE_ROUND_INTERVAL
+		side.burst_pause = SIDE_BURST_PAUSE
+		side.spread = SIDE_SPREAD
+		side.noise = SIDE_NOISE
+		side.excluded = body_rids
+		side.covers = _side_covers.bind(index)
+		_side_guns.append(side)
 	_night = LevelRoot.is_night(self)
 	_build_headlights()
 	if not start_stowed_in.is_empty():
@@ -451,6 +481,35 @@ func set_gun_firing(firing: bool) -> bool:
 	if firing:
 		gunner().flash_message("12,7 : feu à volonté")
 	return true
+
+
+## Index de la 7,62 servie depuis la place de `unit` (-1 : aucune).
+func side_gun_of(unit: Commando) -> int:
+	return SIDE_GUN_SEATS.find(seat_of(unit))
+
+
+## Ouvre ou cesse le feu avec la 7,62 de la place de `unit`.
+func set_side_firing(unit: Commando, firing: bool) -> bool:
+	var index := side_gun_of(unit)
+	if index < 0 or (firing and (stowed_in != null or is_wrecked)):
+		return false
+	side_firing[index] = firing
+	if firing:
+		unit.flash_message("7,62 : feu à volonté")
+	return true
+
+
+## Champ de tir de la 7,62 `index` : avant et droite (chef de bord), arrière
+## et gauche (arrière gauche).
+func _side_covers(point: Vector3, index: int) -> bool:
+	var local := to_local(point)
+	local.y = 0.0
+	if local.length() < 0.5:
+		return false
+	var dir := local.normalized()
+	if index == 0:
+		return dir.z < 0.35 and dir.x > -0.35
+	return dir.z > -0.35 and dir.x < 0.35
 
 
 func _update_boarders() -> void:
@@ -857,6 +916,11 @@ func _physics_process(delta: float) -> void:
 		_update_repair(delta)
 		_update_idle(delta)
 	_gun.update(delta, gun_firing and gunner() != null and not model.is_folded)
+	for index in _side_guns.size():
+		var crew_member := seats[SIDE_GUN_SEATS[index]]
+		if side_firing[index] and crew_member == null:
+			side_firing[index] = false
+		_side_guns[index].update(delta, side_firing[index] and stowed_in == null and not is_wrecked)
 
 
 ## Moteur au ralenti : bruit qui attire les gardes, tant qu'il tourne.
@@ -1178,7 +1242,7 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling,
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(),
 		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
@@ -1202,6 +1266,9 @@ func load_state(data: Dictionary) -> void:
 		_set_wreck_look()
 	_show_damage()
 	idling = data.get("idling", false)
+	var sides: Array = data.get("side_firing", [false, false])
+	for index in mini(sides.size(), side_firing.size()):
+		side_firing[index] = bool(sides[index])
 	coasting = data.get("coasting", false)
 	set_headlights(data.get("headlights", false), false)
 	_coast_left = data.get("coast_left", COAST_RANGE)
