@@ -21,6 +21,9 @@ enum ThrowStyle { KNIFE, OVERHAND, LOB, FLICK }
 enum ThrowObject { KNIFE, GRENADE, SMOKE, PEBBLE, NONE }
 enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH, DISARM, HATCHET_CHOP }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
+## Corde verticale sous un appareil en vol : glissade vers le sol
+## (`FAST_ROPE`) ou montée pendu au crochet du treuil (`HOIST`).
+enum RopeMove { NONE, FAST_ROPE, HOIST }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
 # une caisse de 1,2 m sans que les membres ne traversent la caisse ni le sol
@@ -477,6 +480,11 @@ const SHIELD_GUARD := 0.8
 const FREE_HAND := Vector3(0.27, 0.08, -0.12)
 
 const HIP_HEIGHT := 0.92
+## Distance (m) entre l'axe du corps et une corde verticale tenue à deux
+## mains, devant la poitrine ; hauteur des mains au-dessus des pieds, la
+## plus haute (pour accrocher l'unité sous le point d'attache de la corde).
+const ROPE_GAP := 0.24
+const ROPE_HAND_HEIGHT := 1.86
 const THIGH_LENGTH := 0.44
 const UPPER_ARM_LENGTH := 0.29
 const FOREARM_LENGTH := 0.29
@@ -583,6 +591,9 @@ var climb_jump: bool = false
 ## unité par paire de barreaux, croissant en montant), piloté par l'unité ;
 ## négatif hors échelle.
 var ladder_phase: float = -1.0
+## Sur une corde verticale (rappel, treuil) : pose et balancement, pilotés
+## par l'appareil. La corde passe à `ROPE_GAP` m devant la poitrine.
+var rope_move: RopeMove = RopeMove.NONE
 ## Vrai si le modèle porte sa carabine ; sans arme, les bras pendent le long du corps.
 var is_armed: bool = true
 ## Mains en l'air (désarmé, il se rend).
@@ -917,6 +928,9 @@ func _process(delta: float) -> void:
 		return
 	if ladder_phase >= 0.0 and not is_dead:
 		_animate_ladder(delta)
+		return
+	if rope_move != RopeMove.NONE and not is_dead:
+		_animate_rope(delta)
 		return
 	if is_dead:
 		_transition_duration = 0.0
@@ -2155,6 +2169,61 @@ func _animate_ladder(delta: float) -> void:
 	effort = 0.6
 	pain = 0.0
 	_animate_fingers(Vector2(0.9, 0.95), delta)
+
+
+## Corde verticale, tenue devant la poitrine (repère du torse : la corde est
+## en z = -`ROPE_GAP`) :
+## - glissade (`FAST_ROPE`) : main droite haute, main gauche à hauteur du
+##   menton, jambes croisées autour de la corde (pied droit devant, qui
+##   freine), regard vers le sol ; le corps vibre un peu en glissant ;
+## - treuil (`HOIST`) : pendu au crochet, les deux mains serrées au-dessus
+##   de la tête, jambes ballantes qui oscillent, regard vers l'appareil ; le
+##   corps se balance lentement sous la corde.
+func _animate_rope(delta: float) -> void:
+	_transition_duration = 0.0
+	var blend := 1.0 - exp(-12.0 * delta)
+	var hoist := rope_move == RopeMove.HOIST
+	var sway := sin(_time * (1.3 if hoist else 2.6))
+	var swing := sin(_time * 1.9 + 0.8)
+	_body.rotation.x = lerp_angle(_body.rotation.x, (0.05 * swing) if hoist else 0.0, blend)
+	_body.rotation.z = lerp_angle(_body.rotation.z, sway * (0.07 if hoist else 0.025), blend)
+	_body.position = _body.position.lerp(Vector3.ZERO, blend)
+	_hips.rotation.y = 0.0
+	_hips.position.y = HIP_HEIGHT
+	var legs: Array[Vector3]
+	var knees: Vector2
+	if hoist:
+		# Jambes pendantes, un peu fléchies, qui se balancent à contretemps.
+		legs = [Vector3(0.18 + 0.12 * swing, 0.0, 0.04), Vector3(0.12 - 0.12 * swing, 0.0, -0.04)]
+		knees = Vector2(-0.3 - 0.15 * swing, -0.25 + 0.15 * swing)
+	else:
+		# Corde prise entre les jambes : pied droit devant, pied gauche derrière
+		# la corde, cuisses resserrées.
+		legs = [Vector3(0.32, 0.0, 0.12), Vector3(0.55, 0.0, -0.12)]
+		knees = Vector2(-0.55, -0.75)
+	_leg_l.rotation = _leg_l.rotation.lerp(legs[0], blend)
+	_leg_r.rotation = _leg_r.rotation.lerp(legs[1], blend)
+	_knee_l.rotation.x = lerpf(_knee_l.rotation.x, knees.x, blend)
+	_knee_r.rotation.x = lerpf(_knee_r.rotation.x, knees.y, blend)
+	# Pointes de pied tendues vers le bas, sans chercher le sol.
+	_ankle_l.rotation.x = lerpf(_ankle_l.rotation.x, ANKLE_MIN * 0.6, blend)
+	_ankle_r.rotation.x = lerpf(_ankle_r.rotation.x, ANKLE_MIN * 0.6, blend)
+	_torso.rotation = Vector3(0.0, 0.0, 0.0)
+	_lean = 0.0
+	_torso_yaw = 0.0
+	_head.rotation = _head.rotation.lerp(Vector3(0.35 if hoist else -0.45, 0.0, 0.0), blend)
+	_sling = move_toward(_sling, 1.0 if is_armed else 0.0, delta / SLING_TIME)
+	_rifle.transform = _sling_transform(_rifle_hold, _sling)
+	_rifle_base = _rifle.transform
+	var high := ROPE_HAND_HEIGHT - HIP_HEIGHT
+	var left := Vector3(-0.03, high - (0.1 if hoist else 0.3), -ROPE_GAP)
+	var right := Vector3(0.03, high, -ROPE_GAP)
+	var pose := _solve_arms(left, right)
+	for i in _arm_joints.size():
+		_arm_joints[i].quaternion = pose[i]
+	effort = 0.7 if hoist else 0.5
+	pain = 0.0
+	_animate_fingers(Vector2(0.95, 0.95), delta)
 
 
 ## Doigts pendant l'escalade : ouverts pour attraper et prendre appui,

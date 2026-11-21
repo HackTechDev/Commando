@@ -1134,3 +1134,11 @@
 - Il faut nettoyer la vallée au feu du Sabre : 12,7 en feu à volonté ou en tir désigné, 7,62 latérales (9.5), missile. Le véhicule encaisse et se répare (9.8), se ravitaille (9.9) et sert d'abri (9.3).
 - L'extraction attend 90 s en vol stationnaire, au treuil.
 - Vérifié par scénario : chemin du départ au ralliement ; au rendu, les murets longent la vallée et abritent les tireurs. La suite GUT n'a pas été lancée.
+
+## Mouvement sur la corde du convertible
+
+- Rappel depuis un appareil en vol stationnaire : l'opérateur va au bout de la rampe, saisit la corde et se laisse pendre dessous. Il glisse ensuite jusqu'au sol, en vibrant un peu. Pose : main droite haute, main gauche à hauteur du menton, jambes croisées autour de la corde (pied droit devant, qui freine), arme à la bretelle, regard vers le sol.
+- Treuillage : l'opérateur (ou le VIP) pend au crochet, les deux mains serrées au-dessus de la tête, les jambes ballantes qui oscillent à contretemps. Il regarde l'appareil et se balance lentement. Arrivé en haut, il est hissé sur la rampe puis rejoint sa place dans la soute.
+- Placement : sur la corde, l'unité fait face à l'appareil, la corde à 24 cm devant la poitrine (`SoldierModel.ROPE_GAP`), les mains sous le point d'attache. Un opérateur accroupi ou couché se relève avant de descendre.
+- `SoldierModel.rope_move` (`FAST_ROPE`, `HOIST`) pilote la pose. Le modèle continue de s'animer pendant le trajet, alors que l'unité a son traitement suspendu, sauf quand le jeu est en pause.
+- Vérifié par scénario et rendus rapprochés : rappel à 10 m (pose de glissade jusqu'au sol, puis pose normale), treuillage (pose pendue pendant la montée, normale à bord). La suite GUT n'a pas été lancée.

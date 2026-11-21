@@ -823,12 +823,21 @@ func rappel(unit: Commando) -> bool:
 	unit.airborne_in = null
 	unit.process_mode = Node.PROCESS_MODE_DISABLED
 	_rappelling += 1
+	if unit.posture != SoldierModel.Posture.STANDING:
+		unit.toggle_posture(SoldierModel.Posture.STANDING)
 	var start := unit.global_position
+	var out := _rope_out()
+	# Sous la corde : les mains au point d'attache, puis glissade jusqu'au sol.
+	var hang := tip + out * SoldierModel.ROPE_GAP + Vector3.DOWN * SoldierModel.ROPE_HAND_HEIGHT
+	var landing := foot + out * SoldierModel.ROPE_GAP
 	var descent := create_tween()
 	descent.tween_property(unit, "global_position", tip + Vector3.UP * 0.1, clampf(start.distance_to(tip) / 3.5, 0.4, 2.0))
-	descent.tween_property(unit, "global_position", foot, (tip.y - foot.y) / RAPPEL_SPEED).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	descent.tween_callback(func() -> void: _grab_rope(unit, SoldierModel.RopeMove.FAST_ROPE, out))
+	descent.tween_property(unit, "global_position", hang, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	descent.tween_property(unit, "global_position", landing, maxf(hang.y - landing.y, 0.1) / RAPPEL_SPEED).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	descent.tween_callback(func() -> void:
 		_rappelling -= 1
+		_grab_rope(unit, SoldierModel.RopeMove.NONE, out)
 		unit.process_mode = Node.PROCESS_MODE_INHERIT
 		unit.velocity = Vector3.ZERO
 		if rappel_objective != &"":
@@ -902,9 +911,16 @@ func _hoist(unit: CharacterBody3D) -> void:
 	var foot := rope_foot()
 	var seat := cabin_point(passengers().size() + _winching)
 	Sfx.play_at(&"clink", foot + Vector3.UP, -4.0)
+	var out := _rope_out()
+	_grab_rope(unit, SoldierModel.RopeMove.HOIST, out)
+	# Pendu au crochet, mains sous le point d'attache, puis hissé sur la rampe.
+	var hooked := Vector3(foot.x, unit.global_position.y, foot.z) + out * SoldierModel.ROPE_GAP
+	var top := tip + out * SoldierModel.ROPE_GAP + Vector3.DOWN * (SoldierModel.ROPE_HAND_HEIGHT - 0.1)
 	var lift := create_tween()
-	lift.tween_property(unit, "global_position", Vector3(foot.x, unit.global_position.y, foot.z), 0.3)
-	lift.tween_property(unit, "global_position", tip + Vector3.DOWN * 0.2, maxf(tip.y - unit.global_position.y, 0.5) / WINCH_SPEED).set_trans(Tween.TRANS_SINE)
+	lift.tween_property(unit, "global_position", hooked, 0.3)
+	lift.tween_property(unit, "global_position", top, maxf(top.y - hooked.y, 0.5) / WINCH_SPEED).set_trans(Tween.TRANS_SINE)
+	lift.tween_callback(func() -> void: _grab_rope(unit, SoldierModel.RopeMove.NONE, out))
+	lift.tween_property(unit, "global_position", tip + Vector3.UP * 0.05, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	lift.tween_property(unit, "global_position", seat, clampf(tip.distance_to(seat) / 3.0, 0.4, 2.5))
 	lift.tween_callback(func() -> void:
 		_winching -= 1
@@ -912,6 +928,29 @@ func _hoist(unit: CharacterBody3D) -> void:
 		unit.velocity = Vector3.ZERO
 		if unit is Commando and is_airborne:
 			(unit as Commando).airborne_in = self)
+
+
+## Direction horizontale du bout de la rampe vu du centre de l'appareil :
+## l'unité sur la corde se tient de ce côté, face à l'appareil.
+func _rope_out() -> Vector3:
+	var out := ramp_tip() - global_position
+	out.y = 0.0
+	return out.normalized() if out.length() > 0.1 else global_basis.z
+
+
+## Met `unit` (opérateur ou VIP) dans la pose de la corde `move` (ou l'en
+## sort avec `NONE`), face à la corde. Son traitement est suspendu pendant
+## le trajet : son modèle continue de s'animer (sauf en pause).
+func _grab_rope(unit: Node3D, move: SoldierModel.RopeMove, out: Vector3) -> void:
+	if not is_instance_valid(unit):
+		return
+	var model := unit.get(&"_model") as SoldierModel
+	if move != SoldierModel.RopeMove.NONE:
+		unit.global_rotation.y = atan2(out.x, out.z)
+	if model == null:
+		return
+	model.rope_move = move
+	model.process_mode = Node.PROCESS_MODE_PAUSABLE if move != SoldierModel.RopeMove.NONE else Node.PROCESS_MODE_INHERIT
 
 
 ## Corde de rappel, du bout de la rampe au sol.
