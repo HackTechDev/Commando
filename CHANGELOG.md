@@ -1121,3 +1121,9 @@
 - La sortie du col est gardée par deux sentinelles sous un lampadaire et une ronde. On y joue la discrétion : phares (9.2), moteur coupé en roue libre (9.1), leurre du moteur au ralenti (9.4), abri derrière le véhicule (9.3).
 - L'extraction attend 60 s en vol stationnaire au-dessus d'une clairière (8.17).
 - Vérifié par scénario : chemin du départ au ralliement ; aucun contournement du col (il faut 107 m pour franchir 20 m de falaise). La suite GUT n'a pas été lancée.
+
+## Enlèvement
+
+- Nouvelle carte « Enlèvement » (`tools/gen_snatch.py`), de jour. Il faut enlever un officier dans sa villa fortifiée : l'assommer ou le prendre en otage, le coucher sur le plateau du Sabre (9.10), puis faire monter le véhicule dans la soute de l'extraction. L'officier sur le plateau, ou ses documents (8.14), remplissent l'objectif.
+- Gardes au portail, dans la villa et en ronde ; un garde au terrain d'extraction ; un pick-up armé à l'est.
+- Vérifié par scénario de bout en bout : officier assommé, porté puis couché sur le plateau ; Sabre chargé dans l'extraction posée ; « documents », « sabre_extracted » puis « RÉUSSITE — équipe extraite ». La suite GUT n'a pas été lancée.

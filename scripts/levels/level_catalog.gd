@@ -221,6 +221,18 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Enlèvement",
+		"scene": "res://scenes/levels/snatch/snatch.tscn",
+		"description": "De jour. Un officier se terre dans sa villa fortifiée, au nord-est : enlevez-le. Assommez-le (ou prenez-le en otage), portez-le jusqu'au Sabre et, menu du véhicule, « Coucher sur le plateau » : il y reste ligoté, caché sous la bâche, et vous avez les mains libres. Les corps des gardes s'y cachent aussi (deux places). Ses documents, ou l'officier lui-même sur le plateau, remplissent l'objectif une fois à bord de l'extraction. Appelez-la par radio : elle se pose au sud-ouest de la villa ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre. Un pick-up armé tourne à l'est.",
+		"camo": "desert",
+		"objectives": [
+			{"id": "documents", "text": "Ramener l'officier ou ses documents à bord de l'extraction"},
+			{"id": "sabre_extracted", "text": "Faire monter le Sabre dans la soute du convertible d'extraction"},
+			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
