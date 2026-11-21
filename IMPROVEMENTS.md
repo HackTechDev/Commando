@@ -128,7 +128,6 @@ Logistique :
 
 Cartes et missions :
 
-- **8.17 Course contre la montre** : l'appareil ne reste que 60 s en vol stationnaire ; toute l'équipe doit être à bord avant qu'il reparte.
 - **8.18 Appareil ennemi** : un convertible ennemi patrouille, avec son cône de vision vu du ciel et un projecteur la nuit.
 
 ## 9. Sabre

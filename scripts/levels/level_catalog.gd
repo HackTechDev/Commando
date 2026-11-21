@@ -97,11 +97,12 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Patrouille Sabre",
 		"scene": "res://scenes/levels/patrol/patrol.tscn",
-		"description": "Un convertible a posé l'équipe au départ de la piste, un Sabre (véhicule léger des forces spéciales) garé dans sa soute. Clic droit sur le véhicule pour monter (cinq places : volant, chef de bord, arrière, tourelle) ; avec un opérateur à bord sélectionné, clic droit au sol pour rouler. Clic milieu sur un opérateur à bord : descendre, prendre le volant, passer à la tourelle et ouvrir le feu avec la 12,7. Le Sabre sort de la soute en marche arrière ; clic droit sur le convertible pour l'y ramener. Le moteur s'entend de loin ; un poste de contrôle garde le point de ralliement.",
+		"description": "Un convertible a posé l'équipe au départ de la piste, un Sabre (véhicule léger des forces spéciales) garé dans sa soute. Clic droit sur le véhicule pour monter (cinq places : volant, chef de bord, arrière, tourelle) ; avec un opérateur à bord sélectionné, clic droit au sol pour rouler. Clic milieu sur un opérateur à bord : descendre, prendre le volant, passer à la tourelle et ouvrir le feu avec la 12,7. Le Sabre sort de la soute en marche arrière ; clic droit sur le convertible pour l'y ramener. Le moteur s'entend de loin ; un poste de contrôle garde le point de ralliement. Pour repartir, appelez l'extraction par radio : elle ne se pose pas et ne reste que 60 s en vol stationnaire à l'ouest du poste ; treuillez toute l'équipe (clic droit sur l'appareil) avant qu'elle reparte.",
 		"camo": "desert",
 		"objectives": [
 			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au point de ralliement (drapeau)"},
 			{"id": "all_enemies_down", "text": "Neutraliser le poste de contrôle et la patrouille"},
+			{"id": "extracted", "text": "Être treuillé à bord de l'extraction en moins de 60 s"},
 			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
 		],
 	},

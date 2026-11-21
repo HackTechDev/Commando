@@ -67,6 +67,11 @@ extends StaticBody3D
 ## Évacuation (`evacuate`) : un opérateur blessé à bord quitte la mission,
 ## sauvé ; il ne compte pas comme perdu.
 ##
+## Course contre la montre (`pickup_window`) : appelée, l'extraction ne se
+## pose pas ; elle reste en vol stationnaire, porte ouverte, le temps donné,
+## pour treuiller l'équipe, et repart dès que tout le monde est à bord, ou à
+## la fin du temps (échec s'il manque quelqu'un).
+##
 ## Élingage (`sling`, `drop_load`) : en vol stationnaire, l'appareil
 ## accroche sous ses crochets une caisse déplaçable ou un Sabre vide, le
 ## transporte, et le dépose ailleurs (bloquer une porte, créer un abri).
@@ -218,6 +223,9 @@ const AIM_POINT := Vector3(0.0, 2.2, 0.5)
 ## Objectif rempli quand des documents d'officier arrivent à bord : un
 ## opérateur qui les porte, ou le corps de l'officier (vide : aucun).
 @export var documents_objective: StringName = &""
+## Extraction en vol stationnaire pendant ce temps (s), sans se poser
+## (0 : elle se pose normalement).
+@export var pickup_window: float = 0.0
 ## Lots de ravitaillement dans la soute (un par opérateur ravitaillé).
 @export var supplies: int = 3
 
@@ -264,6 +272,9 @@ var _documents_aboard: bool = false
 ## (repère de l'appareil), place au sol (départ ou dépose), avancement
 ## (0 au sol, 1 suspendue), sens (+1 levée, -1 dépose, 0 immobile).
 var slung_load: Node3D
+## Course contre la montre : temps restant (s), dernier décompte annoncé.
+var pickup_left: float = 0.0
+var _pickup_told: int = -1
 var _sling_hang := Transform3D.IDENTITY
 var _sling_ground := Transform3D.IDENTITY
 var _sling_progress: float = 0.0
@@ -570,6 +581,8 @@ func land_problem() -> String:
 		return "treuillage en cours"
 	if slung_load:
 		return "charge élinguée"
+	if pickup_left > 0.0:
+		return "ne se pose pas"
 	if _someone_below():
 		return "quelqu'un sous l'appareil"
 	if not _flat_below():
@@ -747,6 +760,8 @@ func fly_problem() -> String:
 		return "treuillage en cours"
 	if _sling_dir != 0:
 		return "élingage en cours"
+	if pickup_left > 0.0:
+		return "attend l'équipe sur place"
 	return ""
 
 
@@ -1105,6 +1120,9 @@ func _show_damage() -> void:
 func _shot_down() -> void:
 	is_disabled = true
 	_drop_load_now()
+	if pickup_left > 0.0:
+		pickup_left = 0.0
+		_fail_extraction()
 	_show_damage()
 	if _flight:
 		_flight.kill()
@@ -1265,6 +1283,87 @@ func resupply(unit: Commando) -> bool:
 		parts.append("%s +%d" % [key, taken[key]])
 	unit.flash_message("Ravitaillé : " + ", ".join(parts))
 	return true
+
+
+# --- Course contre la montre -----------------------------------------------------
+
+## Au-dessus du point de pose : vol stationnaire, porte ouverte, décompte.
+func _start_pickup() -> void:
+	is_inbound = false
+	ground_y = _landing.y
+	hover_height = HOVER_HEIGHT
+	is_airborne = true
+	_settle_left = SETTLE_TIME
+	_set_solid(true)
+	_apply_ramp(false, true)
+	pickup_left = pickup_window
+	_pickup_told = -1
+
+
+## Décompte : annonce toutes les 10 s, puis chaque seconde à la fin ; départ
+## dès que toute l'équipe est à bord, ou à la fin du temps.
+func _update_pickup(delta: float) -> void:
+	if is_disabled:
+		return
+	pickup_left = maxf(pickup_left - delta, 0.0)
+	var seconds := ceili(pickup_left)
+	if seconds != _pickup_told and (seconds % 10 == 0 or seconds <= 5) and seconds > 0:
+		_pickup_told = seconds
+		for node in get_tree().get_nodes_in_group(&"commandos"):
+			(node as Commando).flash_message("Extraction : départ dans %d s" % seconds)
+	var everyone := _team_aboard()
+	if (everyone and _winching == 0 and _ready_objectives()) or pickup_left <= 0.0:
+		_leave_pickup(everyone and _winching == 0)
+
+
+## Tous les opérateurs vivants (et les VIP) à bord.
+func _team_aboard() -> bool:
+	var aboard := passengers()
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and not aboard.has(unit):
+			return false
+	for node in get_tree().get_nodes_in_group(&"vips"):
+		var vip := node as Vip
+		if vip and not vip.is_dead and not vip.is_evacuated and not vips_aboard().has(vip):
+			return false
+	return not aboard.is_empty()
+
+
+func _ready_objectives() -> bool:
+	var objectives := get_tree().get_first_node_in_group(Objectives.GROUP) as Objectives
+	return objectives == null or objectives.done_except(String(objective_id))
+
+
+## Fin de l'attente : l'appareil repart avec ceux qui sont à bord. Réussite
+## si toute l'équipe y est et les objectifs remplis, sinon échec.
+func _leave_pickup(everyone: bool) -> void:
+	pickup_left = 0.0
+	_winch_requests.clear()
+	if _rope:
+		_rope.queue_free()
+		_rope = null
+	var success := everyone and _ready_objectives()
+	is_airborne = false
+	is_flying = true
+	for unit in passengers():
+		unit.stop()
+		unit.airborne_in = null
+		_passengers[unit] = _local_transform(unit)
+		unit.process_mode = Node.PROCESS_MODE_DISABLED
+	for vip in vips_aboard():
+		_passengers[vip] = _local_transform(vip)
+		vip.process_mode = Node.PROCESS_MODE_DISABLED
+	_apply_ramp(true, true)
+	model.set_cutaway(false)
+	var flight := create_tween()
+	var goal := global_position + Vector3.UP * CLIMB_HEIGHT - global_basis.z * CLIMB_DISTANCE
+	flight.tween_property(self, "global_position", goal, CLIMB_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if success:
+		flight.tween_callback(_flown_away)
+	else:
+		var message := "ÉCHEC — l'appareil est reparti sans toute l'équipe" if not everyone else "ÉCHEC — appareil reparti, objectifs inachevés"
+		flight.tween_callback(func() -> void: EventBus.mission_ended.emit(false, message))
 
 
 # --- Élingage --------------------------------------------------------------------
@@ -1636,6 +1735,9 @@ func call_in() -> bool:
 func _over_landing() -> void:
 	if not is_inbound:
 		return
+	if pickup_window > 0.0:
+		_start_pickup()
+		return
 	# Il ne se pose pas sur les siens ; les ennemis attirés dessous s'écartent.
 	if _someone_below(true):
 		get_tree().create_timer(0.5, false).timeout.connect(_over_landing)
@@ -1724,6 +1826,9 @@ func _physics_process(delta: float) -> void:
 			EventBus.noise_emitted.emit(Vector3(global_position.x, floor_y, global_position.z), rotor_noise_radius(), &"help")
 	if is_flying or is_away or is_inbound:
 		return
+	if pickup_left > 0.0:
+		_update_pickup(delta)
+		return
 	_check_left -= delta
 	if _check_left > 0.0:
 		return
@@ -1791,7 +1896,7 @@ func destroy() -> void:
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
 		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y, "hover_height": hover_height,
-		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "supplies": supplies, "documents_aboard": _documents_aboard,
+		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "supplies": supplies, "pickup_left": pickup_left, "documents_aboard": _documents_aboard,
 		"sling": String(slung_load.get_path()) if slung_load and _sling_dir >= 0 else "",
 		"sling_hang": _sling_hang, "structure": structure, "disabled": is_disabled, "insertion": insertion}
 
@@ -1827,6 +1932,7 @@ func load_state(data: Dictionary) -> void:
 	insertion = data.get("insertion", insertion)
 	diversion_used = data.get("diversion_used", diversion_used)
 	supplies = data.get("supplies", supplies)
+	pickup_left = data.get("pickup_left", 0.0) if data.get("airborne", false) else 0.0
 	_documents_aboard = data.get("documents_aboard", _documents_aboard)
 	_release_load()
 	var sling_path := String(data.get("sling", ""))

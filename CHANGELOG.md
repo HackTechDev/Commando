@@ -894,3 +894,10 @@
 - L'équipe commence à bord du convertible (`insertion`), en vol stationnaire à 30 m au sud-ouest du dépôt, hors de portée d'oreille des gardes. Rappel, puis on renvoie l'appareil ; rappelé par radio, il revient se poser au même endroit pour l'extraction.
 - `SabotageTarget` : groupe électrogène sur patins au fond de la cour. Une charge qui explose tout près le détruit (carcasse noircie), remplit l'objectif `sabotage` et éteint les lampadaires qu'il alimente.
 - Objectifs : saboter le groupe électrogène, repartir à bord, ne perdre personne. Neutraliser tous les gardes n'est plus exigé. Alpha et Bravo reçoivent une charge de la mission.
+
+## Course contre la montre (8.17)
+
+- `Tiltrotor.pickup_window` : appelée, l'extraction ne se pose pas. Elle reste en vol stationnaire au-dessus de son point, porte ouverte, pendant le temps donné ; on y monte au treuil (clic droit sur l'appareil). Ni atterrissage ni déplacement pendant l'attente.
+- Décompte au-dessus des opérateurs, toutes les 10 s puis chaque seconde à la fin.
+- Elle repart dès que toute l'équipe (et les VIP) est à bord et les objectifs remplis : réussite. À la fin du temps, elle repart avec ceux qui sont à bord : échec s'il manque quelqu'un ou si les objectifs sont inachevés. Abattue pendant l'attente, l'extraction échoue.
+- « Patrouille Sabre » : extraction en 60 s à l'ouest du poste de contrôle (objectif `extracted`).

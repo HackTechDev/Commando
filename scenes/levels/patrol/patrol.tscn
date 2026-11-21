@@ -132,6 +132,15 @@ arrival_objective = &"sabre_rally"
 arrival_point = Vector3(26, 0, -38)
 start_stowed_in = NodePath("../Insertion")
 
+[node name="Extraction" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 6, 0, -44)
+script = ExtResource("tiltrotor")
+livery = 1
+tail_number = "34"
+objective_id = &"extracted"
+extraction = true
+pickup_window = 60.0
+
 [node name="Sandbags1" parent="NavigationRegion3D" instance=ExtResource("4")]
 transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 21, 0, -26)
 
