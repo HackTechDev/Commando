@@ -826,6 +826,15 @@ static func aircraft_options(aircraft: Tiltrotor, crew: Commando = null) -> Arra
 		var gun := aircraft.gun_problem(crew)
 		options.append({"id": &"gun", "label": "Canon latéral",
 			"detail": "feu à volonté, côté droit (bruyant)" if gun == "" else gun, "enabled": gun == ""})
+	if aircraft.is_airborne:
+		if aircraft.slung_load:
+			var drop := aircraft.drop_problem()
+			options.append({"id": &"drop_load", "label": "Larguer la charge",
+				"detail": "la dépose sous l'appareil" if drop == "" else drop, "enabled": drop == ""})
+		else:
+			var sling := aircraft.sling_problem()
+			options.append({"id": &"sling", "label": "Élinguer",
+				"detail": "caisse ou Sabre vide sous l'appareil" if sling == "" else sling, "enabled": sling == ""})
 	var supply := aircraft.resupply_problem(crew)
 	options.append({"id": &"resupply", "label": "Ravitaillement",
 		"detail": ("dotation de départ (%d lot%s)" % [aircraft.supplies, "s" if aircraft.supplies > 1 else ""]) if supply == "" else supply,
@@ -958,6 +967,10 @@ func _on_radial_chosen(id: StringName) -> void:
 				done = aircraft.rappel(crew)
 			elif id == &"evacuate":
 				done = aircraft.evacuate(crew)
+			elif id == &"sling":
+				done = aircraft.sling()
+			elif id == &"drop_load":
+				done = aircraft.drop_load()
 			elif id == &"resupply":
 				done = aircraft.resupply(crew)
 			elif id == &"climb" or id == &"descend":

@@ -67,6 +67,10 @@ extends StaticBody3D
 ## Évacuation (`evacuate`) : un opérateur blessé à bord quitte la mission,
 ## sauvé ; il ne compte pas comme perdu.
 ##
+## Élingage (`sling`, `drop_load`) : en vol stationnaire, l'appareil
+## accroche sous ses crochets une caisse déplaçable ou un Sabre vide, le
+## transporte, et le dépose ailleurs (bloquer une porte, créer un abri).
+##
 ## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
 ## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
 ## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points, une roquette
@@ -148,6 +152,14 @@ const APPROACH_HEIGHT := 30.0
 const APPROACH_TIME := 14.0
 const APPROACH_NOISE_INTERVAL := 1.5
 const DEPART_DELAY := 1.5
+## Élingage : portée horizontale autour des crochets ou du pied de la corde
+## (m), longueur des élingues (m), durée de levée ou de dépose (s), point
+## médian des crochets (repère de l'appareil), hauteur d'un Sabre (m).
+const SLING_REACH := 4.0
+const SLING_LENGTH := 3.0
+const SLING_TIME := 2.5
+const SLING_HOOKS: Array[Vector3] = [Vector3(0.0, 0.55, -3.0), Vector3(0.0, 0.55, 4.4)]
+const SLING_SABRE_HEIGHT := 2.6
 ## Diversion : hauteur du passage, demi-longueur du trajet (m), vitesse
 ## (m/s), rayon et intervalle du bruit.
 const DIVERSION_HEIGHT := 15.0
@@ -248,6 +260,16 @@ var _landing: Vector3
 var _landing_yaw: float = 0.0
 ## Passage de diversion en cours ; diversion déjà faite (une par mission).
 var _documents_aboard: bool = false
+## Charge élinguée (caisse ou Sabre), ou null ; place sous les crochets
+## (repère de l'appareil), place au sol (départ ou dépose), avancement
+## (0 au sol, 1 suspendue), sens (+1 levée, -1 dépose, 0 immobile).
+var slung_load: Node3D
+var _sling_hang := Transform3D.IDENTITY
+var _sling_ground := Transform3D.IDENTITY
+var _sling_progress: float = 0.0
+var _sling_dir: int = 0
+var _sling_saved: Dictionary = {}
+var _sling_cables: Array[MeshInstance3D] = []
 var is_diverting: bool = false
 var diversion_used: bool = false
 var _flight: Tween
@@ -546,6 +568,8 @@ func land_problem() -> String:
 		return "rappel en cours"
 	if _winching > 0:
 		return "treuillage en cours"
+	if slung_load:
+		return "charge élinguée"
 	if _someone_below():
 		return "quelqu'un sous l'appareil"
 	if not _flat_below():
@@ -721,6 +745,8 @@ func fly_problem() -> String:
 		return "rappel en cours"
 	if _winching > 0:
 		return "treuillage en cours"
+	if _sling_dir != 0:
+		return "élingage en cours"
 	return ""
 
 
@@ -1078,6 +1104,7 @@ func _show_damage() -> void:
 ## approche, droit sur la zone de pose), rotors au ralenti ; hors d'usage.
 func _shot_down() -> void:
 	is_disabled = true
+	_drop_load_now()
 	_show_damage()
 	if _flight:
 		_flight.kill()
@@ -1172,6 +1199,8 @@ func dismiss_problem() -> String:
 		return "pas en vol stationnaire"
 	if _rappelling > 0 or _winching > 0:
 		return "corde occupée"
+	if slung_load:
+		return "charge élinguée"
 	if not passengers().is_empty() or not vips_aboard().is_empty():
 		return "encore du monde à bord"
 	return ""
@@ -1236,6 +1265,211 @@ func resupply(unit: Commando) -> bool:
 		parts.append("%s +%d" % [key, taken[key]])
 	unit.flash_message("Ravitaillé : " + ", ".join(parts))
 	return true
+
+
+# --- Élingage --------------------------------------------------------------------
+
+## Charge qu'on peut élinguer sous l'appareil (caisse déplaçable libre,
+## Sabre vide), la plus proche des crochets ou du pied de la corde, ou null.
+func sling_candidate() -> Node3D:
+	var hooks := to_global((SLING_HOOKS[0] + SLING_HOOKS[1]) * 0.5)
+	var spots: Array[Vector3] = [hooks, rope_foot()]
+	var best: Node3D
+	var best_distance := SLING_REACH
+	var candidates: Array[Node] = get_tree().get_nodes_in_group(Sabre.GROUP)
+	for node in get_tree().get_nodes_in_group(QuickSave.GROUP):
+		if node is Climbable:
+			candidates.append(node)
+	for node in candidates:
+		var load := node as Node3D
+		if not _can_sling(load):
+			continue
+		for spot in spots:
+			var flat := Vector2(load.global_position.x - spot.x, load.global_position.z - spot.z).length()
+			if flat < best_distance:
+				best_distance = flat
+				best = load
+	return best
+
+
+func _can_sling(load: Node3D) -> bool:
+	var crate := load as Climbable
+	if crate:
+		return crate.movable and not crate.is_broken and crate.occupant == null and crate.handler == null and crate.visible
+	var sabre := load as Sabre
+	if sabre:
+		return sabre.stowed_in == null and sabre.slung_by == null and not sabre.is_driving \
+			and not sabre.is_maneuvering() and sabre.seats.count(null) == sabre.seats.size()
+	return false
+
+
+## Raison pour laquelle on ne peut pas élinguer (vide : c'est possible).
+func sling_problem() -> String:
+	if is_disabled:
+		return "appareil endommagé"
+	if not is_airborne or is_moving:
+		return "pas en vol stationnaire"
+	if slung_load:
+		return "déjà une charge"
+	if sling_candidate() == null:
+		return "rien à élinguer sous l'appareil"
+	return ""
+
+
+## Accroche la charge la plus proche et la hisse sous les crochets.
+func sling() -> bool:
+	if sling_problem() != "":
+		return false
+	var load := sling_candidate()
+	slung_load = load
+	_sling_ground = load.global_transform
+	var height := SLING_SABRE_HEIGHT if load is Sabre else (load as Climbable).top_height
+	var hang := Vector3((SLING_HOOKS[0].x + SLING_HOOKS[1].x) * 0.5, SLING_HOOKS[0].y - SLING_LENGTH - height,
+		(SLING_HOOKS[0].z + SLING_HOOKS[1].z) * 0.5)
+	var yaw := load.global_rotation.y - global_rotation.y
+	_sling_hang = Transform3D(Basis(Vector3.UP, yaw), hang)
+	_attach_load(load)
+	_sling_progress = 0.0
+	_sling_dir = 1
+	Sfx.play_at(&"clink", load.global_position + Vector3.UP, 0.0)
+	return true
+
+
+## Charge hors du monde physique pendant le transport : sans collision, ni
+## poussée, ni montée dessus.
+func _attach_load(load: Node3D) -> void:
+	var body := load as CollisionObject3D
+	_sling_saved = {"layer": body.collision_layer}
+	var crate := load as Climbable
+	if crate:
+		_sling_saved["movable"] = crate.movable
+		_sling_saved["stand"] = crate.can_stand_on
+		crate.movable = false
+		crate.can_stand_on = false
+	var sabre := load as Sabre
+	if sabre:
+		sabre.slung_by = self
+	body.collision_layer = 0
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+	for hook in SLING_HOOKS:
+		var cable := MeshInstance3D.new()
+		var tube := CylinderMesh.new()
+		tube.top_radius = 0.035
+		tube.bottom_radius = 0.035
+		tube.height = 1.0
+		tube.radial_segments = 6
+		cable.mesh = tube
+		var dark := StandardMaterial3D.new()
+		dark.albedo_color = Color(0.12, 0.12, 0.1)
+		cable.material_override = dark
+		add_child(cable)
+		_sling_cables.append(cable)
+
+
+## Raison pour laquelle on ne peut pas larguer (vide : c'est possible).
+func drop_problem() -> String:
+	if slung_load == null:
+		return "pas de charge"
+	if _sling_dir != 0:
+		return "élingage en cours"
+	if not is_airborne or is_moving:
+		return "pas en vol stationnaire"
+	return ""
+
+
+## Dépose la charge au sol (ou sur un toit) sous l'appareil.
+func drop_load() -> bool:
+	if drop_problem() != "":
+		return false
+	var at := slung_load.global_position
+	var ground := _surface_below(at, Vector3(at.x, ground_y, at.z))
+	_sling_ground = Transform3D(slung_load.global_basis, ground)
+	_sling_dir = -1
+	return true
+
+
+## Levée, transport, dépose : la charge suit l'appareil, élingues tendues.
+func _update_sling(delta: float) -> void:
+	if slung_load == null:
+		return
+	if not is_instance_valid(slung_load):
+		_release_load()
+		return
+	_sling_progress = clampf(_sling_progress + _sling_dir * delta / SLING_TIME, 0.0, 1.0)
+	var hanging := global_transform * _sling_hang
+	var eased := ease(_sling_progress, -1.8)
+	slung_load.global_transform = _sling_ground.interpolate_with(hanging, eased)
+	if _sling_dir > 0 and _sling_progress >= 1.0:
+		_sling_dir = 0
+	elif _sling_dir < 0 and _sling_progress <= 0.0:
+		slung_load.global_transform = _sling_ground
+		Sfx.play_at(&"fall", slung_load.global_position + Vector3.UP * 0.5, -4.0)
+		_release_load()
+		return
+	var height := SLING_SABRE_HEIGHT if slung_load is Sabre else (slung_load as Climbable).top_height
+	var top := to_local(slung_load.global_position + Vector3.UP * height)
+	for index in _sling_cables.size():
+		_stretch(_sling_cables[index], SLING_HOOKS[index], top)
+
+
+## Élingue entre `from` et `to` (repère de l'appareil).
+func _stretch(cable: MeshInstance3D, from: Vector3, to: Vector3) -> void:
+	var span := to - from
+	var length := maxf(span.length(), 0.01)
+	var along := span / length
+	var side := along.cross(Vector3.BACK)
+	if side.length() < 0.1:
+		side = Vector3.RIGHT
+	side = side.normalized()
+	cable.transform = Transform3D(Basis(side, along * length, side.cross(along)), from + span * 0.5)
+
+
+## La charge reprend sa place dans le monde (collision, poussée).
+func _release_load() -> void:
+	for cable in _sling_cables:
+		cable.queue_free()
+	_sling_cables.clear()
+	_sling_dir = 0
+	_sling_progress = 0.0
+	var load := slung_load
+	slung_load = null
+	if not is_instance_valid(load):
+		return
+	(load as CollisionObject3D).collision_layer = _sling_saved.get("layer", LAYER_OCCLUDERS)
+	var crate := load as Climbable
+	if crate:
+		crate.movable = _sling_saved.get("movable", true)
+		crate.can_stand_on = _sling_saved.get("stand", true)
+	var sabre := load as Sabre
+	if sabre:
+		sabre.slung_by = null
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+
+
+## Sauvegarde rapide : la charge reprend place sous les crochets (après le
+## chargement de son propre état).
+func _resling(path: NodePath, hang: Transform3D) -> void:
+	var load := get_node_or_null(path) as Node3D
+	if load == null or slung_load:
+		return
+	slung_load = load
+	_sling_hang = hang
+	_attach_load(load)
+	_sling_ground = global_transform * hang
+	_sling_progress = 1.0
+	_sling_dir = 0
+
+
+## Abattu ou rechargé avec une charge : elle tombe sous l'appareil.
+func _drop_load_now() -> void:
+	if slung_load == null:
+		return
+	if is_instance_valid(slung_load):
+		var at := slung_load.global_position
+		slung_load.global_transform = Transform3D(slung_load.global_basis, _surface_below(at, Vector3(at.x, ground_y, at.z)))
+	_release_load()
 
 
 # --- Documents -------------------------------------------------------------------
@@ -1469,6 +1703,7 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(unit):
 			unit.global_transform = global_transform * (_passengers[unit] as Transform3D)
 	_update_gun(delta)
+	_update_sling(delta)
 	if is_airborne:
 		_update_winch()
 	_revealed_left = maxf(_revealed_left - delta, 0.0)
@@ -1556,7 +1791,9 @@ func destroy() -> void:
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
 		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y, "hover_height": hover_height,
-		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "supplies": supplies, "documents_aboard": _documents_aboard, "structure": structure, "disabled": is_disabled, "insertion": insertion}
+		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "supplies": supplies, "documents_aboard": _documents_aboard,
+		"sling": String(slung_load.get_path()) if slung_load and _sling_dir >= 0 else "",
+		"sling_hang": _sling_hang, "structure": structure, "disabled": is_disabled, "insertion": insertion}
 
 
 func load_state(data: Dictionary) -> void:
@@ -1591,6 +1828,10 @@ func load_state(data: Dictionary) -> void:
 	diversion_used = data.get("diversion_used", diversion_used)
 	supplies = data.get("supplies", supplies)
 	_documents_aboard = data.get("documents_aboard", _documents_aboard)
+	_release_load()
+	var sling_path := String(data.get("sling", ""))
+	if sling_path != "":
+		_resling.call_deferred(NodePath(sling_path), data.get("sling_hang", _sling_hang))
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	structure = data.get("structure", STRUCTURE)

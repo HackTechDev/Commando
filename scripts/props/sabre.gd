@@ -97,6 +97,8 @@ var _boarders: Dictionary = {}
 var _arrived_once: bool = false
 ## Convertible dans la soute duquel le véhicule est garé (null : au sol).
 var stowed_in: Tiltrotor
+## Convertible qui le porte sous ses crochets (élingage), ou null.
+var slung_by: Tiltrotor
 ## Suite d'un trajet (montée dans la soute) et manœuvre sur la rampe en cours.
 var _then: Callable
 var _ramp_tween: Tween
@@ -233,7 +235,7 @@ func _ground_start(toward: Vector3) -> Vector3:
 ## Envoie `unit` monter à bord. Renvoie faux si c'est impossible (déjà à
 ## bord, plus de place, véhicule en route).
 func request_board(unit: Commando, run: bool) -> bool:
-	if unit == null or unit.is_dead or unit.riding != null or is_driving:
+	if unit == null or unit.is_dead or unit.riding != null or is_driving or slung_by:
 		return false
 	if _free_seat() < 0 or _boarders.size() >= seats.count(null):
 		return false
@@ -337,6 +339,8 @@ func _update_boarders() -> void:
 ## Raison pour laquelle le véhicule ne peut pas rouler (vide : c'est
 ## possible).
 func drive_problem() -> String:
+	if slung_by:
+		return "élingué"
 	if driver() == null:
 		return "personne au volant"
 	if is_maneuvering():

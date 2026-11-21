@@ -881,3 +881,10 @@
 - Un opérateur qui passe près de son corps (mort ou assommé, et que personne ne porte) prend les documents : « Documents récupérés », mention « Documents » sur son portrait.
 - `Tiltrotor.documents_objective` : l'objectif est rempli dès que les documents sont à bord, sur un opérateur ou avec le corps de l'officier porté dans la soute.
 - La sauvegarde rapide garde qui porte les documents.
+
+## Élingage (8.15)
+
+- En vol stationnaire : « Élinguer » au menu de bord accroche, sous les deux crochets du modèle, la caisse déplaçable libre ou le Sabre vide le plus proche (4 m autour des crochets ou du pied de la corde). Elle est hissée en 2,5 s, à 3 m d'élingues.
+- La charge suit l'appareil pendant « Déplacer » et les changements d'altitude ; sans collision pendant le transport (navigation et vues recalculées).
+- « Larguer la charge » la dépose sous l'appareil, au sol ou sur un toit : bloquer une porte, créer un abri, poser le Sabre ailleurs.
+- On n'atterrit pas et on ne renvoie pas l'appareil avec une charge. Abattu, il la lâche sur place. La sauvegarde rapide garde la charge suspendue.

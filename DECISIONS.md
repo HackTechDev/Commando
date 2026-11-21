@@ -166,3 +166,4 @@
 - **Ravitaillement.** On reprend sa dotation de départ, pas un inventaire libre : l'inventaire par personnage n'existe pas encore (2.10). Un lot sert un opérateur entier, pour que la soute reste une ressource limitée.
 - **Évacuation.** L'évacuation est immédiate dès que le blessé est à bord : l'appareil n'a pas à repartir. On sauve l'opérateur sans le soigner, et la mission continue sans lui. Le seuil de blessure (60 %) évite d'évacuer un opérateur à peine touché pour alléger l'équipe.
 - **Documents.** Les documents se prennent automatiquement en passant près du corps, sans action de plus. On peut aussi rapporter le corps entier (par exemple un officier assommé à interroger) : les deux remplissent l'objectif.
+- **Élingage.** On n'élingue qu'un Sabre vide : un équipage suspendu sous l'appareil poserait trop de cas (tir, chute, débarquement). La charge n'a pas de collision pendant le vol : elle ne se cogne pas aux toits, comme l'appareil lui-même.
