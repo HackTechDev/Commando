@@ -1127,3 +1127,10 @@
 - Nouvelle carte « Enlèvement » (`tools/gen_snatch.py`), de jour. Il faut enlever un officier dans sa villa fortifiée : l'assommer ou le prendre en otage, le coucher sur le plateau du Sabre (9.10), puis faire monter le véhicule dans la soute de l'extraction. L'officier sur le plateau, ou ses documents (8.14), remplissent l'objectif.
 - Gardes au portail, dans la villa et en ronde ; un garde au terrain d'extraction ; un pick-up armé à l'est.
 - Vérifié par scénario de bout en bout : officier assommé, porté puis couché sur le plateau ; Sabre chargé dans l'extraction posée ; « documents », « sabre_extracted » puis « RÉUSSITE — équipe extraite ». La suite GUT n'a pas été lancée.
+
+## Embuscade
+
+- Nouvelle carte « Embuscade » (`tools/gen_ambush.py`), de jour. La piste du ralliement traverse une vallée tenue des deux côtés : dix tireurs derrière des murets, une mine, un IED et trois pick-ups armés.
+- Il faut nettoyer la vallée au feu du Sabre : 12,7 en feu à volonté ou en tir désigné, 7,62 latérales (9.5), missile. Le véhicule encaisse et se répare (9.8), se ravitaille (9.9) et sert d'abri (9.3).
+- L'extraction attend 90 s en vol stationnaire, au treuil.
+- Vérifié par scénario : chemin du départ au ralliement ; au rendu, les murets longent la vallée et abritent les tireurs. La suite GUT n'a pas été lancée.

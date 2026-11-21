@@ -233,6 +233,18 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Embuscade",
+		"scene": "res://scenes/levels/ambush/ambush.tscn",
+		"description": "De jour. La piste du point de ralliement traverse une vallée tenue des deux côtés : dix tireurs abrités derrière des murets, une mine, un IED, et trois pick-ups armés qui accourent au bruit. Passez en force ou nettoyez la vallée : 12,7 à la tourelle (feu à volonté ou tir désigné), 7,62 latérales du chef de bord et de l'arrière gauche (chacune son champ de tir), un missile pour un pick-up. La caisse du Sabre arrête une partie des balles mais s'abîme : pneu crevé, moteur touché. À pied, menu du véhicule : « Réparer » (pneus et moteur, 6 s), « Se ravitailler » (quatre lots), « S'abriter derrière ». Au point de ralliement, appelez l'extraction : 90 s en vol stationnaire, au treuil.",
+		"camo": "desert",
+		"objectives": [
+			{"id": "all_enemies_down", "text": "Neutraliser les tireurs de l'embuscade"},
+			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au point de ralliement (drapeau)"},
+			{"id": "extracted", "text": "Être treuillé à bord de l'extraction en moins de 90 s"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
