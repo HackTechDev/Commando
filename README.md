@@ -74,6 +74,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Se ravitailler au Sabre (dotation de départ ; quatre lots) | Clic milieu sur un passager, ou sur le Sabre avec des opérateurs à pied sélectionnés (ils vont au hayon), « Se ravitailler » |
 | Coucher sur le plateau du Sabre un corps porté ou un otage (ligoté), depuis le hayon : les mains se libèrent ; « Décharger le plateau » pour les reposer au sol | Clic milieu sur le Sabre avec le porteur sélectionné |
 | Escorter un VIP en Sabre : il suit un opérateur, qui monte ; le VIP monte derrière lui et descend dans la zone d'extraction | « Suivre » au VIP, puis faire monter son guide |
+| Débarquement d'assaut : à l'arrivée, les passagers (ni conducteur ni tireur) descendent et se postent à couvert | Clic milieu sur un passager, « Débarquer à l'arrivée » |
 | Points de passage du Sabre (enchaînés sans arrêt, huit au plus) | Maj + clic droit, passager sélectionné |
 | Réparer le Sabre (pneu crevé, moteur touché ou hors d'usage) : l'opérateur va à l'avant, 6 s sur place | Clic milieu sur le Sabre avec un opérateur à pied sélectionné, « Réparer » |
 | Chef de bord ou arrière gauche du Sabre : « 7,62 : feu à volonté » (avant et droite, ou arrière et gauche ; 32 m) / « Cesser le feu » | Clic milieu sur le passager |

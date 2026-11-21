@@ -135,5 +135,4 @@ Cartes et missions :
 
 Commandes et confort :
 
-- **9.18 Rouler et débarquer** : les passagers descendent dès l'arrêt et se dispersent à couvert.
 - **9.19 Caméra qui suit** le véhicule pendant le trajet (option).

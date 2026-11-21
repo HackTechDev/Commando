@@ -894,6 +894,8 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 		options.append({"id": &"idle", "label": "Couper le ralenti" if sabre.idling else "Moteur au ralenti",
 			"detail": "le leurre se tait" if sabre.idling else ("leurre : le bruit attire les gardes" if idle == "" else idle),
 			"enabled": sabre.idling or idle == ""})
+	options.append({"id": &"assault", "label": "Rester à bord à l'arrivée" if sabre.dismount_on_arrival else "Débarquer à l'arrivée",
+		"detail": "les passagers restent assis" if sabre.dismount_on_arrival else "passagers à terre et à couvert dès l'arrêt (%d)" % sabre.assault_party().size()})
 	if index == Sabre.DRIVER_SEAT:
 		options.append({"id": &"coast", "label": "Relancer le moteur" if sabre.coasting else "Couper le moteur",
 			"detail": ("le moteur s'entend de nouveau" if sabre.coasting else "roue libre silencieuse, %d m/s, %d m" % [int(Sabre.COAST_SPEED), int(Sabre.COAST_RANGE)]) if moving == "" else moving,
@@ -1097,6 +1099,8 @@ func _on_radial_chosen(id: StringName) -> void:
 					ok = sabre.set_headlights(not sabre.headlights)
 				&"coast":
 					ok = sabre.set_coasting(not sabre.coasting)
+				&"assault":
+					ok = sabre.set_dismount_on_arrival(not sabre.dismount_on_arrival)
 				&"idle":
 					ok = sabre.set_idling(not sabre.idling)
 				&"resupply":

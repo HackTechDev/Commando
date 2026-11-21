@@ -57,6 +57,12 @@ extends StaticBody3D
 ## plateau emportent `supplies` lots ; un opérateur au hayon (ou à bord) y
 ## reprend sa dotation de départ (`Commando.resupply`).
 ##
+## Débarquement d'assaut (`dismount_on_arrival`) : à l'arrivée au bout de
+## l'itinéraire, les passagers (ni le conducteur ni le tireur de la 12,7)
+## sautent à terre et se postent accroupis derrière la caisse, à l'abri des
+## ennemis (`take_cover`). Pas sur un arrêt forcé (route bloquée, élan
+## épuisé) ni dans une soute.
+##
 ## Points de passage (`queue_waypoint`) : la touche de sélection additive
 ## (Maj) avec l'ordre de rouler ajoute un point au bout de l'itinéraire ; le
 ## véhicule les enchaîne sans s'arrêter. Un ordre simple les remplace.
@@ -223,6 +229,8 @@ var _then: Callable
 ## Points de passage suivants (après la destination en cours), et leurs
 ## repères au sol.
 var waypoints: Array[Vector3] = []
+## Débarquement d'assaut à l'arrivée.
+var dismount_on_arrival: bool = false
 var _waypoint_marks: Array[Node3D] = []
 var _ramp_tween: Tween
 ## Moteur coupé : roue libre, silencieuse ; distance qui reste (m).
@@ -569,6 +577,39 @@ func dismount(unit: Commando) -> bool:
 	var beside := Vector3(side * 0.7, 0.0, 3.3) if stowed_in else Vector3(side * (SabreModel.HALF_WIDTH + 0.9), 0.0, local.z)
 	unit.global_position = _on_navmesh(to_global(beside))
 	unit.velocity = Vector3.ZERO
+	return true
+
+
+## Passagers qui sautent à terre au débarquement d'assaut : ni le
+## conducteur ni le tireur de la 12,7.
+func assault_party() -> Array[Commando]:
+	var party: Array[Commando] = []
+	for index in seats.size():
+		if seats[index] and index != DRIVER_SEAT and index != GUNNER_SEAT:
+			party.append(seats[index])
+	return party
+
+
+## Active ou coupe le débarquement d'assaut à l'arrivée.
+func set_dismount_on_arrival(value: bool) -> bool:
+	dismount_on_arrival = value
+	var who := driver() if driver() else (crew()[0] if not crew().is_empty() else null)
+	if who:
+		who.flash_message("Débarquement à l'arrivée" if value else "On reste à bord à l'arrivée")
+	return true
+
+
+## Débarquement d'assaut : les passagers descendent et se postent à couvert
+## derrière la caisse. Renvoie faux s'il n'y a personne à débarquer.
+func assault_dismount() -> bool:
+	if is_driving or stowed_in or slung_by:
+		return false
+	var party := assault_party()
+	if party.is_empty():
+		return false
+	for unit in party:
+		dismount(unit)
+	take_cover(party, true)
 	return true
 
 
@@ -1134,6 +1175,8 @@ func _drive(delta: float) -> void:
 				follow.call()
 			elif not _next_waypoint():
 				stop_driving()
+				if dismount_on_arrival:
+					assault_dismount()
 		return
 	# Cap vers le point suivant : on braque, et on ralentit d'autant plus que
 	# le virage est serré (presque sur place au pied d'un point de côté).
@@ -1715,7 +1758,7 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(), "missiles": missiles, "supplies": supplies,
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(), "missiles": missiles, "supplies": supplies, "assault": dismount_on_arrival,
 		"vips": vip_seats.map(func(vip: Vip) -> String: return String(vip.get_path()) if is_instance_valid(vip) else ""),
 		"bed": bed.map(func(body: Enemy) -> String: return String(body.get_path()) if is_instance_valid(body) else ""),
 		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
@@ -1743,6 +1786,7 @@ func load_state(data: Dictionary) -> void:
 	idling = data.get("idling", false)
 	missiles = data.get("missiles", missiles)
 	supplies = data.get("supplies", supplies)
+	dismount_on_arrival = data.get("assault", false)
 	_suppliers.clear()
 	_loaders.clear()
 	for slot in bed.size():

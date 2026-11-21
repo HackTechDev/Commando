@@ -988,3 +988,10 @@
 - Passager sélectionné : Maj (sélection additive) + clic droit ajoute un point au bout de l'itinéraire du Sabre. Le véhicule les enchaîne sans s'arrêter, jusqu'à huit points en attente.
 - Chaque point en attente est marqué au sol par un disque numéroté, effacé quand le véhicule le passe.
 - Un clic droit simple remplace l'itinéraire ; s'arrêter ou une route bloquée l'efface.
+
+## Rouler et débarquer (9.18)
+
+- Menu de bord : « Débarquer à l'arrivée » (ou « Rester à bord à l'arrivée » pour l'annuler).
+- Au bout de l'itinéraire, points de passage compris, les passagers sautent à terre et se postent accroupis derrière la caisse, du côté opposé aux ennemis (même placement que « S'abriter derrière »).
+- Le conducteur reste au volant et le tireur de la 12,7 à la tourelle, pour couvrir ou repartir. Un VIP reste assis.
+- Pas de débarquement sur un arrêt forcé (route bloquée, élan épuisé, ordre d'arrêt).
