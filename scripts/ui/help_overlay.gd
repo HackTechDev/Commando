@@ -20,6 +20,7 @@ const SECTIONS: Array = [
 		[["Clic milieu sur un opérateur au sol"], "Radio : renvoyer l'appareil, diversion, appeler l'extraction"],
 		[["Clic droit sur le Sabre"], "Monter à bord (cinq places)"],
 		[["Clic droit sur une barrière"], "La lever ou la baisser (à pied ; en Sabre, on la force)"],
+		[["Clic droit sur une mine balisée"], "La désamorcer (à pied ; un éclaireur devant le véhicule les repère)"],
 		[["Clic milieu sur le Sabre, opérateur à pied"], "Menu du véhicule : abri, ralenti, ravitaillement, plateau, réparer"],
 		[["Clic droit au sol, passager du Sabre"], "Rouler jusque-là (il faut quelqu'un au volant ; Maj : point de passage)"],
 		[["Clic milieu sur un passager du Sabre"], "Descendre, débarquer à l'arrivée, volant, tourelle, armes, phares, moteur"],

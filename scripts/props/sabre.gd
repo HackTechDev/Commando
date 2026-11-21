@@ -131,6 +131,9 @@ const ENGINE_NOISE := 24.0
 const NOISE_INTERVAL := 1.0
 ## Zone devant le véhicule où une unité l'arrête (profondeur, demi-largeur),
 ## et attente avant de renoncer (s).
+## Distance (m) devant le pare-chocs à laquelle on s'arrête devant une mine
+## balisée.
+const MINE_LOOKAHEAD := 1.5
 const BLOCK_DEPTH := 3.0
 const BLOCK_HALF_WIDTH := 1.4
 const BLOCK_GIVE_UP := 3.0
@@ -1201,6 +1204,11 @@ func _drive(delta: float) -> void:
 		barrier.smash(self, speed)
 		if is_wrecked or not is_driving:
 			return
+	# Mine balisée sur la trajectoire : on s'arrête devant.
+	if Landmine.under(self, MINE_LOOKAHEAD, true):
+		driver().flash_message("Mine devant : la contourner ou la désamorcer")
+		stop_driving()
+		return
 	if coasting:
 		_coast_left -= distance
 		if _coast_left <= 0.0:
@@ -1209,6 +1217,12 @@ func _drive(delta: float) -> void:
 			return
 	global_position += -global_basis.z * distance
 	global_position.y = lerpf(global_position.y, _ground_height(), minf(1.0, delta * 4.0))
+	# Mine cachée sous les roues : le véhicule saute.
+	var mine := Landmine.under(self)
+	if mine:
+		mine.detonate(self)
+		if is_wrecked or not is_driving:
+			return
 	_steer = lerpf(_steer, clampf(turn, -0.5, 0.5), minf(1.0, delta * 6.0))
 	model.steer(_steer)
 	model.roll(distance)

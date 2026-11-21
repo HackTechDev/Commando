@@ -1009,3 +1009,11 @@
 - Ouvrir : clic droit sur la barrière avec des opérateurs à pied sélectionnés. Le plus proche va au coffret et la lève en 1,2 s, avec un grincement qui ne porte qu'à 3 m ; même geste pour la baisser.
 - La lisse n'a pas de collision : les fantassins passent dessous et la navigation n'est pas coupée. La sauvegarde rapide garde son état (levée, brisée).
 - Générateur `tools/gen_patrol.py` mis à jour.
+
+## Mines et IED (9.14)
+
+- Nouvel objet `Landmine` : mine antichar ou engin explosif improvisé (`improvised`), enfoui et invisible. « Patrouille Sabre » a un IED sur la piste, à mi-chemin du poste.
+- Seuls les véhicules la déclenchent : un Sabre qui roule dessus saute (explosion de 3,5 m, épave, passagers blessés, bruit à 45 m).
+- Un opérateur à pied qui passe à moins de 2,5 m (1,5 m de nuit) la repère. Elle est alors balisée d'un fanion « MINE » ou « IED », la navigation la contourne, et le Sabre s'arrête devant au lieu de rouler dessus.
+- Clic droit sur une mine repérée avec des opérateurs à pied sélectionnés : le plus proche va la désamorcer, accroupi, en 4 s.
+- La sauvegarde rapide garde l'état de chaque mine (repérée, désamorcée, explosée).

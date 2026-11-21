@@ -323,6 +323,8 @@ func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
 		return GameCursor.Kind.ATTACK
 	if door_at(screen_position) or (barrier_at(screen_position) and _selected_vehicle() == null):
 		return GameCursor.Kind.CRATE
+	if _selected_vehicle() == null and _mine_at(screen_position):
+		return GameCursor.Kind.CRATE
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
 		return GameCursor.Kind.DEFAULT
@@ -641,6 +643,19 @@ func _order(screen_position: Vector2, run: bool) -> void:
 				operator = unit
 		if operator and barrier.request_toggle(operator, run):
 			_spawn_marker(barrier.control_point(operator.global_position), marker_run_color if run else marker_color)
+		else:
+			Sfx.play_ui(&"denied")
+		return
+	# Mine repérée : l'opérateur à pied le plus proche va la désamorcer.
+	var mine := _mine_at(screen_position) if _selected_vehicle() == null else null
+	if mine:
+		var deminer: Commando = null
+		for unit: Commando in SelectionManager.selected:
+			if unit.riding == null and not unit.is_dead and (deminer == null \
+					or unit.global_position.distance_to(mine.global_position) < deminer.global_position.distance_to(mine.global_position)):
+				deminer = unit
+		if deminer and mine.request_disarm(deminer, run):
+			_spawn_marker(mine.disarm_point(deminer.global_position), marker_run_color if run else marker_color)
 		else:
 			Sfx.play_ui(&"denied")
 		return
@@ -1397,6 +1412,12 @@ func _focus_camera() -> void:
 
 
 ## Porte (fermée ou ouverte, pas détruite) sous `screen_position`, ou null.
+## Mine repérée sous `screen_position`, ou null.
+func _mine_at(screen_position: Vector2) -> Landmine:
+	var hit := _raycast(screen_position, MASK_GROUND)
+	return Landmine.revealed_near(get_tree(), hit["position"]) if not hit.is_empty() else null
+
+
 ## Barrière de poste de contrôle sous `screen_position`, ou null.
 func barrier_at(screen_position: Vector2) -> RoadBarrier:
 	var camera := get_viewport().get_camera_3d()
