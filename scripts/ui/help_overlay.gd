@@ -17,7 +17,7 @@ const SECTIONS: Array = [
 		[["Clic droit sur une porte"], "L'ouvrir, la fermer ou la crocheter"],
 		[["Clic droit sur le convertible"], "Monter à bord (soute) ; en vol, porte ouverte : hélitreuillage"],
 		[["Clic milieu sur un opérateur à bord"], "Porte, canon latéral, monter / atterrir, altitude, déplacer, rappel, piloter"],
-		[["Clic milieu sur un opérateur au sol"], "Appeler l'extraction (si la carte en a une)"],
+		[["Clic milieu sur un opérateur au sol"], "Radio : renvoyer l'appareil, appeler l'extraction"],
 		[["Clic droit sur le Sabre"], "Monter à bord (cinq places)"],
 		[["Clic droit au sol, passager du Sabre"], "Rouler jusque-là (il faut quelqu'un au volant)"],
 		[["Clic milieu sur un passager du Sabre"], "Descendre, volant, tourelle, feu de la 12,7"],

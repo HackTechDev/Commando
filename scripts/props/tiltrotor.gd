@@ -41,6 +41,13 @@ extends StaticBody3D
 ## opérateurs vivants (et les VIP) sont à bord et que les autres objectifs
 ## sont remplis : l'objectif `objective_id` est rempli, la mission réussie.
 ##
+## Insertion (`insertion`) : la mission commence en vol stationnaire au
+## plus haut palier au-dessus de la place de l'appareil, toute l'équipe en
+## soute, porte ouverte. On le déplace, on descend en rappel ; un point trop
+## proche des sentinelles les alerte (bruit des rotors). Soute vide, on le
+## renvoie par radio (`dismiss`) : il s'en va, et revient à l'appel s'il est
+## aussi l'appareil d'extraction.
+##
 ## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
 ## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
 ## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points ; sous la moitié, il
@@ -160,6 +167,8 @@ const AIM_POINT := Vector3(0.0, 2.2, 0.5)
 @export var rappel_objective: StringName = &""
 ## Appareil d'extraction : absent jusqu'à l'appel (`call_in`).
 @export var extraction: bool = false
+## La mission commence à bord, en vol stationnaire (voir plus haut).
+@export var insertion: bool = false
 
 var is_destroyed: bool = false
 var model: TiltrotorModel
@@ -195,6 +204,7 @@ var is_away: bool = false
 var is_inbound: bool = false
 ## Point de pose (position de l'appareil dans la scène).
 var _landing: Vector3
+var _landing_yaw: float = 0.0
 var _flight: Tween
 var _noise_left: float = 0.0
 var _depart_left: float = DEPART_DELAY
@@ -281,7 +291,10 @@ func _ready() -> void:
 	_gun.on_burst = func() -> void: _revealed_left = MUZZLE_REVEAL
 	blacked_out = LevelRoot.is_night(self)
 	model.set_lights(not blacked_out)
-	if extraction:
+	_landing_yaw = global_rotation.y
+	if insertion:
+		_start_insertion.call_deferred()
+	elif extraction:
 		_go_away()
 
 
@@ -1056,6 +1069,80 @@ func _set_solid(solid: bool) -> void:
 	EventBus.sight_blockers_changed.emit()
 
 
+# --- Insertion -------------------------------------------------------------------
+
+## Début de mission : en vol stationnaire au plus haut palier, porte ouverte,
+## toute l'équipe en soute.
+func _start_insertion() -> void:
+	ground_y = global_position.y
+	hover_height = HOVER_LEVELS[HOVER_LEVELS.size() - 1]
+	global_position.y = ground_y + hover_height
+	model.rotor_speed = FLIGHT_ROTOR_SPEED
+	model.set_cutaway(true)
+	is_airborne = true
+	var index := 0
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead:
+			unit.global_position = cabin_point(index)
+			unit.velocity = Vector3.ZERO
+			unit.airborne_in = self
+			index += 1
+	_noise_left = HOVER_NOISE_INTERVAL
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+
+
+## Raison pour laquelle on ne peut pas renvoyer l'appareil (vide : c'est
+## possible).
+func dismiss_problem() -> String:
+	if is_destroyed or is_away or is_inbound or is_flying:
+		return "pas disponible"
+	if is_disabled:
+		return "appareil endommagé"
+	if not is_airborne or is_moving:
+		return "pas en vol stationnaire"
+	if _rappelling > 0 or _winching > 0:
+		return "corde occupée"
+	if not passengers().is_empty() or not vips_aboard().is_empty():
+		return "encore du monde à bord"
+	return ""
+
+
+## Appareil d'insertion qu'on peut renvoyer, ou null.
+static func dismissable(tree: SceneTree) -> Tiltrotor:
+	for node in tree.get_nodes_in_group(GROUP):
+		var aircraft := node as Tiltrotor
+		if aircraft and aircraft.insertion and not aircraft.is_away and not aircraft.is_inbound and not aircraft.is_destroyed:
+			return aircraft
+	return null
+
+
+## Renvoie l'appareil, soute vide : il prend de la hauteur et s'éloigne. S'il
+## est aussi l'appareil d'extraction, on peut le rappeler ensuite.
+func dismiss() -> bool:
+	if dismiss_problem() != "":
+		return false
+	is_moving = true
+	is_airborne = false
+	if _rope:
+		_rope.queue_free()
+		_rope = null
+	_apply_ramp(true, true)
+	leave_gun()
+	_flight = create_tween()
+	var goal := global_position + Vector3.UP * CLIMB_HEIGHT - global_basis.z * CLIMB_DISTANCE
+	_flight.tween_property(self, "global_position", goal, CLIMB_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_flight.tween_callback(func() -> void:
+		is_moving = false
+		insertion = false
+		model.rotor_speed = 0.0
+		global_position = _landing
+		global_rotation.y = _landing_yaw
+		_go_away())
+	return true
+
+
 ## Raison pour laquelle on ne peut pas appeler l'appareil (vide : c'est
 ## possible).
 func call_problem() -> String:
@@ -1087,6 +1174,7 @@ func call_in() -> bool:
 	is_away = false
 	is_inbound = true
 	visible = true
+	global_rotation.y = _landing_yaw
 	_apply_ramp(true, false)
 	model.rotor_speed = FLIGHT_ROTOR_SPEED
 	var hover := _landing + Vector3.UP * HOVER_HEIGHT
@@ -1249,7 +1337,7 @@ func destroy() -> void:
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
 		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y, "hover_height": hover_height,
-		"away": is_away or is_inbound, "structure": structure, "disabled": is_disabled}
+		"away": is_away or is_inbound, "structure": structure, "disabled": is_disabled, "insertion": insertion}
 
 
 func load_state(data: Dictionary) -> void:
@@ -1275,6 +1363,7 @@ func load_state(data: Dictionary) -> void:
 		global_position = saved_position
 		global_rotation.y = data.get("yaw", global_rotation.y)
 	hover_height = data.get("hover_height", HOVER_HEIGHT)
+	insertion = data.get("insertion", insertion)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	structure = data.get("structure", STRUCTURE)

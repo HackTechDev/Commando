@@ -839,3 +839,8 @@
 - En vol, les rotors s'entendent en continu (toutes les 2 s en vol stationnaire) au sol sous l'appareil. Le rayon décroît avec la hauteur : 40 m jusqu'au premier palier, 28 m à 20 m, 16 m à 30 m (`rotor_noise_radius`). L'approche de l'appareil d'extraction, à 30 m, est donc plus discrète au début.
 - Plus haut, la corde est plus longue : un rappel depuis 30 m prend environ 14 s.
 - Le menu affiche, pour chaque palier, le rayon du bruit.
+
+## Insertion en début de mission (8.2)
+
+- `Tiltrotor.insertion` : la mission commence en vol stationnaire à 30 m au-dessus de la place de l'appareil, toute l'équipe en soute, porte ouverte. On le déplace (8.4) et on descend en rappel ; près des sentinelles, le bruit des rotors les alerte (8.10).
+- Soute vide, « Renvoyer l'appareil » au menu radio (clic milieu sur un opérateur au sol) : il prend de la hauteur et quitte la zone. S'il est aussi l'appareil d'extraction, « Appeler l'extraction » le fait revenir se poser sur sa zone, dans son cap d'origine.

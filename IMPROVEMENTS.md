@@ -116,7 +116,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 Insertion et extraction :
 
-- **8.2 Insertion en début de mission** : la partie commence en vol stationnaire au-dessus de la carte, et le joueur choisit où descendre en rappel. Un point trop proche des sentinelles déclenche l'alerte (bruit).
 
 Combat :
 

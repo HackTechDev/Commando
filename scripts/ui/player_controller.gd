@@ -84,8 +84,8 @@ var _menu_enemy: Enemy
 ## Appareil et opérateur du menu de bord ouvert.
 var _menu_aircraft: Tiltrotor
 var _menu_crew: Commando
-## Appareil d'extraction du menu radio ouvert (sur un opérateur au sol).
-var _menu_radio: Tiltrotor
+## Menu radio ouvert (sur un opérateur au sol).
+var _menu_radio: bool = false
 ## Véhicule et passager du menu de bord du Sabre ouvert.
 var _menu_sabre: Sabre
 ## Convertible visé par l'action armée (`ACTION_FLY`).
@@ -125,7 +125,7 @@ func _ready() -> void:
 		_menu_enemy = null
 		_menu_aircraft = null
 		_menu_crew = null
-		_menu_radio = null
+		_menu_radio = false
 		_menu_sabre = null
 		_menu_rider = null)
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
@@ -775,18 +775,32 @@ func open_radio_menu(screen_position: Vector2) -> bool:
 	var unit := hit.get("collider") as Commando
 	if unit == null or unit.is_dead or unit.airborne_in != null:
 		return false
-	var aircraft := Tiltrotor.awaiting_call(get_tree())
-	if aircraft == null:
+	var options := radio_options(get_tree())
+	if options.is_empty():
 		return false
 	cancel_pending_action()
-	_menu_radio = aircraft
-	var problem := aircraft.call_problem()
-	_radial.open(screen_position, [
-		{"id": &"extract", "label": "Appeler l'extraction",
-			"detail": "le convertible vient se poser (bruyant)" if problem == "" else problem, "enabled": problem == ""},
-	], unit.display_name)
+	_menu_radio = true
+	_radial.open(screen_position, options, unit.display_name)
 	Sfx.play_ui(&"select")
 	return true
+
+
+## Options du menu radio : renvoyer l'appareil d'insertion (soute vide),
+## appeler l'extraction.
+static func radio_options(tree: SceneTree) -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	var inserted := Tiltrotor.dismissable(tree)
+	if inserted:
+		var problem := inserted.dismiss_problem()
+		options.append({"id": &"dismiss", "label": "Renvoyer l'appareil",
+			"detail": "il quitte la zone" + (" (rappel possible)" if inserted.extraction else "") if problem == "" else problem,
+			"enabled": problem == ""})
+	var awaited := Tiltrotor.awaiting_call(tree)
+	if awaited:
+		var problem := awaited.call_problem()
+		options.append({"id": &"extract", "label": "Appeler l'extraction",
+			"detail": "le convertible vient se poser (bruyant)" if problem == "" else problem, "enabled": problem == ""})
+	return options
 
 
 ## Options du menu de bord de `aircraft`, ouvert sur `crew` : la porte
@@ -896,9 +910,12 @@ func _on_radial_chosen(id: StringName) -> void:
 		Sfx.play_ui(&"order" if ok else &"denied")
 		return
 	if _menu_radio:
-		var called := is_instance_valid(_menu_radio) and id == &"extract" and _menu_radio.call_in()
-		_menu_radio = null
-		Sfx.play_ui(&"order" if called else &"denied")
+		_menu_radio = false
+		var aircraft: Tiltrotor = Tiltrotor.awaiting_call(get_tree()) if id == &"extract" else Tiltrotor.dismissable(get_tree())
+		var done := false
+		if aircraft:
+			done = aircraft.call_in() if id == &"extract" else aircraft.dismiss()
+		Sfx.play_ui(&"order" if done else &"denied")
 		return
 	if _menu_aircraft:
 		var aircraft := _menu_aircraft
