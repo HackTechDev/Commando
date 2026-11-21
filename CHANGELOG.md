@@ -1038,3 +1038,10 @@
   - deux gardes au terrain d'extraction.
 - Nouvel objectif de véhicule : `Sabre.stow_objective`, rempli quand le Sabre entre dans la soute d'un convertible. Ici « Faire monter le Sabre dans la soute du convertible d'extraction », exigé avant le départ de l'extraction.
 - La caméra de « Patrouille Sabre » et du « Convoi de nuit » couvre toute la carte (100 m), pour la caméra qui suit le véhicule.
+
+## Raid éclair (9.16)
+
+- « Convoi de nuit » devient un raid. Il faut faire sauter un dépôt de carburant au nord-ouest, gardé par une sentinelle et une ronde, puis ramener le Sabre jusqu'à l'extraction.
+- Nouveau nœud `Reinforcements` : quand un objectif est rempli (ici le dépôt détruit), un compte à rebours s'affiche en haut de l'écran (« Renforts dans 1:59 »). À zéro, quatre soldats en alerte et un pick-up armé arrivent par le nord et foncent vers le dépôt (`Technical.hunt`).
+- Nouvel objectif bonus « Repartir avant l'arrivée des renforts » (`Objectives.OPTIONAL`) : manqué à l'arrivée des renforts, il reste affiché en échec mais ne bloque ni l'extraction ni la réussite.
+- `SabotageTarget.fuel` : variante dépôt de carburant (citerne et fûts). Détruit, il s'embrase dans une explosion secondaire qui s'entend à 70 m, et son lampadaire s'éteint.

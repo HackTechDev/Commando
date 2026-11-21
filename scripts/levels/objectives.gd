@@ -14,6 +14,9 @@ enum Status { PENDING, DONE, FAILED }
 const GROUP := &"objectives"
 ## Objectifs qui ne se remplissent qu'à la réussite des autres.
 const CONDITIONS: Array[String] = ["vip_alive", "no_operator_lost"]
+## Objectifs bonus : leur échec s'affiche mais ne bloque ni l'extraction ni
+## la réussite (repartir avant l'arrivée des renforts, `Reinforcements`).
+const OPTIONAL: Array[String] = ["raid_in_time"]
 ## Intervalle de vérification des ennemis restants.
 const CHECK_INTERVAL := 0.5
 
@@ -63,6 +66,8 @@ func status_of(id: String) -> Status:
 ## remplis, et aucun manqué : l'extraction peut partir.
 func done_except(id: String) -> bool:
 	for entry in entries:
+		if OPTIONAL.has(entry["id"]):
+			continue
 		if entry["status"] == Status.FAILED:
 			return false
 		if entry["id"] != id and entry["status"] == Status.PENDING and not CONDITIONS.has(entry["id"]):
@@ -124,6 +129,8 @@ func _evaluate(announce: String) -> void:
 	if is_over or entries.is_empty():
 		return
 	for entry in entries:
+		if OPTIONAL.has(entry["id"]):
+			continue
 		if entry["status"] == Status.FAILED:
 			return
 		if entry["status"] == Status.PENDING and not CONDITIONS.has(entry["id"]):

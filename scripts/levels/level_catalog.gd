@@ -109,9 +109,11 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Convoi de nuit",
 		"scene": "res://scenes/levels/convoy/convoy.tscn",
-		"description": "De nuit, l'équipe doit ramener son Sabre : le convertible d'extraction ne repartira qu'avec le véhicule dans sa soute. Montez à bord au départ de la piste (sud-ouest) et rejoignez le terrain d'extraction au nord-est. Phares éteints, le Sabre se faufile mais roule moins vite ; allumés, il se voit de loin. Un poste fermé par une barrière garde le tronçon nord : forcez-la (bruit, dégâts) ou envoyez quelqu'un la lever. La piste est minée par endroits : un opérateur à pied devant le véhicule repère les engins. Un pick-up armé tourne à l'est. Au terrain, appelez l'extraction par radio : elle se pose, rampe vers la piste ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre, tout l'équipage à bord.",
+		"description": "Raid éclair de nuit : faire sauter un dépôt de carburant, puis ramener le Sabre jusqu'au convertible d'extraction, qui ne repartira qu'avec le véhicule dans sa soute. Dès que le dépôt saute, un compte à rebours s'affiche : deux minutes plus tard, des renforts (soldats et pick-up armé) arrivent par le nord ; partez avant pour l'objectif bonus. Montez à bord au départ de la piste (sud-ouest) et rejoignez le terrain d'extraction au nord-est. Phares éteints, le Sabre se faufile mais roule moins vite ; allumés, il se voit de loin. Un poste fermé par une barrière garde le tronçon nord : forcez-la (bruit, dégâts) ou envoyez quelqu'un la lever. La piste est minée par endroits : un opérateur à pied devant le véhicule repère les engins. Un pick-up armé tourne à l'est. Au terrain, appelez l'extraction par radio : elle se pose, rampe vers la piste ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre, tout l'équipage à bord.",
 		"camo": "night",
 		"objectives": [
+			{"id": "depot", "text": "Détruire le dépôt de carburant (nord-ouest) avec une charge"},
+			{"id": "raid_in_time", "text": "Bonus : repartir avant l'arrivée des renforts (2 min après le dépôt)"},
 			{"id": "sabre_extracted", "text": "Faire monter le Sabre dans la soute du convertible d'extraction"},
 			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
 			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},

@@ -127,7 +127,6 @@ Dégâts et logistique :
 
 Cartes et missions :
 
-- **9.16 Raid éclair** : objectif chronométré (détruire un dépôt et repartir avant l'arrivée des renforts).
 
 Commandes et confort :
 

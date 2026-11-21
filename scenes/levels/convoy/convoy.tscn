@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -14,6 +14,8 @@
 [ext_resource type="Script" path="res://scripts/enemies/technical.gd" id="technical"]
 [ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
 [ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="tiltrotor"]
+[ext_resource type="Script" path="res://scripts/props/sabotage_target.gd" id="sabotage"]
+[ext_resource type="Script" path="res://scripts/levels/reinforcements.gd" id="reinforcements"]
 
 [sub_resource type="Curve3D" id="patrol_rocks"]
 _data = {
@@ -35,6 +37,13 @@ _data = {
 "tilts": PackedFloat32Array(0, 0, 0)
 }
 point_count = 3
+
+[sub_resource type="Curve3D" id="patrol_depot"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -30, 0, -30, 0, 0, 0, 0, 0, 0, -14, 0, -32, 0, 0, 0, 0, 0, 0, -12, 0, -18, 0, 0, 0, 0, 0, 0, -30, 0, -16, 0, 0, 0, 0, 0, 0, -30, 0, -30),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -168,6 +177,19 @@ improvised = true
 [node name="Mine" type="Node3D" parent="NavigationRegion3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 0, 15)
 script = ExtResource("mine")
+
+[node name="FuelDepot" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -22, 0, -26)
+script = ExtResource("sabotage")
+objective_id = &"depot"
+fuel = true
+lights = NodePath("../../Lamps/Lamp4")
+
+[node name="DepotWall1" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -28, 0, -22)
+
+[node name="DepotWall2" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -16, 0, -22)
 
 [node name="Crate1" parent="NavigationRegion3D" instance=ExtResource("5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, -22)
@@ -332,6 +354,24 @@ light_energy = 2.2
 omni_range = 9.0
 omni_attenuation = 1.4
 
+[node name="Lamp4" type="Node3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19, 0, -29)
+
+[node name="Post" type="MeshInstance3D" parent="Lamps/Lamp4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+mesh = SubResource("post_mesh")
+
+[node name="Bulb" type="MeshInstance3D" parent="Lamps/Lamp4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.05, 0)
+mesh = SubResource("bulb_mesh")
+
+[node name="Light" type="OmniLight3D" parent="Lamps/Lamp4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.9, 0)
+light_color = Color(1, 0.8, 0.52, 1)
+light_energy = 2.2
+omni_range = 9.0
+omni_attenuation = 1.4
+
 [node name="Units" type="Node3D" parent="."]
 
 [node name="Alpha" parent="Units" instance=ExtResource("3")]
@@ -369,6 +409,9 @@ curve = SubResource("patrol_lz")
 [node name="TechLoop" type="Path3D" parent="PatrolPaths"]
 curve = SubResource("tech_loop")
 
+[node name="PatrolDepot" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_depot")
+
 [node name="Enemies" type="Node3D" parent="."]
 
 [node name="RockPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
@@ -395,9 +438,22 @@ patrol_path = NodePath("../../PatrolPaths/PatrolLz")
 transform = Transform3D(-0.9397, 0, -0.342, 0, 1, 0, 0.342, 0, -0.9397, 22, 0, -38)
 stationary = true
 
+[node name="DepotGuard" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-0.9848, 0, -0.1736, 0, 1, 0, 0.1736, 0, -0.9848, -20, 0, -21)
+stationary = true
+
+[node name="DepotPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -30, 0, -30)
+patrol_path = NodePath("../../PatrolPaths/PatrolDepot")
+
 [node name="Technical" type="StaticBody3D" parent="Enemies"]
 transform = Transform3D(-0.9397, 0, -0.342, 0, 1, 0, 0.342, 0, -0.9397, 36, 0, 10)
 script = ExtResource("technical")
 patrol_path = NodePath("../../PatrolPaths/TechLoop")
+
+[node name="Reinforcements" type="Node3D" parent="Enemies"]
+transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -24, 0, -48)
+script = ExtResource("reinforcements")
+target = NodePath("../../NavigationRegion3D/FuelDepot")
 
 [node name="HUD" parent="." instance=ExtResource("6")]

@@ -39,6 +39,8 @@ ext = [
     ('Script', 'res://scripts/enemies/technical.gd', 'technical'),
     ('Script', 'res://scripts/props/hiding_spot.gd', 'hiding'),
     ('Script', 'res://scripts/props/tiltrotor.gd', 'tiltrotor'),
+    ('Script', 'res://scripts/props/sabotage_target.gd', 'sabotage'),
+    ('Script', 'res://scripts/levels/reinforcements.gd', 'reinforcements'),
 ]
 # Piste : du départ (sud-ouest) au terrain d'extraction (nord-est).
 TRACK = [(-36, 46), (-36, 22), (-18, 8), (4, 4), (20, -10), (24, -30), (30, -32)]
@@ -49,6 +51,8 @@ patrols = {
     "patrol_lz": [(16, -44), (40, -46), (40, -26), (16, -44)],
     # Pick-up armé : boucle à l'est de la piste.
     "tech_loop": [(36, 10), (44, -14), (30, -2)],
+    # Ronde autour du dépôt de carburant.
+    "patrol_depot": [(-30, -30), (-14, -32), (-12, -18), (-30, -16), (-30, -30)],
 }
 subs = [curve(cid, pts) for cid, pts in patrols.items()]
 subs.append("""[sub_resource type="Environment" id="env"]
@@ -154,6 +158,11 @@ nodes.append(f'[node name="Hut" parent="{NR}" instance=ExtResource("8")]\ntransf
 # Engin explosif sur le tronçon central.
 nodes.append(f'[node name="Ied" type="Node3D" parent="{NR}"]\ntransform = {tf(12, -3)}\nscript = ExtResource("mine")\nimprovised = true')
 nodes.append(f'[node name="Mine" type="Node3D" parent="{NR}"]\ntransform = {tf(-27, 15)}\nscript = ExtResource("mine")')
+# Raid : dépôt de carburant à l'écart de la piste, au nord-ouest, gardé.
+nodes.append(f'[node name="FuelDepot" type="StaticBody3D" parent="{NR}"]\ntransform = {tf(-22, -26, 0)}\nscript = ExtResource("sabotage")\n'
+             'objective_id = &"depot"\nfuel = true\nlights = NodePath("../../Lamps/Lamp4")')
+for i, (x, z, facing) in enumerate([(-28, -22, 90), (-16, -22, 90)]):
+    nodes.append(f'[node name="DepotWall{i + 1}" parent="{NR}" instance=ExtResource("4")]\ntransform = {tf(x, z, facing)}')
 crates = [(26, -22), (27.3, -22), (-30, 30), (8, 10), (36, -36), (36, -37.3), (-10, -4)]
 for i, (x, z) in enumerate(crates):
     nodes.append(f'[node name="Crate{i + 1}" parent="{NR}" instance=ExtResource("5")]\ntransform = {tf(x, z)}' + ('\nskin = "tex_base/ecrate_dunno.jpg"' if i % 3 == 1 else ""))
@@ -176,7 +185,7 @@ for i, (x, z) in enumerate([(-30, 12), (0, 12), (16, -2), (34, -26)]):
     nodes.append(f'[node name="Bush{i + 1}" type="Node3D" parent="Decor"]\ntransform = {tf(x, z)}\nscript = ExtResource("hiding")\nsize = Vector2(3, 2.4)')
 # Lampadaires du poste et du terrain d'extraction.
 nodes.append('[node name="Lamps" type="Node3D" parent="."]')
-for i, (x, z) in enumerate([(25, -21), (19, -44), (41, -30)]):
+for i, (x, z) in enumerate([(25, -21), (19, -44), (41, -30), (-19, -29)]):
     nodes.append(f'[node name="Lamp{i + 1}" type="Node3D" parent="Lamps"]\ntransform = {tf(x, z)}')
     nodes.append(f'[node name="Post" type="MeshInstance3D" parent="Lamps/Lamp{i + 1}"]\ntransform = {tf(0, 0, y=2)}\nmesh = SubResource("post_mesh")')
     nodes.append(f'[node name="Bulb" type="MeshInstance3D" parent="Lamps/Lamp{i + 1}"]\ntransform = {tf(0, 0, y=4.05)}\nmesh = SubResource("bulb_mesh")')
@@ -198,6 +207,8 @@ enemies = [
     ("Lookout", -4, -9, 200, None, True),
     ("LzPatrol", 16, -44, 90, "PatrolLz", False),
     ("LzGuard", 22, -38, 160, None, True),
+    ("DepotGuard", -20, -21, 170, None, True),
+    ("DepotPatrol", -30, -30, 90, "PatrolDepot", False),
 ]
 for name, x, z, facing, path, still in enemies:
     extra = "\nstationary = true" if still else ""
@@ -207,6 +218,10 @@ for name, x, z, facing, path, still in enemies:
     else:
         nodes.append(f'[node name="{name}" parent="Enemies" instance=ExtResource("7")]\ntransform = {tf(x, z, facing)}' + extra)
 nodes.append(f'[node name="Technical" type="StaticBody3D" parent="Enemies"]\ntransform = {tf(36, 10, 160)}\nscript = ExtResource("technical")\npatrol_path = NodePath("../../PatrolPaths/TechLoop")')
+# Renforts du raid : ils arrivent par le nord, deux minutes après la
+# destruction du dépôt, et foncent vers lui.
+nodes.append(f'[node name="Reinforcements" type="Node3D" parent="Enemies"]\ntransform = {tf(-24, -48, 180)}\nscript = ExtResource("reinforcements")\n'
+             'target = NodePath("../../NavigationRegion3D/FuelDepot")')
 nodes.append('[node name="HUD" parent="." instance=ExtResource("6")]')
 
 text = f"[gd_scene load_steps={len(ext) + len(subs) + 1} format=3]\n\n"

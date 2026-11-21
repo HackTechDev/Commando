@@ -29,6 +29,8 @@ const HEARD_KINDS: Array[StringName] = [&"gunshot", &"explosion", &"distraction"
 const SIGHT := 28.0
 const NIGHT_SIGHT := 13.0
 const SCAN_INTERVAL := 0.3
+## Renforts : distance (m) à laquelle il s'arrête de son but.
+const HUNT_STANDOFF := 8.0
 ## Recherche après le dernier contact (s).
 const SEARCH_TIME := 10.0
 ## Tir : visée avant la première rafale, rafale, cadence, pause, dégâts par
@@ -355,6 +357,18 @@ func _aim_gun(delta: float) -> void:
 		yaw = atan2(-local.x, -local.z)
 	_gun_pivot.rotation.y = lerp_angle(_gun_pivot.rotation.y, yaw, minf(1.0, delta * 5.0))
 	_crew[1].rotation.y = _gun_pivot.rotation.y
+
+
+## Renforts : il fonce vers `at` et fouille longtemps les environs.
+func hunt(at: Vector3) -> void:
+	if is_wrecked:
+		return
+	state = State.CHASE
+	_search_left = SEARCH_TIME * 4.0
+	# Il s'arrête à distance du but (un dépôt, un bâtiment : un obstacle).
+	var back := global_position - at
+	back.y = 0.0
+	_set_goal(at + back.normalized() * HUNT_STANDOFF if back.length() > HUNT_STANDOFF else at)
 
 
 ## Un bruit à portée : il fonce vers lui (sauf s'il tire déjà).
