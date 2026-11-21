@@ -794,6 +794,10 @@ func _update_detection(delta: float) -> void:
 	_target = null
 	for unit in Unit.targets(get_tree()):
 		var zone := _vision.check(unit, state == State.ALERT)
+		# Passager du Sabre, la nuit : phares éteints ou allumés.
+		var rider := unit as Commando
+		if rider and rider.riding:
+			zone = rider.riding.sight_zone(zone, _vision)
 		if zone == VisionComponent.Zone.NONE:
 			continue
 		var distance := global_position.distance_to(unit.global_position)
@@ -809,7 +813,8 @@ func _update_detection(delta: float) -> void:
 			detection = 1.0
 		else:
 			var config := _vision.config
-			var closeness := 1.0 - inverse_lerp(config.near_range, config.far_range, best_distance)
+			# Au-delà de la portée (phares d'un véhicule, la nuit) : au plus lent.
+			var closeness := clampf(1.0 - inverse_lerp(config.near_range, config.far_range, best_distance), 0.0, 1.0)
 			detection += delta / stats.detection_time * lerpf(0.6, 1.6, closeness)
 	elif state == State.ALERT:
 		# Le compte à rebours ne démarre qu'une fois le dernier point connu atteint.

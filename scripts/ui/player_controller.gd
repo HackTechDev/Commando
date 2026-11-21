@@ -759,6 +759,9 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 		options.append({"id": &"drive", "label": "Prendre le volant",
 			"detail": "le véhicule roule au clic droit" if free and moving == "" else (moving if moving != "" else "%s conduit" % sabre.driver().display_name),
 			"enabled": free and moving == ""})
+	if index == Sabre.DRIVER_SEAT and LevelRoot.is_night(sabre):
+		options.append({"id": &"lights", "label": "Éteindre les phares" if sabre.headlights else "Allumer les phares",
+			"detail": "tous feux éteints : plus lent, repéré de près seulement" if sabre.headlights else "pleine vitesse, mais repéré de loin"})
 	if index == Sabre.DRIVER_SEAT:
 		options.append({"id": &"coast", "label": "Relancer le moteur" if sabre.coasting else "Couper le moteur",
 			"detail": ("le moteur s'entend de nouveau" if sabre.coasting else "roue libre silencieuse, %d m/s, %d m" % [int(Sabre.COAST_SPEED), int(Sabre.COAST_RANGE)]) if moving == "" else moving,
@@ -935,6 +938,8 @@ func _on_radial_chosen(id: StringName) -> void:
 					ok = sabre.move_seat(rider, Sabre.GUNNER_SEAT)
 				&"gun":
 					ok = sabre.set_gun_firing(not sabre.gun_firing)
+				&"lights":
+					ok = sabre.set_headlights(not sabre.headlights)
 				&"coast":
 					ok = sabre.set_coasting(not sabre.coasting)
 		Sfx.play_ui(&"order" if ok else &"denied")

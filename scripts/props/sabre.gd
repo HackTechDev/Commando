@@ -26,6 +26,12 @@ extends StaticBody3D
 ## posé et rampe abaissée ; le Sabre redescend la rampe en marche arrière,
 ## puis file vers sa destination.
 ##
+## Conduite de nuit (`headlights`) : tous feux éteints, le Sabre roule
+## moins vite (`NIGHT_DARK_SHARE`) et les sentinelles ne repèrent son
+## équipage que de près (zone proche de leur cône). Phares allumés, il roule
+## à pleine vitesse, mais on le voit de loin (`HEADLIGHT_SIGHT`), et ses
+## phares éclairent la route.
+##
 ## Moteur coupé (`coasting`) : le conducteur avance en roue libre, à
 ## `COAST_SPEED`, sans aucun bruit, sur `COAST_RANGE` m au plus en tout,
 ## jusqu'à ce qu'on relance le moteur.
@@ -41,6 +47,11 @@ const SPEED := 8.0
 const TURN_RATE := 1.8
 const SLOW_SHARE := 0.2
 const WAYPOINT_REACH := 1.4
+## Nuit : vitesse tous feux éteints (part de `SPEED`), distance à laquelle
+## les phares allumés font repérer le véhicule (m), portée des phares (m).
+const NIGHT_DARK_SHARE := 0.55
+const HEADLIGHT_SIGHT := 45.0
+const HEADLIGHT_RANGE := 28.0
 ## Moteur coupé : vitesse en roue libre (m/s) et distance au plus par trajet
 ## (m).
 const COAST_SPEED := 2.0
@@ -112,6 +123,10 @@ var _then: Callable
 var _ramp_tween: Tween
 ## Moteur coupé : roue libre, silencieuse ; distance qui reste (m).
 var coasting: bool = false
+## Phares allumés (de nuit) ; carte de nuit.
+var headlights: bool = false
+var _night: bool = false
+var _lamps: Array[Node3D] = []
 var _coast_left: float = 0.0
 
 
@@ -148,8 +163,70 @@ func _ready() -> void:
 	_gun.spread = GUN_SPREAD
 	_gun.noise = GUN_NOISE
 	_gun.excluded = body_rids
+	_night = LevelRoot.is_night(self)
+	_build_headlights()
 	if not start_stowed_in.is_empty():
 		_stow_at_start.call_deferred()
+
+
+## Phares : deux projecteurs et leurs verres allumés (cachés phares éteints).
+func _build_headlights() -> void:
+	var glow := StandardMaterial3D.new()
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow.albedo_color = Color(1.0, 0.97, 0.85)
+	for side: float in [-1.0, 1.0]:
+		var lamp := Node3D.new()
+		lamp.name = "Headlight"
+		lamp.position = Vector3(side * 0.72, 1.0, -2.49)
+		add_child(lamp)
+		var lens := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(0.21, 0.13, 0.02)
+		lens.mesh = box
+		lens.material_override = glow
+		lamp.add_child(lens)
+		var beam := SpotLight3D.new()
+		beam.light_color = Color(1.0, 0.95, 0.82)
+		beam.light_energy = 5.0
+		beam.spot_range = HEADLIGHT_RANGE
+		beam.spot_angle = 24.0
+		beam.rotation.x = -0.08
+		beam.shadow_enabled = true
+		lamp.add_child(beam)
+		lamp.visible = false
+		_lamps.append(lamp)
+
+
+## Allume ou éteint les phares.
+func set_headlights(on: bool, announce: bool = true) -> bool:
+	headlights = on
+	for lamp in _lamps:
+		lamp.visible = on
+	if announce and driver():
+		driver().flash_message("Phares allumés : repérables de loin" if on else "Phares éteints")
+	return true
+
+
+## Zone de vue dans laquelle une sentinelle (`vision`) voit un passager, en
+## tenant compte de la nuit : tous feux éteints, seulement de près ; phares
+## allumés, aussi de loin (`HEADLIGHT_SIGHT`), quelle que soit la posture.
+func sight_zone(zone: VisionComponent.Zone, vision: VisionComponent) -> VisionComponent.Zone:
+	if not _night:
+		return zone
+	if not headlights:
+		return zone if zone == VisionComponent.Zone.NEAR else VisionComponent.Zone.NONE
+	if zone != VisionComponent.Zone.NONE:
+		return zone
+	var center := global_position + Vector3.UP * 1.2
+	var local := vision.to_local(center)
+	var flat := Vector2(local.x, local.z)
+	if flat.length() > HEADLIGHT_SIGHT or absf(atan2(flat.x, -flat.y)) > deg_to_rad(vision.config.fov_degrees) * 0.5:
+		return VisionComponent.Zone.NONE
+	var eye := vision.global_position + Vector3.UP * vision.config.eye_height
+	var query := PhysicsRayQueryParameters3D.create(eye, center, LAYER_OCCLUDERS, body_rids())
+	if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+		return VisionComponent.Zone.NONE
+	return VisionComponent.Zone.FAR
 
 
 ## Début de mission dans une soute : garé à l'avant, arceau replié.
@@ -639,6 +716,8 @@ func _drive(delta: float) -> void:
 	rotate_y(step)
 	var sharpness := clampf(absf(turn) / 1.2, 0.0, 1.0)
 	var speed := SPEED * lerpf(1.0, SLOW_SHARE, sharpness)
+	if _night and not headlights:
+		speed *= NIGHT_DARK_SHARE
 	if coasting:
 		speed = minf(speed, COAST_SPEED)
 	if _path_index == _path.size() - 1:
@@ -707,7 +786,7 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "coast_left": _coast_left,
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
 
@@ -722,6 +801,7 @@ func load_state(data: Dictionary) -> void:
 		stowed_in.cargo = self
 	model.fold(stowed_in != null)
 	coasting = data.get("coasting", false)
+	set_headlights(data.get("headlights", false), false)
 	_coast_left = data.get("coast_left", COAST_RANGE)
 	global_position = data.get("position", global_position)
 	global_rotation = Vector3(0.0, data.get("yaw", global_rotation.y), 0.0)

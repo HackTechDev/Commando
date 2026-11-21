@@ -913,3 +913,10 @@
 
 - Au volant du Sabre : « Couper le moteur ». Le véhicule avance en roue libre à 2 m/s, sans aucun bruit, sur 15 m au plus en tout ; ensuite « plus d'élan », et il faut « Relancer le moteur » (bruyant) pour rouler de nouveau.
 - La sauvegarde rapide garde l'état du moteur et l'élan restant.
+
+## Phares et conduite de nuit (9.2)
+
+- La nuit, le Sabre roule tous feux éteints : 55 % de sa vitesse, et les sentinelles ne repèrent son équipage que dans la zone proche de leur cône, même le tireur debout à la tourelle.
+- Au volant, de nuit : « Allumer les phares ». Deux projecteurs éclairent la route sur 28 m ; le Sabre roule à pleine vitesse, mais une sentinelle qui le voit le repère jusqu'à 45 m, quelle que soit la posture de l'équipage (`Sabre.sight_zone`).
+- Correction : au-delà de la portée du cône (cas des phares), la détection montait à reculons ; elle monte désormais au plus lent.
+- La sauvegarde rapide garde l'état des phares.
