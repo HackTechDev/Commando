@@ -118,7 +118,6 @@ Idées pour le véhicule léger des forces spéciales (`Sabre`, carte « Patroui
 
 Tactique et discrétion :
 
-- **9.4 Leurre** : laisser tourner le moteur à l'arrêt pour attirer les gardes (bruit `distraction`) pendant que l'équipe contourne à pied.
 
 Armement :
 

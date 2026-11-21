@@ -775,13 +775,17 @@ static func walkers() -> Array[Commando]:
 
 
 ## Options du menu du véhicule pour `units` (à pied) : s'abriter derrière,
-## réparer.
+## moteur au ralenti (leurre, opérateur tout près), réparer.
 static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dictionary]:
 	var nobody := "sélectionnez un opérateur à pied" if units.is_empty() else ""
 	var options: Array[Dictionary] = []
 	var cover := nobody if nobody != "" else sabre.cover_problem()
 	options.append({"id": &"cover", "label": "S'abriter derrière",
 		"detail": "accroupis, côté opposé aux ennemis" if cover == "" else cover, "enabled": cover == ""})
+	var near := units.any(func(unit: Commando) -> bool: return unit.global_position.distance_to(sabre.global_position) <= Sabre.IDLE_REACH)
+	var idle := nobody if nobody != "" else ("trop loin : approchez un opérateur" if not near else ("" if sabre.idling else sabre.idle_problem()))
+	options.append({"id": &"idle", "label": "Couper le ralenti" if sabre.idling else "Moteur au ralenti",
+		"detail": ("le leurre se tait" if sabre.idling else "leurre : le bruit attire les gardes") if idle == "" else idle, "enabled": idle == ""})
 	var repair := nobody if nobody != "" else sabre.repair_problem()
 	options.append({"id": &"repair", "label": "Réparer",
 		"detail": "pneus et moteur, %d s à l'avant" % int(Sabre.REPAIR_TIME) if repair == "" else repair, "enabled": repair == ""})
@@ -803,6 +807,8 @@ func _on_vehicle_order(id: StringName) -> void:
 				if ok:
 					for point in sabre.cover_points(units.size()):
 						_spawn_marker(point, marker_color)
+			&"idle":
+				ok = sabre.set_idling(not sabre.idling)
 			&"repair":
 				var nearest := units[0]
 				for unit in units:
@@ -833,6 +839,11 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 	if index == Sabre.DRIVER_SEAT and LevelRoot.is_night(sabre):
 		options.append({"id": &"lights", "label": "Éteindre les phares" if sabre.headlights else "Allumer les phares",
 			"detail": "tous feux éteints : plus lent, repéré de près seulement" if sabre.headlights else "pleine vitesse, mais repéré de loin"})
+	if index == Sabre.DRIVER_SEAT:
+		var idle := sabre.idle_problem()
+		options.append({"id": &"idle", "label": "Couper le ralenti" if sabre.idling else "Moteur au ralenti",
+			"detail": "le leurre se tait" if sabre.idling else ("leurre : le bruit attire les gardes" if idle == "" else idle),
+			"enabled": sabre.idling or idle == ""})
 	if index == Sabre.DRIVER_SEAT:
 		options.append({"id": &"coast", "label": "Relancer le moteur" if sabre.coasting else "Couper le moteur",
 			"detail": ("le moteur s'entend de nouveau" if sabre.coasting else "roue libre silencieuse, %d m/s, %d m" % [int(Sabre.COAST_SPEED), int(Sabre.COAST_RANGE)]) if moving == "" else moving,
@@ -1016,6 +1027,8 @@ func _on_radial_chosen(id: StringName) -> void:
 					ok = sabre.set_headlights(not sabre.headlights)
 				&"coast":
 					ok = sabre.set_coasting(not sabre.coasting)
+				&"idle":
+					ok = sabre.set_idling(not sabre.idling)
 		Sfx.play_ui(&"order" if ok else &"denied")
 		return
 	if _menu_radio:

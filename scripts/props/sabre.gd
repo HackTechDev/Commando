@@ -43,6 +43,10 @@ extends StaticBody3D
 ## accroupis derrière la caisse, du côté opposé aux ennemis. Les balles qui
 ## les visent à travers le véhicule frappent la carrosserie (`blocks_shot`).
 ##
+## Leurre (`set_idling`) : à l'arrêt, le moteur tourne au ralenti, même
+## sans personne à bord ; son bruit attire les gardes (bruit `distraction`)
+## pendant que l'équipe contourne à pied.
+##
 ## Moteur coupé (`coasting`) : le conducteur avance en roue libre, à
 ## `COAST_SPEED`, sans aucun bruit, sur `COAST_RANGE` m au plus en tout,
 ## jusqu'à ce qu'on relance le moteur.
@@ -76,6 +80,10 @@ const ENGINE_SMOKE := 0.5
 const RIDER_COVER := 0.5
 const REPAIR_TIME := 6.0
 const REPAIR_REACH := 1.4
+## Leurre : intervalle du bruit au ralenti (s), distance (m) à laquelle un
+## opérateur à pied peut lancer ou couper le moteur.
+const IDLE_INTERVAL := 1.5
+const IDLE_REACH := 3.5
 ## Moteur coupé : vitesse en roue libre (m/s) et distance au plus par trajet
 ## (m).
 const COAST_SPEED := 2.0
@@ -147,6 +155,9 @@ var _then: Callable
 var _ramp_tween: Tween
 ## Moteur coupé : roue libre, silencieuse ; distance qui reste (m).
 var coasting: bool = false
+## Moteur au ralenti à l'arrêt (leurre).
+var idling: bool = false
+var _idle_left: float = 0.0
 ## Phares allumés (de nuit) ; carte de nuit.
 var headlights: bool = false
 ## Dégâts : structure restante, pneu crevé, usure du moteur (1 : hors
@@ -538,6 +549,31 @@ func _set_path(target: Vector3) -> String:
 	return ""
 
 
+## Raison pour laquelle on ne peut pas laisser tourner le moteur (vide :
+## c'est possible).
+func idle_problem() -> String:
+	if is_wrecked:
+		return "épave"
+	if engine_damage >= 1.0:
+		return "moteur hors d'usage"
+	if is_driving:
+		return "en route"
+	if stowed_in or slung_by:
+		return "pas au sol"
+	return ""
+
+
+## Laisse tourner le moteur au ralenti (leurre) ou le coupe.
+func set_idling(value: bool) -> bool:
+	if value and idle_problem() != "":
+		return false
+	idling = value
+	_idle_left = 0.0
+	if value:
+		Sfx.play_at(&"clink", global_position + Vector3.UP, -4.0)
+	return true
+
+
 ## Coupe le moteur (roue libre silencieuse) ou le relance.
 func set_coasting(value: bool) -> bool:
 	if is_driving or stowed_in:
@@ -554,6 +590,7 @@ func _begin_driving() -> void:
 	if is_driving:
 		return
 	is_driving = true
+	idling = false
 	_arrived_once = false
 	for unit in crew():
 		unit.stop()
@@ -818,7 +855,21 @@ func _physics_process(delta: float) -> void:
 	else:
 		_update_boarders()
 		_update_repair(delta)
+		_update_idle(delta)
 	_gun.update(delta, gun_firing and gunner() != null and not model.is_folded)
+
+
+## Moteur au ralenti : bruit qui attire les gardes, tant qu'il tourne.
+func _update_idle(delta: float) -> void:
+	if not idling:
+		return
+	if idle_problem() != "":
+		idling = false
+		return
+	_idle_left -= delta
+	if _idle_left <= 0.0:
+		_idle_left = IDLE_INTERVAL
+		EventBus.noise_emitted.emit(global_position, ENGINE_NOISE, &"distraction")
 
 
 # --- Dégâts ----------------------------------------------------------------------
@@ -1127,7 +1178,7 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights,
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling,
 		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
@@ -1150,6 +1201,7 @@ func load_state(data: Dictionary) -> void:
 		is_wrecked = true
 		_set_wreck_look()
 	_show_damage()
+	idling = data.get("idling", false)
 	coasting = data.get("coasting", false)
 	set_headlights(data.get("headlights", false), false)
 	_coast_left = data.get("coast_left", COAST_RANGE)

@@ -650,6 +650,14 @@ func _suspicious(delta: float) -> Vector3:
 		if to_next.length_squared() > 0.0001:
 			_face(to_next, delta)
 			return to_next.normalized() * stats.patrol_speed
+	# Poste fixe : il ne s'en va pas, mais se tourne vers le bruit et le
+	# surveille.
+	if stationary:
+		_face(_last_seen - global_position, delta)
+		_look_left -= delta
+		if _look_left <= 0.0:
+			investigating = false
+		return Vector3.ZERO
 	# Sur place : il balaie les alentours du regard.
 	_look_left -= delta
 	rotation.y += delta * 0.9 * sin(_look_left * 1.6)

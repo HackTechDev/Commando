@@ -936,3 +936,9 @@
 - Menu du véhicule (clic milieu sur le Sabre, opérateurs à pied sélectionnés) : « S'abriter derrière ». Ils se placent côte à côte le long de la caisse, du côté opposé aux ennemis (en alerte ou méfiants, sinon le plus proche), et s'accroupissent.
 - Accroupis derrière, les sentinelles ne les voient pas. Une balle tirée sur quelqu'un à travers le véhicule frappe la carrosserie, qui s'abîme (`Sabre.blocks_shot`, jauge de 9.8).
 - Refusé quand le Sabre roule, est dans une soute ou est élingué.
+
+## Leurre du moteur au ralenti (9.4)
+
+- « Moteur au ralenti » : au volant, ou depuis le menu du véhicule avec un opérateur à pied à moins de 3,5 m. Le Sabre arrêté fait du bruit (24 m, toutes les 1,5 s), même vide : les gardes deviennent méfiants et viennent voir (`distraction`), sans donner l'alerte.
+- Il s'arrête en roulant, si le moteur lâche ou si le véhicule est détruit ; « Couper le ralenti » pour le faire taire.
+- Un garde à poste fixe ne quitte pas sa place pour un bruit, mais se tourne désormais vers lui et le surveille (avant, il balayait au hasard) : le leurre détourne aussi son regard.
