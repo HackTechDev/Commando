@@ -143,6 +143,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Kasbah",
+		"scene": "res://scenes/levels/kasbah/kasbah.tscn",
+		"description": "De jour, en ville. L'équipe commence à bord d'un convertible en vol stationnaire à 30 m au-dessus de la place sud-ouest. Menu de bord : « Déplacer » pour le mener où vous voulez, « Perdre de l'altitude » pour un rappel plus court (mais des rotors qui s'entendent plus loin), puis rappel dans une rue ou sur un toit plat. Renvoyez ensuite l'appareil (menu radio). Un officier, au 2e étage de l'immeuble de bureaux, porte des documents : prenez-les sur son corps. L'immeuble a une terrasse ; pour repartir, appelez l'extraction : elle ne reste que 75 s au-dessus de la terrasse, où l'on se fait treuiller (clic droit sur l'appareil).",
+		"camo": "urban",
+		"objectives": [
+			{"id": "documents", "text": "Rapporter à bord les documents de l'officier (immeuble, 2e étage)"},
+			{"id": "extracted", "text": "Être treuillé depuis la terrasse en moins de 75 s"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

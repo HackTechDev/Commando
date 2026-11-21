@@ -1074,3 +1074,10 @@
 - `tools/mapkit.py` : outils communs aux générateurs (`MapBuilder`). Il couvre le décor (piste, rochers, buissons, caisses, murs, bâtiments, lampadaires, aire de poser), les unités, les ennemis et leurs rondes, les pick-ups, l'appareil ennemi, les renforts, les véhicules et objets de mission. Il gère le jour et la nuit.
 - Nouvelle carte « Oued sec » (`tools/gen_wadi.py`), de jour, en Sabre. Il faut détruire un relais radar retranché (missile antichar, tir désigné ou charge). Sur la piste : un barrage gardé, trois engins (mines et IED), un pick-up armé. À l'arrivée, le Sabre doit monter dans la soute de l'extraction.
 - Vérifié par scénario : chemins du départ au relais et à l'extraction ; un missile tiré à 30 m détruit le relais et remplit l'objectif. La suite GUT n'a pas été lancée.
+
+## Kasbah
+
+- Nouvelle carte « Kasbah » (`tools/gen_kasbah.py`), de jour, en ville. On y emploie l'insertion en vol stationnaire (8.2), le déplacement de l'appareil et le rappel sur les toits (8.4), la hauteur de vol (8.10), les documents d'un officier (8.14) et l'extraction au treuil en temps limité (8.3, 8.17).
+- Disposition : sept maisons à toit plat et un immeuble de bureaux de trois étages (`Tower`). L'officier est au 2e étage ; des gardes occupent le rez-de-chaussée, le 1er étage, la terrasse et un toit voisin. L'extraction attend 75 s au-dessus de la terrasse.
+- `mapkit.add_tower` : immeuble à étages dans les générateurs.
+- Vérifié par scénario : chemins de la place jusqu'au 2e étage et à la terrasse, et retour. La suite GUT n'a pas été lancée.

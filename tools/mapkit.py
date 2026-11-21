@@ -370,3 +370,14 @@ class MapBuilder:
         with open(self.out, "w") as handle:
             handle.write(text)
         print(os.path.relpath(self.out, ROOT), len(nodes), "nœuds")
+
+
+def add_tower(m, name, x, z, storeys=3, size=(14, 10), doors="Vector3(0, 0, 0)", windows=""):
+    """Immeuble à étages (`Tower`) ; renvoie la hauteur du toit."""
+    script = m.script("res://scripts/props/tower.gd")
+    text = (f'[node name="{name}" type="Node3D" parent="NavigationRegion3D"]\ntransform = {tf(x, z)}\nscript = {script}\n'
+            f'storeys = {storeys}\nsize = Vector2({size[0]:g}, {size[1]:g})\ndoors = Array[Vector3]([{doors}])')
+    if windows:
+        text += f"\nwindows = Array[Vector2]([{windows}])"
+    m.nav.append(text)
+    return storeys * 3.2
