@@ -1099,3 +1099,11 @@
 - Nouvelle carte « Pont aérien » (`tools/gen_airlift.py`), de jour. Un ravin infranchissable sépare l'équipe, en vol au nord, de son Sabre resté au sud. Il faut élinguer le véhicule (8.15), lui faire passer le ravin, le larguer, puis le conduire jusqu'au poste d'observation au-delà d'un barrage, d'une mine et d'un pick-up armé.
 - `mapkit.wall_line` : murs de 6 m bout à bout entre deux points.
 - Vérifié par scénario : le ravin coupe bien la navigation ; l'appareil vole au-dessus du Sabre, l'élingue, le largue rive nord, d'où un chemin mène au poste. La suite GUT n'a pas été lancée.
+
+## Ligne de front
+
+- Nouvelle carte « Ligne de front » (`tools/gen_frontline.py`), de jour. Il faut faire sauter un dépôt de munitions au fond d'une zone tenue (tranchées, bunker, poste de commandement, garde à lance-roquettes).
+- 90 s après l'explosion, des renforts arrivent : cinq soldats et un pick-up armé (9.16), avec l'objectif bonus de partir avant eux.
+- Le convertible d'insertion et d'extraction sert de base : ravitaillement en soute (8.12) et évacuation des blessés (8.13).
+- `mapkit.reinforcements` règle le délai, l'effectif et le pick-up.
+- Vérifié par scénario : chemins de la zone de poser au dépôt et au bunker, et du point d'arrivée des renforts au dépôt. La suite GUT n'a pas été lancée.

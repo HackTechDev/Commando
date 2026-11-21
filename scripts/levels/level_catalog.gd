@@ -187,6 +187,18 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Ligne de front",
+		"scene": "res://scenes/levels/frontline/frontline.tscn",
+		"description": "De jour, dans une zone tenue : tranchées, bunker, poste de commandement. Faites sauter le dépôt de munitions au nord-est (chacun a une charge). Dès l'explosion, un compte à rebours s'affiche : 90 s plus tard, cinq soldats en alerte et un pick-up armé arrivent du nord-est ; partez avant pour l'objectif bonus. L'équipe commence en vol stationnaire au sud-ouest ; le convertible emporte trois lots de ravitaillement (menu de bord) et peut évacuer un blessé (moins de 60 % de santé) : il quitte la mission sans compter comme perdu. Renvoyez l'appareil, puis rappelez-le pour l'extraction : il se pose au même endroit.",
+		"camo": "woodland",
+		"objectives": [
+			{"id": "depot", "text": "Faire sauter le dépôt de munitions (nord-est)"},
+			{"id": "raid_in_time", "text": "Bonus : repartir avant l'arrivée des renforts (90 s après le dépôt)"},
+			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
