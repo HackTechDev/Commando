@@ -1093,3 +1093,9 @@
 - Nouvelle carte « Feux éteints » (`tools/gen_blackout.py`), de nuit. Il faut saboter le groupe électrogène d'une station radio, ce qui éteint ses lampadaires.
 - On y emploie le vol tous feux éteints (8.9), l'appareil ennemi à projecteur qui tourne au-dessus de la station (8.18) et la diversion par le convertible pour attirer les sentinelles du portail (8.11). Un garde à lance-roquettes punit l'appareil qui vole trop près (8.8).
 - Vérifié par scénario : chemins de la zone de poser à la station et au groupe électrogène ; rendu de nuit. La suite GUT n'a pas été lancée.
+
+## Pont aérien
+
+- Nouvelle carte « Pont aérien » (`tools/gen_airlift.py`), de jour. Un ravin infranchissable sépare l'équipe, en vol au nord, de son Sabre resté au sud. Il faut élinguer le véhicule (8.15), lui faire passer le ravin, le larguer, puis le conduire jusqu'au poste d'observation au-delà d'un barrage, d'une mine et d'un pick-up armé.
+- `mapkit.wall_line` : murs de 6 m bout à bout entre deux points.
+- Vérifié par scénario : le ravin coupe bien la navigation ; l'appareil vole au-dessus du Sabre, l'élingue, le largue rive nord, d'où un chemin mène au poste. La suite GUT n'a pas été lancée.

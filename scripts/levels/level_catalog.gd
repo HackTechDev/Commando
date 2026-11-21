@@ -176,6 +176,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Pont aérien",
+		"scene": "res://scenes/levels/airlift/airlift.tscn",
+		"description": "De jour. Un ravin infranchissable coupe la carte d'ouest en est. L'équipe commence en vol stationnaire au-dessus de sa zone de poser, rive nord ; son Sabre, vide, attend rive sud. Menu de bord : « Déplacer » au-dessus du véhicule, « Élinguer », puis ramenez-le au nord et « Larguer la charge ». Descendez en rappel, renvoyez l'appareil, et conduisez le Sabre jusqu'au poste d'observation au nord-est (drapeau) : un barrage gardé, une mine et un pick-up armé barrent la route. Rappelez l'appareil pour repartir : il se pose sur sa zone, rive nord.",
+		"camo": "desert",
+		"objectives": [
+			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au poste d'observation (drapeau)"},
+			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
