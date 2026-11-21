@@ -1081,3 +1081,9 @@
 - Disposition : sept maisons à toit plat et un immeuble de bureaux de trois étages (`Tower`). L'officier est au 2e étage ; des gardes occupent le rez-de-chaussée, le 1er étage, la terrasse et un toit voisin. L'extraction attend 75 s au-dessus de la terrasse.
 - `mapkit.add_tower` : immeuble à étages dans les générateurs.
 - Vérifié par scénario : chemins de la place jusqu'au 2e étage et à la terrasse, et retour. La suite GUT n'a pas été lancée.
+
+## Nid de frelons
+
+- Nouvelle carte « Nid de frelons » (`tools/gen_hornets.py`), de jour, sur un plateau rocheux. Il faut neutraliser un camp retranché et ses avant-postes. Trois gardes portent des lance-roquettes, dont un qui en a trois (8.8), et le reste du camp riposte contre l'appareil (8.7).
+- L'équipe commence en vol stationnaire (8.2). L'appui vient de la soute : le canon latéral (8.5) et Alpha à l'Hécate, plus loin grâce à la hauteur (8.6). La soute a trois lots de ravitaillement (8.12). Le même appareil sert à l'extraction.
+- Vérifié par scénario : chemins de la zone de poser au camp et à l'avant-poste ouest. La suite GUT n'a pas été lancée.

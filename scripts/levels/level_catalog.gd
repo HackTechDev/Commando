@@ -154,6 +154,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Nid de frelons",
+		"scene": "res://scenes/levels/hornets/hornets.tscn",
+		"description": "De jour, sur un plateau rocheux. Un camp retranché et ses avant-postes, à neutraliser entièrement. Trois gardes portent des lance-roquettes : deux roquettes abattent le convertible, et ils le visent en priorité dès qu'il passe à moins de 60 m. L'équipe commence en vol stationnaire à 30 m au sud-ouest. Depuis la soute, Alpha tire à l'Hécate plus loin grâce à la hauteur (moins précis juste après un mouvement), et un servant au canon latéral (clic milieu sur un opérateur à bord) arrose ce qui est à droite de l'appareil. La soute emporte trois lots de ravitaillement. Ou bien descendez en rappel loin du camp et approchez à pied ; Bravo a une charge. Renvoyez l'appareil avant de le rappeler pour l'extraction : il se pose au même endroit.",
+		"camo": "desert",
+		"objectives": [
+			{"id": "all_enemies_down", "text": "Neutraliser le camp, ses lance-roquettes et ses avant-postes"},
+			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
