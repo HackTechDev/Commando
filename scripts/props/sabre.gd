@@ -57,6 +57,10 @@ extends StaticBody3D
 ## plateau emportent `supplies` lots ; un opérateur au hayon (ou à bord) y
 ## reprend sa dotation de départ (`Commando.resupply`).
 ##
+## Points de passage (`queue_waypoint`) : la touche de sélection additive
+## (Maj) avec l'ordre de rouler ajoute un point au bout de l'itinéraire ; le
+## véhicule les enchaîne sans s'arrêter. Un ordre simple les remplace.
+##
 ## Escorte : un VIP qui suit un opérateur monté à bord le rejoint et
 ## s'assoit à une place passagère libre (`vip_seats`) ; il descend avec
 ## « Tout le monde descend », ou de lui-même à son arrivée dans la zone
@@ -128,6 +132,8 @@ const BLOCK_GIVE_UP := 3.0
 const BOARD_REACH := 1.3
 ## Ordre dans lequel les places sont prises (indices de `SabreModel.SEATS`).
 const SEAT_ORDER: Array[int] = [0, 2, 3, 4, 1]
+## Points de passage en attente au plus (au-delà, refus).
+const MAX_WAYPOINTS := 8
 ## Places qu'un VIP peut prendre (passagers), par ordre de préférence.
 const VIP_SEAT_ORDER: Array[int] = [4, 3, 2]
 ## Distance au véhicule (m) à laquelle un VIP qui suit un passager monte.
@@ -214,6 +220,10 @@ var stowed_in: Tiltrotor
 var slung_by: Tiltrotor
 ## Suite d'un trajet (montée dans la soute) et manœuvre sur la rampe en cours.
 var _then: Callable
+## Points de passage suivants (après la destination en cours), et leurs
+## repères au sol.
+var waypoints: Array[Vector3] = []
+var _waypoint_marks: Array[Node3D] = []
 var _ramp_tween: Tween
 ## Moteur coupé : roue libre, silencieuse ; distance qui reste (m).
 var coasting: bool = false
@@ -770,6 +780,7 @@ func drive_to(target: Vector3) -> String:
 	var problem := drive_problem()
 	if problem != "":
 		return problem
+	_clear_waypoints()
 	if stowed_in:
 		var aircraft := stowed_in
 		_begin_driving()
@@ -786,6 +797,78 @@ func drive_to(target: Vector3) -> String:
 	_then = Callable()
 	_begin_driving()
 	return ""
+
+
+## Ajoute `target` au bout de l'itinéraire : en route, le véhicule l'atteint
+## après les points déjà prévus ; à l'arrêt, il y part aussitôt.
+func queue_waypoint(target: Vector3) -> String:
+	if not is_driving or stowed_in:
+		return drive_to(target)
+	var problem := drive_problem()
+	if problem != "":
+		return problem
+	if waypoints.size() >= MAX_WAYPOINTS:
+		return "itinéraire complet (%d points)" % MAX_WAYPOINTS
+	waypoints.append(target)
+	_waypoint_marks.append(_make_waypoint_mark(target, waypoints.size() + 1))
+	return ""
+
+
+## Repère au sol d'un point de passage : un disque et son numéro d'ordre.
+func _make_waypoint_mark(at: Vector3, number: int) -> Node3D:
+	var mark := Node3D.new()
+	mark.top_level = true
+	var disc := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.45
+	mesh.bottom_radius = 0.45
+	mesh.height = 0.04
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(0.45, 0.9, 1.0, 0.55)
+	mesh.material = material
+	disc.mesh = mesh
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mark.add_child(disc)
+	var label := Label3D.new()
+	label.text = str(number)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.font_size = 64
+	label.pixel_size = 0.012
+	label.outline_size = 14
+	label.modulate = Color(0.6, 0.95, 1.0)
+	label.position.y = 0.7
+	mark.add_child(label)
+	add_child(mark)
+	mark.global_position = at + Vector3.UP * 0.03
+	return mark
+
+
+## Oublie l'itinéraire (et efface ses repères).
+func _clear_waypoints() -> void:
+	waypoints.clear()
+	for mark in _waypoint_marks:
+		if is_instance_valid(mark):
+			mark.queue_free()
+	_waypoint_marks.clear()
+
+
+## Destination atteinte : cap sur le point de passage suivant. Renvoie faux
+## s'il n'y en a plus (ou plus de chemin).
+func _next_waypoint() -> bool:
+	while not waypoints.is_empty():
+		var target: Vector3 = waypoints.pop_front()
+		var mark: Node3D = _waypoint_marks.pop_front()
+		if is_instance_valid(mark):
+			mark.queue_free()
+		for index in _waypoint_marks.size():
+			var label := _waypoint_marks[index].get_child(1) as Label3D
+			label.text = str(index + 2)
+		if _set_path(target) == "":
+			return true
+	return false
 
 
 ## Chemin de navigation du sol autour du véhicule jusqu'à `target`.
@@ -998,6 +1081,7 @@ func stop_driving() -> void:
 		return
 	is_driving = false
 	_then = Callable()
+	_clear_waypoints()
 	if _ramp_tween:
 		_ramp_tween.kill()
 	_path = PackedVector3Array()
@@ -1048,7 +1132,7 @@ func _drive(delta: float) -> void:
 				var follow := _then
 				_then = Callable()
 				follow.call()
-			else:
+			elif not _next_waypoint():
 				stop_driving()
 		return
 	# Cap vers le point suivant : on braque, et on ralentit d'autant plus que

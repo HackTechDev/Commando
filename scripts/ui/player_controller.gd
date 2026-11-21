@@ -658,7 +658,14 @@ func _order(screen_position: Vector2, run: bool) -> void:
 		var aircraft := collider as Tiltrotor
 		if aircraft == null and collider:
 			aircraft = collider.get_parent() as Tiltrotor
-		var problem := vehicle.load_into(aircraft) if aircraft and aircraft != vehicle.stowed_in else vehicle.drive_to(hit["position"])
+		var problem: String
+		if aircraft and aircraft != vehicle.stowed_in:
+			problem = vehicle.load_into(aircraft)
+		elif Input.is_action_pressed(&"select_additive"):
+			# Maj : point de passage au bout de l'itinéraire.
+			problem = vehicle.queue_waypoint(hit["position"])
+		else:
+			problem = vehicle.drive_to(hit["position"])
 		if problem == "":
 			_spawn_marker(hit["position"], marker_run_color if run else marker_color)
 		else:

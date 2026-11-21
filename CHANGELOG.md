@@ -982,3 +982,9 @@
 - À bord, il suit le véhicule, profite de la nuit (phares éteints) et de l'abri partiel de la caisse comme un opérateur.
 - Il descend avec « Tout le monde descend », ou de lui-même quand le véhicule entre dans la zone d'extraction, ce qui remplit l'objectif d'escorte.
 - La sauvegarde rapide garde les VIP à bord.
+
+## Points de passage du Sabre (9.17)
+
+- Passager sélectionné : Maj (sélection additive) + clic droit ajoute un point au bout de l'itinéraire du Sabre. Le véhicule les enchaîne sans s'arrêter, jusqu'à huit points en attente.
+- Chaque point en attente est marqué au sol par un disque numéroté, effacé quand le véhicule le passe.
+- Un clic droit simple remplace l'itinéraire ; s'arrêter ou une route bloquée l'efface.

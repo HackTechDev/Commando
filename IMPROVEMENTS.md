@@ -135,6 +135,5 @@ Cartes et missions :
 
 Commandes et confort :
 
-- **9.17 Points de passage** : Maj + clic droit pour enchaîner un trajet (contourner un poste par un chemin choisi).
 - **9.18 Rouler et débarquer** : les passagers descendent dès l'arrêt et se dispersent à couvert.
 - **9.19 Caméra qui suit** le véhicule pendant le trajet (option).
