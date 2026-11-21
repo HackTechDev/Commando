@@ -832,3 +832,10 @@
 - En vol stationnaire, porte ouverte : clic droit sur l'appareil avec des opérateurs au sol (ou sur un toit) sélectionnés. Ils rejoignent le pied de la corde et y sont treuillés jusqu'à la soute (`Tiltrotor.request_winch`, 1,8 m/s).
 - Un VIP qui se tient au pied de la corde est treuillé aussi (il suit son escorte).
 - Pendant un treuillage, l'appareil ne se déplace pas et ne se pose pas.
+
+## Hauteur de vol et bruit (8.10)
+
+- Trois paliers de vol stationnaire : 10, 20 et 30 m (« Prendre de l'altitude » / « Perdre de l'altitude » dans le menu de bord, `Tiltrotor.change_altitude`).
+- En vol, les rotors s'entendent en continu (toutes les 2 s en vol stationnaire) au sol sous l'appareil. Le rayon décroît avec la hauteur : 40 m jusqu'au premier palier, 28 m à 20 m, 16 m à 30 m (`rotor_noise_radius`). L'approche de l'appareil d'extraction, à 30 m, est donc plus discrète au début.
+- Plus haut, la corde est plus longue : un rappel depuis 30 m prend environ 14 s.
+- Le menu affiche, pour chaque palier, le rayon du bruit.

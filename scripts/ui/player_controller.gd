@@ -812,6 +812,14 @@ static func aircraft_options(aircraft: Tiltrotor, crew: Commando = null) -> Arra
 		var flying := aircraft.fly_problem()
 		options.append({"id": &"fly", "label": "Déplacer",
 			"detail": "puis clic sur la carte : rampe au-dessus du point" if flying == "" else flying, "enabled": flying == ""})
+		for up: bool in [true, false]:
+			var height := aircraft.next_altitude(up)
+			if height < 0.0:
+				continue
+			var problem := aircraft.fly_problem()
+			var radius := Tiltrotor.ROTOR_NOISE * lerpf(1.0, Tiltrotor.HIGH_NOISE_SHARE, (height - Tiltrotor.HOVER_LEVELS[0]) / (Tiltrotor.HOVER_LEVELS[-1] - Tiltrotor.HOVER_LEVELS[0]))
+			options.append({"id": &"climb" if up else &"descend", "label": "Prendre de l'altitude" if up else "Perdre de l'altitude",
+				"detail": ("%d m : bruit à %d m" % [height, radius]) if problem == "" else problem, "enabled": problem == ""})
 		var landing := aircraft.land_problem()
 		options.append({"id": &"land", "label": "Atterrir", "detail": "avec ceux à bord" if landing == "" else landing,
 			"enabled": landing == ""})
@@ -909,6 +917,8 @@ func _on_radial_chosen(id: StringName) -> void:
 				done = aircraft.land()
 			elif id == &"rappel":
 				done = aircraft.rappel(crew)
+			elif id == &"climb" or id == &"descend":
+				done = aircraft.change_altitude(id == &"climb")
 			elif id == &"fly":
 				arm_aircraft_action(ACTION_FLY, aircraft)
 				return

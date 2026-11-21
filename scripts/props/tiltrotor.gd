@@ -24,7 +24,10 @@ extends StaticBody3D
 ## (`rappel`) le long d'une corde jusqu'au premier sol sous la rampe
 ## (terrain, toit, caisse). En vol stationnaire, l'appareil se déplace
 ## (`fly_to`) : il pivote, vole jusqu'au point visé et s'arrête le bout de la
-## rampe au-dessus ; il ne se pose que sur un terrain plat.
+## rampe au-dessus ; il ne se pose que sur un terrain plat. Il change de
+## palier (`change_altitude`, `HOVER_LEVELS`) : plus il vole haut, moins le
+## bruit des rotors porte au sol (`rotor_noise_radius`), mais plus la corde
+## est longue. En vol, les rotors s'entendent en continu.
 ##
 ## Hélitreuillage (`request_winch`) : porte ouverte en vol stationnaire, un
 ## opérateur au sol (ou sur un toit) rejoint le pied de la corde et y est
@@ -88,6 +91,11 @@ const CLIMB_DISTANCE := 60.0
 ## vitesse de descente en rappel (m/s).
 const HOVER_HEIGHT := 10.0
 const HOVER_TIME := 4.0
+## Paliers de vol stationnaire (m au-dessus du sol), part du bruit des rotors
+## qui porte encore au plus haut, intervalle du bruit en vol stationnaire (s).
+const HOVER_LEVELS: Array[float] = [10.0, 20.0, 30.0]
+const HIGH_NOISE_SHARE := 0.4
+const HOVER_NOISE_INTERVAL := 2.0
 ## Déplacement en vol stationnaire : vitesse (m/s), temps pour pivoter
 ## d'un radian (s), écart toléré entre le centre et les extrémités de
 ## l'appareil pour se poser (m).
@@ -170,6 +178,8 @@ var is_airborne: bool = false
 var is_moving: bool = false
 ## Hauteur du sol sous l'appareil (au décollage).
 var ground_y: float = 0.0
+## Hauteur du vol stationnaire au-dessus de `ground_y` (un des `HOVER_LEVELS`).
+var hover_height: float = HOVER_HEIGHT
 var _rope: MeshInstance3D
 var _rappelling: int = 0
 ## Unités en cours de treuillage, et opérateurs en route vers la corde
@@ -465,7 +475,8 @@ func rise() -> bool:
 	if rise_problem() != "":
 		return false
 	ground_y = global_position.y
-	_move_to_height(ground_y + HOVER_HEIGHT, true)
+	hover_height = HOVER_LEVELS[0]
+	_move_to_height(ground_y + hover_height, true)
 	return true
 
 
@@ -501,9 +512,9 @@ func _move_to_height(height: float, up: bool) -> void:
 	is_moving = true
 	is_airborne = false
 	_carry(passengers())
-	EventBus.noise_emitted.emit(global_position, ROTOR_NOISE, &"help")
+	EventBus.noise_emitted.emit(Vector3(global_position.x, ground_y, global_position.z), rotor_noise_radius(), &"help")
 	_flight = create_tween()
-	if up:
+	if up and model.rotor_speed < FLIGHT_ROTOR_SPEED - 0.01:
 		_flight.tween_property(model, "rotor_speed", FLIGHT_ROTOR_SPEED, SPIN_UP * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_flight.tween_property(self, "global_position:y", height, HOVER_TIME).set_trans(Tween.TRANS_SINE)
 	if not up:
@@ -599,6 +610,39 @@ func _flat_below() -> bool:
 	return true
 
 
+## Rayon (m) du bruit des rotors au sol : plein jusqu'au premier palier, il
+## décroît avec la hauteur jusqu'à `HIGH_NOISE_SHARE` au dernier.
+func rotor_noise_radius() -> float:
+	var floor_y := _landing.y if is_inbound else ground_y
+	var height := global_position.y - floor_y
+	var low := HOVER_LEVELS[0]
+	var high := HOVER_LEVELS[HOVER_LEVELS.size() - 1]
+	return ROTOR_NOISE * lerpf(1.0, HIGH_NOISE_SHARE, clampf((height - low) / (high - low), 0.0, 1.0))
+
+
+## Palier voisin (plus haut si `up`), ou -1 s'il n'y en a pas.
+func next_altitude(up: bool) -> float:
+	var index := HOVER_LEVELS.find(hover_height)
+	if index < 0:
+		index = 0
+	index += 1 if up else -1
+	return HOVER_LEVELS[index] if index >= 0 and index < HOVER_LEVELS.size() else -1.0
+
+
+## Monte (`up`) ou descend d'un palier en vol stationnaire. Renvoie faux si
+## c'est impossible.
+func change_altitude(up: bool) -> bool:
+	var height := next_altitude(up)
+	if height < 0.0 or fly_problem() != "":
+		return false
+	if _rope:
+		_rope.queue_free()
+		_rope = null
+	hover_height = height
+	_move_to_height(ground_y + hover_height, true)
+	return true
+
+
 ## Raison pour laquelle l'appareil ne peut pas se déplacer (vide : c'est
 ## possible).
 func fly_problem() -> String:
@@ -627,7 +671,7 @@ func fly_to(point: Vector3) -> bool:
 	var turn := wrapf(yaw - global_rotation.y, -PI, PI)
 	var goal := point - Basis(Vector3.UP, yaw) * Vector3(0, 0, TiltrotorModel.RAMP_END * SCALE)
 	var below := _surface_below(Vector3(goal.x, global_position.y, goal.z), Vector3(goal.x, ground_y, goal.z))
-	var height := global_position.y - ground_y
+	var height := hover_height
 	goal.y = maxf(point.y, below.y) + height
 	is_moving = true
 	is_airborne = false
@@ -1130,13 +1174,13 @@ func _physics_process(delta: float) -> void:
 		_update_winch()
 	_revealed_left = maxf(_revealed_left - delta, 0.0)
 	_update_strobe(delta)
-	if is_inbound or is_moving:
+	if (is_inbound or is_moving or is_airborne) and not is_destroyed:
 		# Bruit des rotors au sol sous l'appareil : les ennemis accourent.
 		_noise_left -= delta
 		if _noise_left <= 0.0:
-			_noise_left = APPROACH_NOISE_INTERVAL
+			_noise_left = HOVER_NOISE_INTERVAL if is_airborne else APPROACH_NOISE_INTERVAL
 			var floor_y := _landing.y if is_inbound else ground_y
-			EventBus.noise_emitted.emit(Vector3(global_position.x, floor_y, global_position.z), ROTOR_NOISE, &"help")
+			EventBus.noise_emitted.emit(Vector3(global_position.x, floor_y, global_position.z), rotor_noise_radius(), &"help")
 	if is_flying or is_away or is_inbound:
 		return
 	_check_left -= delta
@@ -1204,7 +1248,7 @@ func destroy() -> void:
 ## Sauvegarde rapide (`QuickSave`).
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
-		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y,
+		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y, "hover_height": hover_height,
 		"away": is_away or is_inbound, "structure": structure, "disabled": is_disabled}
 
 
@@ -1230,6 +1274,7 @@ func load_state(data: Dictionary) -> void:
 			is_moving = false
 		global_position = saved_position
 		global_rotation.y = data.get("yaw", global_rotation.y)
+	hover_height = data.get("hover_height", HOVER_HEIGHT)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	structure = data.get("structure", STRUCTURE)
@@ -1243,7 +1288,7 @@ func load_state(data: Dictionary) -> void:
 	if airborne != is_airborne and not is_moving:
 		ground_y = data.get("ground_y", ground_y if is_airborne else global_position.y)
 		if saved_position == Vector3.INF:
-			global_position.y = ground_y + (HOVER_HEIGHT if airborne else 0.0)
+			global_position.y = ground_y + (hover_height if airborne else 0.0)
 		is_airborne = airborne
 		model.rotor_speed = FLIGHT_ROTOR_SPEED if airborne else rotor_speed
 		if _rope and not airborne:

@@ -125,7 +125,6 @@ Combat :
 
 Discrétion :
 
-- **8.10 Hauteur et bruit** : plus il vole haut, moins le bruit porte (rayon `ROTOR_NOISE` selon la hauteur), mais plus le rappel est long.
 - **8.11 Diversion** : faire passer l'appareil d'un côté de la carte pour attirer les sentinelles pendant que l'équipe s'infiltre de l'autre.
 
 Logistique :
