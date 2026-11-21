@@ -20,7 +20,7 @@ const SECTIONS: Array = [
 		[["Clic milieu sur un opérateur au sol"], "Radio : renvoyer l'appareil, diversion, appeler l'extraction"],
 		[["Clic droit sur le Sabre"], "Monter à bord (cinq places)"],
 		[["Clic droit au sol, passager du Sabre"], "Rouler jusque-là (il faut quelqu'un au volant)"],
-		[["Clic milieu sur un passager du Sabre"], "Descendre, volant, tourelle, feu de la 12,7"],
+		[["Clic milieu sur un passager du Sabre"], "Descendre, volant, tourelle, 12,7, couper le moteur"],
 		[["Clic droit sur le convertible, passager du Sabre"], "Garer le Sabre dans la soute (rampe abaissée)"],
 		[["Clic droit sur un toit"], "Y monter par l'échelle, enjamber les murets"],
 		[[&"posture_crouch", &"posture_prone"], "Accroupi / rampé"],

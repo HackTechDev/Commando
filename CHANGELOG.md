@@ -908,3 +908,8 @@
 - Sous lui, un cercle au sol montre ce qu'il voit : de jour, 10 m de rayon sous et devant l'appareil ; de nuit, la tache de son projecteur (7 m), qui balaie de part et d'autre.
 - Un opérateur à découvert dans le cercle (ni dans une cachette, ni sous un toit, ni masqué par un mur) est repéré en 0,5 s : le cercle rougit, puis l'alerte part autour de lui (45 m) et les gardes accourent. Ensuite, 10 s avant une nouvelle alerte.
 - Hors d'atteinte : on l'évite. « Nuit sans lune » en a un, qui tourne au-dessus du dépôt.
+
+## Moteur coupé (9.1)
+
+- Au volant du Sabre : « Couper le moteur ». Le véhicule avance en roue libre à 2 m/s, sans aucun bruit, sur 15 m au plus en tout ; ensuite « plus d'élan », et il faut « Relancer le moteur » (bruyant) pour rouler de nouveau.
+- La sauvegarde rapide garde l'état du moteur et l'élan restant.

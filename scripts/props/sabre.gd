@@ -26,6 +26,10 @@ extends StaticBody3D
 ## posé et rampe abaissée ; le Sabre redescend la rampe en marche arrière,
 ## puis file vers sa destination.
 ##
+## Moteur coupé (`coasting`) : le conducteur avance en roue libre, à
+## `COAST_SPEED`, sans aucun bruit, sur `COAST_RANGE` m au plus en tout,
+## jusqu'à ce qu'on relance le moteur.
+##
 ## Repère : celui du modèle (avant vers -Z, posé au sol).
 
 const GROUP := &"sabres"
@@ -37,6 +41,10 @@ const SPEED := 8.0
 const TURN_RATE := 1.8
 const SLOW_SHARE := 0.2
 const WAYPOINT_REACH := 1.4
+## Moteur coupé : vitesse en roue libre (m/s) et distance au plus par trajet
+## (m).
+const COAST_SPEED := 2.0
+const COAST_RANGE := 15.0
 ## Bruit du moteur en marche (rayon, intervalle en s).
 const ENGINE_NOISE := 24.0
 const NOISE_INTERVAL := 1.0
@@ -102,6 +110,9 @@ var slung_by: Tiltrotor
 ## Suite d'un trajet (montée dans la soute) et manœuvre sur la rampe en cours.
 var _then: Callable
 var _ramp_tween: Tween
+## Moteur coupé : roue libre, silencieuse ; distance qui reste (m).
+var coasting: bool = false
+var _coast_left: float = 0.0
 
 
 func _enter_tree() -> void:
@@ -347,6 +358,8 @@ func drive_problem() -> String:
 		return "manœuvre en cours"
 	if stowed_in:
 		return _ramp_problem(stowed_in)
+	if coasting and _coast_left <= 0.0:
+		return "plus d'élan : relancer le moteur"
 	return ""
 
 
@@ -407,6 +420,17 @@ func _set_path(target: Vector3) -> String:
 	_path_index = 1
 	_blocked_left = BLOCK_GIVE_UP
 	return ""
+
+
+## Coupe le moteur (roue libre silencieuse) ou le relance.
+func set_coasting(value: bool) -> bool:
+	if is_driving or stowed_in:
+		return false
+	coasting = value
+	_coast_left = COAST_RANGE
+	if driver():
+		driver().flash_message("Moteur coupé : roue libre (%d m)" % int(COAST_RANGE) if value else "Moteur relancé")
+	return true
 
 
 ## En route : les passagers sont emportés, physique suspendue.
@@ -581,7 +605,7 @@ func _drive(delta: float) -> void:
 		stop_driving()
 		return
 	_noise_left -= delta
-	if _noise_left <= 0.0:
+	if _noise_left <= 0.0 and not (coasting and not is_maneuvering()):
 		_noise_left = NOISE_INTERVAL
 		EventBus.noise_emitted.emit(global_position, ENGINE_NOISE, &"distraction")
 	if is_maneuvering() or _path_index >= _path.size():
@@ -615,9 +639,17 @@ func _drive(delta: float) -> void:
 	rotate_y(step)
 	var sharpness := clampf(absf(turn) / 1.2, 0.0, 1.0)
 	var speed := SPEED * lerpf(1.0, SLOW_SHARE, sharpness)
+	if coasting:
+		speed = minf(speed, COAST_SPEED)
 	if _path_index == _path.size() - 1:
 		speed = minf(speed, maxf(to_next.length() * 1.5, 1.5))
 	var distance := speed * delta
+	if coasting:
+		_coast_left -= distance
+		if _coast_left <= 0.0:
+			driver().flash_message("Plus d'élan : relancer le moteur")
+			stop_driving()
+			return
 	global_position += -global_basis.z * distance
 	global_position.y = lerpf(global_position.y, _ground_height(), minf(1.0, delta * 4.0))
 	_steer = lerpf(_steer, clampf(turn, -0.5, 0.5), minf(1.0, delta * 6.0))
@@ -675,7 +707,7 @@ func save_state() -> Dictionary:
 	var names: Array[String] = []
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
-	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing,
+	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
 
@@ -689,6 +721,8 @@ func load_state(data: Dictionary) -> void:
 	if stowed_in:
 		stowed_in.cargo = self
 	model.fold(stowed_in != null)
+	coasting = data.get("coasting", false)
+	_coast_left = data.get("coast_left", COAST_RANGE)
 	global_position = data.get("position", global_position)
 	global_rotation = Vector3(0.0, data.get("yaw", global_rotation.y), 0.0)
 	_restore_crew.call_deferred(data.get("seats", []), data.get("gun", false))

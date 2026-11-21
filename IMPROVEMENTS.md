@@ -118,7 +118,6 @@ Idées pour le véhicule léger des forces spéciales (`Sabre`, carte « Patroui
 
 Tactique et discrétion :
 
-- **9.1 Moteur coupé** : ordre « Couper le moteur » pour avancer lentement (2 m/s) en roue libre, sans bruit, sur une courte distance.
 - **9.2 Phares et conduite de nuit** : la nuit, le Sabre roule tous feux éteints et n'est repéré que de près, comme le convertible (8.9). Phares allumés, il roule plus vite mais se voit de loin, et le cône des phares éclaire les ennemis.
 - **9.3 Le véhicule comme couvert** : à l'arrêt, des opérateurs à pied s'abritent derrière la caisse, accroupis. La carrosserie arrête les balles mais s'abîme (lié à 9.8).
 - **9.4 Leurre** : laisser tourner le moteur à l'arrêt pour attirer les gardes (bruit `distraction`) pendant que l'équipe contourne à pied.

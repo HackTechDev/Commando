@@ -759,6 +759,10 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 		options.append({"id": &"drive", "label": "Prendre le volant",
 			"detail": "le véhicule roule au clic droit" if free and moving == "" else (moving if moving != "" else "%s conduit" % sabre.driver().display_name),
 			"enabled": free and moving == ""})
+	if index == Sabre.DRIVER_SEAT:
+		options.append({"id": &"coast", "label": "Relancer le moteur" if sabre.coasting else "Couper le moteur",
+			"detail": ("le moteur s'entend de nouveau" if sabre.coasting else "roue libre silencieuse, %d m/s, %d m" % [int(Sabre.COAST_SPEED), int(Sabre.COAST_RANGE)]) if moving == "" else moving,
+			"enabled": moving == "" and sabre.stowed_in == null})
 	if index == Sabre.GUNNER_SEAT:
 		options.append({"id": &"gun", "label": "12,7 : cesser le feu" if sabre.gun_firing else "12,7 : feu à volonté",
 			"detail": "la mitrailleuse se tait" if sabre.gun_firing else "tir automatique tout autour (bruyant)"})
@@ -931,6 +935,8 @@ func _on_radial_chosen(id: StringName) -> void:
 					ok = sabre.move_seat(rider, Sabre.GUNNER_SEAT)
 				&"gun":
 					ok = sabre.set_gun_firing(not sabre.gun_firing)
+				&"coast":
+					ok = sabre.set_coasting(not sabre.coasting)
 		Sfx.play_ui(&"order" if ok else &"denied")
 		return
 	if _menu_radio:
