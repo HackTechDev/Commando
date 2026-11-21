@@ -22,8 +22,9 @@ enum ThrowObject { KNIFE, GRENADE, SMOKE, PEBBLE, NONE }
 enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH, DISARM, HATCHET_CHOP }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 ## Corde verticale sous un appareil en vol : glissade vers le sol
-## (`FAST_ROPE`) ou montée pendu au crochet du treuil (`HOIST`).
-enum RopeMove { NONE, FAST_ROPE, HOIST }
+## (`FAST_ROPE`), montée main après main (`CLIMB`, opérateurs) ou pendu au
+## crochet du treuil (`HOIST`, VIP).
+enum RopeMove { NONE, FAST_ROPE, HOIST, CLIMB }
 
 # Images clés de l'escalade, par paires (instant 0..1, valeur), calculées pour
 # une caisse de 1,2 m sans que les membres ne traversent la caisse ni le sol
@@ -485,6 +486,14 @@ const HIP_HEIGHT := 0.92
 ## plus haute (pour accrocher l'unité sous le point d'attache de la corde).
 const ROPE_GAP := 0.24
 const ROPE_HAND_HEIGHT := 1.86
+## Montée main après main : une main serre la corde du bras tendu
+## (`ROPE_HAND_HEIGHT`) jusqu'au ventre (`ROPE_PULL_LOW`, repère du
+## torse) pendant `ROPE_GRIP_SHARE` du cycle, puis lâche et reprend plus
+## haut ; l'autre main suit à une demi-période. Un cycle fait monter le
+## corps de la course d'une main divisée par cette part, de sorte que la
+## main serrée reste immobile sur la corde.
+const ROPE_PULL_LOW := 0.3
+const ROPE_GRIP_SHARE := 0.8
 const THIGH_LENGTH := 0.44
 const UPPER_ARM_LENGTH := 0.29
 const FOREARM_LENGTH := 0.29
@@ -593,7 +602,10 @@ var climb_jump: bool = false
 var ladder_phase: float = -1.0
 ## Sur une corde verticale (rappel, treuil) : pose et balancement, pilotés
 ## par l'appareil. La corde passe à `ROPE_GAP` m devant la poitrine.
-var rope_move: RopeMove = RopeMove.NONE
+var rope_move: RopeMove = RopeMove.NONE:
+	set(value):
+		rope_move = value
+		_rope_last_y = NAN
 ## Vrai si le modèle porte sa carabine ; sans arme, les bras pendent le long du corps.
 var is_armed: bool = true
 ## Mains en l'air (désarmé, il se rend).
@@ -725,6 +737,10 @@ var _hand_pebble: Node3D
 ## du pistolet tenu à deux mains).
 var _left_grip: Vector3 = LEFT_GRIP
 var _lean: float = 0.0
+## Montée à la corde : avancement du cycle (une unité par cycle) et dernière
+## hauteur vue, pour caler le geste sur la montée réelle.
+var _rope_climb: float = 0.0
+var _rope_last_y: float = NAN
 var _torso_yaw: float = 0.0
 var _aim_weight: float = 0.0
 var _aim_hold: float = 0.0
@@ -2176,17 +2192,28 @@ func _animate_ladder(delta: float) -> void:
 ## - glissade (`FAST_ROPE`) : main droite haute, main gauche à hauteur du
 ##   menton, jambes croisées autour de la corde (pied droit devant, qui
 ##   freine), regard vers le sol ; le corps vibre un peu en glissant ;
-## - treuil (`HOIST`) : pendu au crochet, les deux mains serrées au-dessus
-##   de la tête, jambes ballantes qui oscillent, regard vers l'appareil ; le
-##   corps se balance lentement sous la corde.
+## - montée main après main (`CLIMB`) : chaque main serre la corde et
+##   descend jusqu'au ventre pendant que le corps monte, puis lâche et va
+##   reprendre plus haut, en alternance ; les genoux remontent à tour de
+##   rôle pour pousser sur la corde, regard vers l'appareil ;
+## - pendu au treuil (`HOIST`) : les deux mains serrées au-dessus de la
+##   tête, jambes ballantes qui oscillent, balancement lent.
 func _animate_rope(delta: float) -> void:
 	_transition_duration = 0.0
 	var blend := 1.0 - exp(-12.0 * delta)
 	var hoist := rope_move == RopeMove.HOIST
+	var climb := rope_move == RopeMove.CLIMB
+	var high := ROPE_HAND_HEIGHT - HIP_HEIGHT
+	if climb:
+		var y := global_position.y
+		if not is_nan(_rope_last_y):
+			_rope_climb += maxf(y - _rope_last_y, 0.0) * ROPE_GRIP_SHARE / (high - ROPE_PULL_LOW)
+		_rope_last_y = y
 	var sway := sin(_time * (1.3 if hoist else 2.6))
 	var swing := sin(_time * 1.9 + 0.8)
+	var push := sin(_rope_climb * TAU)
 	_body.rotation.x = lerp_angle(_body.rotation.x, (0.05 * swing) if hoist else 0.0, blend)
-	_body.rotation.z = lerp_angle(_body.rotation.z, sway * (0.07 if hoist else 0.025), blend)
+	_body.rotation.z = lerp_angle(_body.rotation.z, sway * (0.07 if hoist else 0.025) + (0.04 * push if climb else 0.0), blend)
 	_body.position = _body.position.lerp(Vector3.ZERO, blend)
 	_hips.rotation.y = 0.0
 	_hips.position.y = HIP_HEIGHT
@@ -2196,34 +2223,59 @@ func _animate_rope(delta: float) -> void:
 		# Jambes pendantes, un peu fléchies, qui se balancent à contretemps.
 		legs = [Vector3(0.18 + 0.12 * swing, 0.0, 0.04), Vector3(0.12 - 0.12 * swing, 0.0, -0.04)]
 		knees = Vector2(-0.3 - 0.15 * swing, -0.25 + 0.15 * swing)
+	elif climb:
+		# Cuisses serrées autour de la corde ; chaque genou remonte quand la
+		# main du même côté tire.
+		legs = [Vector3(0.45 + 0.3 * push, 0.0, 0.12), Vector3(0.45 - 0.3 * push, 0.0, -0.12)]
+		knees = Vector2(-0.7 - 0.45 * push, -0.7 + 0.45 * push)
 	else:
 		# Corde prise entre les jambes : pied droit devant, pied gauche derrière
 		# la corde, cuisses resserrées.
 		legs = [Vector3(0.32, 0.0, 0.12), Vector3(0.55, 0.0, -0.12)]
 		knees = Vector2(-0.55, -0.75)
-	_leg_l.rotation = _leg_l.rotation.lerp(legs[0], blend)
-	_leg_r.rotation = _leg_r.rotation.lerp(legs[1], blend)
-	_knee_l.rotation.x = lerpf(_knee_l.rotation.x, knees.x, blend)
-	_knee_r.rotation.x = lerpf(_knee_r.rotation.x, knees.y, blend)
+	var leg_blend := 1.0 if climb else blend
+	_leg_l.rotation = _leg_l.rotation.lerp(legs[0], leg_blend)
+	_leg_r.rotation = _leg_r.rotation.lerp(legs[1], leg_blend)
+	_knee_l.rotation.x = lerpf(_knee_l.rotation.x, knees.x, leg_blend)
+	_knee_r.rotation.x = lerpf(_knee_r.rotation.x, knees.y, leg_blend)
 	# Pointes de pied tendues vers le bas, sans chercher le sol.
 	_ankle_l.rotation.x = lerpf(_ankle_l.rotation.x, ANKLE_MIN * 0.6, blend)
 	_ankle_r.rotation.x = lerpf(_ankle_r.rotation.x, ANKLE_MIN * 0.6, blend)
 	_torso.rotation = Vector3(0.0, 0.0, 0.0)
 	_lean = 0.0
 	_torso_yaw = 0.0
-	_head.rotation = _head.rotation.lerp(Vector3(0.35 if hoist else -0.45, 0.0, 0.0), blend)
+	_head.rotation = _head.rotation.lerp(Vector3(0.35 if hoist or climb else -0.45, 0.0, 0.0), blend)
 	_sling = move_toward(_sling, 1.0 if is_armed else 0.0, delta / SLING_TIME)
 	_rifle.transform = _sling_transform(_rifle_hold, _sling)
 	_rifle_base = _rifle.transform
-	var high := ROPE_HAND_HEIGHT - HIP_HEIGHT
 	var left := Vector3(-0.03, high - (0.1 if hoist else 0.3), -ROPE_GAP)
 	var right := Vector3(0.03, high, -ROPE_GAP)
+	var curl := Vector2(0.95, 0.95)
+	if climb:
+		var left_hand := _rope_hand(_rope_climb)
+		var right_hand := _rope_hand(_rope_climb + 0.5)
+		left = Vector3(-0.04, left_hand.x, -ROPE_GAP - left_hand.y)
+		right = Vector3(0.04, right_hand.x, -ROPE_GAP - right_hand.y)
+		curl = Vector2(left_hand.z, right_hand.z)
 	var pose := _solve_arms(left, right)
 	for i in _arm_joints.size():
 		_arm_joints[i].quaternion = pose[i]
-	effort = 0.7 if hoist else 0.5
+	effort = 0.9 if climb else (0.7 if hoist else 0.5)
 	pain = 0.0
-	_animate_fingers(Vector2(0.95, 0.95), delta)
+	_animate_fingers(curl, delta)
+
+
+## Main sur la corde à l'instant `phase` du cycle de montée : (hauteur dans
+## le repère du torse, écart en avant de la corde, fermeture des doigts).
+## Serrée, elle descend du haut vers le ventre ; libre, elle remonte en
+## s'écartant un peu de la corde pour passer devant l'autre main.
+func _rope_hand(phase: float) -> Vector3:
+	var high := ROPE_HAND_HEIGHT - HIP_HEIGHT
+	var u := fposmod(phase, 1.0)
+	if u < ROPE_GRIP_SHARE:
+		return Vector3(lerpf(high, ROPE_PULL_LOW, u / ROPE_GRIP_SHARE), 0.0, 0.95)
+	var r := (u - ROPE_GRIP_SHARE) / (1.0 - ROPE_GRIP_SHARE)
+	return Vector3(lerpf(ROPE_PULL_LOW, high, smoothstep(0.0, 1.0, r)), 0.09 * sin(r * PI), 0.25 if r < 0.85 else 0.9)
 
 
 ## Doigts pendant l'escalade : ouverts pour attraper et prendre appui,

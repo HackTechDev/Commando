@@ -1142,3 +1142,11 @@
 - Placement : sur la corde, l'unité fait face à l'appareil, la corde à 24 cm devant la poitrine (`SoldierModel.ROPE_GAP`), les mains sous le point d'attache. Un opérateur accroupi ou couché se relève avant de descendre.
 - `SoldierModel.rope_move` (`FAST_ROPE`, `HOIST`) pilote la pose. Le modèle continue de s'animer pendant le trajet, alors que l'unité a son traitement suspendu, sauf quand le jeu est en pause.
 - Vérifié par scénario et rendus rapprochés : rappel à 10 m (pose de glissade jusqu'au sol, puis pose normale), treuillage (pose pendue pendant la montée, normale à bord). La suite GUT n'a pas été lancée.
+
+## Montée à la corde main après main
+
+- Au treuil, un opérateur grimpe désormais main après main. Une main serre la corde, bras tendu, et descend jusqu'au ventre pendant que le corps monte ; puis elle lâche, s'ouvre et va reprendre plus haut, en s'écartant de la corde pour passer devant l'autre. Les deux mains alternent à une demi-période d'écart.
+- Les jambes serrent la corde, et chaque genou remonte quand la main du même côté tire. Le regard est tourné vers l'appareil.
+- Le geste est calé sur la hauteur réellement gagnée (`SoldierModel.ROPE_PULL_LOW`, `ROPE_GRIP_SHARE`) : la main serrée reste immobile sur la corde, à 3 cm près.
+- Aidé par le treuil, l'opérateur monte à 1,2 m/s (`Tiltrotor.CLIMB_SPEED`), soit environ trois prises par seconde. Le VIP reste hissé pendu au crochet, à 1,8 m/s.
+- Vérifié par scénario : hauteur des mains mesurée pendant la montée, et rendus successifs. La suite GUT n'a pas été lancée.

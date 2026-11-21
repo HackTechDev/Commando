@@ -146,6 +146,9 @@ const SETTLE_TIME := 4.0
 ## Hélitreuillage : vitesse de montée (m/s), distance au pied de la corde
 ## (à plat, en hauteur) à laquelle on est accroché.
 const WINCH_SPEED := 1.8
+## Montée d'un opérateur à la corde, main après main, aidé par le treuil
+## (m/s) : plus lente que le treuil seul, qui hisse un VIP à `WINCH_SPEED`.
+const CLIMB_SPEED := 1.2
 const WINCH_REACH := 1.3
 const WINCH_HEIGHT := 1.2
 const RAPPEL_SPEED := 2.5
@@ -912,13 +915,15 @@ func _hoist(unit: CharacterBody3D) -> void:
 	var seat := cabin_point(passengers().size() + _winching)
 	Sfx.play_at(&"clink", foot + Vector3.UP, -4.0)
 	var out := _rope_out()
-	_grab_rope(unit, SoldierModel.RopeMove.HOIST, out)
-	# Pendu au crochet, mains sous le point d'attache, puis hissé sur la rampe.
+	# Un opérateur grimpe main après main (le treuil l'aide : même vitesse) ;
+	# un VIP pend au crochet. Puis hissé sur la rampe.
+	_grab_rope(unit, SoldierModel.RopeMove.CLIMB if unit is Commando else SoldierModel.RopeMove.HOIST, out)
 	var hooked := Vector3(foot.x, unit.global_position.y, foot.z) + out * SoldierModel.ROPE_GAP
 	var top := tip + out * SoldierModel.ROPE_GAP + Vector3.DOWN * (SoldierModel.ROPE_HAND_HEIGHT - 0.1)
 	var lift := create_tween()
 	lift.tween_property(unit, "global_position", hooked, 0.3)
-	lift.tween_property(unit, "global_position", top, maxf(top.y - hooked.y, 0.5) / WINCH_SPEED).set_trans(Tween.TRANS_SINE)
+	var speed := CLIMB_SPEED if unit is Commando else WINCH_SPEED
+	lift.tween_property(unit, "global_position", top, maxf(top.y - hooked.y, 0.5) / speed)
 	lift.tween_callback(func() -> void: _grab_rope(unit, SoldierModel.RopeMove.NONE, out))
 	lift.tween_property(unit, "global_position", tip + Vector3.UP * 0.05, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	lift.tween_property(unit, "global_position", seat, clampf(tip.distance_to(seat) / 3.0, 0.4, 2.5))
