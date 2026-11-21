@@ -1442,6 +1442,7 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	# bâtiment vu en coupe laissent passer les clics vers l'intérieur.
 	while not hit.is_empty() and (Roof.is_revealed_body(hit["collider"], hit["position"]) \
 			or Building.is_revealed_body(hit["collider"], hit["position"]) \
+			or Tower.is_revealed_body(hit["collider"], hit["position"]) \
 			or Tiltrotor.is_revealed_body(hit["collider"])):
 		query.exclude += [hit["rid"]]
 		hit = space.intersect_ray(query)

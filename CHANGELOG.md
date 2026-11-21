@@ -1051,3 +1051,20 @@
 - Chaque carte de la liste n'affiche plus que trois lignes de description (texte complet en infobulle) : les descriptions longues des dernières missions faisaient qu'une seule carte tenait à l'écran.
 - La description complète s'affiche dans la préparation de la mission (défilante si elle est longue).
 - La liste occupe toute la hauteur disponible de la fenêtre, titre et boutons compris.
+
+## La Tour : immeuble à cinq étages
+
+- Nouvel élément `Tower` (`scripts/props/tower.gd`) : un immeuble de plusieurs étages (cinq par défaut, 3,2 m chacun), avec un toit-terrasse accessible bordé d'un parapet. Ses dalles sont solides : elles arrêtent la vue et les balles. Il a des fenêtres à chaque étage, et des portes (dont une verrouillée) au rez-de-chaussée.
+- Un escalier à volées alternées longe le mur nord : deux couloirs séparés par une cloison, des paliers aux deux bouts, une trémie dans chaque dalle avec son garde-corps. La navigation y passe : un opérateur monte du rez-de-chaussée au toit en 13 s environ. Les ennemis en patrouille sur un étage l'empruntent aussi.
+- Vue en coupe :
+  - quand un opérateur est dans l'immeuble, l'étage le plus bas qu'il occupe s'affiche coupé à hauteur de hanche ;
+  - tout ce qui est au-dessus s'efface en fondu : murs, dalles, volées, ainsi que les caisses, les cachettes, les ennemis et les corps ;
+  - les touches d'étage (Page suiv. / Page préc.) choisissent aussi l'étage affiché ; `Roof.storey_count` compte les étages des immeubles ;
+  - les parties effacées laissent passer les clics.
+- Un ennemi dans un immeuble compte comme à couvert pour les corps cachés, comme dans un `Building`.
+- Le convertible en attente au-dessus d'un toit valide l'objectif « documents » dès qu'un opérateur qui les porte est treuillé à bord.
+- Nouvelle carte « La Tour » (générateur `tools/gen_tower.py`), de jour, en ville :
+  - neuf gardes, de la cour jusqu'au toit (rondes intérieures aux 1er et 3e étages) ;
+  - un officier au 4e étage porte des documents ;
+  - l'extraction attend 90 s en vol stationnaire au-dessus de la terrasse : on y est treuillé.
+- Vérifié par scénarios : chemins de navigation vers chaque étage et le toit ; montée à pied, la coupe suivant l'étage ; rendus de la coupe aux 2e et 4e étages ; mission de bout en bout (documents, appel, treuil des trois opérateurs, « RÉUSSITE »). La suite GUT n'a pas été lancée.

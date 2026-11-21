@@ -120,6 +120,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "La Tour",
+		"scene": "res://scenes/levels/tower/tower.tscn",
+		"description": "Un immeuble de cinq étages et son toit-terrasse, gardé à chaque niveau. Un officier, au dernier étage (4e), porte des documents : abattez-le ou assommez-le, puis prenez sa sacoche. L'escalier monte le long du mur nord, en volées alternées. Quand un opérateur est dans l'immeuble, les étages au-dessus de lui s'effacent ; Page suiv. / Page préc. choisissent l'étage affiché. Porte principale au sud ; porte de service verrouillée à l'est. Pour repartir, montez sur le toit et appelez l'extraction par radio : elle attend 90 s en vol stationnaire au-dessus de la terrasse ; treuillez toute l'équipe (clic droit sur l'appareil), documents compris.",
+		"camo": "urban",
+		"objectives": [
+			{"id": "documents", "text": "Rapporter à bord les documents de l'officier (4e étage)"},
+			{"id": "extracted", "text": "Être treuillé depuis le toit en moins de 90 s"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

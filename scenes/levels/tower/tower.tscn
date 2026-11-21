@@ -1,0 +1,388 @@
+[gd_scene load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/units/commando.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/low_wall.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/wall.tscn" id="8"]
+[ext_resource type="Script" path="res://scripts/props/tower.gd" id="tower"]
+[ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="tiltrotor"]
+[ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
+
+[sub_resource type="Curve3D" id="patrol_yard"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -12, 0, 6, 0, 0, 0, 0, 0, 0, 12, 0, 6, 0, 0, 0, 0, 0, 0, 12, 0, -18, 0, 0, 0, 0, 0, 0, -12, 0, -18, 0, 0, 0, 0, 0, 0, -12, 0, 6),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
+
+[sub_resource type="Curve3D" id="patrol_floor1"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 5, 3.2, -5, 0, 0, 0, 0, 0, 0, -5, 3.2, -5),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[sub_resource type="Curve3D" id="patrol_floor3"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 6, 9.6, -5, 0, 0, 0, 0, 0, 0, -6, 9.6, -5, 0, 0, 0, 0, 0, 0, -6, 9.6, -7, 0, 0, 0, 0, 0, 0, 6, 9.6, -7),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.55, 0.62, 0.7, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.66, 0.66, 0.64, 1)
+ambient_light_energy = 0.65
+tonemap_mode = 2
+ssao_enabled = true
+
+[sub_resource type="NavigationMesh" id="nav"]
+resource_local_to_scene = true
+geometry_parsed_geometry_type = 1
+geometry_collision_mask = 3
+agent_height = 1.75
+agent_radius = 0.5
+
+[sub_resource type="BoxShape3D" id="ground_shape"]
+size = Vector3(90, 1, 90)
+
+[sub_resource type="StandardMaterial3D" id="ground_mat"]
+albedo_color = Color(0.36, 0.36, 0.35, 1)
+roughness = 1.0
+
+[sub_resource type="BoxMesh" id="ground_mesh"]
+material = SubResource("ground_mat")
+size = Vector3(90, 1, 90)
+
+[sub_resource type="StandardMaterial3D" id="lane_mat"]
+albedo_color = Color(0.85, 0.82, 0.7, 1)
+roughness = 1.0
+
+[sub_resource type="BoxMesh" id="lane_mesh"]
+material = SubResource("lane_mat")
+size = Vector3(0.2, 0.02, 2.5)
+
+[node name="Tower" type="Node3D"]
+script = ExtResource("1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0.383, -0.3214, 0, 0.6428, 0.766, 0.5, -0.6634, 0.5567, 0, 10, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 1.1
+shadow_enabled = true
+directional_shadow_max_distance = 160.0
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("nav")
+
+[node name="Ground" type="StaticBody3D" parent="NavigationRegion3D"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+shape = SubResource("ground_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+mesh = SubResource("ground_mesh")
+
+[node name="Building" type="Node3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+script = ExtResource("tower")
+storeys = 5
+size = Vector2(16, 12)
+doors = Array[Vector3]([Vector3(0, 0, 0), Vector3(1, 3, 1)])
+windows = Array[Vector2]([Vector2(0, -5.5), Vector2(0, -2.5), Vector2(0, 2.5), Vector2(0, 5.5), Vector2(1, -3), Vector2(1, 0), Vector2(1, 3), Vector2(2, -3), Vector2(2, -6), Vector2(3, 1), Vector2(3, 4)])
+
+[node name="Crate1" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, -2.5)
+
+[node name="Crate2" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -2)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="Crate3" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 3.2, -2.5)
+
+[node name="Crate4" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 3.2, -2)
+
+[node name="Crate5" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 6.4, -2.5)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="Crate6" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 6.4, -2)
+
+[node name="Crate7" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 9.6, -2.5)
+
+[node name="Crate8" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 9.6, -2)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="Crate9" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 12.8, -2.5)
+
+[node name="Crate10" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 12.8, -2)
+
+[node name="Crate11" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 12)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="Crate12" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.7, 0, 12)
+
+[node name="Crate13" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 14)
+
+[node name="Crate14" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, -4)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="Crate15" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -10)
+
+[node name="Crate16" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 22)
+
+[node name="Crate17" parent="NavigationRegion3D" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 24)
+skin = "tex_base/ecrate_dunno.jpg"
+
+[node name="Fence1" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -14, 0, 10)
+
+[node name="Fence2" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 14, 0, 10)
+
+[node name="Fence3" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, 6)
+
+[node name="Fence4" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, 0)
+
+[node name="Fence5" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, -6)
+
+[node name="Fence6" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, -12)
+
+[node name="Fence7" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, -18)
+
+[node name="Fence8" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 20, 0, 6)
+
+[node name="Fence9" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 20, 0, 0)
+
+[node name="Fence10" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 20, 0, -6)
+
+[node name="Fence11" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 20, 0, -12)
+
+[node name="Fence12" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 20, 0, -18)
+
+[node name="Fence13" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -17, 0, -22)
+
+[node name="Fence14" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -11, 0, -22)
+
+[node name="Fence15" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -5, 0, -22)
+
+[node name="Fence16" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 1, 0, -22)
+
+[node name="Fence17" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 7, 0, -22)
+
+[node name="Fence18" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 13, 0, -22)
+
+[node name="Fence19" parent="NavigationRegion3D" instance=ExtResource("4")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 17, 0, -22)
+
+[node name="Wall1" parent="NavigationRegion3D" instance=ExtResource("8")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -24, 0, 20)
+
+[node name="Wall2" parent="NavigationRegion3D" instance=ExtResource("8")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 26, 0, 24)
+
+[node name="Wall3" parent="NavigationRegion3D" instance=ExtResource("8")]
+transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, -30, 0, -6)
+
+[node name="Extraction" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 0, 16, 4.8)
+script = ExtResource("tiltrotor")
+livery = 1
+tail_number = "52"
+objective_id = &"extracted"
+extraction = true
+pickup_window = 90.0
+documents_objective = &"documents"
+
+[node name="Decor" type="Node3D" parent="."]
+
+[node name="Lane1" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -40, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane2" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -34, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane3" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -28, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane4" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -22, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane5" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -16, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane6" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -10, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane7" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -4, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane8" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane9" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 8, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane10" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 14, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane11" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane12" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 26, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane13" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 32, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Lane14" type="MeshInstance3D" parent="Decor"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 38, 0.01, 30)
+mesh = SubResource("lane_mesh")
+
+[node name="Bush1" type="Node3D" parent="Decor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, 8)
+script = ExtResource("hiding")
+size = Vector2(3, 2.4)
+
+[node name="Bush2" type="Node3D" parent="Decor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, -12)
+script = ExtResource("hiding")
+size = Vector2(3, 2.4)
+
+[node name="Bush3" type="Node3D" parent="Decor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 26)
+script = ExtResource("hiding")
+size = Vector2(3, 2.4)
+
+[node name="Bush4" type="Node3D" parent="Decor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 10)
+script = ExtResource("hiding")
+size = Vector2(3, 2.4)
+
+[node name="Units" type="Node3D" parent="."]
+
+[node name="Alpha" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 38)
+unit_index = 1
+display_name = "Alpha"
+
+[node name="Bravo" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0, 39.5)
+unit_index = 2
+display_name = "Bravo"
+
+[node name="Charlie" parent="Units" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, 39.5)
+unit_index = 3
+display_name = "Charlie"
+
+[node name="CameraRig" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 28)
+bounds = AABB(-42, 0, -42, 84, 0, 84)
+
+[node name="PatrolPaths" type="Node3D" parent="."]
+
+[node name="PatrolYard" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_yard")
+
+[node name="PatrolFloor1" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_floor1")
+
+[node name="PatrolFloor3" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("patrol_floor3")
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="YardPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -12, 0, 6)
+patrol_path = NodePath("../../PatrolPaths/PatrolYard")
+
+[node name="DoorGuard" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 1.6, 0, 1.6)
+stationary = true
+
+[node name="LobbyGuard" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-0.9397, 0, 0.342, 0, 1, 0, -0.342, 0, -0.9397, 2, 0, -2)
+stationary = true
+
+[node name="Floor1Patrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
+transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 5, 3.2, -5)
+patrol_path = NodePath("../../PatrolPaths/PatrolFloor1")
+
+[node name="Floor2Guard" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 5, 6.4, -9)
+stationary = true
+
+[node name="Floor3Patrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
+transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 6, 9.6, -5)
+patrol_path = NodePath("../../PatrolPaths/PatrolFloor3")
+
+[node name="Bodyguard" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(0.5, 0, 0.866, 0, 1, 0, -0.866, 0, 0.5, -4, 12.8, -7)
+stationary = true
+
+[node name="Officer" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-0.9397, 0, 0.342, 0, 1, 0, -0.342, 0, -0.9397, 6, 12.8, -4)
+stationary = true
+documents = true
+
+[node name="RoofLookout" parent="Enemies" instance=ExtResource("7")]
+transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 5, 16, -2)
+stationary = true
+
+[node name="HUD" parent="." instance=ExtResource("6")]

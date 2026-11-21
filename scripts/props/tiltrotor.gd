@@ -1827,6 +1827,8 @@ func _physics_process(delta: float) -> void:
 	if is_flying or is_away or is_inbound:
 		return
 	if pickup_left > 0.0:
+		# Documents treuillés à bord : l'objectif compte aussi en vol.
+		_check_documents()
 		_update_pickup(delta)
 		return
 	_check_left -= delta

@@ -75,6 +75,9 @@ static func storey_count(tree: SceneTree) -> int:
 	var count := 0
 	for node in tree.get_nodes_in_group(&"roofs"):
 		count = maxi(count, (node as Roof).storey() + 1)
+	# Immeubles à étages (`Tower`) : un niveau de vue par étage.
+	for node in tree.get_nodes_in_group(Tower.GROUP):
+		count = maxi(count, (node as Tower).storeys)
 	return count
 
 
