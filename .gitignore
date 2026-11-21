@@ -4,3 +4,4 @@
 claude_task.md
 /build/
 /web_assets/
+__pycache__/
