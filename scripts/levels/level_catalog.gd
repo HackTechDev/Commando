@@ -210,6 +210,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Col silencieux",
+		"scene": "res://scenes/levels/silentpass/silentpass.tscn",
+		"description": "De nuit. Le seul passage vers le point de ralliement est un défilé entre deux falaises, gardé à sa sortie par deux sentinelles sous un lampadaire et une ronde. Phares éteints, le Sabre roule moins vite mais ne se voit que de près ; allumés, il se voit de loin. Au volant, « Couper le moteur » : il avance en roue libre, sans bruit, sur 15 m au plus. Laissé à l'écart avec le « Moteur au ralenti », il attire les gardes, qui viennent voir sans donner l'alerte. À pied, « S'abriter derrière » cache les opérateurs accroupis le long de la caisse. Conduisez le Sabre au drapeau, puis appelez l'extraction : elle ne reste que 60 s en vol stationnaire au-dessus de la clairière au nord du col ; treuillez toute l'équipe.",
+		"camo": "night",
+		"objectives": [
+			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au point de ralliement (drapeau)"},
+			{"id": "extracted", "text": "Être treuillé à bord de l'extraction en moins de 60 s"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",

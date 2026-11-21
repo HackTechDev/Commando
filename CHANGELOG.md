@@ -1114,3 +1114,10 @@
 - On y emploie les points de passage (9.17), le débarquement d'assaut (9.18) et la caméra qui suit le véhicule (9.19).
 - `mapkit.vip` et `mapkit.extraction_zone`.
 - Vérifié par scénario : le VIP qui suit Alpha monte à bord en 6 s ; le Sabre roule jusqu'à la zone ; le VIP en descend, d'où « RÉUSSITE — VIP évacué ». La suite GUT n'a pas été lancée.
+
+## Col silencieux
+
+- Nouvelle carte « Col silencieux » (`tools/gen_silentpass.py`), de nuit. Il faut faire passer le Sabre par l'unique défilé, entre deux falaises qui barrent la carte, jusqu'au point de ralliement.
+- La sortie du col est gardée par deux sentinelles sous un lampadaire et une ronde. On y joue la discrétion : phares (9.2), moteur coupé en roue libre (9.1), leurre du moteur au ralenti (9.4), abri derrière le véhicule (9.3).
+- L'extraction attend 60 s en vol stationnaire au-dessus d'une clairière (8.17).
+- Vérifié par scénario : chemin du départ au ralliement ; aucun contournement du col (il faut 107 m pour franchir 20 m de falaise). La suite GUT n'a pas été lancée.
