@@ -44,7 +44,7 @@ func update(delta: float) -> Vector3:
 	var to_target := point - unit.global_position
 	to_target.y = 0.0
 	var distance := to_target.length()
-	if distance <= unit.stats.fire_range:
+	if distance <= unit.fire_range():
 		if distance > 0.01:
 			unit._face(to_target, delta)
 		unit._fire_cooldown -= delta

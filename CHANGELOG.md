@@ -844,3 +844,8 @@
 
 - `Tiltrotor.insertion` : la mission commence en vol stationnaire à 30 m au-dessus de la place de l'appareil, toute l'équipe en soute, porte ouverte. On le déplace (8.4) et on descend en rappel ; près des sentinelles, le bruit des rotors les alerte (8.10).
 - Soute vide, « Renvoyer l'appareil » au menu radio (clic milieu sur un opérateur au sol) : il prend de la hauteur et quitte la zone. S'il est aussi l'appareil d'extraction, « Appeler l'extraction » le fait revenir se poser sur sa zone, dans son cap d'origine.
+
+## Tireur d'élite embarqué (8.6)
+
+- Depuis la soute d'un convertible en vol, un fusil de précision (portée d'au moins 20 m : Hécate, HK417) porte plus loin grâce à la hauteur : +1/30 de sa portée par mètre, jusqu'à 1,6 fois (`Commando.fire_range`). L'Hécate passe de 48 à 77 m à 30 m de haut.
+- En vol, les vibrations réduisent la précision de toutes les armes : 85 % de la précision au sol appareil stabilisé, 45 % juste après un mouvement, montée ou déplacement, qui remonte en 4 s (`Tiltrotor.steadiness`).

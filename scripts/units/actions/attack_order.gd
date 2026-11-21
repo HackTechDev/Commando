@@ -38,7 +38,7 @@ func update(delta: float) -> Vector3:
 	var to_target := enemy.global_position - unit.global_position
 	to_target.y = 0.0
 	var distance := to_target.length()
-	if distance <= unit.stats.fire_range and unit._has_line_of_fire(enemy):
+	if distance <= unit.fire_range() and unit._has_line_of_fire(enemy):
 		if distance > 0.01:
 			unit._face(to_target, delta)
 		unit._fire_cooldown -= delta
@@ -49,7 +49,7 @@ func update(delta: float) -> Vector3:
 			unit._fire(enemy, distance)
 		return Vector3.ZERO
 	# Pas de ligne de tir : s'approcher, puis viser de nouveau.
-	unit.report_hint(Commando.Hint.OUT_OF_RANGE if distance > unit.stats.fire_range else Commando.Hint.OBSTACLE)
+	unit.report_hint(Commando.Hint.OUT_OF_RANGE if distance > unit.fire_range() else Commando.Hint.OBSTACLE)
 	unit._fire_cooldown = unit.stats.aim_time
 	# En vol ou à bord d'un véhicule, on ne s'approche pas : on attend que la
 	# cible passe à portée.

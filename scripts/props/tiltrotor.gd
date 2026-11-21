@@ -48,6 +48,10 @@ extends StaticBody3D
 ## renvoie par radio (`dismiss`) : il s'en va, et revient à l'appel s'il est
 ## aussi l'appareil d'extraction.
 ##
+## Tir depuis la soute en vol : un fusil de précision porte plus loin
+## grâce à la hauteur (`Commando.fire_range`), mais les vibrations réduisent
+## la précision, surtout juste après un mouvement (`steadiness`).
+##
 ## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
 ## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
 ## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points ; sous la moitié, il
@@ -109,6 +113,11 @@ const HOVER_NOISE_INTERVAL := 2.0
 const FLY_SPEED := 9.0
 const TURN_TIME := 0.9
 const LANDING_TOLERANCE := 0.4
+## Tir depuis la soute en vol : précision gardée appareil stabilisé, juste
+## après un mouvement, et temps de stabilisation (s).
+const HOVER_STEADINESS := 0.85
+const MOVING_STEADINESS := 0.45
+const SETTLE_TIME := 4.0
 ## Hélitreuillage : vitesse de montée (m/s), distance au pied de la corde
 ## (à plat, en hauteur) à laquelle on est accroché.
 const WINCH_SPEED := 1.8
@@ -189,6 +198,8 @@ var is_moving: bool = false
 var ground_y: float = 0.0
 ## Hauteur du vol stationnaire au-dessus de `ground_y` (un des `HOVER_LEVELS`).
 var hover_height: float = HOVER_HEIGHT
+## Temps (s) avant que l'appareil, arrivé d'un mouvement, soit stabilisé.
+var _settle_left: float = 0.0
 var _rope: MeshInstance3D
 var _rappelling: int = 0
 ## Unités en cours de treuillage, et opérateurs en route vers la corde
@@ -537,6 +548,7 @@ func _move_to_height(height: float, up: bool) -> void:
 
 func _arrived(up: bool) -> void:
 	is_moving = false
+	_settle_left = SETTLE_TIME
 	is_airborne = up
 	for unit: Node3D in _passengers:
 		if is_instance_valid(unit) and unit is CharacterBody3D:
@@ -631,6 +643,14 @@ func rotor_noise_radius() -> float:
 	var low := HOVER_LEVELS[0]
 	var high := HOVER_LEVELS[HOVER_LEVELS.size() - 1]
 	return ROTOR_NOISE * lerpf(1.0, HIGH_NOISE_SHARE, clampf((height - low) / (high - low), 0.0, 1.0))
+
+
+## Précision gardée par un tireur à bord (voir `Commando.steadiness`) :
+## réduite en vol, davantage tant que l'appareil se stabilise.
+func steadiness() -> float:
+	if not is_airborne:
+		return 1.0
+	return lerpf(HOVER_STEADINESS, MOVING_STEADINESS, _settle_left / SETTLE_TIME)
 
 
 ## Palier voisin (plus haut si `up`), ou -1 s'il n'y en a pas.
@@ -1261,6 +1281,7 @@ func _physics_process(delta: float) -> void:
 	if is_airborne:
 		_update_winch()
 	_revealed_left = maxf(_revealed_left - delta, 0.0)
+	_settle_left = maxf(_settle_left - delta, 0.0)
 	_update_strobe(delta)
 	if (is_inbound or is_moving or is_airborne) and not is_destroyed:
 		# Bruit des rotors au sol sous l'appareil : les ennemis accourent.

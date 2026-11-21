@@ -119,7 +119,6 @@ Insertion et extraction :
 
 Combat :
 
-- **8.6 Tireur d'élite embarqué** : l'Hécate tirée depuis la soute porte plus loin grâce à la hauteur, mais elle est moins précise quand l'appareil bouge.
 - **8.8 Lance-roquettes ennemi** : un ennemi spécial capable d'abattre l'appareil, à neutraliser avant de le faire venir.
 
 Discrétion :

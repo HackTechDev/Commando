@@ -19,6 +19,11 @@ signal shield_changed(raised: bool)
 enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET }
 
 const MASK_OCCLUDERS := 0b10
+## Tir depuis un convertible en vol : portée minimale d'un fusil de précision,
+## hauteur qui double la portée (m), bonus maximal.
+const MARKSMAN_RANGE := 20.0
+const AIR_RANGE_HEIGHT := 30.0
+const AIR_RANGE_MAX := 1.6
 ## Indicatif affiché au-dessus de la tête : couleur, couleur une fois
 ## sélectionné, et hauteur selon la posture (debout, accroupi, rampé).
 const CALLSIGN_COLOR := Color(0.85, 0.92, 1.0, 0.85)
@@ -1560,6 +1565,25 @@ func _weapon_height() -> float:
 	return 1.4
 
 
+## Portée de tir effective (m). Depuis un convertible en vol stationnaire, un
+## fusil de précision (portée d'au moins `MARKSMAN_RANGE`) porte plus loin
+## grâce à la hauteur : +1/`AIR_RANGE_HEIGHT` par mètre, jusqu'à
+## `AIR_RANGE_MAX` fois.
+func fire_range() -> float:
+	if airborne_in and stats.fire_range >= MARKSMAN_RANGE:
+		var height := global_position.y - airborne_in.ground_y
+		return stats.fire_range * minf(1.0 + height / AIR_RANGE_HEIGHT, AIR_RANGE_MAX)
+	return stats.fire_range
+
+
+## Part de la précision qui reste au tireur : depuis un convertible en vol,
+## les vibrations la réduisent, d'autant plus que l'appareil vient de bouger.
+func steadiness() -> float:
+	if airborne_in:
+		return airborne_in.steadiness()
+	return 1.0
+
+
 func _has_line_of_fire(enemy: Enemy) -> bool:
 	var from := global_position + Vector3.UP * _weapon_height()
 	var to := enemy.global_position + Vector3.UP * 1.2
@@ -1582,7 +1606,7 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	var forward := -global_basis.z
 	var muzzle := global_position + Vector3.UP * _weapon_height() + forward * 0.7
 	var aim := enemy.global_position + Vector3.UP * 1.2
-	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / stats.fire_range, 0.0, 1.0))
+	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / fire_range(), 0.0, 1.0)) * steadiness()
 	var hit := randf() < chance
 	var scene := get_tree().current_scene as Node3D
 	if not hit:
@@ -1652,7 +1676,7 @@ func _fire_at_point(point: Vector3) -> void:
 		aim = muzzle + forward * 2.0
 	var distance := Vector2(aim.x - muzzle.x, aim.z - muzzle.z).length()
 	# Écart aléatoire, plus grand de loin et avec une arme peu précise.
-	var sloppiness := 1.0 - lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / stats.fire_range, 0.0, 1.0))
+	var sloppiness := 1.0 - lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / fire_range(), 0.0, 1.0)) * steadiness()
 	var spread := FREE_FIRE_SPREAD * (0.3 + sloppiness) * distance / 10.0
 	aim += Vector3(randf_range(-spread, spread), randf_range(-spread, spread) * 0.6, randf_range(-spread, spread))
 	var direction := (aim - muzzle).normalized()
