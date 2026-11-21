@@ -1045,3 +1045,9 @@
 - Nouveau nœud `Reinforcements` : quand un objectif est rempli (ici le dépôt détruit), un compte à rebours s'affiche en haut de l'écran (« Renforts dans 1:59 »). À zéro, quatre soldats en alerte et un pick-up armé arrivent par le nord et foncent vers le dépôt (`Technical.hunt`).
 - Nouvel objectif bonus « Repartir avant l'arrivée des renforts » (`Objectives.OPTIONAL`) : manqué à l'arrivée des renforts, il reste affiché en échec mais ne bloque ni l'extraction ni la réussite.
 - `SabotageTarget.fuel` : variante dépôt de carburant (citerne et fûts). Détruit, il s'embrase dans une explosion secondaire qui s'entend à 70 m, et son lampadaire s'éteint.
+
+## Menu principal : liste des cartes lisible
+
+- Chaque carte de la liste n'affiche plus que trois lignes de description (texte complet en infobulle) : les descriptions longues des dernières missions faisaient qu'une seule carte tenait à l'écran.
+- La description complète s'affiche dans la préparation de la mission (défilante si elle est longue).
+- La liste occupe toute la hauteur disponible de la fenêtre, titre et boutons compris.

@@ -26,8 +26,16 @@ var _briefing_camo: Label
 var _suggest_all: Button
 var _briefing_preview: Control
 var _briefing_objectives: VBoxContainer
+var _briefing_text: Label
 ## Écran « Opérateurs » ouvert depuis la préparation, ou null.
 var operator_editor: OperatorScreen
+
+## Lignes de description affichées sur chaque carte de la liste.
+const CARD_LINES := 3
+## Marge (px) gardée en haut et en bas de l'écran autour du menu.
+const SCREEN_MARGIN := 40.0
+## Hauteur maximale de la description dans la préparation.
+const BRIEFING_TEXT_HEIGHT := 130.0
 
 ## Taille de l'aperçu de la carte dans la préparation.
 const BRIEFING_PREVIEW_SIZE := Vector2(320, 200)
@@ -37,6 +45,8 @@ func _ready() -> void:
 	# Revenir au menu remet l'alerte à zéro (elle ne se recalcule qu'en jeu).
 	GameState.alert_level = GameState.AlertLevel.CALM
 	_status.text = ""
+	_fit_list()
+	get_viewport().size_changed.connect(_fit_list)
 	quit_dialog = ConfirmDialog.for_quit(self)
 	add_child(quit_dialog)
 	_quit.pressed.connect(quit_dialog.ask)
@@ -66,6 +76,23 @@ func _ready() -> void:
 		first.grab_focus()
 
 
+## La liste des cartes occupe la hauteur de la fenêtre (moins le titre et
+## les boutons).
+func _fit_list() -> void:
+	var scroll := _levels.get_parent() as ScrollContainer
+	var column := scroll.get_parent() as VBoxContainer
+	# Hauteur du reste de la colonne : titre, sous-titre, statut, boutons.
+	var others := 0.0
+	var shown := 0
+	for child in column.get_children():
+		var control := child as Control
+		if control and control.visible and control != scroll:
+			others += control.get_combined_minimum_size().y
+			shown += 1
+	others += column.get_theme_constant(&"separation") * shown
+	scroll.custom_minimum_size.y = maxf(300.0, get_viewport_rect().size.y - others - SCREEN_MARGIN * 2.0)
+
+
 ## Bouton « Jouer » de la carte de clé `key` (tests), ou null.
 func play_button(key: String) -> Button:
 	for card in _levels.get_children():
@@ -89,9 +116,16 @@ func _add_level(level: Dictionary, is_last: bool = false) -> Button:
 	title.text = level["title"] + ("   — dernière partie" if is_last else "")
 	title.add_theme_font_size_override(&"font_size", 22)
 	texts.add_child(title)
+	# Résumé de trois lignes au plus : le texte complet est en infobulle et
+	# dans la préparation de la mission.
 	var description := Label.new()
+	description.name = "Description"
 	description.text = level["description"]
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.max_lines_visible = CARD_LINES
+	description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	description.tooltip_text = level["description"]
+	description.mouse_filter = Control.MOUSE_FILTER_PASS
 	description.modulate = Color(1, 1, 1, 0.75)
 	texts.add_child(description)
 	var button := Button.new()
@@ -157,6 +191,7 @@ func open_briefing(level: Dictionary) -> void:
 	var camo := LevelCatalog.suggested_camo(level)
 	var camo_name: String = GearCatalog.CAMOS[camo]["name"]
 	(briefing.find_child("BriefingTitle", true, false) as Label).text = "Préparation — %s" % level["title"]
+	_briefing_text.text = level["description"]
 	_briefing_camo.text = "Camouflage conseillé pour cette carte : %s" % camo_name
 	for child in _briefing_preview.get_children():
 		child.queue_free()
@@ -239,6 +274,18 @@ func _build_briefing() -> void:
 	title.name = "BriefingTitle"
 	title.add_theme_font_size_override(&"font_size", 26)
 	column.add_child(title)
+	# Description complète de la mission, défilante si elle est longue.
+	var text_scroll := ScrollContainer.new()
+	text_scroll.name = "BriefingTextScroll"
+	text_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	text_scroll.custom_minimum_size = Vector2(0, BRIEFING_TEXT_HEIGHT)
+	column.add_child(text_scroll)
+	_briefing_text = Label.new()
+	_briefing_text.name = "BriefingText"
+	_briefing_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_briefing_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_briefing_text.modulate = Color(1, 1, 1, 0.8)
+	text_scroll.add_child(_briefing_text)
 	# Aperçu de la carte et objectifs.
 	var overview := HBoxContainer.new()
 	overview.add_theme_constant_override(&"separation", 18)
