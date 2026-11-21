@@ -1565,6 +1565,45 @@ func _weapon_height() -> float:
 	return 1.4
 
 
+## Ce qui manque à l'opérateur par rapport à sa dotation de départ :
+## munitions de réserve (des deux armes), grenades, fumigènes, trousses de
+## soins, charges. Clés : nom du lot, valeur : quantité manquante.
+func missing_supplies() -> Dictionary:
+	var gear := _primary_stats if _primary_stats else stats
+	var missing := {}
+	var reserve := stats.reserve_ammo - ammo_reserve
+	if _secondary_stats:
+		var holstered := _secondary_stats if not using_secondary else _primary_stats
+		reserve += maxi(holstered.reserve_ammo - _holstered_ammo.y, 0)
+	if reserve > 0:
+		missing["munitions"] = reserve
+	for entry: Array in [["grenades", gear.grenades - grenades], ["fumigènes", gear.smoke_grenades - smoke_grenades],
+			["trousses", gear.medkits - medkits], ["charges", gear.explosives + mission_explosives - explosives]]:
+		if int(entry[1]) > 0:
+			missing[entry[0]] = int(entry[1])
+	return missing
+
+
+## Ravitaillement (soute du convertible) : dotation de départ rendue.
+## Renvoie ce qui a été repris (voir `missing_supplies`).
+func resupply() -> Dictionary:
+	var missing := missing_supplies()
+	if missing.is_empty():
+		return missing
+	var gear := _primary_stats if _primary_stats else stats
+	ammo_reserve = maxi(ammo_reserve, stats.reserve_ammo)
+	if _secondary_stats:
+		var holstered := _secondary_stats if not using_secondary else _primary_stats
+		_holstered_ammo.y = maxi(_holstered_ammo.y, holstered.reserve_ammo)
+	grenades = maxi(grenades, gear.grenades)
+	smoke_grenades = maxi(smoke_grenades, gear.smoke_grenades)
+	medkits = maxi(medkits, gear.medkits)
+	explosives = maxi(explosives, gear.explosives + mission_explosives)
+	EventBus.unit_ammo_changed.emit(self)
+	Sfx.play_at(&"clink", global_position + Vector3.UP, -4.0)
+	return missing
+
+
 ## Portée de tir effective (m). Depuis un convertible en vol stationnaire, un
 ## fusil de précision (portée d'au moins `MARKSMAN_RANGE`) porte plus loin
 ## grâce à la hauteur : +1/`AIR_RANGE_HEIGHT` par mètre, jusqu'à

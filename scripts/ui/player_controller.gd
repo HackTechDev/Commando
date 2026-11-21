@@ -826,6 +826,10 @@ static func aircraft_options(aircraft: Tiltrotor, crew: Commando = null) -> Arra
 		var gun := aircraft.gun_problem(crew)
 		options.append({"id": &"gun", "label": "Canon latéral",
 			"detail": "feu à volonté, côté droit (bruyant)" if gun == "" else gun, "enabled": gun == ""})
+	var supply := aircraft.resupply_problem(crew)
+	options.append({"id": &"resupply", "label": "Ravitaillement",
+		"detail": ("dotation de départ (%d lot%s)" % [aircraft.supplies, "s" if aircraft.supplies > 1 else ""]) if supply == "" else supply,
+		"enabled": supply == ""})
 	if aircraft.is_airborne:
 		var rappel := aircraft.rappel_problem(crew)
 		options.append({"id": &"rappel", "label": "Descendre en rappel",
@@ -948,6 +952,8 @@ func _on_radial_chosen(id: StringName) -> void:
 				done = aircraft.land()
 			elif id == &"rappel":
 				done = aircraft.rappel(crew)
+			elif id == &"resupply":
+				done = aircraft.resupply(crew)
 			elif id == &"climb" or id == &"descend":
 				done = aircraft.change_altitude(id == &"climb")
 			elif id == &"fly":

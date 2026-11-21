@@ -57,6 +57,10 @@ extends StaticBody3D
 ## d'un point de la carte : le bruit attire les sentinelles alentour, qui
 ## vont voir (bruit `distraction`), pendant que l'équipe passe ailleurs.
 ##
+## Ravitaillement (`resupply`) : la soute emporte `supplies` lots ; un
+## opérateur à bord y reprend sa dotation de départ (munitions, grenades,
+## fumigènes, trousses de soins, charges).
+##
 ## Riposte : en l'air (`is_in_air`), l'appareil est une cible pour les
 ## ennemis armés qui le voient (`Enemy`). Chaque balle lui ôte une part de
 ## ses dégâts (`BULLET_SHARE`) sur `STRUCTURE` points, une roquette
@@ -193,6 +197,8 @@ const AIM_POINT := Vector3(0.0, 2.2, 0.5)
 @export var extraction: bool = false
 ## La mission commence à bord, en vol stationnaire (voir plus haut).
 @export var insertion: bool = false
+## Lots de ravitaillement dans la soute (un par opérateur ravitaillé).
+@export var supplies: int = 3
 
 var is_destroyed: bool = false
 var model: TiltrotorModel
@@ -1195,6 +1201,33 @@ func dismiss() -> bool:
 	return true
 
 
+# --- Ravitaillement ---------------------------------------------------------------
+
+## Raison pour laquelle `unit` ne peut pas se ravitailler (vide : c'est
+## possible).
+func resupply_problem(unit: Commando) -> String:
+	if unit == null or not _is_aboard(unit):
+		return "pas à bord"
+	if supplies <= 0:
+		return "soute vide"
+	if unit.missing_supplies().is_empty():
+		return "rien ne manque"
+	return ""
+
+
+## `unit`, à bord, reprend sa dotation de départ dans un lot de la soute.
+func resupply(unit: Commando) -> bool:
+	if resupply_problem(unit) != "":
+		return false
+	var taken := unit.resupply()
+	supplies -= 1
+	var parts: Array[String] = []
+	for key: String in taken:
+		parts.append("%s +%d" % [key, taken[key]])
+	unit.flash_message("Ravitaillé : " + ", ".join(parts))
+	return true
+
+
 # --- Diversion -------------------------------------------------------------------
 
 ## Raison pour laquelle on ne peut pas faire diversion (vide : c'est
@@ -1462,7 +1495,7 @@ func destroy() -> void:
 func save_state() -> Dictionary:
 	return {"destroyed": is_destroyed, "ramp_closed": is_ramp_closed, "airborne": is_airborne, "ground_y": ground_y,
 		"position": global_position if not is_moving else Vector3.INF, "yaw": global_rotation.y, "hover_height": hover_height,
-		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "structure": structure, "disabled": is_disabled, "insertion": insertion}
+		"away": is_away or is_inbound or is_diverting, "diversion_used": diversion_used, "supplies": supplies, "structure": structure, "disabled": is_disabled, "insertion": insertion}
 
 
 func load_state(data: Dictionary) -> void:
@@ -1495,6 +1528,7 @@ func load_state(data: Dictionary) -> void:
 	hover_height = data.get("hover_height", HOVER_HEIGHT)
 	insertion = data.get("insertion", insertion)
 	diversion_used = data.get("diversion_used", diversion_used)
+	supplies = data.get("supplies", supplies)
 	if data.get("destroyed", false) and not is_destroyed:
 		_set_wrecked()
 	structure = data.get("structure", STRUCTURE)

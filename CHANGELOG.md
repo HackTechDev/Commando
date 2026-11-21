@@ -862,3 +862,9 @@
 - Appareil parti (extraction pas encore appelée, ou insertion renvoyée) : « Diversion » au menu radio, puis clic sur la carte. Il passe une fois en rase-mottes (15 m) au-dessus du point, venu du côté de sa zone de pose, et file au-delà (`Tiltrotor.divert`).
 - Pendant le passage, le bruit (34 m, toutes les 0,8 s) rend les sentinelles méfiantes : elles vont voir (`distraction`), sans donner l'alerte.
 - Une diversion par mission. L'appareil reste ensuite à appeler pour l'extraction ; abattu pendant le passage, il tombe sur place.
+
+## Ravitaillement dans la soute (8.12)
+
+- « Ravitaillement » au menu de bord du convertible : l'opérateur reprend sa dotation de départ, munitions de réserve des deux armes, grenades, fumigènes, trousses de soins et charges (`Commando.resupply`).
+- La soute emporte trois lots (`Tiltrotor.supplies`), un par opérateur ravitaillé ; « rien ne manque » si sa dotation est complète. Un message liste ce qui a été repris.
+- La sauvegarde rapide garde les lots restants.

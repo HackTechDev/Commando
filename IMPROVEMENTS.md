@@ -125,7 +125,6 @@ Discrétion :
 
 Logistique :
 
-- **8.12 Ravitaillement** : munitions, trousses de soins et charges à prendre dans la soute (lié à 2.10 et à l'inventaire).
 - **8.13 Évacuation des blessés** : un opérateur blessé ramené à bord est sauvé ; il quitte la mission sans compter comme perdu.
 - **8.14 Transport de corps et de documents** : ramener à bord un corps ou les documents d'un officier ennemi, comme objectif de mission.
 - **8.15 Élingage** : avec les crochets du modèle, soulever une caisse, du matériel ou un véhicule et le déposer ailleurs (bloquer une porte, créer un abri).
