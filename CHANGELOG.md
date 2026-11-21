@@ -1107,3 +1107,10 @@
 - Le convertible d'insertion et d'extraction sert de base : ravitaillement en soute (8.12) et évacuation des blessés (8.13).
 - `mapkit.reinforcements` règle le délai, l'effectif et le pick-up.
 - Vérifié par scénario : chemins de la zone de poser au dépôt et au bunker, et du point d'arrivée des renforts au dépôt. La suite GUT n'a pas été lancée.
+
+## Escorte motorisée
+
+- Nouvelle carte « Escorte motorisée » (`tools/gen_motorcade.py`), de jour. Il faut prendre un ambassadeur à la maison sûre et le conduire en Sabre (9.11) jusqu'à la zone d'extraction. En route : un barrage gardé, une mine, un IED, un village tenu en embuscade et deux pick-ups armés.
+- On y emploie les points de passage (9.17), le débarquement d'assaut (9.18) et la caméra qui suit le véhicule (9.19).
+- `mapkit.vip` et `mapkit.extraction_zone`.
+- Vérifié par scénario : le VIP qui suit Alpha monte à bord en 6 s ; le Sabre roule jusqu'à la zone ; le VIP en descend, d'où « RÉUSSITE — VIP évacué ». La suite GUT n'a pas été lancée.

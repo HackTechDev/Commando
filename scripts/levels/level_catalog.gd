@@ -199,6 +199,17 @@ const LEVELS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Escorte motorisée",
+		"scene": "res://scenes/levels/motorcade/motorcade.tscn",
+		"description": "De jour. L'ambassadeur attend dans la maison sûre, à côté du Sabre. Ordonnez-lui de suivre un opérateur : quand celui-ci monte dans le véhicule, le VIP s'assoit derrière lui. Conduisez jusqu'à la zone d'extraction au nord-est : il en descend de lui-même. La piste passe un barrage gardé, une mine et un IED, puis un village où l'on vous attend en embuscade ; deux pick-ups armés tournent dans la région. Maj + clic droit enchaîne des points de passage ; « Débarquer à l'arrivée » (menu de bord) fait sauter les passagers derrière la caisse au bout du trajet, conducteur et tireur restant à bord. La caméra suit le véhicule en route.",
+		"camo": "desert",
+		"objectives": [
+			{"id": "vip_extracted", "text": "Conduire l'ambassadeur jusqu'à la zone d'extraction"},
+			{"id": "vip_alive", "text": "L'ambassadeur doit survivre"},
+			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
+		],
+	},
+	{
 		"title": "Entraînement A",
 		"scene": "res://scenes/levels/training_a/training_a.tscn",
 		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
