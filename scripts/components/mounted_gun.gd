@@ -131,6 +131,9 @@ func update(delta: float, manned: bool) -> void:
 		_search_left = search_interval
 		if designated == null and (target == null or not can_reach(target)):
 			target = _find_target()
+			# Faute d'ennemi à pied : un véhicule ennemi à portée.
+			if target == null:
+				designated = _find_vehicle()
 	var aim: Vector3
 	if designated and _reaches_point(designation_point(designated), designated):
 		aim = designation_point(designated)
@@ -165,6 +168,21 @@ func _excluded() -> Array[RID]:
 
 
 ## Ennemi debout le plus proche que l'arme peut atteindre, ou null.
+## Véhicule ennemi debout le plus proche à portée et en vue, ou null.
+func _find_vehicle() -> Node3D:
+	var best: Node3D = null
+	var best_distance := INF
+	for node in vehicle.get_tree().get_nodes_in_group(Technical.GROUP):
+		var other := node as Node3D
+		if other == null or other == vehicle or not designation_alive(other):
+			continue
+		var distance := pivot.global_position.distance_to(other.global_position)
+		if distance < best_distance and _reaches_point(designation_point(other), other):
+			best = other
+			best_distance = distance
+	return best
+
+
 func _find_target() -> Enemy:
 	var best: Enemy = null
 	var best_distance := INF

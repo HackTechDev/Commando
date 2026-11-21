@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/props/sabre.gd" id="sabre"]
 [ext_resource type="Script" path="res://scripts/props/road_barrier.gd" id="barrier"]
 [ext_resource type="Script" path="res://scripts/props/landmine.gd" id="mine"]
+[ext_resource type="Script" path="res://scripts/enemies/technical.gd" id="technical"]
 [ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
 [ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="tiltrotor"]
 
@@ -20,6 +21,13 @@ _data = {
 "tilts": PackedFloat32Array(0, 0, 0, 0)
 }
 point_count = 4
+
+[sub_resource type="Curve3D" id="tech_loop"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 44, 0, -30, 0, 0, 0, 0, 0, 0, 38, 0, -12),
+"tilts": PackedFloat32Array(0, 0, 0)
+}
+point_count = 3
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -287,6 +295,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 20)
 [node name="PatrolRidge" type="Path3D" parent="PatrolPaths"]
 curve = SubResource("patrol_ridge")
 
+[node name="TechLoop" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("tech_loop")
+
 [node name="Enemies" type="Node3D" parent="."]
 
 [node name="RidgePatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("7")]
@@ -308,5 +319,10 @@ stationary = true
 [node name="Lookout" parent="Enemies" instance=ExtResource("7")]
 transform = Transform3D(-0.6428, 0, 0.766, 0, 1, 0, -0.766, 0, -0.6428, 34, 0, -16)
 stationary = true
+
+[node name="Technical" type="StaticBody3D" parent="Enemies"]
+transform = Transform3D(-0.9848, 0, -0.1736, 0, 1, 0, 0.1736, 0, -0.9848, 40, 0, 0)
+script = ExtResource("technical")
+patrol_path = NodePath("../../PatrolPaths/TechLoop")
 
 [node name="HUD" parent="." instance=ExtResource("6")]

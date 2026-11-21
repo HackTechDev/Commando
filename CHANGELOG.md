@@ -1017,3 +1017,12 @@
 - Un opérateur à pied qui passe à moins de 2,5 m (1,5 m de nuit) la repère. Elle est alors balisée d'un fanion « MINE » ou « IED », la navigation la contourne, et le Sabre s'arrête devant au lieu de rouler dessus.
 - Clic droit sur une mine repérée avec des opérateurs à pied sélectionnés : le plus proche va la désamorcer, accroupi, en 4 s.
 - La sauvegarde rapide garde l'état de chaque mine (repérée, désamorcée, explosée).
+
+## Pick-ups ennemis armés, « technicals » (9.15)
+
+- Nouvel ennemi `Technical` : pick-up avec un chauffeur et un mitrailleur debout derrière une mitrailleuse lourde à bouclier. « Patrouille Sabre » en a un, qui fait sa ronde à l'est du poste.
+- Il entend les bruits (moteur du Sabre, tirs, explosions) jusqu'à leur portée plus 10 m et fonce vers le dernier entendu. S'il voit un opérateur ou un VIP (28 m de jour, 13 m de nuit sauf phares allumés, moitié moins pour un opérateur couché), il s'arrête, donne l'alerte et tire par rafales. La caisse du Sabre arrête une partie des balles.
+- Faute de nouveau contact pendant 10 s, il reprend sa ronde.
+- Destructible : 300 de structure, blindage léger (les balles ne font que 35 % de leurs dégâts). Grenades, charges, mines et missile comptent pleinement. Détruit, c'est une épave noircie et fumante.
+- La 12,7 et les 7,62 du Sabre au feu à volonté le prennent pour cible d'elles-mêmes quand aucun ennemi à pied n'est à portée ; le tir désigné marche aussi.
+- La sauvegarde rapide garde sa position, sa structure et son épave.

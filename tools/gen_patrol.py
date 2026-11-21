@@ -36,10 +36,12 @@ ext = [
     ('Script', 'res://scripts/props/sabre.gd', 'sabre'),
     ('Script', 'res://scripts/props/road_barrier.gd', 'barrier'),
     ('Script', 'res://scripts/props/landmine.gd', 'mine'),
+    ('Script', 'res://scripts/enemies/technical.gd', 'technical'),
     ('Script', 'res://scripts/props/hiding_spot.gd', 'hiding'),
     ('Script', 'res://scripts/props/tiltrotor.gd', 'tiltrotor'),
 ]
-patrols = {"patrol_ridge": [(-6, -2), (10, -12), (-6, -2), (-14, 8)]}
+patrols = {"patrol_ridge": [(-6, -2), (10, -12), (-6, -2), (-14, 8)],
+           "tech_loop": [(40, 0), (44, -30), (38, -12)]}
 subs = [curve(cid, pts) for cid, pts in patrols.items()]
 subs.append("""[sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -175,6 +177,7 @@ for i, (name, x, z) in enumerate([("Alpha", -30, 26.6), ("Bravo", -30.8, 25.2), 
 nodes.append(f'[node name="CameraRig" parent="." instance=ExtResource("2")]\ntransform = {tf(-30, 20)}')
 nodes.append('[node name="PatrolPaths" type="Node3D" parent="."]')
 nodes.append('[node name="PatrolRidge" type="Path3D" parent="PatrolPaths"]\ncurve = SubResource("patrol_ridge")')
+nodes.append('[node name="TechLoop" type="Path3D" parent="PatrolPaths"]\ncurve = SubResource("tech_loop")')
 nodes.append('[node name="Enemies" type="Node3D" parent="."]')
 enemies = [
     ("RidgePatrol", -6, -2, 120, "PatrolRidge", False),
@@ -190,6 +193,8 @@ for name, x, z, facing, path, still in enemies:
                      f'transform = {tf(x, z, facing)}\npatrol_path = NodePath("../../PatrolPaths/{path}")' + extra)
     else:
         nodes.append(f'[node name="{name}" parent="Enemies" instance=ExtResource("7")]\ntransform = {tf(x, z, facing)}' + extra)
+# Pick-up armé : ronde autour du poste, à l'est de la piste.
+nodes.append(f'[node name="Technical" type="StaticBody3D" parent="Enemies"]\ntransform = {tf(40, 0, 170)}\nscript = ExtResource("technical")\npatrol_path = NodePath("../../PatrolPaths/TechLoop")')
 nodes.append('[node name="HUD" parent="." instance=ExtResource("6")]')
 
 text = f"[gd_scene load_steps={len(ext) + len(subs) + 1} format=3]\n\n"

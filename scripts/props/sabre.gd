@@ -1446,14 +1446,14 @@ func _show_damage() -> void:
 		_gauge.modulate = Color(1.0, 0.35, 0.25) if is_wrecked or engine_damage >= 1.0 or structure < STRUCTURE * 0.35 else Color(1.0, 0.85, 0.4)
 	var smoking := is_wrecked or engine_damage >= ENGINE_SMOKE
 	if smoking and _smoke == null:
-		_smoke = _make_smoke()
+		_smoke = make_smoke()
 		add_child(_smoke)
 	if _smoke:
 		_smoke.emitting = smoking
 		_smoke.color = Color(0.12, 0.11, 0.1, 0.7) if is_wrecked else Color(0.45, 0.44, 0.42, 0.55)
 
 
-func _make_smoke() -> CPUParticles3D:
+static func make_smoke() -> CPUParticles3D:
 	var smoke := CPUParticles3D.new()
 	smoke.name = "Smoke"
 	smoke.position = Vector3(0.0, 1.3, -1.8)
