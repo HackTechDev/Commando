@@ -787,7 +787,8 @@ static func walkers() -> Array[Commando]:
 
 
 ## Options du menu du véhicule pour `units` (à pied) : s'abriter derrière,
-## moteur au ralenti (leurre, opérateur tout près), se ravitailler, réparer.
+## moteur au ralenti (leurre, opérateur tout près), se ravitailler, coucher
+## un corps ou un otage sur le plateau, décharger le plateau, réparer.
 static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dictionary]:
 	var nobody := "sélectionnez un opérateur à pied" if units.is_empty() else ""
 	var options: Array[Dictionary] = []
@@ -804,6 +805,16 @@ static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dicti
 		supply = "" if not needy.is_empty() else sabre.resupply_problem(units[0])
 	options.append({"id": &"resupply", "label": "Se ravitailler (%d)" % sabre.supplies,
 		"detail": "au hayon : dotation de départ" if supply == "" else supply, "enabled": supply == ""})
+	var bed := nobody
+	if bed == "":
+		var holders := units.filter(func(unit: Commando) -> bool: return sabre.bed_problem(unit) == "")
+		bed = "" if not holders.is_empty() else sabre.bed_problem(units[0])
+	options.append({"id": &"bed", "label": "Coucher sur le plateau",
+		"detail": "corps ou otage ligoté, depuis le hayon (%d place%s)" % [sabre.bed.count(null), "s" if sabre.bed.count(null) > 1 else ""] if bed == "" else bed,
+		"enabled": bed == ""})
+	var unload := sabre.unload_problem()
+	options.append({"id": &"unload", "label": "Décharger le plateau",
+		"detail": "derrière le hayon" if unload == "" else unload, "enabled": unload == ""})
 	var repair := nobody if nobody != "" else sabre.repair_problem()
 	options.append({"id": &"repair", "label": "Réparer",
 		"detail": "pneus et moteur, %d s à l'avant" % int(Sabre.REPAIR_TIME) if repair == "" else repair, "enabled": repair == ""})
@@ -817,7 +828,9 @@ func _on_vehicle_order(id: StringName) -> void:
 	_menu_vehicle = null
 	_menu_walkers = []
 	var ok := false
-	if is_instance_valid(sabre) and not units.is_empty():
+	if id == &"unload" and is_instance_valid(sabre):
+		ok = sabre.unload_bed()
+	elif is_instance_valid(sabre) and not units.is_empty():
 		var run := false
 		match id:
 			&"cover":
@@ -827,6 +840,12 @@ func _on_vehicle_order(id: StringName) -> void:
 						_spawn_marker(point, marker_color)
 			&"idle":
 				ok = sabre.set_idling(not sabre.idling)
+			&"bed":
+				for unit in units:
+					if sabre.request_bed(unit, run):
+						ok = true
+				if ok:
+					_spawn_marker(sabre.supply_point(), marker_color)
 			&"resupply":
 				for unit in units:
 					if sabre.request_resupply(unit, run):

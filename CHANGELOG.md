@@ -968,3 +968,10 @@
 - Les jerricans et les caisses du plateau emportent quatre lots (`Sabre.supplies`). Un opérateur y reprend sa dotation de départ : munitions de réserve, grenades, fumigènes, trousses et charges (`Commando.resupply`, comme dans la soute du convertible).
 - À bord : « Se ravitailler » au menu de sa place. À pied : menu du véhicule, « Se ravitailler » ; les opérateurs sélectionnés à qui il manque quelque chose vont au hayon et se servent en arrivant.
 - La sauvegarde rapide garde les lots restants.
+
+## Corps et otage sur le plateau du Sabre (9.10)
+
+- Menu du véhicule : « Coucher sur le plateau ». Un opérateur à pied qui porte un corps (ennemi mort ou assommé) ou tient un otage va au hayon et le couche en travers du plateau arrière, ce qui lui libère les mains. L'otage est ligoté : assommé, il ne se réveille pas tant qu'il y reste (`Enemy.on_vehicle`).
+- Deux places. Les corps suivent le véhicule, cachés sous la bâche : les gardes ne les découvrent pas. Le corps d'un officier (8.14) remplit l'objectif des documents si le Sabre monte dans la soute du convertible.
+- « Décharger le plateau » les dépose au sol derrière le hayon ; on peut aussi reprendre un corps sur l'épaule.
+- La sauvegarde rapide garde ce qui est sur le plateau.

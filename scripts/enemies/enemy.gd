@@ -119,6 +119,9 @@ var _help_left: float = 0.0
 var investigating: bool = false
 ## Opérateur qui porte ce corps (mort ou assommé), ou null.
 var carrier: Commando
+## Véhicule sur le plateau duquel il est couché (corps, ou otage ligoté), ou
+## null : caché sous la bâche, il ne se réveille pas.
+var on_vehicle: Node3D
 ## Corps déjà découvert par un ennemi (l'alarme a été donnée une fois).
 var discovered: bool = false
 ## Bassin et axe bassin-tête du corps (son repère), relevés quand on le
@@ -224,7 +227,9 @@ func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 	if state == State.STUNNED:
-		_stun_left -= delta
+		# Ligoté sur un plateau : il ne se réveille pas.
+		if on_vehicle == null:
+			_stun_left -= delta
 		if _stun_left <= 0.0:
 			_wake_up()
 		return
@@ -877,7 +882,7 @@ func is_body() -> bool:
 ## Vrai si ce corps échappe aux regards : porté, dans une cachette (buisson,
 ## eau, abri) ou sous un toit.
 func is_hidden_body() -> bool:
-	if carrier != null:
+	if carrier != null or on_vehicle != null:
 		return true
 	if HidingSpot.at(get_tree(), body_center()) != null:
 		return true

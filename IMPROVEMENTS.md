@@ -124,7 +124,6 @@ Armement :
 
 Dégâts et logistique :
 
-- **9.10 Transport de blessés et de corps** : déposer un opérateur à terre ou un otage sur le plateau arrière pour l'évacuer, ce qui libère le porteur.
 - **9.11 Escorte de VIP** : le VIP monte à une place passagère ; l'objectif est de le conduire jusqu'à l'extraction.
 
 Cartes et missions :

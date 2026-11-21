@@ -57,6 +57,11 @@ extends StaticBody3D
 ## plateau emportent `supplies` lots ; un opérateur au hayon (ou à bord) y
 ## reprend sa dotation de départ (`Commando.resupply`).
 ##
+## Plateau (`request_bed`) : un opérateur qui porte un corps, ou tient un
+## otage (qu'il ligote), le couche sur le plateau arrière depuis le hayon,
+## ce qui lui libère les mains ; le véhicule l'emporte, caché sous la bâche.
+## Deux places ; « Décharger le plateau » les dépose derrière le hayon.
+##
 ## Leurre (`set_idling`) : à l'arrêt, le moteur tourne au ralenti, même
 ## sans personne à bord ; son bruit attire les gardes (bruit `distraction`)
 ## pendant que l'équipe contourne à pied.
@@ -96,6 +101,8 @@ const REPAIR_TIME := 6.0
 const REPAIR_REACH := 1.4
 ## Ravitaillement : distance au hayon (m).
 const SUPPLY_REACH := 1.6
+## Plateau : places des corps couchés en travers (bassin, repère du modèle).
+const BED_SLOTS: Array[Vector3] = [Vector3(0.0, SabreModel.FLOOR + 0.04, 1.45), Vector3(0.0, SabreModel.FLOOR + 0.04, 2.05)]
 ## Leurre : intervalle du bruit au ralenti (s), distance (m) à laquelle un
 ## opérateur à pied peut lancer ou couper le moteur.
 const IDLE_INTERVAL := 1.5
@@ -213,6 +220,9 @@ var is_wrecked: bool = false
 var _repairer: Commando
 ## Opérateurs en route vers le hayon pour se ravitailler : unité -> vrai.
 var _suppliers: Dictionary = {}
+## Corps couchés sur le plateau (null : place libre) ; porteurs en route.
+var bed: Array[Enemy] = [null, null]
+var _loaders: Dictionary = {}
 var _repair_left: float = 0.0
 var _gauge: Label3D
 var _smoke: CPUParticles3D
@@ -888,8 +898,10 @@ static func _deck_height(z: float) -> float:
 	return floor_y * clampf((end - z) / (end - hinge), 0.0, 1.0)
 
 
-## Les passagers suivent le véhicule, à leur place.
+## Les passagers suivent le véhicule, à leur place (et les corps du
+## plateau).
 func _carry_crew() -> void:
+	_carry_bed()
 	for index in seats.size():
 		var unit := seats[index]
 		if unit:
@@ -1026,6 +1038,7 @@ func _physics_process(delta: float) -> void:
 		_update_repair(delta)
 		_update_idle(delta)
 		_update_suppliers()
+		_update_loaders()
 	_gun.update(delta, (gun_firing or _gun.designated != null) and gunner() != null and not model.is_folded and not is_wrecked)
 	_update_missile(delta)
 	for index in _side_guns.size():
@@ -1354,6 +1367,113 @@ func _update_suppliers() -> void:
 			_hand_out(unit)
 
 
+# --- Plateau -------------------------------------------------------------------
+
+## Raison pour laquelle `unit` ne peut pas coucher ce qu'il porte sur le
+## plateau (vide : c'est possible).
+func bed_problem(unit: Commando) -> String:
+	if unit == null or (unit.carried_body == null and unit.hostage == null):
+		return "ni corps ni otage"
+	if not bed.has(null):
+		return "plateau plein"
+	if is_driving:
+		return "en route"
+	if is_wrecked:
+		return "épave"
+	if stowed_in or slung_by:
+		return "pas au sol"
+	return ""
+
+
+## Envoie `unit` au hayon coucher son corps (ou son otage) sur le plateau.
+func request_bed(unit: Commando, run: bool) -> bool:
+	if bed_problem(unit) != "":
+		return false
+	_loaders[unit] = true
+	unit.move_to(supply_point(), run)
+	return true
+
+
+func _update_loaders() -> void:
+	var spot := supply_point()
+	for unit: Commando in _loaders.keys():
+		if not is_instance_valid(unit) or unit.is_dead or bed_problem(unit) != "":
+			_loaders.erase(unit)
+			continue
+		if unit._agent.target_position.distance_to(spot) > 1.5 and not unit.is_walking() and unit.global_position.distance_to(spot) > SUPPLY_REACH:
+			_loaders.erase(unit)
+			continue
+		if unit.global_position.distance_to(spot) <= SUPPLY_REACH:
+			_loaders.erase(unit)
+			_put_on_bed(unit)
+
+
+## Couche sur le plateau le corps de `unit`, ou son otage, ligoté.
+func _put_on_bed(unit: Commando) -> void:
+	var body := unit.carried_body
+	if body:
+		unit.carried_body = null
+		body.carrier = null
+	else:
+		body = unit.hostage
+		unit._drop_hostage()
+		body.knock_out(true)
+		unit.flash_message("Otage ligoté sur le plateau")
+	var slot := bed.find(null)
+	bed[slot] = body
+	body.on_vehicle = self
+	_lay(body, slot)
+	Sfx.play_at(&"fall", body.global_position, -8.0)
+
+
+## Couche `body` à sa place du plateau (en travers, la tête à gauche).
+func _lay(body: Enemy, slot: int) -> void:
+	body.put_down(to_global(BED_SLOTS[slot]), -global_basis.x, body.carried_hips, body.carried_axis)
+	body.collision_layer = 0
+
+
+## Raison pour laquelle on ne peut pas décharger le plateau (vide : c'est
+## possible).
+func unload_problem() -> String:
+	if bed.count(null) == bed.size():
+		return "plateau vide"
+	if is_driving:
+		return "en route"
+	if stowed_in or slung_by:
+		return "pas au sol"
+	return ""
+
+
+## Dépose au sol, derrière le hayon, ce qui est couché sur le plateau.
+func unload_bed() -> bool:
+	if unload_problem() != "":
+		return false
+	for slot in bed.size():
+		var body := bed[slot]
+		bed[slot] = null
+		if not is_instance_valid(body):
+			continue
+		body.on_vehicle = null
+		var at := _on_navmesh(to_global(Vector3((slot - 0.5) * 1.4, 0.0, 3.6)))
+		body.put_down(at, -global_basis.x, body.carried_hips, body.carried_axis)
+	return true
+
+
+## Les corps du plateau suivent le véhicule ; pris sur l'épaule, une place
+## se libère.
+func _carry_bed() -> void:
+	for slot in bed.size():
+		var body := bed[slot]
+		if body == null:
+			continue
+		if not is_instance_valid(body) or body.carrier != null:
+			if is_instance_valid(body):
+				body.on_vehicle = null
+			bed[slot] = null
+			continue
+		_lay(body, slot)
+
+
 ## Raison pour laquelle on ne peut pas réparer (vide : c'est possible).
 func repair_problem() -> String:
 	if is_wrecked:
@@ -1414,6 +1534,7 @@ func save_state() -> Dictionary:
 	for unit in seats:
 		names.append(String(unit.name) if unit else "")
 	return {"position": global_position, "yaw": global_rotation.y, "seats": names, "gun": gun_firing, "coasting": coasting, "headlights": headlights, "idling": idling, "side_firing": side_firing.duplicate(), "missiles": missiles, "supplies": supplies,
+		"bed": bed.map(func(body: Enemy) -> String: return String(body.get_path()) if is_instance_valid(body) else ""),
 		"structure": structure, "tire_flat": tire_flat, "engine": engine_damage, "wrecked": is_wrecked, "coast_left": _coast_left,
 		"stowed": String(stowed_in.get_path()) if stowed_in else ""}
 
@@ -1440,6 +1561,12 @@ func load_state(data: Dictionary) -> void:
 	missiles = data.get("missiles", missiles)
 	supplies = data.get("supplies", supplies)
 	_suppliers.clear()
+	_loaders.clear()
+	for slot in bed.size():
+		if is_instance_valid(bed[slot]):
+			bed[slot].on_vehicle = null
+		bed[slot] = null
+	_restore_bed.call_deferred(data.get("bed", []))
 	_missile_gunner = null
 	var sides: Array = data.get("side_firing", [false, false])
 	for index in mini(sides.size(), side_firing.size()):
@@ -1450,6 +1577,16 @@ func load_state(data: Dictionary) -> void:
 	global_position = data.get("position", global_position)
 	global_rotation = Vector3(0.0, data.get("yaw", global_rotation.y), 0.0)
 	_restore_crew.call_deferred(data.get("seats", []), data.get("gun", false))
+
+
+## Remet sur le plateau les corps de la sauvegarde (une fois leur état rendu).
+func _restore_bed(paths: Array) -> void:
+	for slot in mini(paths.size(), bed.size()):
+		var body := get_node_or_null(NodePath(String(paths[slot]))) as Enemy if String(paths[slot]) != "" else null
+		if body:
+			bed[slot] = body
+			body.on_vehicle = self
+			_lay(body, slot)
 
 
 func _restore_crew(names: Array, firing: bool) -> void:
