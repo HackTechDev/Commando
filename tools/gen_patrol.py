@@ -34,6 +34,7 @@ ext = [
     ('PackedScene', 'res://scenes/enemies/enemy.tscn', '7'),
     ('PackedScene', 'res://scenes/props/wall.tscn', '8'),
     ('Script', 'res://scripts/props/sabre.gd', 'sabre'),
+    ('Script', 'res://scripts/props/road_barrier.gd', 'barrier'),
     ('Script', 'res://scripts/props/hiding_spot.gd', 'hiding'),
     ('Script', 'res://scripts/props/tiltrotor.gd', 'tiltrotor'),
 ]
@@ -137,6 +138,8 @@ nodes.append(f'[node name="Extraction" type="StaticBody3D" parent="{NR}"]\ntrans
 # Poste de contrôle : murets de sacs de sable, caisses, abri.
 for i, (x, z, facing) in enumerate([(21, -26, 0), (29, -26, 0), (18, -31, 90), (32, -31, 90)]):
     nodes.append(f'[node name="Sandbags{i + 1}" parent="{NR}" instance=ExtResource("4")]\ntransform = {tf(x, z, facing)}')
+# Barrière en travers de la piste, entre les murets d'entrée.
+nodes.append(f'[node name="Barrier" type="Node3D" parent="{NR}"]\ntransform = {tf(25, -26)}\nscript = ExtResource("barrier")\nwidth = 4.6')
 for i, (x, z, facing) in enumerate([(20, -42, 0), (32, -42, 0)]):
     nodes.append(f'[node name="Wall{i + 1}" parent="{NR}" instance=ExtResource("8")]\ntransform = {tf(x, z, facing)}')
 crates = [(23, -33), (24.3, -33), (12, -18), (-4, 4), (-2.7, 4), (-18, 14), (6, -6), (36, -20)]

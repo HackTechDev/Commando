@@ -1195,6 +1195,12 @@ func _drive(delta: float) -> void:
 	if _path_index == _path.size() - 1:
 		speed = minf(speed, maxf(to_next.length() * 1.5, 1.5))
 	var distance := speed * delta
+	# Barrière fermée devant le pare-chocs : on la force.
+	var barrier := RoadBarrier.ahead(self)
+	if barrier:
+		barrier.smash(self, speed)
+		if is_wrecked or not is_driving:
+			return
 	if coasting:
 		_coast_left -= distance
 		if _coast_left <= 0.0:
@@ -1300,6 +1306,16 @@ func take_shot(damage: float, at: Vector3, _from: Vector3) -> void:
 			break
 	if local.z < SabreModel.CREW_FRONT:
 		_hit_engine(damage)
+	_damage(damage)
+
+
+## Choc à l'avant (barrière forcée, `RoadBarrier.smash`) : dégâts, et un
+## pneu crevé si `puncture`.
+func take_ram(damage: float, puncture: bool) -> void:
+	if is_wrecked:
+		return
+	if puncture:
+		_puncture()
 	_damage(damage)
 
 

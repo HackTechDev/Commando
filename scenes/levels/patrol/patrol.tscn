@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/props/wall.tscn" id="8"]
 [ext_resource type="Script" path="res://scripts/props/sabre.gd" id="sabre"]
+[ext_resource type="Script" path="res://scripts/props/road_barrier.gd" id="barrier"]
 [ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
 [ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="tiltrotor"]
 
@@ -152,6 +153,11 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 18, 0, -31)
 
 [node name="Sandbags4" parent="NavigationRegion3D" instance=ExtResource("4")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 32, 0, -31)
+
+[node name="Barrier" type="Node3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -26)
+script = ExtResource("barrier")
+width = 4.6
 
 [node name="Wall1" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 20, 0, -42)

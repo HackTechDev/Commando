@@ -128,7 +128,6 @@ Dégâts et logistique :
 Cartes et missions :
 
 - **9.12 Convoi de nuit** : rejoindre en Sabre le convertible d'extraction, puis embarquer (les deux véhicules dans une même mission).
-- **9.13 Barrage routier** : un poste avec une barrière, à forcer à faible vitesse (bruit, dégâts) ou à ouvrir discrètement à pied.
 - **9.14 Mines et IED** sur la piste : un opérateur à pied devant le véhicule les détecte ; sinon le véhicule saute.
 - **9.15 Pick-ups ennemis (technicals)** : ils patrouillent la piste et prennent le Sabre en chasse s'ils l'entendent ; une vraie cible pour la 12,7 et le missile.
 - **9.16 Raid éclair** : objectif chronométré (détruire un dépôt et repartir avant l'arrivée des renforts).

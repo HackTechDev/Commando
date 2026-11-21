@@ -1001,3 +1001,11 @@
 - Tant que le Sabre roule avec un passager sélectionné, la caméra reste centrée sur lui.
 - Déplacer la caméra à la main (touches, bord d'écran, glisser) suspend le suivi jusqu'à l'arrêt du véhicule ; il reprend au trajet suivant.
 - Option « La caméra suit le véhicule en route » (activée par défaut), dans les options du menu pause et du menu principal.
+
+## Barrage routier (9.13)
+
+- Nouvel objet `RoadBarrier` : deux poteaux, un coffret de commande et une lisse rayée rouge et blanc en travers de la piste. La carte « Patrouille Sabre » en a une à l'entrée du poste de contrôle.
+- Forcer : le Sabre qui roule dessus brise la lisse. Le fracas s'entend à 30 m et le véhicule prend de 20 (au pas) à 90 (à pleine vitesse) de dégâts, avec un pneu crevé une fois sur deux au-delà de 70 % de la vitesse.
+- Ouvrir : clic droit sur la barrière avec des opérateurs à pied sélectionnés. Le plus proche va au coffret et la lève en 1,2 s, avec un grincement qui ne porte qu'à 3 m ; même geste pour la baisser.
+- La lisse n'a pas de collision : les fantassins passent dessous et la navigation n'est pas coupée. La sauvegarde rapide garde son état (levée, brisée).
+- Générateur `tools/gen_patrol.py` mis à jour.

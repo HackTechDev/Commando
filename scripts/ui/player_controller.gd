@@ -321,7 +321,7 @@ func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
 	var enemy := _raycast(screen_position, MASK_ENEMIES).get("collider") as Enemy
 	if enemy and not enemy.is_dead:
 		return GameCursor.Kind.ATTACK
-	if door_at(screen_position):
+	if door_at(screen_position) or (barrier_at(screen_position) and _selected_vehicle() == null):
 		return GameCursor.Kind.CRATE
 	var hit := _raycast(screen_position, MASK_GROUND)
 	if hit.is_empty():
@@ -630,6 +630,19 @@ func _order(screen_position: Vector2, run: bool) -> void:
 		var enemy := enemy_hit["collider"] as Enemy
 		SelectionManager.order_attack(enemy, run)
 		_spawn_marker(enemy.global_position, marker_attack_color)
+		return
+	# Barrière : l'opérateur à pied le plus proche va la lever (ou la baisser).
+	var barrier := barrier_at(screen_position) if _selected_vehicle() == null else null
+	if barrier:
+		var operator: Commando = null
+		for unit: Commando in SelectionManager.selected:
+			if unit.riding == null and not unit.is_dead and (operator == null \
+					or unit.global_position.distance_to(barrier.global_position) < operator.global_position.distance_to(barrier.global_position)):
+				operator = unit
+		if operator and barrier.request_toggle(operator, run):
+			_spawn_marker(barrier.control_point(operator.global_position), marker_run_color if run else marker_color)
+		else:
+			Sfx.play_ui(&"denied")
 		return
 	var door := door_at(screen_position)
 	if door:
@@ -1384,6 +1397,13 @@ func _focus_camera() -> void:
 
 
 ## Porte (fermée ou ouverte, pas détruite) sous `screen_position`, ou null.
+## Barrière de poste de contrôle sous `screen_position`, ou null.
+func barrier_at(screen_position: Vector2) -> RoadBarrier:
+	var camera := get_viewport().get_camera_3d()
+	var from := camera.project_ray_origin(screen_position)
+	return RoadBarrier.picked(get_tree(), from, from + camera.project_ray_normal(screen_position) * RAY_LENGTH)
+
+
 func door_at(screen_position: Vector2) -> Door:
 	var hit := _raycast(screen_position, MASK_GROUND | Door.DOOR_LAYER)
 	var door := hit.get("collider") as Door
