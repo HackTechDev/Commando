@@ -128,8 +128,24 @@ class MapBuilder:
 
     # --- Décor --------------------------------------------------------------
 
-    def track(self, points, width=4.5):
-        """Piste : bandes plates entre les points (x, z)."""
+    # Revêtements de bandes autres que la piste : couleur, hauteur de base.
+    SURFACES = {"road": ((0.19, 0.19, 0.2), 0.016), "sidewalk": ((0.55, 0.54, 0.5), 0.008)}
+
+    def _surface(self, kind):
+        """Maillage de la bande `kind` (piste, ou `SURFACES`), créé au besoin."""
+        if kind == "track":
+            return "track_mesh", 0.01
+        color, base = self.SURFACES[kind]
+        mesh = f"{kind}_mesh"
+        if not any(f'id="{mesh}"' in s for s in self.subs):
+            self._mat(f"{kind}_mat", color)
+            self.subs.append(f'[sub_resource type="BoxMesh" id="{mesh}"]\nmaterial = SubResource("{kind}_mat")\nsize = Vector3(1, 0.02, 1)\n')
+        return mesh, base
+
+    def track(self, points, width=4.5, kind="track"):
+        """Piste (ou rue `road`, trottoir `sidewalk`) : bandes plates entre
+        les points (x, z)."""
+        mesh, base = self._surface(kind)
         for i in range(len(points) - 1):
             (x1, z1), (x2, z2) = points[i], points[i + 1]
             length = math.hypot(x2 - x1, z2 - z1)
@@ -141,7 +157,7 @@ class MapBuilder:
             xx, xz = uz * width, -ux * width
             self.decor.append(f'[node name="{self._name("Track")}" type="MeshInstance3D" parent="Decor"]\n'
                               f'transform = Transform3D({xx:.4f}, 0, {x2 - x1:.4f}, 0, 1, 0, {xz:.4f}, 0, {z2 - z1:.4f}, '
-                              f'{(x1 + x2) / 2:g}, {0.01 + 0.001 * i:g}, {(z1 + z2) / 2:g})\nmesh = SubResource("track_mesh")')
+                              f'{(x1 + x2) / 2:g}, {base + 0.001 * i:g}, {(z1 + z2) / 2:g})\nmesh = SubResource("{mesh}")')
 
     def pad(self, x, z):
         """Aire de poser circulaire (décor)."""

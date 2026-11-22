@@ -1199,3 +1199,13 @@
 - Poches de poitrine à rabat en relief, avec bouton-pression ; col montant côtelé, ouvert devant ; bas côtelé.
 - Les pièces épousent le buste jusqu'à la taille (`_chest_front` étendu sous la poitrine) au lieu de flotter en planches.
 - Vérifié par rendus rapprochés (face, trois-quarts, profil ; homme et femme). La suite GUT n'a pas été lancée.
+
+## Réception : quartier autour de la résidence
+
+- La carte passe de 100 × 100 m à 220 × 220 m. La résidence et son parc ne bougent pas ; un quartier résidentiel les entoure.
+- Rues goudronnées bordées de trottoirs : deux avenues, une rue nord, des rues ouest et est. Nouvelles bandes `road` et `sidewalk` de `MapBuilder.track`.
+- Bâti : deux rangées de maisons de ville entre les avenues, avec une placette (terrasse de café) ; des maisons à jardin à l'ouest et à l'est ; un îlot au nord.
+- Ruelles le long des murs de la résidence, avec haies et poubelles. Haies dans les jardins.
+- Passants en tenue décontractée (`Guest`, couleurs variées de blouson et de jean) à la terrasse, à l'arrêt de bus et sur les trottoirs.
+- L'équipe part du coin sud-ouest. Quatre gardes s'ajoutent (13 en tout) : rondes sur l'avenue et dans les rues ouest et est, guetteur au nord de la pelouse d'atterrissage.
+- Vérifié par scénario : l'équipe, PM à la bretelle, va du départ au bureau en une minute environ, sans méfiance dans les rues ni dans le parc ; le garde du bureau devient méfiant de près. Chemins de navigation contrôlés (290 m d'un coin à l'autre). La suite GUT n'a pas été lancée.
