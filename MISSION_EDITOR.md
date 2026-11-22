@@ -1,72 +1,83 @@
 # Éditeur de mission
 
-Analyse et plan de travail. L'implémentation n'a pas commencé.
+Plan de travail. L'implémentation n'a pas commencé.
 
-Le cahier des charges prévoit un « éditeur de niveaux intégré ». La proposition : un éditeur dans le jeu, ouvert depuis le menu principal. On y pose les éléments sur une carte vue de dessus, on règle les objectifs, et on lance la mission directement pour l'essayer.
+## Choix arrêtés
 
-## 1. Une mission enregistrée comme un fichier de données
+- **Un greffon dans l'éditeur Godot** (`addons/mission_editor/`), pas un éditeur dans le jeu. Il sert au développement : les joueurs ne créent pas de missions.
+- **Première version : étapes 1 à 5** ci-dessous.
+- **Les missions de série s'ouvrent aussi dans l'éditeur.**
 
-Une mission est un fichier `user://missions/<nom>.json`, pas une scène Godot. Elle se joue dans une scène générique qui reconstruit la carte au chargement, comme `ufo_map.tscn` le fait déjà pour les cartes UFO:AI (`LevelCatalog.GENERIC_SCENE`).
+## 1. Principe
 
-Contenu du fichier :
+Avec un greffon, une mission reste ce qu'elle est aujourd'hui : une scène `.tscn` dont la racine est un `LevelRoot`. Le greffon édite cette scène directement. Il n'y a ni format JSON, ni reconstruction au chargement, ni conversion des missions de série : elles s'ouvrent comme n'importe quelle scène.
 
-- **Carte** : taille, type de sol, nuit ou jour (`LevelRoot.night`), tenue de rigueur (`LevelRoot.dress_code`), camouflage conseillé, texte de briefing.
-- **Décor** : bâtiments (taille, portes et verrous, fenêtres, hauteur, toit), murs, caisses, haies, lampadaires, routes et trottoirs, véhicules (Sabre, convertible d'extraction).
-- **Équipe** : point de départ, nombre d'opérateurs, équipement imposé (tenue, arme principale, jumelles, explosifs).
-- **Ennemis** : position, orientation, garde posté ou ronde avec son trajet, porteur des documents, pick-ups armés.
-- **Civils** : invités, passants avec leurs trajets, boucles de voitures.
-- **Objectifs** : choisis parmi ceux qui existent déjà (`documents`, `sabotage`, `vip_extracted`, `extracted`, `all_enemies_down`, `no_alert`, `no_operator_lost`…), chacun lié à sa cible sur la carte.
+Le greffon apporte ce que l'éditeur Godot ne sait pas faire seul :
+- une palette des éléments du jeu, posés d'un clic dans la vue 3D ;
+- l'affichage des décors et des unités procédurales ;
+- des repères visuels : cônes de vue, trajets des rondes, portée du bruit ;
+- un panneau pour les informations de la mission (titre, objectifs…) ;
+- une vérification de la carte et un bouton pour l'essayer.
 
-Le maillage de navigation est déjà calculé au chargement des niveaux (`LevelRoot`) : rien n'est à précalculer.
+L'annulation et le rétablissement viennent de Godot (`EditorUndoRedoManager`), de même que l'inspecteur pour les réglages fins.
 
-Aujourd'hui, `tools/mapkit.py` (`MapBuilder`) écrit des `.tscn` depuis Python. Il faut porter cette construction en GDScript pour que le jeu bâtisse la carte lui-même : une classe `MissionBuilder` qui crée directement les objets du jeu (`Building`, caisses, `Guest`, `Passerby`, `TrafficCar`, `Enemy`, etc.), avec les mêmes paramètres que les méthodes de `MapBuilder`.
+### Trois obstacles à lever
 
-## 2. L'écran de l'éditeur
+1. **Les données des missions sont dans le code.** Titre, description, camouflage conseillé et objectifs sont écrits dans `scripts/levels/level_catalog.gd` (24 entrées). Pour que le greffon les modifie, ils doivent devenir une ressource éditable, `MissionInfo` (fichier `.tres`), rangée à côté de la scène. `LevelCatalog` lit ces ressources au lieu de son tableau.
+2. **Les décors procéduraux sont invisibles dans l'éditeur.** Les bâtiments, gardes (`SoldierModel`), invités, passants, voitures, Sabre, convertible, etc. sont construits par leur script au lancement. Seuls `ladder.gd` et `low_wall.gd` sont `@tool`. Il faut les rendre `@tool` un par un, en ne gardant dans l'éditeur que la construction du modèle : pas de déplacement, d'IA, de bruit ni de groupes (garde `Engine.is_editor_hint()`).
+   - Les cartes UFO:AI (`UfoMapLevel`) sont aussi construites au chargement : il faut un aperçu, construit dans l'éditeur sans être enregistré dans la scène.
+   - Les textures externes (`TextureLibrary`) : même chose. C'est le point 101 a) d'`IMPROVEMENTS.md`.
+3. **18 cartes sont générées** par `tools/gen_*.py` (`MapBuilder`). Une carte modifiée dans l'éditeur, puis régénérée, perd ses modifications. Voir la question ouverte en fin de document.
 
-- **Caméra** : celle du jeu (`CameraRig`), vue de dessus, avec une grille magnétique de 0,5 m qu'on peut désactiver.
-- **Palette à gauche**, par catégories : décor, équipe, ennemis, civils, objectifs, extraction.
-- **Inspecteur à droite** : les réglages de l'objet sélectionné (taille d'un bâtiment, portes verrouillées, cône de vue et posture d'un garde…).
-- **Outils** :
-  - placer, sélectionner, déplacer et tourner, supprimer, dupliquer ;
-  - tracé point par point pour les rondes, les passants, les boucles de voitures, les rues et les murs ;
-  - zone pour l'extraction.
-- **Aperçus pour aider à placer les ennemis** : cônes de vision des gardes, trajets des rondes, portée du bruit.
-- **Annuler et rétablir.**
-- **Vérification avant d'enregistrer** :
+## 2. Le greffon
+
+- **Dock « Mission »**, quand la scène ouverte est un `LevelRoot` :
+  - **palette par catégories** : décor (bâtiment, mur, muret, caisse, haie, lampadaire, échelle, route, trottoir), équipe, ennemis (garde posté, ronde, pick-up armé), civils (invité, passant, boucle de voitures), objectifs (documents, groupe électrogène…), extraction et véhicules (convertible, Sabre) ;
+  - **réglages de la carte** : nuit ou jour, tenue de rigueur ;
+  - **informations de la mission** (`MissionInfo`) : titre, description, camouflage conseillé, objectifs.
+- **Pose dans la vue 3D** : le greffon capte les clics (`_forward_3d_gui_input`), vise le sol (couche 1) et pose l'élément sous le bon nœud parent (`Decor`, `Units`, `Enemies`…, comme `MapBuilder`).
+  - Grille magnétique de 0,5 m, qu'on peut désactiver ; rotation par pas de 15°.
+  - Raccourcis du greffon : des `Shortcut` de l'éditeur Godot, que l'utilisateur peut changer. La règle de l'InputMap concerne le jeu, pas l'éditeur.
+- **Repères visuels** (`EditorNode3DGizmoPlugin`) :
+  - cône de vision de chaque garde, selon son `VisionConfig` (zones proche et lointaine, de jour et de nuit) ;
+  - trajets des rondes, des passants et des boucles de voitures, avec des poignées pour déplacer, insérer ou retirer un point ;
+  - zone d'extraction ;
+  - portée des bruits (klaxon, moteur du Sabre).
+
+## 3. Vérification et essai
+
+- **Bouton « Vérifier »** : il calcule le maillage de navigation dans l'éditeur et contrôle :
   - l'équipe a un point de départ ;
-  - chaque objectif est atteignable à pied et la zone d'extraction aussi, comme le contrôle de chemins de `build/shots/check_map.sh` ;
-  - chaque objectif a sa cible ;
+  - chaque objectif a sa cible sur la carte (porteur des documents, groupe électrogène, VIP…) ;
+  - les objectifs et la zone d'extraction sont atteignables à pied depuis le départ, comme `build/shots/check_map.sh` ;
   - au-delà d'environ 40 gardes, un avertissement de performance (avec 72 gardes, on est tombé à 10 images/s).
-- **« Essayer »** : lance la mission telle quelle, et Échap ramène à l'éditeur au même endroit.
-- **Commandes** : toutes passent par l'InputMap, par position de touche (AZERTY par défaut), et sont ajoutées au README.
 
-## 3. Intégration au jeu
-
-- Une entrée « Éditeur de mission » dans le menu principal.
-- Dans le choix des missions, une rubrique « Missions personnelles », lue depuis le dossier `user://missions`.
-- Les objectifs (`Objectives`), l'écran de fin, l'équipement des opérateurs et la sauvegarde rapide fonctionnent comme pour les autres missions.
-- Une mission est un simple fichier, qu'on peut copier pour l'échanger.
+  Chaque problème est listé ; un clic sélectionne le nœud en cause.
+- **Bouton « Essayer »** : lance la scène ouverte (`EditorInterface.play_custom_scene`). À vérifier : lancée seule, une scène de niveau doit monter les objectifs, l'équipe et son équipement comme depuis le menu.
+- **Catalogue** : une mission créée avec le greffon apparaît dans le choix des missions dès que sa `MissionInfo` existe (le catalogue lit les ressources du dossier `scenes/levels`).
 
 ## 4. Étapes, chacune avec son commit
 
-1. **Format et chargement** : format JSON, `MissionBuilder` et la scène générique. Pour le valider, `tools/gen_reception.py` produit aussi une version JSON de Réception, et on vérifie qu'elle se joue comme l'originale.
-2. **Base de l'éditeur** : caméra, grille, palette de décor, placer, déplacer et supprimer, enregistrer et ouvrir.
-3. **Unités et trajets** : équipe, gardes postés et rondes, civils, voitures.
-4. **Mission** : objectifs, extraction, briefing, réglages de carte (nuit, tenue), vérification.
-5. **Essai et catalogue** : bouton « Essayer » avec retour à l'éditeur, missions personnelles dans le menu.
-6. **Finitions** : annuler et rétablir, copier-coller, dessin des routes, puis éventuellement partir d'une carte UFO:AI comme fond.
+1. **`MissionInfo`** : ressource des informations de mission, migration des 24 entrées de `level_catalog.gd` par un script, `LevelCatalog` qui lit les ressources. Le jeu doit se comporter exactement comme avant.
+2. **Affichage dans l'éditeur** : décors et unités `@tool` (construction seule) ; aperçu des cartes UFO:AI et des textures externes, non enregistré. Vérifié en ouvrant chaque mission de série dans l'éditeur.
+3. **Base du greffon** : dock, palette de décor, pose au clic, grille, rotation, annulation ; réglages de la carte.
+4. **Unités, trajets et mission** : équipe, gardes et rondes, civils, voitures, avec leurs repères visuels et poignées de trajet ; panneau `MissionInfo` avec les objectifs et leurs cibles ; extraction.
+5. **Vérification et essai** : bouton « Vérifier », bouton « Essayer », nouvelle mission visible dans le catalogue.
 
-La première version vise les étapes 1 à 5.
+Après la première version : copier-coller entre missions, dessin des routes au pinceau, partir d'une carte UFO:AI comme fond.
 
 ## 5. Hors de la première version
 
 - **Relief** : le sol reste plat.
 - **Bâtiments** : seulement les bâtiments réglables qui existent déjà, pas de dessin libre de pièces ni d'étages.
-- **Événements scriptés** : pas de renforts déclenchés, de pick-ups qui arrivent ni de dialogues de tutoriel.
-- **Missions de série** : elles restent en `.tscn` ; l'éditeur ne les modifie pas.
+- **Événements scriptés** : renforts déclenchés, pick-ups qui arrivent, ateliers du didacticiel. Les missions de série qui en ont s'ouvrent et se modifient, mais ces scripts ne s'éditent pas dans le greffon.
+- **Missions créées par les joueurs** : le greffon ne sert pas dans le jeu exporté.
 
-## 6. Questions ouvertes
+## 6. Question ouverte
 
-1. **Où placer l'éditeur ?** Intégré au jeu, comme proposé ici, ou un greffon dans l'éditeur Godot ? Le greffon serait plus rapide à faire (inspecteur et annulation fournis), mais il ne servirait qu'au développeur, pas aux joueurs.
-2. **Quel périmètre pour la première version ?** Proposition : les étapes 1 à 5.
-3. **Les missions de série** devraient-elles aussi pouvoir s'ouvrir dans l'éditeur ? Ce serait un gros travail de conversion.
+**Cartes générées par `tools/gen_*.py`** : une fois modifiée dans l'éditeur, la carte ne doit plus être régénérée. Trois possibilités :
+1. la scène devient la source : le générateur de la carte modifiée est retiré, comme celui des cartes qu'on ne touche plus ;
+2. le greffon affiche un avertissement sur une carte générée, et le générateur refuse d'écraser une scène modifiée depuis sa dernière génération ;
+3. on retire tous les générateurs d'un coup, au début, et `tools/mapkit.py` ne sert plus que de référence.
+
+Proposition : la 2, puis la 1 au cas par cas.
