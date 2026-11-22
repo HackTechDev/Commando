@@ -124,6 +124,9 @@ Un greffon de l'éditeur Godot (`addons/mission_editor`, activé dans le projet)
 
 - **Carte** : nuit ou jour (avec l'éclairage), tenue de rigueur.
 - **Pose** : choisissez un élément de la palette, puis cliquez sur le sol dans la vue 3D (deux clics pour un tracé : mur, route, trottoir, piste). Grille de 0,5 m (case à cocher), R / Maj+R pour tourner de 15°, clic droit ou Échap pour arrêter. Chaque pose s'annule par Ctrl+Z.
+- **Palette** : décor ; équipe (opérateur, VIP) ; ennemis (garde posté, garde en ronde, pick-up armé : deux clics pour le tracé) ; civils (invité, passant, boucle de voitures : deux coins opposés) ; objectifs (porteur des documents, groupe électrogène, dépôt de carburant) ; zone d'extraction, convertible, Sabre.
+- **Repères** dans la vue 3D : cône de vue des gardes (réduit la nuit), trajets des passants et des voitures avec une poignée par point, portée du klaxon et du moteur du Sabre. Le trajet d'un passant ou d'une voiture sélectionné gagne ou perd des points depuis le dock ; les rondes sont des `Path3D` (sous `PatrolPaths`), modifiés avec les outils de chemin de Godot.
+- **Informations** : objectifs de la mission avec leur cible sur la carte (un clic la sélectionne ; ⚠ si elle manque). « Modifier dans l'inspecteur » ouvre `mission.tres` (titre, description, camouflage, objectifs), enregistré avec la scène ; « Créer les informations » pour une nouvelle mission.
 - Les raccourcis se changent dans Éditeur > Paramètres de l'éditeur > Raccourcis (« mission_editor »).
 - **Cartes générées** : 17 cartes de série sont écrites par `tools/gen_*.py`. Le dock le signale, et un générateur refuse d'écraser une carte modifiée depuis sa génération (`MAPKIT_FORCE=1` pour l'écraser quand même).
 

@@ -1308,3 +1308,11 @@
 - Raccourcis du greffon dans les raccourcis de l'éditeur (« mission_editor »).
 - Cartes générées : le dock nomme le générateur. Les générateurs (`tools/mapkit.py`, `write_scene`) écrivent leur nom et une empreinte dans la scène, et refusent d'écraser une carte modifiée depuis ou sans empreinte (`MAPKIT_FORCE=1` pour forcer). Les 17 cartes générées sont estampillées (seules les deux lignes de métadonnées changent) ; le didacticiel, retouché à la main, n'est plus écrasé par `gen_tutorial.py`.
 - Vérifié dans l'éditeur (`tools/editor_check/step3.gd`, sur le Terrain d'essai et l'Oued sec) : poses sous le bon parent, au bon cap, enregistrées sans les nœuds d'aperçu ; nuit et tenue annulées puis rétablies ; dock et avertissement affichés. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission, étape 4 : unités, trajets et mission
+
+- Palette complétée : opérateur (nom et numéro suivants), VIP, garde posté, garde en ronde et pick-up armé (avec leur chemin sous `PatrolPaths`), invité, passant, boucle de voitures, porteur des documents, groupe électrogène, dépôt de carburant, zone d'extraction, convertible d'extraction, Sabre.
+- Repères dans la vue 3D (`addons/mission_editor/gizmos.gd`) : cône de vue des gardes (zones proche et lointaine, réduite la nuit), trajets des passants et des voitures avec une poignée par point (aimantée à la grille, annulable), portée du klaxon et du moteur du Sabre.
+- Dock : section « Informations » (objectifs et leur cible sur la carte, ⚠ si elle manque, clic pour la sélectionner ; ouverture de `mission.tres` dans l'inspecteur, création pour une nouvelle mission, enregistrement avec la scène) ; section « Trajet » pour le passant ou la voiture sélectionné (ajouter, retirer un point).
+- Passants et voitures : aperçu replacé au début du trajet quand on en déplace les points (`place_preview`).
+- Vérifié dans l'éditeur (`tools/editor_check/step4.gd`, Terrain d'essai) : poses, trajets, poignée, annulations, cibles des objectifs, repères ; la carte enregistrée se joue (ronde, voiture, passant et pick-up en route, porteur des documents, Delta dans l'équipe). La suite GUT n'a pas été lancée.

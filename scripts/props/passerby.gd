@@ -55,9 +55,7 @@ func _ready() -> void:
 		model.outfit = Guest.random_look(look_seed, dress)
 		add_child(model)
 		model.set_armed(false)
-		if points.size() >= 2:
-			var heading := points[1] - points[0]
-			model.transform = Transform3D(Basis(Vector3.UP, atan2(-heading.x, -heading.z)), points[0] - position)
+		place_preview()
 		return
 	add_to_group(GROUP)
 	model = CrowdModel.new()
@@ -81,6 +79,13 @@ func _ready() -> void:
 
 
 ## Il avance une fois par image (pas à chaque pas de physique).
+## Éditeur : place le modèle au début du trajet (le nœud ne bouge pas).
+func place_preview() -> void:
+	if model and points.size() >= 2:
+		var heading := points[1] - points[0]
+		model.transform = Transform3D(Basis(Vector3.UP, atan2(-heading.x, -heading.z)), points[0] - position)
+
+
 func _process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return

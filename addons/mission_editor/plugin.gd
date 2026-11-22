@@ -7,10 +7,15 @@ extends EditorPlugin
 ## - Dock « Mission » : réglages de la carte (nuit, tenue de rigueur), grille,
 ##   palette des éléments à poser, avertissement sur les cartes générées.
 ## - Pose au clic dans la vue 3D, sur le sol (plan y = 0), avec annulation.
+## - Repères dans la vue 3D (`gizmos.gd`) : cônes de vue, trajets à poignées,
+##   portée des bruits.
+## - Informations de la mission (`MissionInfo`) : objectifs et leurs cibles,
+##   modifiées dans l'inspecteur, enregistrées avec la scène.
 
 const TexturePreview := preload("res://addons/mission_editor/texture_preview.gd")
 const Dock := preload("res://addons/mission_editor/dock.gd")
 const Palette := preload("res://addons/mission_editor/palette.gd")
+const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
 
 ## Pas de la grille magnétique (m) et de la rotation (degrés).
 const GRID_STEP := 0.5
@@ -39,6 +44,13 @@ var _facing: float = 0.0
 var _point: Vector3 = Vector3.INF
 var _start: Vector3 = Vector3.INF
 var _camera: Camera3D
+var _gizmos: EditorNode3DGizmoPlugin
+## Informations de la mission ouverte et leur état à l'ouverture (pour
+## n'enregistrer le fichier que s'il a changé).
+var _info: MissionInfo
+var _info_state: String = ""
+## Passant ou voiture sélectionné, dont le dock montre le trajet.
+var _route: Node3D
 
 
 ## Nom de la métadonnée du moteur qui désigne le greffon (scénarios de
@@ -54,6 +66,15 @@ func _enter_tree() -> void:
 	_dock.tool_selected.connect(_on_tool_selected)
 	_dock.night_toggled.connect(_on_night_toggled)
 	_dock.dress_code_selected.connect(_on_dress_code_selected)
+	_dock.info_edit_requested.connect(_on_info_edit_requested)
+	_dock.info_create_requested.connect(_on_info_create_requested)
+	_dock.nodes_selected.connect(func(nodes: Array) -> void: _select(nodes))
+	_dock.route_point_added.connect(_on_route_point.bind(true))
+	_dock.route_point_removed.connect(_on_route_point.bind(false))
+	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
+	_gizmos = Gizmos.new()
+	_gizmos.plugin = self
+	add_node_3d_gizmo_plugin(_gizmos)
 	scene_changed.connect(_on_scene_changed)
 	scene_saved.connect(_on_scene_saved)
 	# Annulation d'un réglage de la carte : le dock suit.
@@ -68,6 +89,9 @@ func _exit_tree() -> void:
 	scene_changed.disconnect(_on_scene_changed)
 	scene_saved.disconnect(_on_scene_saved)
 	get_undo_redo().version_changed.disconnect(_refresh_dock)
+	EditorInterface.get_selection().selection_changed.disconnect(_on_selection_changed)
+	remove_node_3d_gizmo_plugin(_gizmos)
+	_save_info()
 	_textures.revert()
 	remove_control_from_docks(_dock)
 	_dock.queue_free()
@@ -86,6 +110,7 @@ func _apply_changes() -> void:
 func _save_external_data() -> void:
 	_textures.revert()
 	_reapply.call_deferred()
+	_save_info()
 
 
 func _refresh_textures() -> void:
@@ -106,8 +131,10 @@ func _on_scene_saved(path: String) -> void:
 
 
 func _on_scene_changed(root: Node) -> void:
+	_save_info()
 	_textures.revert()
 	_cancel_tool()
+	_load_info(root)
 	_dock.show_scene(root, generator_of(root))
 	if root is LevelRoot:
 		_textures.apply(root)
@@ -201,7 +228,7 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 		update_overlays()
 		return EditorPlugin.AFTER_GUI_INPUT_STOP
 	if event is InputEventMouseMotion:
-		_point = ground_point(camera, (event as InputEventMouseMotion).position, _dock.grid_enabled())
+		_point = Palette.ground_point(camera, (event as InputEventMouseMotion).position, GRID_STEP if _dock.grid_enabled() else 0.0)
 		update_overlays()
 		return EditorPlugin.AFTER_GUI_INPUT_PASS
 	if event is InputEventMouseButton and event.is_pressed():
@@ -211,7 +238,7 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		if button.button_index != MOUSE_BUTTON_LEFT:
 			return EditorPlugin.AFTER_GUI_INPUT_PASS
-		_point = ground_point(camera, button.position, _dock.grid_enabled())
+		_point = Palette.ground_point(camera, button.position, GRID_STEP if _dock.grid_enabled() else 0.0)
 		if _point == Vector3.INF:
 			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		var entry := Palette.find(_tool)
@@ -229,20 +256,6 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 	return EditorPlugin.AFTER_GUI_INPUT_PASS
 
 
-## Point du sol (plan y = 0) sous la position `screen` de la vue `camera`,
-## aimanté à la grille si `snap` ; INF si le rayon ne touche pas le sol.
-static func ground_point(camera: Camera3D, screen: Vector2, snap: bool) -> Vector3:
-	var origin := camera.project_ray_origin(screen)
-	var direction := camera.project_ray_normal(screen)
-	var hit: Variant = Plane(Vector3.UP, 0.0).intersects_ray(origin, direction)
-	if hit == null:
-		return Vector3.INF
-	var point: Vector3 = hit
-	if snap:
-		point = Vector3(snappedf(point.x, GRID_STEP), 0.0, snappedf(point.z, GRID_STEP))
-	return point
-
-
 ## Pose l'élément `id` de la palette (voir `Palette.make`), en une action
 ## annulable. Renvoie les nœuds posés.
 func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF) -> Array[Node3D]:
@@ -255,8 +268,11 @@ func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF) ->
 		return nodes
 	var undo := get_undo_redo()
 	undo.create_action("Poser : %s" % entry["label"])
-	var parent := _parent_for(root, entry["parent"], undo)
+	var created := {}
 	for node in nodes:
+		var parent_path: String = node.get_meta(Palette.PARENT_META, entry["parent"])
+		node.remove_meta(Palette.PARENT_META)
+		var parent := _parent_for(root, parent_path, undo, created)
 		# Nœuds à enregistrer : le nœud et ses enfants créés par la palette,
 		# relevés avant l'entrée dans l'arbre (les enfants qu'un script
 		# construit en aperçu ne doivent pas l'être) ; d'une scène instanciée,
@@ -278,11 +294,16 @@ func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF) ->
 
 ## Parent `path` (relatif à la racine) ; créé dans l'action `undo` s'il
 ## manque (`Decor`, `Lamps`…).
-func _parent_for(root: Node, path: String, undo: EditorUndoRedoManager) -> Node:
+func _parent_for(root: Node, path: String, undo: EditorUndoRedoManager, made: Dictionary) -> Node:
+	if path == ".":
+		return root
 	var parent := root.get_node_or_null(NodePath(path))
 	if parent:
 		return parent
+	if made.has(path):
+		return made[path]
 	var created := Node3D.new()
+	made[path] = created
 	created.name = path.get_file()
 	var holder := root.get_node_or_null(NodePath(path.get_base_dir())) if path.contains("/") else root
 	undo.add_do_method(holder, &"add_child", created, true)
@@ -292,7 +313,7 @@ func _parent_for(root: Node, path: String, undo: EditorUndoRedoManager) -> Node:
 	return created
 
 
-func _select(nodes: Array[Node3D]) -> void:
+func _select(nodes: Array) -> void:
 	var selection := EditorInterface.get_selection()
 	selection.clear()
 	for node in nodes:
@@ -346,3 +367,99 @@ func _register_shortcuts() -> void:
 		shortcut.resource_name = spec["label"]
 		shortcut.events = [key]
 		settings.add_shortcut(path, shortcut)
+
+
+## Grille magnétique active (repères : déplacement des points de trajet).
+func grid_enabled() -> bool:
+	return _dock.grid_enabled() if _dock else true
+
+
+# --- Informations de la mission -------------------------------------------
+
+func _load_info(root: Node) -> void:
+	_info = Dock.info_of(root) if root is LevelRoot else null
+	_info_state = _state_of(_info)
+
+
+static func _state_of(info: MissionInfo) -> String:
+	return var_to_str(info.to_entry()) if info else ""
+
+
+## Enregistre les informations de la mission si elles ont changé
+## (inspecteur), et prévient le catalogue du jeu.
+func _save_info() -> void:
+	if _info == null or _info.resource_path.is_empty():
+		return
+	var state := _state_of(_info)
+	if state == _info_state:
+		return
+	ResourceSaver.save(_info)
+	_info_state = state
+	LevelCatalog.reload()
+
+
+func _on_info_edit_requested() -> void:
+	if _info:
+		EditorInterface.edit_resource(_info)
+
+
+## Crée `mission.tres` à côté de la scène ouverte : titre tiré du nom de la
+## racine, placée après les missions existantes, objectif d'extraction.
+func _on_info_create_requested() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if not root is LevelRoot or root.scene_file_path.is_empty():
+		return
+	var info := MissionInfo.new()
+	info.title = String(root.name).capitalize()
+	var last := 0
+	for entry: Dictionary in LevelCatalog.levels():
+		last = maxi(last, int(entry.get("order", 0)))
+	info.order = last + 10
+	info.objectives = [MissionObjective.make("extracted", "Ramener l'équipe à la zone d'extraction")] as Array[MissionObjective]
+	var path := MissionInfo.path_for(root.scene_file_path)
+	ResourceSaver.save(info, path)
+	EditorInterface.get_resource_filesystem().update_file(path)
+	LevelCatalog.reload()
+	_load_info(root)
+	_refresh_dock()
+	EditorInterface.edit_resource(_info)
+
+
+# --- Trajets ----------------------------------------------------------------
+
+func _on_selection_changed() -> void:
+	var selected := EditorInterface.get_selection().get_selected_nodes()
+	_route = null
+	if selected.size() == 1 and (selected[0] is Passerby or selected[0] is TrafficCar):
+		_route = selected[0]
+	_dock.show_route(_route)
+
+
+## Ajoute un point au trajet sélectionné (`add`), ou retire le dernier (il en
+## reste au moins deux). Un trajet en boucle reçoit le milieu du segment qui
+## la ferme ; un trajet ouvert est prolongé de 5 m dans sa direction.
+func _on_route_point(add: bool) -> void:
+	if not is_instance_valid(_route):
+		return
+	var before: PackedVector3Array = _route.get("points")
+	var after := before.duplicate()
+	if add:
+		if before.size() < 2:
+			return
+		if Gizmos.is_loop(_route):
+			after.append((before[-1] + before[0]) * 0.5)
+		else:
+			after.append(before[-1] + (before[-1] - before[-2]).normalized() * 5.0)
+	elif before.size() > 2:
+		after.resize(before.size() - 1)
+	else:
+		return
+	var undo := get_undo_redo()
+	undo.create_action("Ajouter un point au trajet" if add else "Retirer un point du trajet")
+	undo.add_do_property(_route, &"points", after)
+	undo.add_undo_property(_route, &"points", before)
+	for method: StringName in [&"place_preview", &"update_gizmos"]:
+		undo.add_do_method(_route, method)
+		undo.add_undo_method(_route, method)
+	undo.commit_action()
+	_dock.show_route(_route)

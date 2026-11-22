@@ -52,6 +52,8 @@ const HALF_LENGTH := 2.2
 ## Vitesse de croisière (m/s).
 @export var cruise: float = 7.0
 @export var look_seed: int = 0
+## Éditeur : décalage appliqué aux enfants pour l'aperçu (`place_preview`).
+var _preview_frame := Transform3D.IDENTITY
 
 const BODY_COLORS: Array[Color] = [
 	Color(0.75, 0.75, 0.73), Color(0.08, 0.08, 0.09), Color(0.55, 0.08, 0.08), Color(0.12, 0.2, 0.42),
@@ -83,12 +85,7 @@ func _ready() -> void:
 		# Aperçu au début de la boucle, sans déplacer le nœud (enregistré) :
 		# la caisse est construite puis décalée.
 		_build()
-		if points.size() >= 2:
-			var heading := points[1] - points[0]
-			var frame := Transform3D(Basis(Vector3.UP, atan2(-heading.x, -heading.z)), points[0] - position)
-			for child in get_children():
-				if child is Node3D:
-					(child as Node3D).transform = frame * (child as Node3D).transform
+		place_preview()
 		return
 	add_to_group(GROUP)
 	collision_layer = LAYER_OCCLUDERS
@@ -109,6 +106,20 @@ func _ready() -> void:
 		position = _place(_at)
 		rotation.y = _heading(_at)
 	speed = cruise
+
+
+## Éditeur : place la voiture au début de la boucle, en décalant ses enfants
+## (le nœud, enregistré, ne bouge pas).
+func place_preview() -> void:
+	if points.size() < 2:
+		return
+	var heading := points[1] - points[0]
+	var frame := Transform3D(Basis(Vector3.UP, atan2(-heading.x, -heading.z)), points[0] - position)
+	var change := frame * _preview_frame.affine_inverse()
+	for child in get_children():
+		if child is Node3D:
+			(child as Node3D).transform = change * (child as Node3D).transform
+	_preview_frame = frame
 
 
 func _process(delta: float) -> void:
