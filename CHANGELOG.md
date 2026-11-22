@@ -1273,3 +1273,14 @@
 - Relevées, l'appareil bascule vers le ciel au-dessus du front ; abaissées, les quatre tubes passent devant les yeux. Le contrepoids sur la nuque et le support ne changent pas.
 - Poids : 0,75 kg (au lieu de 0,6).
 - Vérifié par rendu (face, profil, trois-quarts, relevées et abaissées). La suite GUT n'a pas été lancée.
+
+## Vue verte dès que les jumelles sont abaissées
+
+- La vision nocturne (`NightVision`) est installée sur toutes les cartes, plus seulement la nuit. La touche `toggle_nvg` (² par défaut) abaisse ou relève les jumelles de tous les opérateurs qui en portent, et affiche ou retire la vue verte.
+- La nuit, rien ne change : jumelles abaissées d'office, forte amplification.
+- De jour, elles restent relevées au départ. Abaissées, la vue verte n'amplifie que faiblement la lumière (1,3 au lieu de 6), pour que l'image reste lisible au lieu de virer au blanc.
+- Aide (H) et README mis à jour.
+- Vérifié par scénario et rendus :
+  - de jour (Base aérienne), vue normale au départ ; à la touche, vue verte, et seuls Bravo et Charlie, qui portent des jumelles, les abaissent ;
+  - de nuit (Nuit), vue verte d'office ; à la touche, les jumelles se relèvent et la vue verte disparaît.
+- La suite GUT n'a pas été lancée.

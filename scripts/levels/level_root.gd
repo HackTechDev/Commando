@@ -47,8 +47,8 @@ func _ready() -> void:
 	var map := get_world_3d().navigation_map
 	NavigationServer3D.map_set_cell_size(map, _navigation.navigation_mesh.cell_size)
 	NavigationServer3D.map_set_cell_height(map, _navigation.navigation_mesh.cell_height)
-	if night:
-		add_child(NightVision.new())
+	# Jumelles : vue verte dès qu'elles sont abaissées (d'office la nuit).
+	add_child(NightVision.new(night))
 	_loading_screen = LoadingScreen.new(LevelCatalog.title_of(scene_file_path))
 	add_child(_loading_screen)
 	_was_paused = get_tree().paused
@@ -68,7 +68,7 @@ func _ready() -> void:
 	_navigation.bake_navigation_mesh(true)
 
 
-## Vrai si `node` est dans une carte de nuit.
+## Tenue de rigueur de la carte de `node` (vide hors d'une carte).
 static func dress_code_of(node: Node) -> StringName:
 	var parent := node.get_parent()
 	while parent:
@@ -78,6 +78,7 @@ static func dress_code_of(node: Node) -> StringName:
 	return &""
 
 
+## Vrai si `node` est dans une carte de nuit.
 static func is_night(node: Node) -> bool:
 	var parent := node.get_parent()
 	while parent:

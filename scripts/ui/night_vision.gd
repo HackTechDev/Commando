@@ -1,13 +1,16 @@
 class_name NightVision
 extends CanvasLayer
-## Jumelles de vision nocturne (JVN) sur une carte de nuit (`LevelRoot.night`) :
-## un filtre plein écran simule l'image intensifiée (luminance amplifiée en
-## vert phosphore, grain, lignes, vignettage). Les couleurs vives (cônes de
-## vision, marqueurs) gardent leur teinte pour rester lisibles.
+## Jumelles de vision nocturne (JVN) abaissées : un filtre plein écran
+## simule l'image intensifiée (luminance amplifiée en vert phosphore, grain,
+## lignes, vignettage). Les couleurs vives (cônes de vision, marqueurs)
+## gardent leur teinte pour rester lisibles.
 ##
-## Actif d'office si un opérateur vivant porte des JVN (`OperatorProfile.wears_nvg`) ;
-## `toggle_nvg` l'allume ou l'éteint (les jumelles s'abaissent ou se
-## relèvent sur les casques). Sans JVN, on voit la nuit telle quelle.
+## `toggle_nvg` abaisse ou relève les jumelles de tous les opérateurs qui en
+## portent (`OperatorProfile.wears_nvg`), et affiche ou retire la vue verte.
+## La nuit (`LevelRoot.night`), elles sont abaissées d'office et
+## l'amplification est forte (`NIGHT_GAIN`) ; de jour, elles restent
+## relevées, et abaissées l'image n'est que faiblement amplifiée
+## (`DAY_GAIN`, sinon tout serait blanc). Sans JVN, rien ne change.
 
 const SHADER := """
 shader_type canvas_item;
@@ -42,12 +45,22 @@ void fragment() {
 }
 """
 
+## Amplification de la lumière la nuit et le jour.
+const NIGHT_GAIN := 6.0
+const DAY_GAIN := 1.3
+
+## Carte de nuit : jumelles abaissées d'office, forte amplification.
+var night: bool = true
 ## Vrai quand le filtre est affiché.
 var active: bool = false
 ## Vision nocturne affichée dans la partie en cours (stroboscopes
 ## infrarouges visibles, `Tiltrotor`).
 static var viewing: bool = false
 var _filter: ColorRect
+
+
+func _init(at_night: bool = true) -> void:
+	night = at_night
 
 
 func _ready() -> void:
@@ -63,9 +76,10 @@ func _ready() -> void:
 	var shader := Shader.new()
 	shader.code = SHADER
 	material.shader = shader
+	material.set_shader_parameter(&"gain", NIGHT_GAIN if night else DAY_GAIN)
 	_filter.material = material
 	add_child(_filter)
-	set_active.call_deferred(is_available())
+	set_active.call_deferred(night and is_available())
 
 
 ## Vrai si un opérateur vivant porte des JVN.
