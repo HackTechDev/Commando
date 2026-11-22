@@ -1357,3 +1357,9 @@
 - Garde en ronde, pick-up armé, avion ennemi et passant se tracent en un clic par point ; double-clic ou Entrée pour finir, Retour arrière pour retirer le dernier point, clic droit ou Échap pour abandonner le tracé (un second pour arrêter l'outil). La vue montre le tracé, le nombre de points et la longueur ; le dock guide chaque étape.
 - Le garde est posé au premier point, tourné vers le second.
 - Vérifié (`tools/editor_check/step81c.gd`, Terrain d'essai) : ronde de quatre points avec un point retiré, pick-up et passant de trois points, un point seul ne pose rien, abandon au clic droit, annulation. Scénarios précédents adaptés. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : rondes dessinées (8.1 d)
+
+- Les rondes des gardes, pick-ups armés et avions ennemis sont dessinées dans la vue 3D en vert, la couleur du greffon : bande au sol, chevrons dans le sens de marche, retour au premier point plus pâle, pointillé de l'unité à son premier point. Le dessin suit en direct les retouches faites avec les outils de chemin de Godot.
+- Carte de couverture : le retour du dernier point au premier est compté (le garde boucle).
+- Vérifié par capture dans l'éditeur (`tools/editor_check/step81c.gd`, Terrain d'essai) : ronde tracée, chemin retouché, garde écarté de son chemin. La suite GUT n'a pas été lancée.

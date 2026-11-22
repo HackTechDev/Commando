@@ -10,6 +10,8 @@ extends RefCounted
 ## de chaque segment, tourné dans le sens de la marche ; un garde posté, à
 ## sa place et dans sa direction.
 
+const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
+
 ## Taille d'une case (m) et hauteur du dessin au-dessus du sol.
 const CELL := 1.0
 const LIFT := 0.08
@@ -54,14 +56,16 @@ static func compute(root: Node) -> Dictionary:
 ## Positions et orientations (vers -Z) d'où regarde `guard`.
 static func viewpoints(guard: Node3D) -> Array[Transform3D]:
 	var views: Array[Transform3D] = [guard.global_transform]
-	var value: Variant = guard.get("patrol_path")
-	var path: Path3D = value if value is Path3D else (guard.get_node_or_null(value) as Path3D if value is NodePath and not (value as NodePath).is_empty() else null)
+	var path := Gizmos.patrol_of(guard)
 	if path == null or path.curve == null or path.curve.point_count < 2:
 		return views
 	var points := PackedVector3Array()
 	for i in path.curve.point_count:
 		points.append(path.to_global(path.curve.get_point_position(i)))
-	# Aller et retour : chaque point regardé dans les deux sens de marche.
+	# La ronde boucle (retour au premier point) ; chaque point est regardé
+	# dans les deux sens de marche.
+	if points.size() > 2:
+		points.append(points[0])
 	for i in points.size() - 1:
 		var a := points[i]
 		var b := points[i + 1]
