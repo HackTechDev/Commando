@@ -73,6 +73,7 @@ Dans la section **Carte** :
 - Cochez **Nuit**. Le ciel, la lumière ambiante et le soleil (devenu lune) passent en réglage de nuit. En jeu, les gardes voient moins loin et les jumelles de vision nocturne sont abaissées d'office.
 - **Tenue de rigueur** : « Aucune » ici. Les autres choix (Costume-cravate, Décontractée, Treillis) imposent une tenue à l'équipe, comme à la Réception.
 - **Limites de la caméra** : le cadre bleu clair, au sol, montre jusqu'où le centre de la vue peut aller en jeu. « Caler les limites de la caméra sur le terrain » le place à 2 m des bords du terrain. Pour le retoucher, sélectionnez `CameraRig` dans l'arbre de scène et tirez la poignée au milieu d'un bord : elle s'aimante à la grille, ne sort pas du terrain, se colle à son bord à moins de 1 m, et le cadre garde au moins 10 m de côté. « Vérifier » signale tout élément à plus de 10 m de ce cadre.
+- **Vue du jeu** : ouvre une fenêtre qui montre la carte comme le joueur la verra au lancement : même angle, même orientation, même zoom de départ, centrée sur `CameraRig`. Glissez (clic gauche ou milieu) pour la déplacer, dans les limites de la caméra ; la molette ou − / + zoome dans les bornes du jeu ; ⟲ / ⟳ tournent de 45° ; « Départ » revient à la vue du début. La carte de couverture et les silhouettes de l'animation y apparaissent, pas les repères de l'éditeur.
 
 Chaque réglage s'annule par Ctrl+Z.
 
@@ -288,6 +289,7 @@ Les raccourcis du greffon se changent dans Éditeur > Paramètres de l'éditeur 
 - **Événements scriptés** (renforts, pick-ups qui arrivent, ateliers du didacticiel) : ils se modifient dans l'inspecteur, pas par le greffon.
 - **Missions des joueurs** : le greffon ne sert que dans l'éditeur, pas dans le jeu exporté.
 - **Animation** : trajets en ligne droite entre les points (en jeu, la navigation contourne les obstacles), sans les arrêts imprévus (passant bloqué, voiture qui freine derrière une autre ou klaxonne, garde alerté) ; le pick-up armé, qui ralentit dans les virages en jeu, prend un peu d'avance (environ 5 % de la distance parcourue).
+- **Vue du jeu** : la carte telle qu'elle est posée, sans ce que le jeu change au lancement (convertible d'insertion en vol, toits ôtés quand une unité entre, interface) ; la largeur vue suit celle de la fenêtre (16:9 en jeu).
 - **Couverture des gardes** : calculée au sol (y = 0), sans la fumée ni les gardes qui se retournent au bruit ; un garde en ronde est regardé à chaque point et au milieu de chaque segment, ce qui peut omettre un angle au passage d'un virage.
 
 ### Pour vérifier le greffon lui-même

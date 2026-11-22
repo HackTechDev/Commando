@@ -1402,3 +1402,8 @@
 - Comparé au jeu lancé à 5, 10, 20 et 40 s (Réception, Blackout, Convoi) : 50 unités sur 52 à moins de 2 m ; restent une voiture retenue derrière une autre et le pick-up, qui ralentit dans les virages.
 - Correction : une vérification en cours (lancée par l'enregistrement) n'échoue plus quand on ouvre une autre scène ; elle s'arrête.
 - Vérifié (`tools/editor_check/step83b.gd`) : lecture, barre de temps, modification, enregistrement sans silhouettes, retour au début. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : vue du jeu (8.3 c)
+
+- Bouton « Vue du jeu » (section Carte) : fenêtre qui montre la carte sous l'angle, l'orientation et le zoom de départ de la caméra du jeu, centrée sur `CameraRig`. Glisser pour la déplacer (dans les limites de la caméra), molette ou − / + pour zoomer (dans les bornes du jeu), ⟲ / ⟳ pour tourner de 45°, « Départ » pour revenir. La fenêtre suit la scène ouverte.
+- Vérifié (`tools/editor_check/step83c.gd`, Kasbah) : caméra à la même position et de la même taille qu'au lancement du jeu, même cadrage ; zoom borné, déplacement gardé dans les limites, retour au départ, changement de scène. La suite GUT n'a pas été lancée.

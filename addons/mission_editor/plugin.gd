@@ -24,6 +24,7 @@ const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
 const Checker := preload("res://addons/mission_editor/checker.gd")
 const Coverage := preload("res://addons/mission_editor/coverage.gd")
 const Timeline := preload("res://addons/mission_editor/timeline.gd")
+const GameView := preload("res://addons/mission_editor/game_view.gd")
 ## Gabarit d'une nouvelle mission (`tools/gen_mission_template.py`).
 const TEMPLATE := "res://addons/mission_editor/template.tscn"
 const LEVELS_DIR := "res://scenes/levels"
@@ -88,6 +89,8 @@ var _coverage_pending: bool = false
 ## Historique de la scène ouverte, suivi en plus du gestionnaire : une
 ## annulation qui passe directement par lui n'émet que `version_changed`.
 var _history: UndoRedo
+## Fenêtre « Vue du jeu » (créée à la première demande).
+var _game_view: Window
 ## Animation des unités mobiles : temps (s), lecture, vitesse, silhouettes
 ## (sans propriétaire : jamais enregistrées) par unité, à refaire après une
 ## modification de la scène.
@@ -128,6 +131,7 @@ func _enter_tree() -> void:
 	_dock.timeline_time_changed.connect(func(time: float) -> void: set_time(time))
 	_dock.timeline_speed_changed.connect(func(factor: float) -> void: _time_speed = factor)
 	_dock.timeline_reset.connect(reset_timeline)
+	_dock.game_view_requested.connect(show_game_view)
 	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
@@ -154,6 +158,8 @@ func _exit_tree() -> void:
 	get_undo_redo().history_changed.disconnect(_request_coverage)
 	get_undo_redo().history_changed.disconnect(_mark_ghosts_stale)
 	_clear_ghosts()
+	if is_instance_valid(_game_view):
+		_game_view.queue_free()
 	_follow_history(null)
 	_clear_coverage()
 	EditorInterface.get_selection().selection_changed.disconnect(_on_selection_changed)
@@ -217,6 +223,11 @@ func _on_scene_changed(root: Node) -> void:
 	_dock.show_report([])
 	_dock.show_summary([], "")
 	reset_timeline()
+	if is_instance_valid(_game_view) and _game_view.visible:
+		if root is LevelRoot:
+			_game_view.call("show_scene", root)
+		else:
+			_game_view.hide()
 	_check_again = ""
 	_follow_history(root)
 	refresh_coverage()
@@ -889,3 +900,21 @@ func _clear_ghosts() -> void:
 		_ghosts.queue_free()
 	_ghosts = null
 	_ghost_of.clear()
+
+
+# --- Vue du jeu ---------------------------------------------------------------
+
+## Ouvre la fenêtre « Vue du jeu » sur la mission ouverte.
+func show_game_view() -> Window:
+	var root := EditorInterface.get_edited_scene_root()
+	if not root is LevelRoot:
+		return null
+	if not is_instance_valid(_game_view):
+		_game_view = GameView.new()
+		EditorInterface.get_base_control().add_child(_game_view)
+	_game_view.call("show_scene", root)
+	if not _game_view.visible:
+		_game_view.popup_centered()
+	else:
+		_game_view.grab_focus()
+	return _game_view

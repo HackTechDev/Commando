@@ -25,6 +25,8 @@ signal route_point_removed
 signal coverage_toggled(on: bool)
 ## Limites de la caméra à caler sur le terrain.
 signal camera_fit_requested
+## Fenêtre « Vue du jeu » demandée.
+signal game_view_requested
 ## Animation des rondes et des trajets : lecture ou pause, temps choisi sur
 ## la barre, vitesse, retour au début (silhouettes retirées).
 signal timeline_play_toggled(on: bool)
@@ -207,6 +209,11 @@ func _init() -> void:
 	fit.tooltip_text = "Limites de déplacement de la caméra (cadre bleu dans la vue) à 2 m des bords du terrain. Pour les retoucher, sélectionnez CameraRig et tirez les poignées des bords."
 	fit.pressed.connect(func() -> void: camera_fit_requested.emit())
 	_body.add_child(fit)
+	var game_view := Button.new()
+	game_view.text = "Vue du jeu"
+	game_view.tooltip_text = "Ouvre une fenêtre qui montre la carte sous l'angle et le zoom de la caméra du jeu (départ du CameraRig) ; glisser pour la déplacer, molette pour zoomer."
+	game_view.pressed.connect(func() -> void: game_view_requested.emit())
+	_body.add_child(game_view)
 	_coverage = CheckBox.new()
 	_coverage.text = "Couverture des gardes"
 	_coverage.tooltip_text = "Colore le sol selon ce que voient les gardes (postés, et sur toute leur ronde), avec les règles du jeu et la nuit."
