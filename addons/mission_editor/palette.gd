@@ -6,7 +6,8 @@ extends RefCounted
 ## pour le reste…) et réglages par défaut.
 ##
 ## Une entrée : {"id", "label", "category", "parent", "tool"} où `tool` vaut
-## "point" (un clic) ou "line" (deux clics : début et fin) ; "ground": true
+## "point" (un clic), "line" (deux clics : début et fin) ou "route" (un
+## clic par point, double-clic ou Entrée pour finir) ; "ground": true
 ## pour ce qui se pose toujours au sol (revêtements, bâtiments, civils…),
 ## les autres se posent aussi sur les toits et les étages.
 
@@ -58,12 +59,12 @@ static func entries() -> Array[Dictionary]:
 		{"id": "operator", "label": "Opérateur", "category": "Équipe", "parent": "Units", "tool": "point"},
 		{"id": "vip", "label": "VIP", "category": "Équipe", "parent": "Units", "tool": "point"},
 		{"id": "guard", "label": "Garde posté", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
-		{"id": "patrol", "label": "Garde en ronde", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
-		{"id": "technical", "label": "Pick-up armé", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
-		{"id": "aircraft", "label": "Avion ennemi", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
+		{"id": "patrol", "label": "Garde en ronde", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
+		{"id": "technical", "label": "Pick-up armé", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
+		{"id": "aircraft", "label": "Avion ennemi", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "reinforcements", "label": "Renforts", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
 		{"ground": true, "id": "guest", "label": "Invité", "category": "Civils", "parent": "NavigationRegion3D", "tool": "point"},
-		{"ground": true, "id": "passerby", "label": "Passant", "category": "Civils", "parent": "Decor", "tool": "line"},
+		{"ground": true, "id": "passerby", "label": "Passant", "category": "Civils", "parent": "Decor", "tool": "route"},
 		{"ground": true, "id": "traffic", "label": "Boucle de voitures", "category": "Civils", "parent": "Decor", "tool": "line"},
 		{"id": "documents", "label": "Porteur des documents", "category": "Objectifs", "parent": "Enemies", "tool": "point"},
 		{"id": "generator", "label": "Groupe électrogène", "category": "Objectifs", "parent": "NavigationRegion3D", "tool": "point"},
@@ -134,8 +135,13 @@ static func ground_point(camera: Camera3D, screen: Vector2, step: float) -> Vect
 ## encore dans l'arbre ; `scene_root` sert à retrouver ce qui est déjà
 ## présent (maillages des revêtements, opérateurs, noms des rondes). Un nœud
 ## à ranger ailleurs que sous le parent de l'entrée porte `PARENT_META`.
-static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root: Node) -> Array[Node3D]:
+## `route` : points d'un tracé « route » (à défaut, `at` puis `to`).
+static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root: Node, route: PackedVector3Array = PackedVector3Array()) -> Array[Node3D]:
 	var nodes: Array[Node3D] = []
+	if route.size() < 2:
+		route = PackedVector3Array([at, to])
+	at = route[0]
+	var ahead := route[1]
 	match id:
 		"building":
 			var building := _scripted("Node3D", "res://scripts/props/building.gd", "Building")
@@ -180,7 +186,7 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 				nodes.append(post)
 			return nodes
 		"aircraft":
-			var sky := _patrol_path(scene_root, at, to)
+			var sky := _patrol_path(scene_root, route)
 			var plane := _scripted("Node3D", "res://scripts/enemies/enemy_aircraft.gd", "Gunship")
 			plane.set("patrol_path", NodePath("../../PatrolPaths/%s" % sky.name))
 			nodes.append(sky)
@@ -226,17 +232,17 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 				guard.set("documents", true)
 			nodes.append(guard)
 		"patrol":
-			var path := _patrol_path(scene_root, at, to)
+			var path := _patrol_path(scene_root, route)
 			var walker := _instance(ENEMY_SCENE, "Patrol")
-			walker.transform = Transform3D(Basis(Vector3.UP, _yaw(at, to)), at)
+			walker.transform = Transform3D(Basis(Vector3.UP, _yaw(at, ahead)), at)
 			walker.set("patrol_path", path)
 			nodes.append(path)
 			nodes.append(walker)
 			return nodes
 		"technical":
-			var road := _patrol_path(scene_root, at, to)
+			var road := _patrol_path(scene_root, route)
 			var truck := _scripted("StaticBody3D", "res://scripts/enemies/technical.gd", "Technical")
-			truck.transform = Transform3D(Basis(Vector3.UP, _yaw(at, to)), at)
+			truck.transform = Transform3D(Basis(Vector3.UP, _yaw(at, ahead)), at)
 			truck.set("patrol_path", NodePath("../../PatrolPaths/%s" % road.name))
 			nodes.append(road)
 			nodes.append(truck)
@@ -247,7 +253,7 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			nodes.append(guest)
 		"passerby":
 			var walker := _scripted("Node3D", "res://scripts/props/passerby.gd", "Passerby")
-			walker.set("points", PackedVector3Array([at, to]))
+			walker.set("points", route)
 			walker.set("look_seed", randi() % 100003)
 			nodes.append(walker)
 			return nodes
@@ -362,9 +368,9 @@ static func _operator_count(scene_root: Node) -> int:
 	return units.get_children().filter(func(n: Node) -> bool: return n.scene_file_path == COMMANDO_SCENE).size()
 
 
-## Chemin de ronde de `a` à `b` sous `PatrolPaths`, au premier nom libre
-## (le garde ou le pick-up le désigne par ce nom).
-static func _patrol_path(scene_root: Node, a: Vector3, b: Vector3) -> Path3D:
+## Chemin de ronde par les points `route` sous `PatrolPaths`, au premier
+## nom libre (le garde ou le pick-up le désigne par ce nom).
+static func _patrol_path(scene_root: Node, route: PackedVector3Array) -> Path3D:
 	var path := Path3D.new()
 	var holder := scene_root.get_node_or_null(^"PatrolPaths") if scene_root else null
 	var index := 1
@@ -372,8 +378,8 @@ static func _patrol_path(scene_root: Node, a: Vector3, b: Vector3) -> Path3D:
 		index += 1
 	path.name = "Route%d" % index
 	var curve := Curve3D.new()
-	curve.add_point(a)
-	curve.add_point(b)
+	for point in route:
+		curve.add_point(point)
 	path.curve = curve
 	path.set_meta(PARENT_META, "PatrolPaths")
 	return path

@@ -1351,3 +1351,9 @@
 - Recalculée à chaque action (pose, déplacement, Nuit, annulation), jamais enregistrée dans la scène (`addons/mission_editor/coverage.gd`).
 - Le dock suit aussi les annulations faites directement sur l'historique de la scène.
 - Vérifié (`tools/editor_check/step83a.gd`, Kasbah, Réception, bac à sable) : pour chaque garde posté, cases identiques à celles calculées dans le jeu lancé ; de nuit, 2 483 cases vues à Kasbah tombent à 1 003 ; rien dans la scène enregistrée. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : rondes tracées point par point (8.1 c)
+
+- Garde en ronde, pick-up armé, avion ennemi et passant se tracent en un clic par point ; double-clic ou Entrée pour finir, Retour arrière pour retirer le dernier point, clic droit ou Échap pour abandonner le tracé (un second pour arrêter l'outil). La vue montre le tracé, le nombre de points et la longueur ; le dock guide chaque étape.
+- Le garde est posé au premier point, tourné vers le second.
+- Vérifié (`tools/editor_check/step81c.gd`, Terrain d'essai) : ronde de quatre points avec un point retiré, pick-up et passant de trois points, un point seul ne pose rien, abandon au clic droit, annulation. Scénarios précédents adaptés. La suite GUT n'a pas été lancée.

@@ -84,7 +84,9 @@ Principe de la pose :
 4. **R** tourne de 15° dans le sens horaire, **Maj+R** dans l'autre sens. Le cap 0° regarde le nord (vers -Z).
 5. **Clic droit** ou **Échap** pour arrêter, ou cliquez à nouveau sur le bouton de l'outil.
 
-Les éléments « tracés » (mur, route, trottoir, piste, ronde, passant, voiture) se posent en **deux clics** : le début, puis la fin. Entre les deux, la vue affiche le tracé et sa longueur.
+Les éléments « tracés » (mur, route, trottoir, piste, voiture) se posent en **deux clics** : le début, puis la fin. Entre les deux, la vue affiche le tracé et sa longueur.
+
+Les rondes (garde en ronde, pick-up armé, avion ennemi) et les passants se tracent **point par point** : un clic par point, puis **double-clic** ou **Entrée** pour finir. **Retour arrière** retire le dernier point ; **clic droit** ou **Échap** abandonne le tracé en cours (un second clic droit arrête l'outil). La vue affiche le tracé, le nombre de points et la longueur.
 
 La case **Grille de 0,5 m** aimante les points posés. La case **Sur les toits et les étages** pose sur la surface visée : toit d'un bâtiment, étage ou toit d'un immeuble, dessus d'un mur. Les murs eux-mêmes sont traversés. Décochée, tout se pose au sol. Revêtements, bâtiments, buissons, barrières, aire de poser et civils vont toujours au sol. Le second point d'un tracé reste à la hauteur du premier : une ronde commencée sur un toit y reste. Chaque pose est une action annulable (Ctrl+Z) et l'élément posé est sélectionné : ses réglages fins sont dans l'inspecteur.
 
@@ -118,7 +120,7 @@ Les éléments qui bloquent le passage (murs, caisses, bâtiments) vont sous `Na
 **Ennemis :**
 
 - **Garde posté** : un clic pour le poser, R pour l'orienter. Il garde son poste.
-- **Garde en ronde** : deux clics, début et fin de la ronde. Le greffon crée le chemin `PatrolPaths/RouteN` et y attache le garde. Pour une ronde plus riche, sélectionnez le chemin dans l'arbre de scène : la barre d'outils de la vue 3D propose alors les outils de chemin de Godot (ajouter, déplacer, supprimer des points).
+- **Garde en ronde** : un clic par point de la ronde, double-clic ou Entrée pour finir. Le greffon crée le chemin `PatrolPaths/RouteN` et y attache le garde, posé au premier point et tourné vers le second. Le garde boucle : du dernier point, il revient au premier. Pour retoucher la ronde ensuite, sélectionnez le chemin dans l'arbre de scène : la barre d'outils de la vue 3D propose alors les outils de chemin de Godot (ajouter, déplacer, supprimer des points).
 - **Pick-up armé** : comme une ronde ; le véhicule suit son chemin.
 - Réglages d'un garde dans l'inspecteur :
   - `armed` ;
@@ -146,7 +148,7 @@ Revenez à la section **Informations** : les trois objectifs de l'exemple sont m
 ### 8. Ajouter des civils (facultatif)
 
 - **Invité** : civil immobile, qui barre le passage (réception, cocktail).
-- **Passant** : deux clics, puis il marche en aller-retour sur ce tracé. La propriété `loop` le fait tourner en boucle.
+- **Passant** : un clic par point, double-clic ou Entrée pour finir ; il marche en aller-retour sur ce tracé. La propriété `loop` le fait tourner en boucle.
 - **Boucle de voitures** : deux clics, aux coins opposés d'un rectangle de rues. Les voitures tournent dans le sens inverse des aiguilles d'une montre, virages arrondis. Elles servent d'abri et klaxonnent quand on leur barre la route ; le cercle orange montre jusqu'où le klaxon attire les gardes (22 m).
 
 Pour modifier un trajet de passant ou de voiture :
@@ -204,11 +206,11 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | Équipe | Opérateur | 1 clic | `Units` | Alpha à Foxtrot, six au plus. |
 | | VIP | 1 clic | `Units` | Suit l'équipe ; objectifs `vip_alive`, `vip_extracted`. |
 | Ennemis | Garde posté | 1 clic | `Enemies` | |
-| | Garde en ronde, Pick-up armé | 2 clics | `Enemies` + `PatrolPaths` | Chemin `RouteN` créé avec lui. |
-| | Avion ennemi | 2 clics | `Enemies` + `PatrolPaths` | Survole son chemin à `altitude` m (25 par défaut), montré au premier point. |
+| | Garde en ronde, Pick-up armé | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Chemin `RouteN` créé avec lui. |
+| | Avion ennemi | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Survole son chemin à `altitude` m (25 par défaut), montré au premier point. |
 | | Renforts | 1 clic | `Enemies` | Point d'arrivée ; cible (`target`) : le dépôt de la carte, sinon la première cible de sabotage. |
 | Civils | Invité | 1 clic | `NavigationRegion3D` | |
-| | Passant | 2 clics | `Decor` | Aller-retour (`loop` pour une boucle). |
+| | Passant | Un clic par point, double-clic ou Entrée | `Decor` | Aller-retour (`loop` pour une boucle). |
 | | Boucle de voitures | 2 clics (coins) | `Decor` | |
 | Objectifs | Porteur des documents | 1 clic | `Enemies` | `documents`. |
 | | Groupe électrogène | 1 clic | `NavigationRegion3D` | `sabotage`. |
@@ -256,7 +258,9 @@ Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'
 | Action | Touche |
 |---|---|
 | Tourner de 15° (sens horaire / inverse) | R / Maj+R |
-| Arrêter la pose | Échap ou clic droit |
+| Arrêter la pose (pendant un tracé de ronde : l'abandonner) | Échap ou clic droit |
+| Finir une ronde ou un passant | Double-clic ou Entrée |
+| Retirer le dernier point d'une ronde | Retour arrière |
 | Annuler, rétablir | Ctrl+Z, Ctrl+Maj+Z |
 | Enregistrer la scène (et `mission.tres`) | Ctrl+S |
 | Lancer la scène ouverte / arrêter le jeu | F6 / F8 |

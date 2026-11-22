@@ -117,7 +117,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR.md`.
 
 - **8.1 Combler les manques de la première version** :
-  - **c)** ronde tracée en plusieurs clics (un clic par point, double-clic pour finir), au lieu de deux points complétés avec les outils de chemin de Godot ;
   - **d)** rondes dessinées dans la couleur du greffon, avec un trait qui relie chaque garde à son chemin ;
   - **e)** taille du terrain, type de sol et jour ou nuit choisis à la création d'une mission (aujourd'hui : herbe, 80 × 80 m, de jour) ;
   - **f)** limites de la caméra (`bounds` de `CameraRig`) affichées, réglables par poignées et calées sur le terrain.

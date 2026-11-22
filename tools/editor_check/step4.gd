@@ -116,6 +116,7 @@ static func _place(plugin: EditorPlugin, camera: Camera3D, id: String, points: A
 		press.pressed = true
 		press.position = screen
 		plugin._forward_3d_gui_input(camera, press)
+	plugin.call("_finish_route")
 	plugin.call("_cancel_tool")
 
 

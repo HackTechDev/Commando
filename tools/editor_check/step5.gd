@@ -54,6 +54,7 @@ static func run(tree: SceneTree, out: String) -> void:
 			press.pressed = true
 			press.position = camera.unproject_position(point)
 			plugin._forward_3d_gui_input(camera, press)
+		plugin.call("_finish_route")
 	plugin.call("_cancel_tool")
 	holder.queue_free()
 	var mission := plugin.get("_info") as MissionInfo

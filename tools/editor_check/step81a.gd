@@ -31,6 +31,7 @@ static func run(tree: SceneTree, out: String) -> void:
 			_key(plugin, camera, KEY_R)
 		for point: Vector3 in step[1]:
 			_click(plugin, camera, point)
+		plugin.call("_finish_route")
 		plugin.call("_cancel_tool")
 	var region := root.get_node("NavigationRegion3D")
 	var enemies := root.get_node("Enemies")

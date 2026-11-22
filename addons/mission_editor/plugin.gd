@@ -6,7 +6,8 @@ extends EditorPlugin
 ##   chaque enregistrement (`TexturePreview`).
 ## - Dock « Mission » : réglages de la carte (nuit, tenue de rigueur), grille,
 ##   palette des éléments à poser, avertissement sur les cartes générées.
-## - Pose au clic dans la vue 3D, sur le sol (plan y = 0), avec annulation.
+## - Pose au clic dans la vue 3D, au sol ou sur les toits, avec annulation ;
+##   rondes tracées point par point.
 ## - Repères dans la vue 3D (`gizmos.gd`) : cônes de vue, trajets à poignées,
 ##   portée des bruits.
 ## - Informations de la mission (`MissionInfo`) : objectifs et leurs cibles,
@@ -34,6 +35,8 @@ const SHORTCUTS := {
 	"mission_editor/rotate_right": {"key": KEY_R, "shift": false, "label": "Tourner de 15° (sens horaire)"},
 	"mission_editor/rotate_left": {"key": KEY_R, "shift": true, "label": "Tourner de 15° (sens inverse)"},
 	"mission_editor/cancel": {"key": KEY_ESCAPE, "shift": false, "label": "Arrêter la pose"},
+	"mission_editor/finish_route": {"key": KEY_ENTER, "shift": false, "label": "Finir le tracé d'une ronde"},
+	"mission_editor/remove_route_point": {"key": KEY_BACKSPACE, "shift": false, "label": "Retirer le dernier point d'une ronde"},
 }
 ## Éclairage selon le moment : fond, lumière ambiante, soleil ou lune
 ## (mêmes valeurs que `tools/mapkit.py`).
@@ -52,6 +55,9 @@ var _tool: String = ""
 var _facing: float = 0.0
 var _point: Vector3 = Vector3.INF
 var _start: Vector3 = Vector3.INF
+## Points du tracé d'une ronde en cours (outil « route ») ; le premier est
+## aussi dans `_start`.
+var _trace := PackedVector3Array()
 var _camera: Camera3D
 var _gizmos: EditorNode3DGizmoPlugin
 ## Informations de la mission ouverte et leur état à l'ouverture (pour
@@ -223,6 +229,7 @@ func _on_dress_code_selected(code: StringName) -> void:
 func _on_tool_selected(id: String) -> void:
 	_tool = id
 	_start = Vector3.INF
+	_trace.clear()
 	_update_status()
 	update_overlays()
 
@@ -230,6 +237,7 @@ func _on_tool_selected(id: String) -> void:
 func _cancel_tool() -> void:
 	_tool = ""
 	_start = Vector3.INF
+	_trace.clear()
 	_point = Vector3.INF
 	if _dock:
 		_dock.clear_tool()
@@ -244,9 +252,14 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 	var settings := EditorInterface.get_editor_settings()
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		if settings.is_shortcut("mission_editor/cancel", event):
-			_cancel_tool()
+			_abandon()
 			return EditorPlugin.AFTER_GUI_INPUT_STOP
-		if settings.is_shortcut("mission_editor/rotate_right", event):
+		if not _trace.is_empty() and settings.is_shortcut("mission_editor/finish_route", event):
+			_finish_route()
+		elif not _trace.is_empty() and settings.is_shortcut("mission_editor/remove_route_point", event):
+			_trace.remove_at(_trace.size() - 1)
+			_start = _trace[0] if not _trace.is_empty() else Vector3.INF
+		elif settings.is_shortcut("mission_editor/rotate_right", event):
 			_facing = fposmod(_facing + ROTATION_STEP, 360.0)
 		elif settings.is_shortcut("mission_editor/rotate_left", event):
 			_facing = fposmod(_facing - ROTATION_STEP, 360.0)
@@ -262,7 +275,7 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 	if event is InputEventMouseButton and event.is_pressed():
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_RIGHT:
-			_cancel_tool()
+			_abandon()
 			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		if button.button_index != MOUSE_BUTTON_LEFT:
 			return EditorPlugin.AFTER_GUI_INPUT_PASS
@@ -270,7 +283,14 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 		if _point == Vector3.INF:
 			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		var entry := Palette.find(_tool)
-		if entry.get("tool") == "line" and _start == Vector3.INF:
+		if entry.get("tool") == "route":
+			# Le premier clic d'un double-clic a déjà posé le point.
+			if button.double_click:
+				_finish_route()
+			elif _trace.is_empty() or _trace[_trace.size() - 1].distance_to(_point) > 0.2:
+				_trace.append(_point)
+				_start = _trace[0]
+		elif entry.get("tool") == "line" and _start == Vector3.INF:
 			_start = _point
 		elif entry.get("tool") == "line":
 			if _start.distance_to(_point) > 0.2:
@@ -282,6 +302,25 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 		update_overlays()
 		return EditorPlugin.AFTER_GUI_INPUT_STOP
 	return EditorPlugin.AFTER_GUI_INPUT_PASS
+
+
+## Clic droit ou Échap : abandonne le tracé en cours, sinon l'outil.
+func _abandon() -> void:
+	if _start == Vector3.INF:
+		_cancel_tool()
+		return
+	_start = Vector3.INF
+	_trace.clear()
+	_update_status()
+	update_overlays()
+
+
+## Pose la ronde tracée (au moins deux points), puis attend la suivante.
+func _finish_route() -> void:
+	if _trace.size() >= 2:
+		place(_tool, _trace[0], _facing, Vector3.INF, _trace.duplicate())
+	_trace.clear()
+	_start = Vector3.INF
 
 
 ## Point visé pour l'outil en cours : sur les toits et les étages si
@@ -304,12 +343,12 @@ func _aim(camera: Camera3D, screen: Vector2) -> Vector3:
 
 ## Pose l'élément `id` de la palette (voir `Palette.make`), en une action
 ## annulable. Renvoie les nœuds posés.
-func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF) -> Array[Node3D]:
+func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF, route := PackedVector3Array()) -> Array[Node3D]:
 	var root := EditorInterface.get_edited_scene_root()
 	var entry := Palette.find(id)
 	if root == null or entry.is_empty():
 		return []
-	var nodes := Palette.make(id, at, facing, to, root)
+	var nodes := Palette.make(id, at, facing, to, root, route)
 	if nodes.is_empty():
 		return nodes
 	var undo := get_undo_redo()
@@ -377,6 +416,14 @@ func _update_status() -> void:
 	var text := "%s — cap %d°" % [entry.get("label", _tool), int(_facing)]
 	if entry.get("tool") == "line":
 		text += " — cliquez la fin du tracé" if _start != Vector3.INF else " — cliquez le début du tracé"
+	elif entry.get("tool") == "route":
+		match _trace.size():
+			0:
+				text += " — cliquez le premier point de la ronde"
+			1:
+				text += " — cliquez le point suivant"
+			_:
+				text += " — %d points : point suivant, ou double-clic / Entrée pour finir (Retour arrière : retirer le dernier)" % _trace.size()
 	_dock.set_status(text)
 
 
@@ -388,7 +435,19 @@ func _forward_3d_draw_over_viewport(overlay: Control) -> void:
 	var color := Color(0.4, 1.0, 0.5)
 	var at := _camera.unproject_position(_point)
 	overlay.draw_arc(at, 10.0, 0.0, TAU, 24, color, 2.0)
-	if _start != Vector3.INF and not _camera.is_position_behind(_start):
+	if not _trace.is_empty():
+		var length := 0.0
+		for i in _trace.size():
+			var next := _trace[i + 1] if i + 1 < _trace.size() else _point
+			length += _trace[i].distance_to(next)
+			if _camera.is_position_behind(_trace[i]) or _camera.is_position_behind(next):
+				continue
+			var a := _camera.unproject_position(_trace[i])
+			overlay.draw_line(a, _camera.unproject_position(next), color, 2.0)
+			overlay.draw_circle(a, 4.0, color)
+		overlay.draw_string(overlay.get_theme_default_font(), at + Vector2(12, -12), "%d points, %.1f m" % [_trace.size() + 1, length],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
+	elif _start != Vector3.INF and not _camera.is_position_behind(_start):
 		var from := _camera.unproject_position(_start)
 		overlay.draw_line(from, at, color, 2.0)
 		overlay.draw_string(overlay.get_theme_default_font(), (from + at) * 0.5 + Vector2(6, -6), "%.1f m" % _start.distance_to(_point),

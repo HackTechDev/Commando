@@ -56,4 +56,5 @@ static func _place(plugin: Object, camera: Camera3D, id: String, points: Array) 
 		press.pressed = true
 		press.position = camera.unproject_position(point)
 		plugin._forward_3d_gui_input(camera, press)
+	plugin.call("_finish_route")
 	plugin.call("_cancel_tool")

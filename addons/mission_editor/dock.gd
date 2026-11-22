@@ -178,7 +178,7 @@ func _init() -> void:
 	_surface.tooltip_text = "Pose sur la surface visée (toit, plancher, dessus d'un mur) ; décochée : toujours au sol. Revêtements, bâtiments et civils vont toujours au sol."
 	_surface.button_pressed = true
 	_body.add_child(_surface)
-	_body.add_child(_label("Choisissez un élément, puis cliquez dans la vue 3D (deux clics pour un tracé). R / Maj+R : tourner de 15°. Clic droit ou Échap : arrêter.", DIM_COLOR))
+	_body.add_child(_label("Choisissez un élément, puis cliquez dans la vue 3D (deux clics pour un tracé ; une ronde : un clic par point, double-clic ou Entrée pour finir). R / Maj+R : tourner de 15°. Clic droit ou Échap : arrêter.", DIM_COLOR))
 	_status = _label("")
 	_body.add_child(_status)
 	_group.allow_unpress = true
@@ -343,12 +343,12 @@ static func _label(text: String, color: Color = Color(0, 0, 0, 0)) -> Label:
 
 
 static func _tooltip(id: String, tool: String) -> String:
-	var how := "Tracé : deux clics (début, fin)." if tool == "line" else "Un clic pour poser."
+	var how: String = {"line": "Tracé : deux clics (début, fin).", "route": "Ronde : un clic par point, double-clic ou Entrée pour finir, Retour arrière pour retirer le dernier point."}.get(tool, "Un clic pour poser.")
 	match id:
 		"patrol":
-			return how + " Le garde fait la ronde de ce tracé ; ajoutez des points en sélectionnant le chemin (PatrolPaths)."
+			return how + " Le garde fait la ronde de ce tracé et revient au premier point ; le chemin (PatrolPaths) se modifie ensuite avec les outils de Godot."
 		"technical":
-			return how + " Le pick-up suit ce tracé ; ajoutez des points en sélectionnant le chemin (PatrolPaths)."
+			return how + " Le pick-up suit ce tracé en boucle ; le chemin (PatrolPaths) se modifie ensuite avec les outils de Godot."
 		"traffic":
 			return "Deux clics : coins opposés du rectangle de rues. Les voitures tournent dans le sens inverse des aiguilles d'une montre."
 		"passerby":
