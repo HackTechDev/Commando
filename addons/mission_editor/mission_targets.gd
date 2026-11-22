@@ -45,3 +45,28 @@ static func _add(found: Dictionary, id: String, node: Node) -> void:
 		found[id] = []
 	if not (found[id] as Array).has(node):
 		(found[id] as Array).append(node)
+
+
+## Texte proposé pour un objectif ajouté depuis le dock (à reprendre).
+const SUGGESTED_TEXT := {
+	"extracted": "Ramener l'équipe à la zone d'extraction",
+	"no_operator_lost": "Ne perdre aucun opérateur",
+	"no_alert": "Ne jamais donner l'alerte",
+	"all_enemies_down": "Neutraliser tous les ennemis",
+	"vip_alive": "Le VIP doit survivre",
+	"vip_extracted": "Escorter le VIP jusqu'à la zone d'extraction",
+	"documents": "Ramener les documents à bord de l'extraction",
+	"sabotage": "Saboter le groupe électrogène",
+	"depot": "Détruire le dépôt de carburant avec une charge",
+	"aircraft_destroyed": "Détruire le convertible (charge explosive) ou le voler",
+	"raid_in_time": "Bonus : repartir avant l'arrivée des renforts",
+	"sabre_rally": "Conduire le Sabre jusqu'au point de ralliement (drapeau)",
+	"sabre_extracted": "Faire monter le Sabre dans la soute du convertible d'extraction",
+	"heli_hover": "Monter en vol stationnaire avec un opérateur à bord",
+	"heli_rappel": "Descendre un opérateur en rappel",
+}
+
+
+static func suggested_text(id: String) -> String:
+	return SUGGESTED_TEXT.get(id, id)
+

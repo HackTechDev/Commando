@@ -17,6 +17,8 @@ signal grid_toggled(enabled: bool)
 ## Informations de la mission : à ouvrir dans l'inspecteur, à créer.
 signal info_edit_requested
 signal info_create_requested
+## Objectifs modifiés dans le dock : nouvelle liste de [identifiant, texte].
+signal objectives_edited(objectives: Array)
 ## Un objectif cliqué : nœuds de sa cible à sélectionner.
 signal nodes_selected(nodes: Array)
 ## Trajet sélectionné : ajouter ou retirer un point.
@@ -58,6 +60,11 @@ var _title: Label
 var _warning: Label
 var _info_box: VBoxContainer
 var _info_button: Button
+## Lignes des objectifs : refaites seulement quand la liste change (pas
+## pendant une saisie) ; sinon, seul l'état des cibles est mis à jour.
+var _objectives_signature: String = "-"
+var _objective_rows: Array[Dictionary] = []
+var _rebuilding: bool = false
 var _night: CheckBox
 var _dress: OptionButton
 var _route_box: VBoxContainer
@@ -412,41 +419,138 @@ static func info_of(root: Node) -> MissionInfo:
 
 
 func _show_info(root: Node, info: MissionInfo) -> void:
-	for child in _info_box.get_children():
-		child.queue_free()
 	_info_button.set_meta(&"create", info == null)
+	var signature := "none" if info == null else "%s|%s" % [info.get_instance_id(), "|".join(_pairs(info).map(func(pair: Array) -> String: return "%s=%s" % pair))]
+	if signature != _objectives_signature:
+		_objectives_signature = signature
+		_build_objectives(info)
+	if info == null:
+		return
+	# État des cibles de chaque objectif (la carte a pu changer).
+	var found := MissionTargets.targets(root)
+	for row in _objective_rows:
+		var mark: Button = row["mark"]
+		var id: String = row["id"]
+		var nodes: Variant = MissionTargets.targets_of(id, found)
+		for connection in mark.pressed.get_connections():
+			mark.pressed.disconnect(connection["callable"])
+		if nodes == null:
+			mark.text = "•"
+			mark.tooltip_text = "Suivi par le jeu, sans cible sur la carte."
+			mark.add_theme_color_override(&"font_color", DIM_COLOR)
+		elif (nodes as Array).is_empty():
+			mark.text = "⚠"
+			mark.tooltip_text = "Aucune cible sur la carte pour « %s »." % id
+			mark.add_theme_color_override(&"font_color", WARN_COLOR)
+		else:
+			var names: Array = (nodes as Array).slice(0, 3).map(func(n: Node) -> String: return String(n.name))
+			mark.text = "✓"
+			mark.tooltip_text = "Cible : %s%s. Cliquez pour la sélectionner." % [", ".join(names), "…" if (nodes as Array).size() > 3 else ""]
+			mark.add_theme_color_override(&"font_color", OK_COLOR)
+			mark.pressed.connect(func() -> void: nodes_selected.emit(nodes))
+
+
+## Objectifs de `info` : [[identifiant, texte], …].
+static func _pairs(info: MissionInfo) -> Array:
+	var pairs: Array = []
+	for objective in info.objectives:
+		if objective:
+			pairs.append([objective.id, objective.text])
+	return pairs
+
+
+func _build_objectives(info: MissionInfo) -> void:
+	# Le champ qui avait le focus le perd en sortant de l'arbre : sa
+	# validation ne doit pas porter sur la nouvelle liste.
+	_rebuilding = true
+	for child in _info_box.get_children():
+		_info_box.remove_child(child)
+		child.queue_free()
+	_rebuilding = false
+	_objective_rows.clear()
 	if info == null:
 		_info_box.add_child(_label("Pas encore d'informations : la mission n'apparaît pas dans le jeu.", WARN_COLOR))
 		_info_button.text = "Créer les informations"
 		return
-	_info_button.text = "Modifier dans l'inspecteur"
+	_info_button.text = "Titre, description, camouflage : inspecteur"
 	_info_box.add_child(_label("Camouflage conseillé : %s" % info.camo, DIM_COLOR))
-	if info.objectives.is_empty():
+	var pairs := _pairs(info)
+	if pairs.is_empty():
 		_info_box.add_child(_label("Aucun objectif.", WARN_COLOR))
-	var found := MissionTargets.targets(root)
-	for objective in info.objectives:
-		if objective == null:
-			continue
-		var nodes: Variant = MissionTargets.targets_of(objective.id, found)
-		var line := Button.new()
-		line.flat = true
-		line.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var text := objective.text if not objective.text.is_empty() else objective.id
-		if nodes == null:
-			line.text = "• %s (suivi par le jeu)" % text
-			line.add_theme_color_override(&"font_color", DIM_COLOR)
-		elif (nodes as Array).is_empty():
-			line.text = "⚠ %s : aucune cible sur la carte (%s)" % [text, objective.id]
-			line.add_theme_color_override(&"font_color", WARN_COLOR)
-		else:
-			var names: Array = (nodes as Array).slice(0, 3).map(func(n: Node) -> String: return String(n.name))
-			line.text = "✓ %s → %s%s" % [text, ", ".join(names), "…" if (nodes as Array).size() > 3 else ""]
-			line.add_theme_color_override(&"font_color", OK_COLOR)
-			line.tooltip_text = "Cliquez pour sélectionner la cible."
-			line.pressed.connect(func() -> void: nodes_selected.emit(nodes))
-		_info_box.add_child(line)
+	for index in pairs.size():
+		var pair: Array = pairs[index]
+		var row := HBoxContainer.new()
+		_info_box.add_child(row)
+		var mark := Button.new()
+		mark.flat = true
+		row.add_child(mark)
+		var choice := OptionButton.new()
+		choice.tooltip_text = "Identifiant suivi par le jeu : ce qui remplit l'objectif."
+		choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var ids: Array[String] = MissionObjective.KNOWN_IDS.duplicate()
+		if not pair[0] in ids:
+			ids.push_front(pair[0])
+		for id in ids:
+			choice.add_item(id)
+		choice.select(ids.find(pair[0]))
+		choice.item_selected.connect(func(item: int) -> void:
+			var edited := _pairs(info)
+			var before: String = edited[index][0]
+			edited[index][0] = ids[item]
+			# Texte encore celui proposé pour l'ancien identifiant : suit.
+			if edited[index][1] == MissionTargets.suggested_text(before) or (edited[index][1] as String).is_empty():
+				edited[index][1] = MissionTargets.suggested_text(ids[item])
+			objectives_edited.emit(edited))
+		row.add_child(choice)
+		for spec: Array in [["↑", -1, "Monter"], ["↓", 1, "Descendre"]]:
+			var move := Button.new()
+			move.text = spec[0]
+			move.tooltip_text = "%s l'objectif (ordre du journal en jeu)." % spec[2]
+			var step: int = spec[1]
+			move.disabled = index + step < 0 or index + step >= pairs.size()
+			move.pressed.connect(func() -> void:
+				var edited := _pairs(info)
+				var moved: Array = edited.pop_at(index)
+				edited.insert(index + step, moved)
+				objectives_edited.emit(edited))
+			row.add_child(move)
+		var remove := Button.new()
+		remove.text = "✕"
+		remove.tooltip_text = "Retirer l'objectif."
+		remove.pressed.connect(func() -> void:
+			var edited := _pairs(info)
+			edited.remove_at(index)
+			objectives_edited.emit(edited))
+		row.add_child(remove)
+		var text := LineEdit.new()
+		text.text = pair[1]
+		text.placeholder_text = "Texte du journal"
+		text.tooltip_text = "Texte affiché dans le journal des objectifs ; Entrée ou quitter le champ pour valider."
+		var commit := func(_value: String = "") -> void:
+			if _rebuilding or not text.is_inside_tree():
+				return
+			var edited := _pairs(info)
+			if index < edited.size() and edited[index][1] != text.text:
+				edited[index][1] = text.text
+				objectives_edited.emit(edited)
+		text.text_submitted.connect(commit)
+		text.focus_exited.connect(commit)
+		_info_box.add_child(text)
+		_objective_rows.append({"mark": mark, "id": pair[0], "text": text, "choice": choice})
+	var add := OptionButton.new()
+	add.tooltip_text = "Ajoute un objectif à la fin de la liste, avec un texte proposé à reprendre."
+	add.add_item("+ Ajouter un objectif…")
+	for id in MissionObjective.KNOWN_IDS:
+		if not id.begins_with("tuto_"):
+			add.add_item(id)
+	add.item_selected.connect(func(item: int) -> void:
+		if item == 0:
+			return
+		var id := add.get_item_text(item)
+		var edited := _pairs(info)
+		edited.append([id, MissionTargets.suggested_text(id)])
+		objectives_edited.emit(edited))
+	_info_box.add_child(add)
 
 
 ## Fiches des événements scriptés de `root` : déclenchement (objectif de la

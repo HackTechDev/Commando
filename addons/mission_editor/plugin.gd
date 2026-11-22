@@ -129,6 +129,7 @@ func _enter_tree() -> void:
 	_dock.dress_code_selected.connect(_on_dress_code_selected)
 	_dock.info_edit_requested.connect(_on_info_edit_requested)
 	_dock.info_create_requested.connect(_on_info_create_requested)
+	_dock.objectives_edited.connect(set_objectives)
 	_dock.nodes_selected.connect(func(nodes: Array) -> void: _select(nodes))
 	_dock.route_point_added.connect(_on_route_point.bind(true))
 	_dock.route_point_removed.connect(_on_route_point.bind(false))
@@ -740,6 +741,27 @@ func _save_info() -> void:
 	ResourceSaver.save(_info)
 	_info_state = state
 	LevelCatalog.reload()
+
+
+## Objectifs de la mission remplacés par `pairs` ([identifiant, texte],
+## dans l'ordre), en une action annulable de l'historique de la scène ;
+## `mission.tres` est écrit avec la scène (`_save_info`).
+func set_objectives(pairs: Array) -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if _info == null or root == null:
+		return
+	var after: Array[MissionObjective] = []
+	for pair: Array in pairs:
+		after.append(MissionObjective.make(pair[0], pair[1]))
+	var undo := get_undo_redo()
+	# Rangée dans l'historique de la scène (la ressource n'en a pas) : Ctrl+Z
+	# depuis la vue 3D l'annule, et la scène passe « modifiée ».
+	undo.create_action("Objectifs de la mission", UndoRedo.MERGE_DISABLE, root)
+	undo.add_do_property(_info, &"objectives", after)
+	undo.add_undo_property(_info, &"objectives", _info.objectives)
+	undo.add_do_method(self, &"_refresh_dock")
+	undo.add_undo_method(self, &"_refresh_dock")
+	undo.commit_action()
 
 
 func _on_info_edit_requested() -> void:

@@ -1436,3 +1436,8 @@
 - Leurs générateurs `tools/gen_*.py` et celui du didacticiel sont retirés du dépôt ; restent `tools/mapkit.py` et `tools/gen_mission_template.py` (gabarit des nouvelles missions).
 - Vérifié carte par carte (`tools/editor_check/check_all.sh` puis `compare.gd`) : chaque scène reprise est identique à la scène générée, nœud par nœud et propriété par propriété, aux deux métadonnées de génération près. La suite GUT n'a pas été lancée.
 
+## Éditeur de mission : objectifs dans le dock (8.4 c)
+
+- Section « Informations » : chaque objectif se modifie sur place, avec son identifiant (liste du jeu), son texte, ↑ / ↓ pour l'ordre du journal et ✕ pour le retirer ; « + Ajouter un objectif… » en ajoute un, avec un texte proposé. L'état des cibles (✓, ⚠, •) reste affiché à côté. Chaque changement s'annule par Ctrl+Z ; `mission.tres` est enregistré avec la scène.
+- Vérifié (`tools/editor_check/step84c.gd`, Kasbah) : texte, identifiant, ajout, ordre, retrait, annulation et rétablissement, enregistrement, puis objectifs relus dans le catalogue du jeu dans le nouvel ordre. La suite GUT n'a pas été lancée.
+

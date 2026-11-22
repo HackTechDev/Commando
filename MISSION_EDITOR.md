@@ -49,22 +49,22 @@ Si le dossier existe déjà, ou si le nom n'est pas valable, le dock l'indique e
 
 ### 3. Écrire les informations
 
-1. Dans la section **Informations**, cliquez sur **Modifier dans l'inspecteur**. L'inspecteur affiche `mission.tres`.
+1. Dans la section **Informations**, cliquez sur **Titre, description, camouflage : inspecteur**. L'inspecteur affiche `mission.tres`.
 2. Réglez :
    - **Title** : « Raid sur le dépôt » ;
    - **Description** : le briefing, affiché avant le lancement ;
    - **Camo** : camouflage conseillé (`night` pour une mission de nuit) ;
    - **Order** : rang dans le choix des missions (les missions de série vont de 10 en 10) ;
    - **Map** : laissez vide (ne sert qu'aux cartes UFO:AI).
-3. Dans **Objectives**, ajoutez des éléments (« Add Element »), puis choisissez pour chacun un **Id** dans la liste proposée et écrivez son **Text**, la ligne du journal en jeu. Pour l'exemple :
+3. Les objectifs se modifient dans le dock, sous le camouflage. Une ligne par objectif : son état, son identifiant (liste des identifiants du jeu), ↑ / ↓ pour l'ordre du journal, ✕ pour le retirer, puis son texte, la ligne du journal en jeu (validé par Entrée ou en quittant le champ). **+ Ajouter un objectif…** en ajoute un à la fin, avec un texte proposé à reprendre. Changer l'identifiant d'un objectif dont le texte est encore celui proposé change aussi le texte. Pour l'exemple :
    - `depot` : « Incendier le dépôt de carburant » ;
    - `documents` : « Récupérer les documents de l'officier » ;
    - `extracted` : « Ramener l'équipe à la zone d'extraction » (déjà présent) ;
    - `no_alert` : « Ne pas donner l'alerte » (condition bonus).
 
-Le fichier est enregistré avec la scène (Ctrl+S). Dans le dock, chaque objectif s'affiche :
+Chaque changement s'annule par Ctrl+Z, comme une modification de la scène ; le fichier est enregistré avec la scène (Ctrl+S). L'inspecteur (**Objectives**) reste possible. L'état de chaque objectif :
 
-- ✓ en vert, avec sa cible : un clic la sélectionne ;
+- ✓ en vert : il a une cible sur la carte ; un clic la sélectionne ;
 - ⚠ en orange : aucune cible sur la carte pour l'instant (normal ici, le dépôt et l'officier ne sont pas encore posés) ;
 - • en gris : objectif suivi par le jeu lui-même, sans cible (`no_alert`, `no_operator_lost`).
 
