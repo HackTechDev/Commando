@@ -126,7 +126,7 @@ size = Vector3(100, 1, 100)
 
 [node name="Airlift" type="Node3D"]
 metadata/generator = "tools/gen_airlift.py"
-metadata/generated_hash = "ace85aeec15058da2a80a7b1cd0e9eeffca090e8"
+metadata/generated_hash = "1dd19dca6f8471605818256b7aee91fb2d43c7fc"
 script = ExtResource("14")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -452,7 +452,7 @@ transform = Transform3D(-0.6428, 0, 0.766, 0, 1, 0, -0.766, 0, -0.6428, 11, 0, -
 stationary = true
 
 [node name="BarrierGuard2" parent="Enemies" instance=ExtResource("12")]
-transform = Transform3D(-0.766, 0, 0.6428, 0, 1, 0, -0.6428, 0, -0.766, 17, 0, -16)
+transform = Transform3D(-0.766, 0, 0.6428, 0, 1, 0, -0.6428, 0, -0.766, 16.4, 0, -15.3)
 stationary = true
 
 [node name="NorthPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("12")]

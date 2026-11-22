@@ -33,7 +33,7 @@ m.patrol("PatrolPost", [(26, -42), (44, -44), (44, -30), (26, -42)])
 m.patrol("TechLoop", [(36, -2), (44, -20), (24, 2)])
 m.patrol("PatrolSouth", [(-6, 24), (20, 24), (20, 38), (-6, 38), (-6, 24)])
 m.enemy("BarrierGuard1", 11, -21, 230, still=True)
-m.enemy("BarrierGuard2", 17, -16, 220, still=True)
+m.enemy("BarrierGuard2", 16.4, -15.3, 220, still=True)  # devant le muret nord-est de la barrière
 m.enemy("NorthPatrol", -10, -20, 90, path="PatrolNorth")
 m.enemy("PostPatrol", 26, -42, 90, path="PatrolPost")
 m.enemy("PostGuard", 34, -40, 230, still=True)

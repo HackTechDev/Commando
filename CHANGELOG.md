@@ -1369,3 +1369,8 @@
 - « Vérifier » signale aussi : opérateur vu par un garde dès le départ ; unité dans un obstacle ou sur une autre ; caisse ou cible de sabotage qui en chevauche une autre ou un mur ; élément ou point de ronde hors du terrain ou à plus de 10 m des limites de la caméra ; point de ronde hors de la zone praticable ou inaccessible. Un clic sur l'avertissement sélectionne les nœuds en cause.
 - Sur les cartes UFO:AI, l'équipe (placée au lancement) n'est pas contrôlée.
 - Vérifié (`tools/editor_check/step82b.gd`, Terrain d'essai) : chaque faute posée est signalée, et seulement elle ; sur les 24 cartes, seul un vrai défaut apparaît (Héliportage : `BarrierGuard2` posé dans le muret de la barrière). La suite GUT n'a pas été lancée.
+
+## Héliportage : garde de la barrière hors du muret
+
+- `BarrierGuard2` était posé dans le muret nord-est de la barrière (signalé par les contrôles de placement de l'éditeur) : décalé de 1,2 m vers la piste, en (16,4 ; -15,3), même cap (`tools/gen_airlift.py`, carte régénérée).
+- Vérifié : « Vérifier » ne signale plus que le Sabre, au-delà du ravin. La suite GUT n'a pas été lancée.
