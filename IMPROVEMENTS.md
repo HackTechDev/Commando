@@ -117,7 +117,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR.md`.
 
 - **8.3 Aides à la conception d'infiltration** :
-  - **b)** rondes et voitures animées dans l'éditeur (bouton lecture et barre de temps), pour régler leur rythme sans lancer le jeu ;
   - **c)** aperçu de la carte sous l'angle et le zoom de la caméra du jeu.
 - **8.4 Confort d'édition** :
   - **a)** copier-coller entre missions ; rotation et alignement d'un groupe d'éléments ;

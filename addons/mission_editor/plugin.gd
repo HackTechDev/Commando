@@ -23,6 +23,7 @@ const Palette := preload("res://addons/mission_editor/palette.gd")
 const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
 const Checker := preload("res://addons/mission_editor/checker.gd")
 const Coverage := preload("res://addons/mission_editor/coverage.gd")
+const Timeline := preload("res://addons/mission_editor/timeline.gd")
 ## Gabarit d'une nouvelle mission (`tools/gen_mission_template.py`).
 const TEMPLATE := "res://addons/mission_editor/template.tscn"
 const LEVELS_DIR := "res://scenes/levels"
@@ -87,6 +88,15 @@ var _coverage_pending: bool = false
 ## Historique de la scène ouverte, suivi en plus du gestionnaire : une
 ## annulation qui passe directement par lui n'émet que `version_changed`.
 var _history: UndoRedo
+## Animation des unités mobiles : temps (s), lecture, vitesse, silhouettes
+## (sans propriétaire : jamais enregistrées) par unité, à refaire après une
+## modification de la scène.
+var _time: float = 0.0
+var _playing: bool = false
+var _time_speed: float = 1.0
+var _ghosts: Node3D
+var _ghost_of: Dictionary = {}
+var _ghosts_stale: bool = false
 ## Vérification en cours ; une autre demandée entre-temps (enregistrement).
 var _checking: bool = false
 var _check_again: String = ""
@@ -114,6 +124,10 @@ func _enter_tree() -> void:
 	_dock.check_requested.connect(func() -> void: check())
 	_dock.play_requested.connect(_on_play_requested)
 	_dock.camera_fit_requested.connect(fit_camera_bounds)
+	_dock.timeline_play_toggled.connect(func(on: bool) -> void: set_playing(on))
+	_dock.timeline_time_changed.connect(func(time: float) -> void: set_time(time))
+	_dock.timeline_speed_changed.connect(func(factor: float) -> void: _time_speed = factor)
+	_dock.timeline_reset.connect(reset_timeline)
 	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
@@ -125,6 +139,8 @@ func _enter_tree() -> void:
 	# n'est pas émis par l'historique de l'éditeur, `history_changed` l'est).
 	get_undo_redo().history_changed.connect(_refresh_dock)
 	get_undo_redo().history_changed.connect(_request_coverage)
+	get_undo_redo().history_changed.connect(_mark_ghosts_stale)
+	set_process(false)
 	set_input_event_forwarding_always_enabled()
 	set_force_draw_over_forwarding_enabled()
 	_on_scene_changed.call_deferred(EditorInterface.get_edited_scene_root())
@@ -136,6 +152,8 @@ func _exit_tree() -> void:
 	scene_saved.disconnect(_on_scene_saved)
 	get_undo_redo().history_changed.disconnect(_refresh_dock)
 	get_undo_redo().history_changed.disconnect(_request_coverage)
+	get_undo_redo().history_changed.disconnect(_mark_ghosts_stale)
+	_clear_ghosts()
 	_follow_history(null)
 	_clear_coverage()
 	EditorInterface.get_selection().selection_changed.disconnect(_on_selection_changed)
@@ -198,6 +216,7 @@ func _on_scene_changed(root: Node) -> void:
 	_load_info(root)
 	_dock.show_report([])
 	_dock.show_summary([], "")
+	reset_timeline()
 	_check_again = ""
 	_follow_history(root)
 	refresh_coverage()
@@ -622,7 +641,7 @@ func check(reason: String = "bouton") -> Array[Dictionary]:
 	var report: Array[Dictionary] = await Checker.check(root)
 	_checking = false
 	# Greffon retiré ou autre scène ouverte entre-temps : rapport périmé.
-	if not is_instance_valid(_dock) or EditorInterface.get_edited_scene_root() != root:
+	if not is_instance_valid(_dock) or not is_instance_valid(root) or EditorInterface.get_edited_scene_root() != root:
 		return report
 	_dock.show_report(report)
 	_dock.show_summary(report, reason)
@@ -801,3 +820,72 @@ func _follow_history(root: Node) -> void:
 func _on_history_version() -> void:
 	_refresh_dock.call_deferred()
 	_request_coverage()
+	_mark_ghosts_stale()
+
+
+# --- Animation des rondes et des trajets -------------------------------------
+
+func _process(delta: float) -> void:
+	if not _playing:
+		return
+	set_time(fposmod(_time + delta * _time_speed, Timeline.DURATION))
+
+
+func set_playing(on: bool) -> void:
+	_playing = on and EditorInterface.get_edited_scene_root() is LevelRoot
+	set_process(_playing)
+	_dock.show_time(_time, _playing)
+	if _playing:
+		set_time(_time)
+
+
+## Silhouettes placées au temps `time` (s).
+func set_time(time: float) -> void:
+	_time = clampf(time, 0.0, Timeline.DURATION)
+	var root := EditorInterface.get_edited_scene_root()
+	if not root is LevelRoot:
+		return
+	if _ghosts_stale or not is_instance_valid(_ghosts):
+		_build_ghosts(root)
+	for node: Node3D in _ghost_of:
+		if is_instance_valid(node) and node.is_inside_tree():
+			Timeline.place(_ghost_of[node], node, _time)
+	_dock.show_time(_time, _playing)
+
+
+## Arrête l'animation, revient au début et retire les silhouettes.
+func reset_timeline() -> void:
+	_playing = false
+	set_process(false)
+	_time = 0.0
+	_clear_ghosts()
+	if _dock:
+		_dock.show_time(0.0, false)
+
+
+func _mark_ghosts_stale() -> void:
+	if is_instance_valid(_ghosts):
+		_ghosts_stale = true
+		set_time.call_deferred(_time)
+
+
+func _build_ghosts(root: Node) -> void:
+	_clear_ghosts()
+	_ghosts = Node3D.new()
+	_ghosts.name = Timeline.NAME
+	_ghosts.top_level = true
+	root.add_child(_ghosts)
+	var night: bool = root.get("night")
+	for node in Timeline.movers(root):
+		var ghost := Timeline.ghost(node, night)
+		_ghosts.add_child(ghost)
+		_ghost_of[node] = ghost
+	_ghosts_stale = false
+
+
+func _clear_ghosts() -> void:
+	if is_instance_valid(_ghosts):
+		_ghosts.get_parent().remove_child(_ghosts)
+		_ghosts.queue_free()
+	_ghosts = null
+	_ghost_of.clear()

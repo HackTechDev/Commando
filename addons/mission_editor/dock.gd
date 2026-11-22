@@ -25,6 +25,12 @@ signal route_point_removed
 signal coverage_toggled(on: bool)
 ## Limites de la caméra à caler sur le terrain.
 signal camera_fit_requested
+## Animation des rondes et des trajets : lecture ou pause, temps choisi sur
+## la barre, vitesse, retour au début (silhouettes retirées).
+signal timeline_play_toggled(on: bool)
+signal timeline_time_changed(time: float)
+signal timeline_speed_changed(factor: float)
+signal timeline_reset
 ## Nouvelle mission dans `scenes/levels/<folder>/`.
 signal new_mission_requested(folder: String)
 ## Boutons « Vérifier » et « Essayer ».
@@ -48,6 +54,10 @@ var _route_label: Label
 ## Sols proposés pour une nouvelle mission (couleurs dans le greffon,
 ## `GROUNDS`, comme `tools/mapkit.py`).
 const GROUND_LABELS := {"grass": "Herbe", "desert": "Désert", "sand": "Sable", "dirt": "Terre", "rock": "Roche", "urban": "Ville"}
+## Animation : durée de la barre de temps (s, comme `timeline.gd`) et
+## vitesses proposées.
+const TIMELINE_DURATION := 180.0
+const TIMELINE_SPEEDS: Array[float] = [1.0, 2.0, 4.0, 8.0]
 ## Taille d'un côté du terrain d'une nouvelle mission (m).
 const NEW_SIZE_MIN := 40
 const NEW_SIZE_MAX := 200
@@ -66,6 +76,9 @@ var _grid: CheckBox
 var _surface: CheckBox
 var _coverage: CheckBox
 var _coverage_legend: Label
+var _play: Button
+var _time_slider: HSlider
+var _time_label: Label
 var _status: Label
 var _body: VBoxContainer
 var _buttons: Dictionary = {}
@@ -204,6 +217,44 @@ func _init() -> void:
 	_coverage_legend = _label("Rouge : vu même accroupi (zone proche). Jaune : vu debout (zone lointaine). Plus soutenu : plusieurs gardes. Recalculée à chaque changement.", DIM_COLOR)
 	_coverage_legend.visible = false
 	_body.add_child(_coverage_legend)
+
+	_section("Animation")
+	_body.add_child(_label("Rondes, pick-ups, avions, passants et voitures se déplacent comme en jeu (silhouettes, cône de vue des gardes).", DIM_COLOR))
+	var play_row := HBoxContainer.new()
+	_play = Button.new()
+	_play.toggle_mode = true
+	_play.text = "▶ Lecture"
+	_play.tooltip_text = "Anime les unités mobiles dans la vue 3D, en boucle sur 3 minutes."
+	_play.toggled.connect(func(on: bool) -> void:
+		_play.text = "⏸ Pause" if on else "▶ Lecture"
+		if not _updating:
+			timeline_play_toggled.emit(on))
+	play_row.add_child(_play)
+	var rewind := Button.new()
+	rewind.text = "⏮"
+	rewind.tooltip_text = "Revenir au début et retirer les silhouettes."
+	rewind.pressed.connect(func() -> void: timeline_reset.emit())
+	play_row.add_child(rewind)
+	var speed := OptionButton.new()
+	speed.tooltip_text = "Vitesse de l'animation."
+	for factor: float in TIMELINE_SPEEDS:
+		speed.add_item("× %d" % int(factor))
+	speed.item_selected.connect(func(index: int) -> void: timeline_speed_changed.emit(TIMELINE_SPEEDS[index]))
+	play_row.add_child(speed)
+	_time_label = _label("0,0 s")
+	_time_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	play_row.add_child(_time_label)
+	_body.add_child(play_row)
+	_time_slider = HSlider.new()
+	_time_slider.min_value = 0.0
+	_time_slider.max_value = TIMELINE_DURATION
+	_time_slider.step = 0.1
+	_time_slider.tooltip_text = "Temps écoulé depuis le début de la mission."
+	_time_slider.value_changed.connect(func(value: float) -> void:
+		_time_label.text = _seconds(value)
+		if not _updating:
+			timeline_time_changed.emit(value))
+	_body.add_child(_time_slider)
 
 	_route_box = VBoxContainer.new()
 	_route_box.visible = false
@@ -369,6 +420,19 @@ func show_report(report: Array) -> void:
 			line.tooltip_text = "Cliquez pour sélectionner."
 			line.pressed.connect(func() -> void: nodes_selected.emit(nodes))
 		_report_box.add_child(line)
+
+
+## Temps de l'animation affiché (sans émettre de signal), et lecture.
+func show_time(time: float, playing: bool) -> void:
+	_updating = true
+	_time_slider.value = time
+	_time_label.text = _seconds(time)
+	_play.button_pressed = playing
+	_updating = false
+
+
+static func _seconds(time: float) -> String:
+	return ("%.1f s" % time).replace(".", ",")
 
 
 ## Réglages de la nouvelle mission : {"size": Vector2, "ground", "night"}.

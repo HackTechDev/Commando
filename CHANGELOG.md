@@ -1395,3 +1395,10 @@
 
 - « Vérifier » cherche, pour une cible qu'aucun chemin n'atteint, une corde de grappin lancée depuis la zone atteinte par l'équipe, avec le calcul du jeu (`GrapnelRope.plan`, qui accepte désormais une carte de navigation). Trouvée, la ligne (✓) dit d'où la lancer et rappelle d'emporter un grappin ; sinon l'avertissement précise « même avec une corde de grappin ».
 - Vérifié (`tools/editor_check/step82d.gd`, Terrain d'essai) : extraction sur un toit de 3,2 m sans échelle, atteinte par corde ; cible sur un toit de 10,2 m, signalée. En jeu, Alpha, avec un grappin, monte sur ce toit par la corde. Sur les 23 cartes de série, rien de nouveau, moins d'une seconde par carte. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : rondes et trajets animés (8.3 b)
+
+- Section « Animation » du dock : ▶ Lecture, barre de temps de 3 minutes, vitesse × 1 à × 8, ⏮. Gardes en ronde (avec leur cône de vue), pick-ups armés, avions ennemis (et leur cercle de détection), passants et voitures avancent dans la vue 3D comme en jeu ; silhouettes jamais enregistrées, refaites à chaque modification.
+- Comparé au jeu lancé à 5, 10, 20 et 40 s (Réception, Blackout, Convoi) : 50 unités sur 52 à moins de 2 m ; restent une voiture retenue derrière une autre et le pick-up, qui ralentit dans les virages.
+- Correction : une vérification en cours (lancée par l'enregistrement) n'échoue plus quand on ouvre une autre scène ; elle s'arrête.
+- Vérifié (`tools/editor_check/step83b.gd`) : lecture, barre de temps, modification, enregistrement sans silhouettes, retour au début. La suite GUT n'a pas été lancée.

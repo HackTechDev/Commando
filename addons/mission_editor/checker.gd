@@ -162,10 +162,16 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 	# la région y entre après coup (calcul en arrière-plan) : prête quand
 	# elle porte le point le plus proche du départ.
 	var ready := false
+	var tree := root.get_tree()
+	var start_at := start.global_position
 	for k in SYNC_FRAMES:
-		await root.get_tree().physics_frame
+		await tree.physics_frame
+		# Scène fermée pendant l'attente (autre scène ouverte) : abandon.
+		if not is_instance_valid(root) or not root.is_inside_tree():
+			_free(map, nav_region, links)
+			return
 		if NavigationServer3D.map_get_iteration_id(map) > 0 \
-				and NavigationServer3D.map_get_closest_point_owner(map, start.global_position) == nav_region:
+				and NavigationServer3D.map_get_closest_point_owner(map, start_at) == nav_region:
 			ready = true
 			break
 	if not ready:
