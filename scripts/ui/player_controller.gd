@@ -1471,12 +1471,14 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 	var query := PhysicsRayQueryParameters3D.create(from, to, mask)
 	var space := camera.get_world_3d().direct_space_state
 	var hit := space.intersect_ray(query)
-	# Un toit effacé (opérateur à l'intérieur) ou le haut des murs d'un
-	# bâtiment vu en coupe laissent passer les clics vers l'intérieur.
+	# Un toit effacé (opérateur à l'intérieur), le haut des murs d'un
+	# bâtiment vu en coupe ou un décor estompé (il cache un opérateur)
+	# laissent passer les clics.
 	while not hit.is_empty() and (Roof.is_revealed_body(hit["collider"], hit["position"]) \
 			or Building.is_revealed_body(hit["collider"], hit["position"]) \
 			or Tower.is_revealed_body(hit["collider"], hit["position"]) \
-			or Tiltrotor.is_revealed_body(hit["collider"])):
+			or Tiltrotor.is_revealed_body(hit["collider"]) \
+			or OcclusionFader.is_faded_body(hit["collider"])):
 		query.exclude += [hit["rid"]]
 		hit = space.intersect_ray(query)
 	return hit

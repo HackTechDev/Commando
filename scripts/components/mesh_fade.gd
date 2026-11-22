@@ -10,10 +10,27 @@ extends RefCounted
 ## partagent l'original.
 
 const META := &"mesh_fade"
+## Fondu demandé par le propriétaire du maillage (`apply`) et par
+## l'occlusion (`occlude`) : le plus fort des deux l'emporte.
+const OWNER_META := &"mesh_fade_owner"
+const OCCLUSION_META := &"mesh_fade_occlusion"
 
 
 ## Estompe `mesh` : 0 opaque (matériaux d'origine), 1 invisible.
 static func apply(mesh: MeshInstance3D, fade: float) -> void:
+	mesh.set_meta(OWNER_META, fade)
+	_render(mesh)
+
+
+## Estompe `mesh` parce qu'il cache un opérateur (`OcclusionFader`), sans
+## défaire le fondu de son propriétaire (toit, étage coupé).
+static func occlude(mesh: MeshInstance3D, fade: float) -> void:
+	mesh.set_meta(OCCLUSION_META, fade)
+	_render(mesh)
+
+
+static func _render(mesh: MeshInstance3D) -> void:
+	var fade := maxf(float(mesh.get_meta(OWNER_META, 0.0)), float(mesh.get_meta(OCCLUSION_META, 0.0)))
 	var entries := _entries(mesh)
 	for entry: Dictionary in entries:
 		var material := entry["material"] as BaseMaterial3D

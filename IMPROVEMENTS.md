@@ -74,7 +74,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 - **7.1 Maillage de navigation** : il est généré 0,5 m au-dessus du sol, et un réglage sur chaque agent compense ce décalage. Il faudrait trouver la cause (taille des cellules) plutôt que compenser.
 - **7.2 Îlots de navigation sur les caisses** : le dessus des caisses collées reçoit un bout de maillage inutile. L'exclure à la génération.
 - **7.3 Escalade sur les cartes UFO:AI** : placer échelles (`Ladder`) et murets (`LowWall`) sur ces cartes (ils existent déjà sur les cartes faites main).
-- **7.5 Occlusion** (M8) : le décor des cartes UFO:AI s'efface déjà entre la caméra et les opérateurs. Reste à faire de même pour les murs et bâtiments des cartes faites main (un opérateur derrière l'un d'eux est invisible, sauf à l'intérieur d'un `Building`).
 - **7.7 Grandes cartes** :
   - **a)** sur `training_b` (100 × 62 m), la navigation met plus d'une seconde à se régénérer après chaque caisse déplacée : la générer par tuiles (un `NavigationMesh` par zone) ;
   - **b)** la lecture de la carte sur un fil de travail est trois fois plus lente que sur le fil principal (2,2 s contre 0,7 s) : à creuser ;

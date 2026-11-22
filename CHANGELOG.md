@@ -1477,3 +1477,10 @@
 - S'applique aux tirs des ennemis, des opérateurs et des pick-up armés.
 - Vérifié en jeu sur le bac à sable, 200 tirs par cas à 8-9 m : 56 % de touchés à découvert, 33 % debout derrière une caisse (moitié du corps visible), 40 % à l'angle d'un mur (deux tiers), aucun accroupi derrière la caisse ; balles manquées arrêtées par la caisse ou le mur. La suite GUT n'a pas été lancée.
 
+## Occlusion des cartes faites main (7.5)
+
+- Un mur, un bâtiment ou un décor solide qui cache un opérateur à la caméra s'estompe en fondu (25 % d'opacité), puis revient quand plus personne n'est derrière. Les clics le traversent tant qu'il est estompé.
+- Le fondu se combine avec l'effacement des toits et la coupe des immeubles.
+- Les cartes UFO:AI gardent leur propre découpe.
+- Vérifié en jeu sur le bac à sable par des rendus (Alpha derrière le bunker, puis dans un bâtiment). La suite GUT n'a pas été lancée.
+
