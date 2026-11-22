@@ -393,12 +393,15 @@ static func _operator_count(scene_root: Node) -> int:
 	return units.get_children().filter(func(n: Node) -> bool: return n.scene_file_path == COMMANDO_SCENE).size()
 
 
-## Emprise du terrain (maillages de `NavigationRegion3D/Ground`) ; AABB
-## vide sans terrain.
+## Emprise du terrain (maillages de `NavigationRegion3D/Ground`, sinon la
+## carte UFO:AI de fond une fois construite) ; AABB vide sans terrain.
 static func ground_bounds(root: Node) -> AABB:
 	var ground := root.get_node_or_null(^"NavigationRegion3D/Ground") if root else null
 	var bounds := AABB()
 	if ground == null:
+		var maps := root.find_children("*", "UfoMapLevel", true, false) if root else []
+		if not maps.is_empty() and maps[0].get("is_built"):
+			bounds = maps[0].get("map_bounds")
 		return bounds
 	var found := false
 	for item in ground.find_children("*", "VisualInstance3D", true, false):

@@ -45,6 +45,8 @@ La mission figure déjà dans le choix des missions du jeu.
 
 Si le dossier existe déjà, ou si le nom n'est pas valable, le dock l'indique en orange et ne crée rien.
 
+**Partir d'une carte UFO:AI.** La troisième ligne choisit le fond : **Terrain plat** (par défaut), ou l'une des cartes UFO:AI entières du dossier des cartes (`../CommandoAsset/maps`, fichiers `.map` à sa racine). Avec une carte, la taille et le sol ne servent pas : le greffon remplace le terrain plat par la carte (nœud `NavigationRegion3D/Map`, construit comme en jeu, toits et caisses compris), puis, une fois la carte construite (quelques secondes), place l'équipe sur ses points de départ, l'extraction sur le départ d'alien le plus éloigné, la caméra sur l'équipe et ses limites sur la carte. Avec **Gardes** coché, un garde posté se place sur chaque départ d'alien à plus de 15 m de l'équipe : ce sont des gardes ordinaires, à orienter, déplacer, changer en rondes ou supprimer. La mission est enregistrée aussitôt. Tout ce qu'on y ajoute ensuite se pose sur la carte comme ailleurs (case « Sur les toits et les étages »). En jeu, la carte ne place ni l'équipe ni des sentinelles : la mission joue ses propres éléments.
+
 ### 3. Écrire les informations
 
 1. Dans la section **Informations**, cliquez sur **Modifier dans l'inspecteur**. L'inspecteur affiche `mission.tres`.
@@ -300,6 +302,7 @@ Les raccourcis du greffon se changent dans Éditeur > Paramètres de l'éditeur 
 ### Limites de la première version
 
 - **Sol plat** : le terrain n'a pas de relief. Les toits et les étages se visent directement (case « Sur les toits et les étages »).
+- **Fond UFO:AI** : les éléments « au sol » (revêtements, bâtiments, civils…) se posent à y = 0, la hauteur des départs de l'équipe, même là où la carte est plus haute ou plus basse ; la couverture des gardes est calculée à y = 0 aussi. La carte se construit à chaque ouverture de la scène (quelques secondes).
 - **Bâtiments** : seulement le bâtiment réglable et ce qui existe déjà ; pas de dessin libre de pièces ni d'étages.
 - **Événements scriptés** : renforts et pick-ups qui arrivent se règlent dans la section Événements du dock ; les ateliers du didacticiel, dans l'inspecteur.
 - **Missions des joueurs** : le greffon ne sert que dans l'éditeur, pas dans le jeu exporté.

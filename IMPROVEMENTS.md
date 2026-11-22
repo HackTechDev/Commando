@@ -124,5 +124,4 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification ;
   - **b)** sort des 17 cartes générées, carte par carte : une carte reprise dans l'éditeur devient la source et son générateur sort du dépôt (§ 6 de `MISSION_EDITOR.md`) ; le Didacticiel est déjà dans ce cas.
 - **8.6 Plus tard** :
-  - **a)** relief, et dessin libre de bâtiments (pièces, étages) ;
-  - **b)** partir d'une carte UFO:AI comme fond, puis y ajouter ses éléments.
+  - **a)** relief, et dessin libre de bâtiments (pièces, étages).

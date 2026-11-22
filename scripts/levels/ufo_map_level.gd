@@ -113,6 +113,12 @@ var _threads: Array[Thread] = []
 
 ## Emprise de la carte dans le monde (mètres), une fois construite.
 var map_bounds: AABB
+## Points de départ de la carte, dans le monde (pieds, cap) : équipe
+## (`info_player_start`) et aliens (`info_alien_start`). Connus dès la
+## lecture de la carte, aussi dans l'éditeur (nouvelle mission sur fond
+## UFO:AI).
+var player_starts: Array[Transform3D] = []
+var alien_starts: Array[Transform3D] = []
 ## Origine de la carte (unités UFO:AI) placée à l'origine du monde.
 var _offset: Vector3 = Vector3.ZERO
 var _materials: Dictionary = {}
@@ -182,6 +188,8 @@ func _build_level() -> void:
 	var map: UfoMap = loaded["map"]
 	var solids: Array[Dictionary] = loaded["solids"]
 	_compute_offset(map, solids)
+	player_starts = _starts(map, "info_player_start")
+	alien_starts = _starts(map, "info_alien_start")
 	build_stage = "Chargement des textures"
 	await get_tree().process_frame
 	_load_textures(solids)
@@ -1361,6 +1369,13 @@ func _spread_starts(starts: Array[UfoMap.Entity], players: Array[UfoMap.Entity])
 		for i in starts.size():
 			nearest[i] = minf(nearest[i], starts[i].origin().distance_to(starts[best].origin()))
 	return chosen
+
+
+func _starts(map: UfoMap, kind: String) -> Array[Transform3D]:
+	var found: Array[Transform3D] = []
+	for entity in map.find_entities(kind):
+		found.append(Transform3D(Basis(Vector3.UP, yaw_to_world(entity.angle())), _feet(entity)))
+	return found
 
 
 func _feet(entity: UfoMap.Entity) -> Vector3:

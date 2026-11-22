@@ -81,6 +81,9 @@ var _new_width: SpinBox
 var _new_depth: SpinBox
 var _new_ground: OptionButton
 var _new_night: CheckBox
+## Fond de la nouvelle mission : terrain plat, ou une carte UFO:AI.
+var _new_background: OptionButton
+var _new_guards: CheckBox
 var _report_box: VBoxContainer
 var _summary: Button
 var _on_save: CheckBox
@@ -151,6 +154,19 @@ func _init() -> void:
 	_new_night.tooltip_text = "La nouvelle mission commence de nuit (modifiable ensuite dans la section Carte)."
 	terrain_row.add_child(_new_night)
 	add_child(terrain_row)
+	var background_row := HBoxContainer.new()
+	_new_background = OptionButton.new()
+	_new_background.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_new_background.tooltip_text = "Fond de la nouvelle mission : terrain plat (taille et sol ci-dessus), ou une carte UFO:AI du dossier des cartes, construite comme en jeu, à compléter de ses propres éléments."
+	_new_background.item_selected.connect(func(_index: int) -> void: _update_background())
+	background_row.add_child(_new_background)
+	_new_guards = CheckBox.new()
+	_new_guards.text = "Gardes"
+	_new_guards.button_pressed = true
+	_new_guards.tooltip_text = "Carte UFO:AI : un garde posté sur chaque départ d'alien (loin de l'équipe), à garder, déplacer ou supprimer."
+	background_row.add_child(_new_guards)
+	add_child(background_row)
+	fill_backgrounds()
 	_new_status = _label("", WARN_COLOR)
 	_new_status.visible = false
 	add_child(_new_status)
@@ -595,7 +611,43 @@ func new_mission_options() -> Dictionary:
 		"size": Vector2(_new_width.value, _new_depth.value),
 		"ground": String(_new_ground.get_selected_metadata()),
 		"night": _new_night.button_pressed,
+		"ufo_map": String(_new_background.get_selected_metadata()),
+		"guards": _new_guards.button_pressed,
 	}
+
+
+## Liste des fonds : terrain plat, puis les cartes UFO:AI entières du
+## dossier des cartes (fichiers `.map` à sa racine, comme le choix des
+## missions du jeu).
+func fill_backgrounds() -> void:
+	_new_background.clear()
+	_new_background.add_item("Terrain plat")
+	_new_background.set_item_metadata(0, "")
+	for file in ufo_maps():
+		_new_background.add_item("Carte UFO:AI : %s" % file.get_basename())
+		_new_background.set_item_metadata(_new_background.item_count - 1, file)
+	_update_background()
+
+
+static func ufo_maps() -> Array[String]:
+	var found: Array[String] = []
+	var dir := AssetPaths.maps_dir()
+	if DirAccess.dir_exists_absolute(dir):
+		for file in DirAccess.get_files_at(dir):
+			if file.get_extension() == "map":
+				found.append(file)
+	found.sort()
+	return found
+
+
+## Taille et sol ne valent que pour le terrain plat ; « Gardes » que pour
+## une carte UFO:AI.
+func _update_background() -> void:
+	var flat := String(_new_background.get_selected_metadata()).is_empty()
+	_new_width.editable = flat
+	_new_depth.editable = flat
+	_new_ground.disabled = not flat
+	_new_guards.disabled = flat
 
 
 func _size_box(tip: String) -> SpinBox:

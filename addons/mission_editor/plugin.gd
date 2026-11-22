@@ -55,6 +55,10 @@ const GROUNDS := {
 const TEAM_INSET := 6.0
 const CAMERA_INSET := 10.0
 const BOUNDS_INSET := 2.0
+## Navigation des missions sur fond UFO:AI, comme `ufo_map.tscn`.
+const UFO_NAVIGATION := {"cell_size": 0.1, "cell_height": 0.1, "agent_height": 1.8, "agent_radius": 0.4, "agent_max_climb": 0.3}
+## Pas de garde posé à moins de cela (m) de l'équipe.
+const UFO_GUARD_CLEARANCE := 15.0
 ## Éclairage selon le moment : fond, lumière ambiante, soleil ou lune
 ## (mêmes valeurs que `tools/mapkit.py`).
 const LIGHTING := {
@@ -767,7 +771,83 @@ func new_mission(folder: String, options: Dictionary = {}) -> String:
 	files.update_file(info_path)
 	LevelCatalog.reload()
 	EditorInterface.open_scene_from_path(scene_path)
+	if not String(options.get("ufo_map", "")).is_empty():
+		await _set_ufo_background(options["ufo_map"], bool(options.get("guards", true)))
 	return scene_path
+
+
+## Nouvelle mission ouverte : son terrain plat remplacé par la carte UFO:AI
+## `map_file` (`UfoMapLevel` sans `units_parent` ni `enemies_parent` : ses
+## éléments sont ceux de la scène). Une fois la carte construite : équipe
+## sur les départs de la carte, extraction sur le départ d'alien le plus
+## loin, caméra et limites sur la carte, gardes postés sur les départs
+## d'aliens si `guards`. Enregistrée aussitôt (pas d'annulation : la
+## mission vient d'être créée).
+func _set_ufo_background(map_file: String, guards: bool) -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	var region := root.get_node_or_null(^"NavigationRegion3D") as NavigationRegion3D if root else null
+	if region == null:
+		return
+	var ground := region.get_node_or_null(^"Ground")
+	if ground:
+		region.remove_child(ground)
+		ground.free()
+	# Navigation réglée comme les cartes UFO:AI du jeu (`ufo_map.tscn`).
+	var mesh := region.navigation_mesh
+	for key: String in UFO_NAVIGATION:
+		mesh.set(key, UFO_NAVIGATION[key])
+	var map := Node3D.new()
+	map.set_script(load("res://scripts/levels/ufo_map_level.gd"))
+	map.name = "Map"
+	map.set("map_file", map_file)
+	region.add_child(map, true)
+	map.owner = root
+	region.move_child(map, 0)
+	var waited := 0
+	while not map.get("is_built") and waited < 3000:
+		await get_tree().process_frame
+		waited += 1
+		if not is_instance_valid(root) or not root.is_inside_tree():
+			return
+	var starts: Array[Transform3D] = map.get("player_starts")
+	var aliens: Array[Transform3D] = map.get("alien_starts")
+	var bounds: AABB = map.get("map_bounds")
+	var units := root.get_node(^"Units")
+	var team := Vector3.ZERO
+	var placed := 0
+	for unit: Node in units.get_children():
+		if unit is Node3D and placed < starts.size():
+			(unit as Node3D).global_transform = starts[placed]
+			team += starts[placed].origin
+			placed += 1
+	team = team / maxf(placed, 1)
+	var zone := root.get_node_or_null(^"ExtractionZone") as Node3D
+	if zone and not aliens.is_empty():
+		var far := aliens[0].origin
+		for spot in aliens:
+			if spot.origin.distance_to(team) > far.distance_to(team):
+				far = spot.origin
+		zone.global_position = far
+	var rig := root.get_node_or_null(^"CameraRig") as Node3D
+	if rig:
+		rig.global_position = Vector3(team.x, 0.0, team.z)
+		var box: AABB = rig.get("bounds")
+		rig.set("bounds", AABB(Vector3(bounds.position.x, box.position.y, bounds.position.z), Vector3(bounds.size.x, box.size.y, bounds.size.z)))
+	if guards:
+		var enemies := root.get_node(^"Enemies")
+		for spot in aliens:
+			# Pas de garde collé à l'extraction ni à l'équipe.
+			if spot.origin.distance_to(team) < UFO_GUARD_CLEARANCE or (zone and spot.origin.distance_to(zone.global_position) < 1.0):
+				continue
+			var guard: Node3D = Palette.make("guard", spot.origin, 0.0, Vector3.INF, root)[0]
+			guard.name = "Sentry"
+			enemies.add_child(guard, true)
+			guard.owner = root
+			guard.global_transform = spot
+	EditorInterface.mark_scene_as_unsaved()
+	EditorInterface.save_scene()
+	_refresh_dock()
+	refresh_coverage()
 
 
 ## Texte de la scène d'une nouvelle mission, d'après le gabarit `template`

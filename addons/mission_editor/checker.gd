@@ -293,9 +293,10 @@ static func _check_patrols(root: Node, map: RID, report: Array[Dictionary]) -> v
 
 static func _check_placement(root: Node, operators: Array, report: Array[Dictionary]) -> void:
 	var space := (root as Node3D).get_world_3d().direct_space_state
-	# Carte UFO:AI : l'équipe est placée au lancement sur les départs de la
-	# carte (`UfoMapLevel`), pas où la scène la met.
-	var placed_later := not root.find_children("*", "UfoMapLevel", true, false).is_empty()
+	# Carte UFO:AI qui place l'équipe au lancement sur ses départs
+	# (`UfoMapLevel.units_parent`), pas où la scène la met ; une carte de
+	# fond (sans `units_parent`) laisse l'équipe où elle est posée.
+	var placed_later := root.find_children("*", "UfoMapLevel", true, false).any(func(map: Node) -> bool: return not (map.get("units_parent") as NodePath).is_empty())
 	if not placed_later:
 		_check_sight(root, operators, space, report)
 	var units := root.find_children("*", "", true, true).filter(func(n: Node) -> bool:

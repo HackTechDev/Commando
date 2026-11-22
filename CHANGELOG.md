@@ -1416,3 +1416,10 @@
 - Vérification : événement que rien ne déclenche, objectif déclencheur absent de la mission, zone sans événement, zone sans chemin depuis l'équipe, arrivants hors du terrain.
 - Vérifié (`tools/editor_check/step84d.gd`, puis en jeu sur la carte enregistrée) : la zone lance le pick-up une seule fois, sans annonce ; l'autre lance les renforts annoncés (« Renforts dans 0:15 ») ; tous arrivent et foncent vers leur zone. La suite GUT n'a pas été lancée.
 
+## Éditeur de mission : carte UFO:AI comme fond (8.6 b)
+
+- « Nouvelle mission » propose un fond : terrain plat, ou l'une des cartes UFO:AI entières du dossier des cartes. La carte remplace le terrain plat ; une fois construite, l'équipe se place sur ses départs, l'extraction sur le départ d'alien le plus éloigné, la caméra et ses limites sur la carte ; avec « Gardes », un garde posté sur chaque départ d'alien à plus de 15 m de l'équipe. On y ajoute ensuite ses éléments comme sur une autre carte.
+- Jeu : `UfoMapLevel` donne les départs de la carte (`player_starts`, `alien_starts`), aussi dans l'éditeur ; sans `units_parent` ni `enemies_parent`, la mission garde ses propres unités (c'était déjà le cas).
+- Vérification : sur une carte de fond, l'équipe est contrôlée comme ailleurs (elle n'est sautée que si la carte la place au lancement) ; le terrain des contrôles et du calage de la caméra est l'emprise de la carte.
+- Vérifié (`tools/editor_check/step86b.gd`, carte « office ») : mission créée en 7 s, 3 opérateurs, extraction, 16 gardes ; en jeu : 17 ennemis (les gardes posés et une ronde, pas de sentinelles ajoutées), équipe à sa place, Alpha suit la navigation jusqu'à son but. La suite GUT n'a pas été lancée.
+
