@@ -28,8 +28,10 @@ var _rebuild_queued: bool = false
 
 
 func _ready() -> void:
-	collision_layer = LAYER
-	collision_mask = 0
+	# En jeu seulement : dans l'éditeur, la scène enregistrée ne change pas.
+	if not Engine.is_editor_hint():
+		collision_layer = LAYER
+		collision_mask = 0
 	_build()
 
 
