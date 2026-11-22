@@ -42,8 +42,8 @@ func _play_buttons(menu: Node) -> Array:
 ## préparation.
 ## Rang du niveau `title` dans le catalogue (et le menu).
 static func _index_of(title: String) -> int:
-	for i in LevelCatalog.LEVELS.size():
-		if LevelCatalog.LEVELS[i]["title"] == title:
+	for i in LevelCatalog.levels().size():
+		if LevelCatalog.levels()[i]["title"] == title:
 			return i
 	return -1
 
@@ -68,8 +68,8 @@ func _wait_scene(scene_name: String) -> bool:
 
 
 func test_catalog_scenes_exist() -> void:
-	assert_gt(LevelCatalog.LEVELS.size(), 1)
-	for level in LevelCatalog.LEVELS:
+	assert_gt(LevelCatalog.levels().size(), 1)
+	for level in LevelCatalog.levels():
 		assert_true(ResourceLoader.exists(level["scene"]), level["scene"])
 
 
@@ -83,9 +83,9 @@ func test_missing_map_greys_out_its_level() -> void:
 	OS.set_environment("COMMANDO_MAPS", "/nulle/part")
 	var menu := await _open_menu()
 	var buttons := _play_buttons(menu)
-	for i in LevelCatalog.LEVELS.size():
-		var needs_map: bool = LevelCatalog.LEVELS[i].has("map")
-		assert_eq(buttons[i].disabled, needs_map, LevelCatalog.LEVELS[i]["title"])
+	for i in LevelCatalog.levels().size():
+		var needs_map: bool = LevelCatalog.levels()[i].has("map")
+		assert_eq(buttons[i].disabled, needs_map, LevelCatalog.levels()[i]["title"])
 
 
 func test_play_sandbox_then_back_to_menu() -> void:

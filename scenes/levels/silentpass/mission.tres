@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_q15yw"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_bgqml"]
+
+[sub_resource type="Resource" id="Resource_c41mh"]
+script = ExtResource("1_q15yw")
+id = "sabre_rally"
+text = "Conduire le Sabre jusqu'au point de ralliement (drapeau)"
+
+[sub_resource type="Resource" id="Resource_hugka"]
+script = ExtResource("1_q15yw")
+id = "extracted"
+text = "Être treuillé à bord de l'extraction en moins de 60 s"
+
+[sub_resource type="Resource" id="Resource_knlgg"]
+script = ExtResource("1_q15yw")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_bgqml")
+title = "Col silencieux"
+description = "De nuit. Le seul passage vers le point de ralliement est un défilé entre deux falaises, gardé à sa sortie par deux sentinelles sous un lampadaire et une ronde. Phares éteints, le Sabre roule moins vite mais ne se voit que de près ; allumés, il se voit de loin. Au volant, « Couper le moteur » : il avance en roue libre, sans bruit, sur 15 m au plus. Laissé à l'écart avec le « Moteur au ralenti », il attire les gardes, qui viennent voir sans donner l'alerte. À pied, « S'abriter derrière » cache les opérateurs accroupis le long de la caisse. Conduisez le Sabre au drapeau, puis appelez l'extraction : elle ne reste que 60 s en vol stationnaire au-dessus de la clairière au nord du col ; treuillez toute l'équipe."
+camo = "night"
+order = 170
+objectives = Array[ExtResource("1_q15yw")]([SubResource("Resource_c41mh"), SubResource("Resource_hugka"), SubResource("Resource_knlgg")])

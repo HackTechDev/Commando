@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_w7qdy"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_4hdfn"]
+
+[sub_resource type="Resource" id="Resource_ketp6"]
+script = ExtResource("1_w7qdy")
+id = "documents"
+text = "Ramener les documents de l'hôte à bord de l'extraction"
+
+[sub_resource type="Resource" id="Resource_54fdy"]
+script = ExtResource("1_w7qdy")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_lt8x2"]
+script = ExtResource("1_w7qdy")
+id = "no_alert"
+text = "Ne jamais donner l'alerte"
+
+[sub_resource type="Resource" id="Resource_jxpk0"]
+script = ExtResource("1_w7qdy")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_4hdfn")
+title = "Réception"
+description = "De jour, une garden-party dans le parc d'une résidence gardée, au cœur d'un quartier résidentiel. Tenue de rigueur : costume-cravate. L'équipe part du coin sud-ouest du quartier, en costume, pistolet-mitrailleur caché sous la veste : à la bretelle (G), debout et au pas, un opérateur se fond parmi les invités ; à distance, les gardes ne le remarquent pas, de près ils finissent par le dévisager. Arme en main, course, corps porté ou posture baissée le trahissent aussitôt. L'hôte, dans son bureau de l'aile ouest de la résidence, porte des documents : prenez-les (assommé ou abattu, sur son corps). Un garde veille dans le bureau, un autre sur le perron, deux rondes parcourent le parc et une troisième fait le tour de la résidence. Porte de service au nord de la résidence. Dans le quartier, une ronde suit l'avenue devant la grille, deux autres les rues ouest et est, et un guetteur surveille la pelouse au nord ; des ruelles longent les murs de la résidence, entre haies et poubelles. Des voitures circulent : clic milieu, « S'abriter derrière », elle s'arrête et cache les opérateurs accroupis ; mais bloquée plus de 5 s, elle klaxonne et les gardes proches viennent voir. Pour repartir, appelez l'extraction par radio : elle se pose au nord, derrière la grille de service gardée."
+camo = "urban"
+order = 200
+objectives = Array[ExtResource("1_w7qdy")]([SubResource("Resource_ketp6"), SubResource("Resource_54fdy"), SubResource("Resource_lt8x2"), SubResource("Resource_jxpk0")])

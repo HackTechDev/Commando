@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_l2gj7"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_jpfv3"]
+
+[sub_resource type="Resource" id="Resource_xo7pb"]
+script = ExtResource("1_l2gj7")
+id = "all_enemies_down"
+text = "Neutraliser le camp, ses lance-roquettes et ses avant-postes"
+
+[sub_resource type="Resource" id="Resource_2acoy"]
+script = ExtResource("1_l2gj7")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_irf72"]
+script = ExtResource("1_l2gj7")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_jpfv3")
+title = "Nid de frelons"
+description = "De jour, sur un plateau rocheux. Un camp retranché et ses avant-postes, à neutraliser entièrement. Trois gardes portent des lance-roquettes : deux roquettes abattent le convertible, et ils le visent en priorité dès qu'il passe à moins de 60 m. L'équipe commence en vol stationnaire à 30 m au sud-ouest. Depuis la soute, Alpha tire à l'Hécate plus loin grâce à la hauteur (moins précis juste après un mouvement), et un servant au canon latéral (clic milieu sur un opérateur à bord) arrose ce qui est à droite de l'appareil. La soute emporte trois lots de ravitaillement. Ou bien descendez en rappel loin du camp et approchez à pied ; Bravo a une charge. Renvoyez l'appareil avant de le rappeler pour l'extraction : il se pose au même endroit."
+camo = "desert"
+order = 120
+objectives = Array[ExtResource("1_l2gj7")]([SubResource("Resource_xo7pb"), SubResource("Resource_2acoy"), SubResource("Resource_irf72")])

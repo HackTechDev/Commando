@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_raten"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_3cnsq"]
+
+[sub_resource type="Resource" id="Resource_cdmm2"]
+script = ExtResource("1_raten")
+id = "heli_hover"
+text = "Monter en vol stationnaire avec un opérateur à bord"
+
+[sub_resource type="Resource" id="Resource_7mv6f"]
+script = ExtResource("1_raten")
+id = "heli_rappel"
+text = "Descendre un opérateur en rappel"
+
+[sub_resource type="Resource" id="Resource_nu4wh"]
+script = ExtResource("1_raten")
+id = "all_enemies_down"
+text = "Abattre les trois cibles depuis l'appareil en vol (porte ouverte)"
+
+[sub_resource type="Resource" id="Resource_1v34o"]
+script = ExtResource("1_raten")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_3cnsq")
+title = "Héliportage"
+description = "Un convertible seul sur sa plateforme, pour s'exercer à l'héliportage. Montez dans la soute par la rampe arrière (clic droit sur l'appareil), puis clic milieu sur un opérateur à bord : « Monter » (vol stationnaire à 10 m), « Ouverture » / « Fermeture » de la porte, « Descendre en rappel » (porte ouverte), « Atterrir ». Porte ouverte en vol, les opérateurs à bord tirent sur les trois cibles d'entraînement."
+order = 50
+objectives = Array[ExtResource("1_raten")]([SubResource("Resource_cdmm2"), SubResource("Resource_7mv6f"), SubResource("Resource_nu4wh"), SubResource("Resource_1v34o")])

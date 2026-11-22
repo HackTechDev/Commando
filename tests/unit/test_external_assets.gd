@@ -73,7 +73,7 @@ func test_apply_to_tree_fills_materials_from_metadata() -> void:
 
 func test_level_needing_a_missing_map_is_unavailable() -> void:
 	OS.set_environment("COMMANDO_MAPS", "/nulle/part")
-	for level in LevelCatalog.LEVELS:
+	for level in LevelCatalog.levels():
 		var reason := LevelCatalog.unavailable_reason(level)
 		if level.has("map"):
 			assert_string_contains(reason, "Carte introuvable")

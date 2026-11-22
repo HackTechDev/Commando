@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_8abal"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_tq3a3"]
+
+[sub_resource type="Resource" id="Resource_0bumf"]
+script = ExtResource("1_8abal")
+id = "depot"
+text = "Détruire le dépôt de carburant (nord-ouest) avec une charge"
+
+[sub_resource type="Resource" id="Resource_o8xj0"]
+script = ExtResource("1_8abal")
+id = "raid_in_time"
+text = "Bonus : repartir avant l'arrivée des renforts (2 min après le dépôt)"
+
+[sub_resource type="Resource" id="Resource_xfvce"]
+script = ExtResource("1_8abal")
+id = "sabre_extracted"
+text = "Faire monter le Sabre dans la soute du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_x1we3"]
+script = ExtResource("1_8abal")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_nh3vy"]
+script = ExtResource("1_8abal")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_tq3a3")
+title = "Convoi de nuit"
+description = "Raid éclair de nuit : faire sauter un dépôt de carburant, puis ramener le Sabre jusqu'au convertible d'extraction, qui ne repartira qu'avec le véhicule dans sa soute. Dès que le dépôt saute, un compte à rebours s'affiche : deux minutes plus tard, des renforts (soldats et pick-up armé) arrivent par le nord ; partez avant pour l'objectif bonus. Montez à bord au départ de la piste (sud-ouest) et rejoignez le terrain d'extraction au nord-est. Phares éteints, le Sabre se faufile mais roule moins vite ; allumés, il se voit de loin. Un poste fermé par une barrière garde le tronçon nord : forcez-la (bruit, dégâts) ou envoyez quelqu'un la lever. La piste est minée par endroits : un opérateur à pied devant le véhicule repère les engins. Un pick-up armé tourne à l'est. Au terrain, appelez l'extraction par radio : elle se pose, rampe vers la piste ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre, tout l'équipage à bord."
+camo = "night"
+order = 80
+objectives = Array[ExtResource("1_8abal")]([SubResource("Resource_0bumf"), SubResource("Resource_o8xj0"), SubResource("Resource_xfvce"), SubResource("Resource_x1we3"), SubResource("Resource_nh3vy")])

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_586i2"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_ksq5j"]
+
+[sub_resource type="Resource" id="Resource_floov"]
+script = ExtResource("1_586i2")
+id = "documents"
+text = "Rapporter à bord les documents de l'officier (4e étage)"
+
+[sub_resource type="Resource" id="Resource_y3ehd"]
+script = ExtResource("1_586i2")
+id = "extracted"
+text = "Être treuillé depuis le toit en moins de 90 s"
+
+[sub_resource type="Resource" id="Resource_s8d7x"]
+script = ExtResource("1_586i2")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_ksq5j")
+title = "La Tour"
+description = "Un immeuble de cinq étages et son toit-terrasse, gardé à chaque niveau. Un officier, au dernier étage (4e), porte des documents : abattez-le ou assommez-le, puis prenez sa sacoche. L'escalier monte le long du mur nord, en volées alternées. Quand un opérateur est dans l'immeuble, les étages au-dessus de lui s'effacent ; Page suiv. / Page préc. choisissent l'étage affiché. Porte principale au sud ; porte de service verrouillée à l'est. Tenue de rigueur : costume-cravate (un opérateur ainsi vêtu, sans arme en vue, se fond parmi les employés). Pour repartir, montez sur le toit et appelez l'extraction par radio : elle attend 90 s en vol stationnaire au-dessus de la terrasse ; treuillez toute l'équipe (clic droit sur l'appareil), documents compris."
+camo = "urban"
+order = 90
+objectives = Array[ExtResource("1_586i2")]([SubResource("Resource_floov"), SubResource("Resource_y3ehd"), SubResource("Resource_s8d7x")])

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_pqgol"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_sqmms"]
+
+[sub_resource type="Resource" id="Resource_vc642"]
+script = ExtResource("1_pqgol")
+id = "all_enemies_down"
+text = "Neutraliser la sentinelle et la cible d'entraînement"
+
+[sub_resource type="Resource" id="Resource_wbhhw"]
+script = ExtResource("1_pqgol")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_sqmms")
+title = "Terrain d'essai"
+description = "Petite carte d'exemple : une sentinelle en patrouille, une cible d'entraînement, des caisses à escalader et à déplacer."
+order = 20
+objectives = Array[ExtResource("1_pqgol")]([SubResource("Resource_vc642"), SubResource("Resource_wbhhw")])

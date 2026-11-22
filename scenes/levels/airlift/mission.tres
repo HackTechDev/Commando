@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_8udwb"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_84lfm"]
+
+[sub_resource type="Resource" id="Resource_edjia"]
+script = ExtResource("1_8udwb")
+id = "sabre_rally"
+text = "Conduire le Sabre jusqu'au poste d'observation (drapeau)"
+
+[sub_resource type="Resource" id="Resource_o8x6a"]
+script = ExtResource("1_8udwb")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_xxfqb"]
+script = ExtResource("1_8udwb")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_84lfm")
+title = "Pont aérien"
+description = "De jour. Un ravin infranchissable coupe la carte d'ouest en est. L'équipe commence en vol stationnaire au-dessus de sa zone de poser, rive nord ; son Sabre, vide, attend rive sud. Menu de bord : « Déplacer » au-dessus du véhicule, « Élinguer », puis ramenez-le au nord et « Larguer la charge ». Descendez en rappel, renvoyez l'appareil, et conduisez le Sabre jusqu'au poste d'observation au nord-est (drapeau) : un barrage gardé, une mine et un pick-up armé barrent la route. Rappelez l'appareil pour repartir : il se pose sur sa zone, rive nord."
+camo = "desert"
+order = 140
+objectives = Array[ExtResource("1_8udwb")]([SubResource("Resource_edjia"), SubResource("Resource_o8x6a"), SubResource("Resource_xxfqb")])

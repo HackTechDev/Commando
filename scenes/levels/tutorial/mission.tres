@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_x6pcx"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_87idv"]
+
+[sub_resource type="Resource" id="Resource_rmlge"]
+script = ExtResource("1_x6pcx")
+id = "tuto_move"
+text = "Se déplacer jusqu'au premier cercle"
+
+[sub_resource type="Resource" id="Resource_8cgtv"]
+script = ExtResource("1_x6pcx")
+id = "tuto_run"
+text = "Courir jusqu'au bout de l'allée"
+
+[sub_resource type="Resource" id="Resource_feilm"]
+script = ExtResource("1_x6pcx")
+id = "tuto_climb"
+text = "Monter sur le toit du bunker"
+
+[sub_resource type="Resource" id="Resource_7mm35"]
+script = ExtResource("1_x6pcx")
+id = "tuto_melee"
+text = "Neutraliser les trois mannequins au corps à corps"
+
+[sub_resource type="Resource" id="Resource_coklr"]
+script = ExtResource("1_x6pcx")
+id = "tuto_shoot"
+text = "Abattre les trois cibles du stand de tir"
+
+[sub_resource type="Resource" id="Resource_jd0f5"]
+script = ExtResource("1_x6pcx")
+id = "tuto_sniper"
+text = "Abattre les trois cibles lointaines à l'Hécate"
+
+[sub_resource type="Resource" id="Resource_fctof"]
+script = ExtResource("1_x6pcx")
+id = "tuto_stealth"
+text = "Neutraliser la sentinelle"
+
+[sub_resource type="Resource" id="Resource_eii2t"]
+script = ExtResource("1_x6pcx")
+id = "tuto_end"
+text = "Rejoindre la zone de fin"
+
+[resource]
+script = ExtResource("2_87idv")
+title = "Didacticiel"
+description = "Parcours d'apprentissage en huit ateliers, du sud au nord : se déplacer, courir et se baisser, grimper, corps à corps, tir, tir à longue distance (Charlie porte un PGM Hécate II), infiltration. Une petite fenêtre explique chaque atelier quand un opérateur y entre ; un « ? » jaune les signale, un « ✓ » vert marque ceux réussis."
+order = 10
+objectives = Array[ExtResource("1_x6pcx")]([SubResource("Resource_rmlge"), SubResource("Resource_8cgtv"), SubResource("Resource_feilm"), SubResource("Resource_7mm35"), SubResource("Resource_coklr"), SubResource("Resource_jd0f5"), SubResource("Resource_fctof"), SubResource("Resource_eii2t")])

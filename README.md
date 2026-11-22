@@ -15,7 +15,7 @@ godot --path . scenes/levels/training_a/training_a.tscn   # lance directement la
 godot --headless --path . --quit-after 60   # vérification sans affichage
 ```
 
-(`godot` = exécutable Godot 4.7.x.) Dans l'éditeur, F5 ouvre le menu ; F6 lance directement la scène ouverte. Le bouton « Menu » du HUD ramène au choix de la carte. Pour débuter : le niveau « Didacticiel », en tête du menu, enseigne les commandes en sept ateliers ; une petite fenêtre explique chacun quand un opérateur y entre (× pour la masquer, « ? Astuce » pour la rouvrir). Pour proposer un nouveau niveau dans le menu, l'ajouter à `LevelCatalog.LEVELS` (`scripts/levels/level_catalog.gd`).
+(`godot` = exécutable Godot 4.7.x.) Dans l'éditeur, F5 ouvre le menu ; F6 lance directement la scène ouverte. Le bouton « Menu » du HUD ramène au choix de la carte. Pour débuter : le niveau « Didacticiel », en tête du menu, enseigne les commandes en sept ateliers ; une petite fenêtre explique chacun quand un opérateur y entre (× pour la masquer, « ? Astuce » pour la rouvrir). Pour proposer un nouveau niveau dans le menu : un dossier `scenes/levels/<nom>/` avec la scène `<nom>.tscn` et ses informations `mission.tres` (`MissionInfo` : titre, description, camouflage conseillé, objectifs, place dans le menu), modifiables dans l'inspecteur.
 
 Les textures et les cartes ne sont pas dans le dépôt : elles sont lues au chargement de chaque niveau dans `../CommandoAsset/textures` et `../CommandoAsset/maps` (réglages de projet `commando/assets/texture_dir` et `commando/assets/map_dir`, ou variables d'environnement `COMMANDO_TEXTURES` et `COMMANDO_MAPS`). Voir `assets/TEXTURES.md`.
 

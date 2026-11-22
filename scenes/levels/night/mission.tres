@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_paign"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_rxyee"]
+
+[sub_resource type="Resource" id="Resource_6e7yr"]
+script = ExtResource("1_paign")
+id = "sabotage"
+text = "Saboter le groupe électrogène du dépôt"
+
+[sub_resource type="Resource" id="Resource_uf7tq"]
+script = ExtResource("1_paign")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_aio1g"]
+script = ExtResource("1_paign")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_rxyee")
+title = "Nuit sans lune"
+description = "Un dépôt gardé, de nuit : cinq soldats, dont deux en ronde. Les opérateurs portent des jumelles de vision nocturne (touche à gauche de 1 : ² sur AZERTY) qui amplifient la lumière en vert ; sans elles, on ne distingue presque rien hors des lampadaires. Dans le noir, les sentinelles voient moins loin. Raid : l'équipe arrive à bord du convertible, en vol stationnaire à 30 m au sud-ouest ; descendez en rappel, puis renvoyez l'appareil (clic milieu sur un opérateur : « Renvoyer l'appareil »). Sabotez le groupe électrogène au fond de la cour avec une charge : les lampadaires s'éteignent. Un convertible ennemi tourne au-dessus du dépôt : le cercle de son projecteur balaie le sol, et quiconque s'y trouve à découvert donne l'alerte ; attendez qu'il passe, ou restez sous un toit ou dans un buisson. Pour repartir, rappelez le convertible par radio (« Appeler l'extraction ») : il revient se poser au même endroit, mais le bruit de ses rotors attire les gardes."
+camo = "night"
+order = 60
+objectives = Array[ExtResource("1_paign")]([SubResource("Resource_6e7yr"), SubResource("Resource_uf7tq"), SubResource("Resource_aio1g")])

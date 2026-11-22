@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_1trcr"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_hh6tv"]
+
+[sub_resource type="Resource" id="Resource_gld88"]
+script = ExtResource("1_1trcr")
+id = "vip_extracted"
+text = "Conduire l'ambassadeur jusqu'à la zone d'extraction"
+
+[sub_resource type="Resource" id="Resource_1y6ru"]
+script = ExtResource("1_1trcr")
+id = "vip_alive"
+text = "L'ambassadeur doit survivre"
+
+[sub_resource type="Resource" id="Resource_j3clc"]
+script = ExtResource("1_1trcr")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_hh6tv")
+title = "Escorte motorisée"
+description = "De jour. L'ambassadeur attend dans la maison sûre, à côté du Sabre. Ordonnez-lui de suivre un opérateur : quand celui-ci monte dans le véhicule, le VIP s'assoit derrière lui. Conduisez jusqu'à la zone d'extraction au nord-est : il en descend de lui-même. La piste passe un barrage gardé, une mine et un IED, puis un village où l'on vous attend en embuscade ; deux pick-ups armés tournent dans la région. Maj + clic droit enchaîne des points de passage ; « Débarquer à l'arrivée » (menu de bord) fait sauter les passagers derrière la caisse au bout du trajet, conducteur et tireur restant à bord. La caméra suit le véhicule en route."
+camo = "desert"
+order = 160
+objectives = Array[ExtResource("1_1trcr")]([SubResource("Resource_gld88"), SubResource("Resource_1y6ru"), SubResource("Resource_j3clc")])

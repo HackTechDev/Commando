@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_i7ffh"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_1lxwf"]
+
+[sub_resource type="Resource" id="Resource_r5kq3"]
+script = ExtResource("1_i7ffh")
+id = "aircraft_destroyed"
+text = "Détruire le convertible (charge explosive) ou le voler"
+
+[sub_resource type="Resource" id="Resource_ta41e"]
+script = ExtResource("1_i7ffh")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_1lxwf")
+title = "Base aérienne"
+description = "Un convertible quadrirotor est posé au centre d'une base gardée par sept soldats : deux patrouilles, des sentinelles autour de la plateforme, un garde dans le hangar, au poste et devant l'armurerie (verrouillée). Alpha et Charlie ont chacun une charge explosive : la poser contre l'appareil, s'éloigner (le réservoir saute à son tour), puis la faire sauter. Ou bien voler l'appareil : toute l'équipe monte dans la soute par la rampe arrière, puis un opérateur prend les commandes (clic milieu sur lui)."
+camo = "desert"
+order = 40
+objectives = Array[ExtResource("1_i7ffh")]([SubResource("Resource_r5kq3"), SubResource("Resource_ta41e")])

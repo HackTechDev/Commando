@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_xeo5m"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_2cas4"]
+
+[sub_resource type="Resource" id="Resource_dhfma"]
+script = ExtResource("1_xeo5m")
+id = "depot"
+text = "Faire sauter le dépôt de munitions (nord-est)"
+
+[sub_resource type="Resource" id="Resource_5hr0c"]
+script = ExtResource("1_xeo5m")
+id = "raid_in_time"
+text = "Bonus : repartir avant l'arrivée des renforts (90 s après le dépôt)"
+
+[sub_resource type="Resource" id="Resource_oai3e"]
+script = ExtResource("1_xeo5m")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_ke13m"]
+script = ExtResource("1_xeo5m")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_2cas4")
+title = "Ligne de front"
+description = "De jour, dans une zone tenue : tranchées, bunker, poste de commandement. Faites sauter le dépôt de munitions au nord-est (chacun a une charge). Dès l'explosion, un compte à rebours s'affiche : 90 s plus tard, cinq soldats en alerte et un pick-up armé arrivent du nord-est ; partez avant pour l'objectif bonus. L'équipe commence en vol stationnaire au sud-ouest ; le convertible emporte trois lots de ravitaillement (menu de bord) et peut évacuer un blessé (moins de 60 % de santé) : il quitte la mission sans compter comme perdu. Renvoyez l'appareil, puis rappelez-le pour l'extraction : il se pose au même endroit."
+order = 150
+objectives = Array[ExtResource("1_xeo5m")]([SubResource("Resource_dhfma"), SubResource("Resource_5hr0c"), SubResource("Resource_oai3e"), SubResource("Resource_ke13m")])

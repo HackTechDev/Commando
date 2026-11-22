@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_w1xhw"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_fw0s7"]
+
+[resource]
+script = ExtResource("2_fw0s7")
+title = "Gare du désert"
+description = "Carte UFO:AI de 56 × 58 m : hameau en ruine, voie ferrée et wagons sur un relief en terrasses, douze sentinelles. (L'épave du vaisseau, un modèle 3D absent, n'apparaît pas.)"
+camo = "desert"
+map = "fighter_crash.map"
+order = 230

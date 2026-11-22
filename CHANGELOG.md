@@ -1284,3 +1284,10 @@
   - de jour (Base aérienne), vue normale au départ ; à la touche, vue verte, et seuls Bravo et Charlie, qui portent des jumelles, les abaissent ;
   - de nuit (Nuit), vue verte d'office ; à la touche, les jumelles se relèvent et la vue verte disparaît.
 - La suite GUT n'a pas été lancée.
+
+## Éditeur de mission, étape 1 : informations de mission en ressources
+
+- Nouvelles ressources `MissionInfo` (titre, description, camouflage conseillé, carte UFO:AI requise, place dans le menu, objectifs) et `MissionObjective` (identifiant, proposé dans une liste par l'inspecteur, et texte).
+- Chaque mission a son fichier `scenes/levels/<nom>/mission.tres`, à côté de sa scène `<nom>.tscn`. Les 23 entrées du tableau `LevelCatalog.LEVELS` y ont été migrées par `tools/godot/migrate_missions.gd`.
+- `LevelCatalog.levels()` lit ces fichiers (triés par `order`) et les garde en mémoire ; `LevelCatalog.reload()` les relit. Le tableau `LEVELS` disparaît ; tests et scripts de rendu passent par `levels()`.
+- Vérifié par scénario : le catalogue lu des fichiers est identique à l'ancien tableau, entrée par entrée (23 missions) ; menu, briefing et lancement d'une mission inchangés. La suite GUT n'a pas été lancée.

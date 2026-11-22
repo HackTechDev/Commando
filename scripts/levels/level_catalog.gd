@@ -2,10 +2,10 @@ class_name LevelCatalog
 extends RefCounted
 ## Liste des niveaux proposés par le menu de démarrage.
 ##
-## Pour ajouter un niveau : une entrée de plus dans `LEVELS`. `map` (facultatif)
-## désigne la carte UFO:AI dont le niveau a besoin, relative au dossier des
-## cartes : sans elle, le niveau est grisé dans le menu. `camo` est le
-## camouflage conseillé par l'écran de préparation (`GearCatalog.CAMOS`).
+## Pour ajouter un niveau : un dossier `scenes/levels/<nom>/` avec la scène
+## `<nom>.tscn` et ses informations `mission.tres` (`MissionInfo` : titre,
+## description, camouflage conseillé, carte UFO:AI requise, objectifs, place
+## dans le menu).
 
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 ## Niveau générique qui construit n'importe quelle carte UFO:AI
@@ -23,261 +23,45 @@ const CAMO_HINTS: Dictionary = {
 	"harbour": "urban", "ferry": "urban", "resort": "urban", "bunker": "urban", "pipes": "urban",
 }
 
-const LEVELS: Array[Dictionary] = [
-	{
-		"title": "Didacticiel",
-		"scene": "res://scenes/levels/tutorial/tutorial.tscn",
-		"description": "Parcours d'apprentissage en huit ateliers, du sud au nord : se déplacer, courir et se baisser, grimper, corps à corps, tir, tir à longue distance (Charlie porte un PGM Hécate II), infiltration. Une petite fenêtre explique chaque atelier quand un opérateur y entre ; un « ? » jaune les signale, un « ✓ » vert marque ceux réussis.",
-		"camo": "woodland",
-		"objectives": [
-			{"id": "tuto_move", "text": "Se déplacer jusqu'au premier cercle"},
-			{"id": "tuto_run", "text": "Courir jusqu'au bout de l'allée"},
-			{"id": "tuto_climb", "text": "Monter sur le toit du bunker"},
-			{"id": "tuto_melee", "text": "Neutraliser les trois mannequins au corps à corps"},
-			{"id": "tuto_shoot", "text": "Abattre les trois cibles du stand de tir"},
-			{"id": "tuto_sniper", "text": "Abattre les trois cibles lointaines à l'Hécate"},
-			{"id": "tuto_stealth", "text": "Neutraliser la sentinelle"},
-			{"id": "tuto_end", "text": "Rejoindre la zone de fin"},
-		],
-	},
-	{
-		"title": "Terrain d'essai",
-		"scene": "res://scenes/levels/sandbox/sandbox.tscn",
-		"description": "Petite carte d'exemple : une sentinelle en patrouille, une cible d'entraînement, des caisses à escalader et à déplacer.",
-		"camo": "woodland",
-		"objectives": [
-			{"id": "all_enemies_down", "text": "Neutraliser la sentinelle et la cible d'entraînement"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Escorte",
-		"scene": "res://scenes/levels/escort/escort.tscn",
-		"description": "Carte d'essai : un VIP à ramener jusqu'à la zone d'extraction, au nord-est, à travers deux lignes de murs gardées par deux patrouilles et une sentinelle. Clic du milieu sur lui : « Suivre l'opérateur » sélectionné (il imite alors sa posture) ou « Attendre ici ». S'il meurt, la mission échoue.",
-		"camo": "woodland",
-		"objectives": [
-			{"id": "vip_extracted", "text": "Escorter le VIP jusqu'à la zone d'extraction, au nord-est"},
-			{"id": "vip_alive", "text": "Le VIP doit survivre"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Base aérienne",
-		"scene": "res://scenes/levels/airbase/airbase.tscn",
-		"description": "Un convertible quadrirotor est posé au centre d'une base gardée par sept soldats : deux patrouilles, des sentinelles autour de la plateforme, un garde dans le hangar, au poste et devant l'armurerie (verrouillée). Alpha et Charlie ont chacun une charge explosive : la poser contre l'appareil, s'éloigner (le réservoir saute à son tour), puis la faire sauter. Ou bien voler l'appareil : toute l'équipe monte dans la soute par la rampe arrière, puis un opérateur prend les commandes (clic milieu sur lui).",
-		"camo": "desert",
-		"objectives": [
-			{"id": "aircraft_destroyed", "text": "Détruire le convertible (charge explosive) ou le voler"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Héliportage",
-		"scene": "res://scenes/levels/heliport/heliport.tscn",
-		"description": "Un convertible seul sur sa plateforme, pour s'exercer à l'héliportage. Montez dans la soute par la rampe arrière (clic droit sur l'appareil), puis clic milieu sur un opérateur à bord : « Monter » (vol stationnaire à 10 m), « Ouverture » / « Fermeture » de la porte, « Descendre en rappel » (porte ouverte), « Atterrir ». Porte ouverte en vol, les opérateurs à bord tirent sur les trois cibles d'entraînement.",
-		"camo": "woodland",
-		"objectives": [
-			{"id": "heli_hover", "text": "Monter en vol stationnaire avec un opérateur à bord"},
-			{"id": "heli_rappel", "text": "Descendre un opérateur en rappel"},
-			{"id": "all_enemies_down", "text": "Abattre les trois cibles depuis l'appareil en vol (porte ouverte)"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Nuit sans lune",
-		"scene": "res://scenes/levels/night/night.tscn",
-		"description": "Un dépôt gardé, de nuit : cinq soldats, dont deux en ronde. Les opérateurs portent des jumelles de vision nocturne (touche à gauche de 1 : ² sur AZERTY) qui amplifient la lumière en vert ; sans elles, on ne distingue presque rien hors des lampadaires. Dans le noir, les sentinelles voient moins loin. Raid : l'équipe arrive à bord du convertible, en vol stationnaire à 30 m au sud-ouest ; descendez en rappel, puis renvoyez l'appareil (clic milieu sur un opérateur : « Renvoyer l'appareil »). Sabotez le groupe électrogène au fond de la cour avec une charge : les lampadaires s'éteignent. Un convertible ennemi tourne au-dessus du dépôt : le cercle de son projecteur balaie le sol, et quiconque s'y trouve à découvert donne l'alerte ; attendez qu'il passe, ou restez sous un toit ou dans un buisson. Pour repartir, rappelez le convertible par radio (« Appeler l'extraction ») : il revient se poser au même endroit, mais le bruit de ses rotors attire les gardes.",
-		"camo": "night",
-		"objectives": [
-			{"id": "sabotage", "text": "Saboter le groupe électrogène du dépôt"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Patrouille Sabre",
-		"scene": "res://scenes/levels/patrol/patrol.tscn",
-		"description": "Un convertible a posé l'équipe au départ de la piste, un Sabre (véhicule léger des forces spéciales) garé dans sa soute. Clic droit sur le véhicule pour monter (cinq places : volant, chef de bord, arrière, tourelle) ; avec un opérateur à bord sélectionné, clic droit au sol pour rouler. Clic milieu sur un opérateur à bord : descendre, prendre le volant, passer à la tourelle et ouvrir le feu avec la 12,7. Le Sabre sort de la soute en marche arrière ; clic droit sur le convertible pour l'y ramener. Le moteur s'entend de loin ; un poste de contrôle, fermé par une barrière, garde le point de ralliement. Un pick-up armé patrouille à l'est du poste : il fonce vers les bruits et mitraille ce qu'il voit ; la 12,7 en vient à bout, le missile aussi. La piste est peut-être piégée : un opérateur à pied devant le véhicule repère les mines (clic droit dessus pour la désamorcer). Pour repartir, appelez l'extraction par radio : elle ne se pose pas et ne reste que 60 s en vol stationnaire à l'ouest du poste ; treuillez toute l'équipe (clic droit sur l'appareil) avant qu'elle reparte.",
-		"camo": "desert",
-		"objectives": [
-			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au point de ralliement (drapeau)"},
-			{"id": "all_enemies_down", "text": "Neutraliser le poste de contrôle et la patrouille"},
-			{"id": "extracted", "text": "Être treuillé à bord de l'extraction en moins de 60 s"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Convoi de nuit",
-		"scene": "res://scenes/levels/convoy/convoy.tscn",
-		"description": "Raid éclair de nuit : faire sauter un dépôt de carburant, puis ramener le Sabre jusqu'au convertible d'extraction, qui ne repartira qu'avec le véhicule dans sa soute. Dès que le dépôt saute, un compte à rebours s'affiche : deux minutes plus tard, des renforts (soldats et pick-up armé) arrivent par le nord ; partez avant pour l'objectif bonus. Montez à bord au départ de la piste (sud-ouest) et rejoignez le terrain d'extraction au nord-est. Phares éteints, le Sabre se faufile mais roule moins vite ; allumés, il se voit de loin. Un poste fermé par une barrière garde le tronçon nord : forcez-la (bruit, dégâts) ou envoyez quelqu'un la lever. La piste est minée par endroits : un opérateur à pied devant le véhicule repère les engins. Un pick-up armé tourne à l'est. Au terrain, appelez l'extraction par radio : elle se pose, rampe vers la piste ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre, tout l'équipage à bord.",
-		"camo": "night",
-		"objectives": [
-			{"id": "depot", "text": "Détruire le dépôt de carburant (nord-ouest) avec une charge"},
-			{"id": "raid_in_time", "text": "Bonus : repartir avant l'arrivée des renforts (2 min après le dépôt)"},
-			{"id": "sabre_extracted", "text": "Faire monter le Sabre dans la soute du convertible d'extraction"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "La Tour",
-		"scene": "res://scenes/levels/tower/tower.tscn",
-		"description": "Un immeuble de cinq étages et son toit-terrasse, gardé à chaque niveau. Un officier, au dernier étage (4e), porte des documents : abattez-le ou assommez-le, puis prenez sa sacoche. L'escalier monte le long du mur nord, en volées alternées. Quand un opérateur est dans l'immeuble, les étages au-dessus de lui s'effacent ; Page suiv. / Page préc. choisissent l'étage affiché. Porte principale au sud ; porte de service verrouillée à l'est. Tenue de rigueur : costume-cravate (un opérateur ainsi vêtu, sans arme en vue, se fond parmi les employés). Pour repartir, montez sur le toit et appelez l'extraction par radio : elle attend 90 s en vol stationnaire au-dessus de la terrasse ; treuillez toute l'équipe (clic droit sur l'appareil), documents compris.",
-		"camo": "urban",
-		"objectives": [
-			{"id": "documents", "text": "Rapporter à bord les documents de l'officier (4e étage)"},
-			{"id": "extracted", "text": "Être treuillé depuis le toit en moins de 90 s"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Oued sec",
-		"scene": "res://scenes/levels/wadi/wadi.tscn",
-		"description": "De jour, en Sabre. Un relais radar retranché sur l'éperon nord-ouest guide l'ennemi : détruisez-le. Le missile antichar du Sabre l'atteint de loin (un seul : véhicule à l'arrêt, 2,5 s de visée) ; la 12,7 en tir désigné ou une charge d'Alpha font aussi l'affaire. La piste traverse un barrage gardé (forcez-le ou levez-le à pied) et cache trois engins : un éclaireur devant le véhicule les repère. Un pick-up armé tourne à l'est. Au bout de la piste, appelez l'extraction par radio et faites monter le Sabre dans sa soute (clic droit sur l'appareil avec un passager sélectionné).",
-		"camo": "desert",
-		"objectives": [
-			{"id": "sabotage", "text": "Détruire le relais radar (missile, 12,7 ou charge)"},
-			{"id": "sabre_extracted", "text": "Faire monter le Sabre dans la soute du convertible d'extraction"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Kasbah",
-		"scene": "res://scenes/levels/kasbah/kasbah.tscn",
-		"description": "De jour, en ville. L'équipe commence à bord d'un convertible en vol stationnaire à 30 m au-dessus de la place sud-ouest. Menu de bord : « Déplacer » pour le mener où vous voulez, « Perdre de l'altitude » pour un rappel plus court (mais des rotors qui s'entendent plus loin), puis rappel dans une rue ou sur un toit plat. Renvoyez ensuite l'appareil (menu radio). Un officier, au 2e étage de l'immeuble de bureaux, porte des documents : prenez-les sur son corps. En tenue décontractée, sans arme en vue, on se fond dans la foule des rues. L'immeuble a une terrasse ; pour repartir, appelez l'extraction : elle ne reste que 75 s au-dessus de la terrasse, où l'on se fait treuiller (clic droit sur l'appareil).",
-		"camo": "urban",
-		"objectives": [
-			{"id": "documents", "text": "Rapporter à bord les documents de l'officier (immeuble, 2e étage)"},
-			{"id": "extracted", "text": "Être treuillé depuis la terrasse en moins de 75 s"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Nid de frelons",
-		"scene": "res://scenes/levels/hornets/hornets.tscn",
-		"description": "De jour, sur un plateau rocheux. Un camp retranché et ses avant-postes, à neutraliser entièrement. Trois gardes portent des lance-roquettes : deux roquettes abattent le convertible, et ils le visent en priorité dès qu'il passe à moins de 60 m. L'équipe commence en vol stationnaire à 30 m au sud-ouest. Depuis la soute, Alpha tire à l'Hécate plus loin grâce à la hauteur (moins précis juste après un mouvement), et un servant au canon latéral (clic milieu sur un opérateur à bord) arrose ce qui est à droite de l'appareil. La soute emporte trois lots de ravitaillement. Ou bien descendez en rappel loin du camp et approchez à pied ; Bravo a une charge. Renvoyez l'appareil avant de le rappeler pour l'extraction : il se pose au même endroit.",
-		"camo": "desert",
-		"objectives": [
-			{"id": "all_enemies_down", "text": "Neutraliser le camp, ses lance-roquettes et ses avant-postes"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Feux éteints",
-		"scene": "res://scenes/levels/blackout/blackout.tscn",
-		"description": "De nuit. Une station radio, éclairée par ses lampadaires, est gardée par deux sentinelles au portail, une ronde, un garde à lance-roquettes, et survolée par un appareil ennemi dont le projecteur balaie le sol : à découvert dans sa tache, on est repéré. L'équipe commence en vol stationnaire, tous feux éteints : les gardes ne voient l'appareil que de près, mais entendent ses rotors ; une rafale du canon latéral le trahit. Rappel, puis renvoyez l'appareil. Parti, il peut faire une diversion (menu radio, puis clic sur la carte) : un passage en rase-mottes qui attire les sentinelles sans donner l'alerte. Sabotez le groupe électrogène avec une charge (Alpha et Bravo en ont une) : les lampadaires s'éteignent. Rappelez l'appareil pour repartir.",
-		"camo": "night",
-		"objectives": [
-			{"id": "sabotage", "text": "Saboter le groupe électrogène de la station radio"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Pont aérien",
-		"scene": "res://scenes/levels/airlift/airlift.tscn",
-		"description": "De jour. Un ravin infranchissable coupe la carte d'ouest en est. L'équipe commence en vol stationnaire au-dessus de sa zone de poser, rive nord ; son Sabre, vide, attend rive sud. Menu de bord : « Déplacer » au-dessus du véhicule, « Élinguer », puis ramenez-le au nord et « Larguer la charge ». Descendez en rappel, renvoyez l'appareil, et conduisez le Sabre jusqu'au poste d'observation au nord-est (drapeau) : un barrage gardé, une mine et un pick-up armé barrent la route. Rappelez l'appareil pour repartir : il se pose sur sa zone, rive nord.",
-		"camo": "desert",
-		"objectives": [
-			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au poste d'observation (drapeau)"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Ligne de front",
-		"scene": "res://scenes/levels/frontline/frontline.tscn",
-		"description": "De jour, dans une zone tenue : tranchées, bunker, poste de commandement. Faites sauter le dépôt de munitions au nord-est (chacun a une charge). Dès l'explosion, un compte à rebours s'affiche : 90 s plus tard, cinq soldats en alerte et un pick-up armé arrivent du nord-est ; partez avant pour l'objectif bonus. L'équipe commence en vol stationnaire au sud-ouest ; le convertible emporte trois lots de ravitaillement (menu de bord) et peut évacuer un blessé (moins de 60 % de santé) : il quitte la mission sans compter comme perdu. Renvoyez l'appareil, puis rappelez-le pour l'extraction : il se pose au même endroit.",
-		"camo": "woodland",
-		"objectives": [
-			{"id": "depot", "text": "Faire sauter le dépôt de munitions (nord-est)"},
-			{"id": "raid_in_time", "text": "Bonus : repartir avant l'arrivée des renforts (90 s après le dépôt)"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Escorte motorisée",
-		"scene": "res://scenes/levels/motorcade/motorcade.tscn",
-		"description": "De jour. L'ambassadeur attend dans la maison sûre, à côté du Sabre. Ordonnez-lui de suivre un opérateur : quand celui-ci monte dans le véhicule, le VIP s'assoit derrière lui. Conduisez jusqu'à la zone d'extraction au nord-est : il en descend de lui-même. La piste passe un barrage gardé, une mine et un IED, puis un village où l'on vous attend en embuscade ; deux pick-ups armés tournent dans la région. Maj + clic droit enchaîne des points de passage ; « Débarquer à l'arrivée » (menu de bord) fait sauter les passagers derrière la caisse au bout du trajet, conducteur et tireur restant à bord. La caméra suit le véhicule en route.",
-		"camo": "desert",
-		"objectives": [
-			{"id": "vip_extracted", "text": "Conduire l'ambassadeur jusqu'à la zone d'extraction"},
-			{"id": "vip_alive", "text": "L'ambassadeur doit survivre"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Col silencieux",
-		"scene": "res://scenes/levels/silentpass/silentpass.tscn",
-		"description": "De nuit. Le seul passage vers le point de ralliement est un défilé entre deux falaises, gardé à sa sortie par deux sentinelles sous un lampadaire et une ronde. Phares éteints, le Sabre roule moins vite mais ne se voit que de près ; allumés, il se voit de loin. Au volant, « Couper le moteur » : il avance en roue libre, sans bruit, sur 15 m au plus. Laissé à l'écart avec le « Moteur au ralenti », il attire les gardes, qui viennent voir sans donner l'alerte. À pied, « S'abriter derrière » cache les opérateurs accroupis le long de la caisse. Conduisez le Sabre au drapeau, puis appelez l'extraction : elle ne reste que 60 s en vol stationnaire au-dessus de la clairière au nord du col ; treuillez toute l'équipe.",
-		"camo": "night",
-		"objectives": [
-			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au point de ralliement (drapeau)"},
-			{"id": "extracted", "text": "Être treuillé à bord de l'extraction en moins de 60 s"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Enlèvement",
-		"scene": "res://scenes/levels/snatch/snatch.tscn",
-		"description": "De jour. Un officier se terre dans sa villa fortifiée, au nord-est : enlevez-le. Assommez-le (ou prenez-le en otage), portez-le jusqu'au Sabre et, menu du véhicule, « Coucher sur le plateau » : il y reste ligoté, caché sous la bâche, et vous avez les mains libres. Les corps des gardes s'y cachent aussi (deux places). Ses documents, ou l'officier lui-même sur le plateau, remplissent l'objectif une fois à bord de l'extraction. Appelez-la par radio : elle se pose au sud-ouest de la villa ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre. Un pick-up armé tourne à l'est.",
-		"camo": "desert",
-		"objectives": [
-			{"id": "documents", "text": "Ramener l'officier ou ses documents à bord de l'extraction"},
-			{"id": "sabre_extracted", "text": "Faire monter le Sabre dans la soute du convertible d'extraction"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Embuscade",
-		"scene": "res://scenes/levels/ambush/ambush.tscn",
-		"description": "De jour. La piste du point de ralliement traverse une vallée tenue des deux côtés : dix tireurs abrités derrière des murets, une mine, un IED, et trois pick-ups armés qui accourent au bruit. Passez en force ou nettoyez la vallée : 12,7 à la tourelle (feu à volonté ou tir désigné), 7,62 latérales du chef de bord et de l'arrière gauche (chacune son champ de tir), un missile pour un pick-up. La caisse du Sabre arrête une partie des balles mais s'abîme : pneu crevé, moteur touché. À pied, menu du véhicule : « Réparer » (pneus et moteur, 6 s), « Se ravitailler » (quatre lots), « S'abriter derrière ». Au point de ralliement, appelez l'extraction : 90 s en vol stationnaire, au treuil.",
-		"camo": "desert",
-		"objectives": [
-			{"id": "all_enemies_down", "text": "Neutraliser les tireurs de l'embuscade"},
-			{"id": "sabre_rally", "text": "Conduire le Sabre jusqu'au point de ralliement (drapeau)"},
-			{"id": "extracted", "text": "Être treuillé à bord de l'extraction en moins de 90 s"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Réception",
-		"scene": "res://scenes/levels/reception/reception.tscn",
-		"description": "De jour, une garden-party dans le parc d'une résidence gardée, au cœur d'un quartier résidentiel. Tenue de rigueur : costume-cravate. L'équipe part du coin sud-ouest du quartier, en costume, pistolet-mitrailleur caché sous la veste : à la bretelle (G), debout et au pas, un opérateur se fond parmi les invités ; à distance, les gardes ne le remarquent pas, de près ils finissent par le dévisager. Arme en main, course, corps porté ou posture baissée le trahissent aussitôt. L'hôte, dans son bureau de l'aile ouest de la résidence, porte des documents : prenez-les (assommé ou abattu, sur son corps). Un garde veille dans le bureau, un autre sur le perron, deux rondes parcourent le parc et une troisième fait le tour de la résidence. Porte de service au nord de la résidence. Dans le quartier, une ronde suit l'avenue devant la grille, deux autres les rues ouest et est, et un guetteur surveille la pelouse au nord ; des ruelles longent les murs de la résidence, entre haies et poubelles. Des voitures circulent : clic milieu, « S'abriter derrière », elle s'arrête et cache les opérateurs accroupis ; mais bloquée plus de 5 s, elle klaxonne et les gardes proches viennent voir. Pour repartir, appelez l'extraction par radio : elle se pose au nord, derrière la grille de service gardée.",
-		"camo": "urban",
-		"objectives": [
-			{"id": "documents", "text": "Ramener les documents de l'hôte à bord de l'extraction"},
-			{"id": "extracted", "text": "Repartir à bord du convertible d'extraction"},
-			{"id": "no_alert", "text": "Ne jamais donner l'alerte"},
-			{"id": "no_operator_lost", "text": "Ne perdre aucun opérateur"},
-		],
-	},
-	{
-		"title": "Entraînement A",
-		"scene": "res://scenes/levels/training_a/training_a.tscn",
-		"description": "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes.",
-		"map": "training_a.map",
-		"camo": "urban",
-	},
-	{
-		"title": "Entraînement B",
-		"scene": "res://scenes/levels/training_b/training_b.tscn",
-		"description": "Grande carte UFO:AI de 100 × 62 m : bunkers, tranchées et murets, douze sentinelles réparties sur tout le terrain.",
-		"map": "training_b.map",
-		"camo": "woodland",
-	},
-	{
-		"title": "Gare du désert",
-		"scene": "res://scenes/levels/fighter_crash/fighter_crash.tscn",
-		"description": "Carte UFO:AI de 56 × 58 m : hameau en ruine, voie ferrée et wagons sur un relief en terrasses, douze sentinelles. (L'épave du vaisseau, un modèle 3D absent, n'apparaît pas.)",
-		"map": "fighter_crash.map",
-		"camo": "desert",
-	},
-]
+## Dossier des niveaux : chacun dans `<nom>/<nom>.tscn`, décrit par
+## `<nom>/mission.tres` (`MissionInfo`).
+const LEVELS_DIR := "res://scenes/levels"
+
+## Niveaux du catalogue lus sur le disque (`levels`), gardés en mémoire.
+static var _cache: Array[Dictionary] = []
+static var _cached: bool = false
+
+
+## Niveaux du catalogue, dans l'ordre du menu (`MissionInfo.order`) :
+## [{"title", "scene", "description", "camo", "map"?, "objectives"?}].
+static func levels() -> Array[Dictionary]:
+	if not _cached:
+		_cache = _read_levels()
+		_cached = true
+	return _cache
+
+
+## Relit les fichiers de mission (greffon « Éditeur de mission », après un
+## enregistrement).
+static func reload() -> void:
+	_cached = false
+
+
+static func _read_levels() -> Array[Dictionary]:
+	var infos: Array[MissionInfo] = []
+	for dir_name in DirAccess.get_directories_at(LEVELS_DIR):
+		var path := LEVELS_DIR.path_join(dir_name).path_join(MissionInfo.FILE_NAME)
+		if not ResourceLoader.exists(path):
+			continue
+		var info := load(path) as MissionInfo
+		if info:
+			infos.append(info)
+	infos.sort_custom(func(a: MissionInfo, b: MissionInfo) -> bool:
+		return a.order < b.order if a.order != b.order else a.title < b.title)
+	var result: Array[Dictionary] = []
+	for info in infos:
+		result.append(info.to_entry())
+	return result
 
 
 ## Cartes UFO:AI du dossier des cartes qui n'ont pas de niveau au
@@ -285,7 +69,7 @@ const LEVELS: Array[Dictionary] = [
 ## de la carte (non testées une à une).
 static func extra_levels() -> Array[Dictionary]:
 	var known: Array[String] = []
-	for level in LEVELS:
+	for level in levels():
 		if level.has("map"):
 			known.append(level["map"])
 	var extras: Array[Dictionary] = []
@@ -315,9 +99,9 @@ static func extra_levels() -> Array[Dictionary]:
 
 ## Tous les niveaux proposés : catalogue, puis cartes UFO:AI en plus.
 static func all_levels() -> Array[Dictionary]:
-	var levels: Array[Dictionary] = LEVELS.duplicate()
-	levels.append_array(extra_levels())
-	return levels
+	var result: Array[Dictionary] = levels().duplicate()
+	result.append_array(extra_levels())
+	return result
 
 
 ## Clé d'un niveau (dernière carte jouée, aperçus) : la carte pour le niveau
@@ -345,7 +129,7 @@ static func find(key: String) -> Dictionary:
 static func title_of(scene_path: String) -> String:
 	if scene_path == GENERIC_SCENE:
 		return find(UfoMapLevel.requested_map).get("title", "")
-	for level in LEVELS:
+	for level in levels():
 		if level["scene"] == scene_path:
 			return level["title"]
 	return ""

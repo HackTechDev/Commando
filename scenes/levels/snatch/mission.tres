@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_rp4ey"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_kpeaf"]
+
+[sub_resource type="Resource" id="Resource_n1jby"]
+script = ExtResource("1_rp4ey")
+id = "documents"
+text = "Ramener l'officier ou ses documents à bord de l'extraction"
+
+[sub_resource type="Resource" id="Resource_4qgfa"]
+script = ExtResource("1_rp4ey")
+id = "sabre_extracted"
+text = "Faire monter le Sabre dans la soute du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_mgo0p"]
+script = ExtResource("1_rp4ey")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_22elw"]
+script = ExtResource("1_rp4ey")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_kpeaf")
+title = "Enlèvement"
+description = "De jour. Un officier se terre dans sa villa fortifiée, au nord-est : enlevez-le. Assommez-le (ou prenez-le en otage), portez-le jusqu'au Sabre et, menu du véhicule, « Coucher sur le plateau » : il y reste ligoté, caché sous la bâche, et vous avez les mains libres. Les corps des gardes s'y cachent aussi (deux places). Ses documents, ou l'officier lui-même sur le plateau, remplissent l'objectif une fois à bord de l'extraction. Appelez-la par radio : elle se pose au sud-ouest de la villa ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre. Un pick-up armé tourne à l'est."
+camo = "desert"
+order = 180
+objectives = Array[ExtResource("1_rp4ey")]([SubResource("Resource_n1jby"), SubResource("Resource_4qgfa"), SubResource("Resource_mgo0p"), SubResource("Resource_22elw")])

@@ -32,7 +32,7 @@ func test_other_ufo_maps_are_offered() -> void:
 	for level in extras:
 		assert_eq(level["scene"], LevelCatalog.GENERIC_SCENE)
 		assert_true(String(level["map"]).ends_with(".map"))
-		for known in LevelCatalog.LEVELS:
+		for known in LevelCatalog.levels():
 			assert_ne(level["map"], known.get("map", ""), "pas de doublon avec le catalogue")
 	var menu := _open_menu()
 	for level in extras:
@@ -40,7 +40,7 @@ func test_other_ufo_maps_are_offered() -> void:
 
 
 func test_last_played_map_comes_first() -> void:
-	var escort: Dictionary = LevelCatalog.LEVELS[1]
+	var escort: Dictionary = LevelCatalog.levels()[1]
 	Settings.set_last_level(LevelCatalog.key_of(escort))
 	var menu := _open_menu()
 	var first := menu.get_node("%Levels").get_child(0)

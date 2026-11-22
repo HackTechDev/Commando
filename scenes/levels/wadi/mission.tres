@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_mg0i4"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_dnf3n"]
+
+[sub_resource type="Resource" id="Resource_cqljb"]
+script = ExtResource("1_mg0i4")
+id = "sabotage"
+text = "Détruire le relais radar (missile, 12,7 ou charge)"
+
+[sub_resource type="Resource" id="Resource_7mvgr"]
+script = ExtResource("1_mg0i4")
+id = "sabre_extracted"
+text = "Faire monter le Sabre dans la soute du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_mnlq1"]
+script = ExtResource("1_mg0i4")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="Resource_t0l0u"]
+script = ExtResource("1_mg0i4")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_dnf3n")
+title = "Oued sec"
+description = "De jour, en Sabre. Un relais radar retranché sur l'éperon nord-ouest guide l'ennemi : détruisez-le. Le missile antichar du Sabre l'atteint de loin (un seul : véhicule à l'arrêt, 2,5 s de visée) ; la 12,7 en tir désigné ou une charge d'Alpha font aussi l'affaire. La piste traverse un barrage gardé (forcez-le ou levez-le à pied) et cache trois engins : un éclaireur devant le véhicule les repère. Un pick-up armé tourne à l'est. Au bout de la piste, appelez l'extraction par radio et faites monter le Sabre dans sa soute (clic droit sur l'appareil avec un passager sélectionné)."
+camo = "desert"
+order = 100
+objectives = Array[ExtResource("1_mg0i4")]([SubResource("Resource_cqljb"), SubResource("Resource_7mvgr"), SubResource("Resource_mnlq1"), SubResource("Resource_t0l0u")])

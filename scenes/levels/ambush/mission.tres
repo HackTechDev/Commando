@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_5nys7"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_3gku7"]
+
+[sub_resource type="Resource" id="Resource_ai6lq"]
+script = ExtResource("1_5nys7")
+id = "all_enemies_down"
+text = "Neutraliser les tireurs de l'embuscade"
+
+[sub_resource type="Resource" id="Resource_c4y5v"]
+script = ExtResource("1_5nys7")
+id = "sabre_rally"
+text = "Conduire le Sabre jusqu'au point de ralliement (drapeau)"
+
+[sub_resource type="Resource" id="Resource_pp10y"]
+script = ExtResource("1_5nys7")
+id = "extracted"
+text = "Être treuillé à bord de l'extraction en moins de 90 s"
+
+[sub_resource type="Resource" id="Resource_jldep"]
+script = ExtResource("1_5nys7")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_3gku7")
+title = "Embuscade"
+description = "De jour. La piste du point de ralliement traverse une vallée tenue des deux côtés : dix tireurs abrités derrière des murets, une mine, un IED, et trois pick-ups armés qui accourent au bruit. Passez en force ou nettoyez la vallée : 12,7 à la tourelle (feu à volonté ou tir désigné), 7,62 latérales du chef de bord et de l'arrière gauche (chacune son champ de tir), un missile pour un pick-up. La caisse du Sabre arrête une partie des balles mais s'abîme : pneu crevé, moteur touché. À pied, menu du véhicule : « Réparer » (pneus et moteur, 6 s), « Se ravitailler » (quatre lots), « S'abriter derrière ». Au point de ralliement, appelez l'extraction : 90 s en vol stationnaire, au treuil."
+camo = "desert"
+order = 190
+objectives = Array[ExtResource("1_5nys7")]([SubResource("Resource_ai6lq"), SubResource("Resource_c4y5v"), SubResource("Resource_pp10y"), SubResource("Resource_jldep")])

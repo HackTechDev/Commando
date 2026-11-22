@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_w5cve"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_0aidr"]
+
+[resource]
+script = ExtResource("2_0aidr")
+title = "Entraînement A"
+description = "Carte UFO:AI de 38 × 38 m : dédale de murs à escalader, de caisses et de bidons à déplacer, gardé par huit sentinelles fixes."
+camo = "urban"
+map = "training_a.map"
+order = 210

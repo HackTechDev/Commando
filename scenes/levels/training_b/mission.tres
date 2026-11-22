@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_87gqi"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_2sbsk"]
+
+[resource]
+script = ExtResource("2_2sbsk")
+title = "Entraînement B"
+description = "Grande carte UFO:AI de 100 × 62 m : bunkers, tranchées et murets, douze sentinelles réparties sur tout le terrain."
+map = "training_b.map"
+order = 220
