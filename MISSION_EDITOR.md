@@ -238,6 +238,7 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Barrière | 1 clic | `NavigationRegion3D` | Cap = sens de la route ; en travers, un muret de chaque côté. |
 | Équipe | Opérateur | 1 clic | `Units` | Alpha à Foxtrot, six au plus. |
 | | VIP | 1 clic | `Units` | Suit l'équipe ; objectifs `vip_alive`, `vip_extracted`. |
+| Ravitaillement | Chargeurs, Grenades, Fumigènes, Trousse de soins | 1 clic | `Pickups` | Quantité (`amount`) dans l'inspecteur ; l'opérateur qui passe dessus prend ce qui lui manque. |
 | Ennemis | Garde posté | 1 clic | `Enemies` | |
 | | Garde en ronde, Pick-up armé | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Chemin `RouteN` créé avec lui. |
 | | Avion ennemi | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Survole son chemin à `altitude` m (25 par défaut), montré au premier point. |

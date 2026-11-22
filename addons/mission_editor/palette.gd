@@ -12,7 +12,7 @@ extends RefCounted
 ## les autres se posent aussi sur les toits et les étages ; "rect": true
 ## pour un tracé à deux clics qui donne un rectangle (coins opposés).
 
-const CATEGORIES: Array[String] = ["Décor", "Relief et plans", "Obstacles", "Équipe", "Ennemis", "Événements", "Civils", "Objectifs", "Extraction et véhicules"]
+const CATEGORIES: Array[String] = ["Décor", "Relief et plans", "Obstacles", "Équipe", "Ravitaillement", "Ennemis", "Événements", "Civils", "Objectifs", "Extraction et véhicules"]
 
 ## Revêtements posés à la ligne : couleur, hauteur, largeur par défaut.
 const SURFACES := {
@@ -70,6 +70,10 @@ static func entries() -> Array[Dictionary]:
 		{"ground": true, "id": "barrier", "label": "Barrière", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "operator", "label": "Opérateur", "category": "Équipe", "parent": "Units", "tool": "point"},
 		{"id": "vip", "label": "VIP", "category": "Équipe", "parent": "Units", "tool": "point"},
+		{"id": "supply_ammo", "label": "Chargeurs", "category": "Ravitaillement", "parent": "Pickups", "tool": "point"},
+		{"id": "supply_grenades", "label": "Grenades", "category": "Ravitaillement", "parent": "Pickups", "tool": "point"},
+		{"id": "supply_smoke", "label": "Fumigènes", "category": "Ravitaillement", "parent": "Pickups", "tool": "point"},
+		{"id": "supply_medkit", "label": "Trousse de soins", "category": "Ravitaillement", "parent": "Pickups", "tool": "point"},
 		{"id": "guard", "label": "Garde posté", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
 		{"id": "patrol", "label": "Garde en ronde", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "technical", "label": "Pick-up armé", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
@@ -181,6 +185,13 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			tower.set("storeys", 3)
 			tower.set("size", Vector2(14, 10))
 			nodes.append(tower)
+		"supply_ammo", "supply_grenades", "supply_smoke", "supply_medkit":
+			var kinds := {"supply_ammo": ["Ammo", 0, 2], "supply_grenades": ["Grenades", 1, 2], "supply_smoke": ["Smoke", 2, 2], "supply_medkit": ["Medkit", 3, 1]}
+			var spec: Array = kinds[id]
+			var supply := _scripted("Node3D", "res://scripts/props/supply_pickup.gd", spec[0])
+			supply.set("kind", spec[1])
+			supply.set("amount", spec[2])
+			nodes.append(supply)
 		"mine", "ied":
 			var mine := _scripted("Node3D", "res://scripts/props/landmine.gd", "Mine" if id == "mine" else "Ied")
 			if id == "ied":

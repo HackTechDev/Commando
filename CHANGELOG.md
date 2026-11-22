@@ -1463,3 +1463,11 @@
 - Plus vigilants après une fouille : coups d'œil plus fréquents et plus larges.
 - Vérifié en jeu sur le bac à sable : 6 coups d'œil et 2 haltes en 60 s de ronde ; un opérateur à 50° sur le côté n'est vu que pendant un coup d'œil ; en alerte, le regard revient dans l'axe. La suite GUT n'a pas été lancée.
 
+## Ravitaillement à ramasser (2.10)
+
+- Nouvel objet `SupplyPickup` : chargeurs, grenades, fumigènes ou trousse de soins, avec son modèle et un repère au sol de sa couleur. Un opérateur à pied qui passe dessus prend ce qui lui manque (dans la limite de sa dotation de départ, au moins 2 grenades, 2 fumigènes et 1 trousse) ; le reste du lot demeure pour un autre. Texte flottant au ramassage.
+- Un ennemi armé abattu laisse un chargeur à côté de son corps.
+- Éditeur de mission : catégorie « Ravitaillement » dans la palette (parent `Pickups`).
+- Sauvegarde rapide : quantité restante des lots de la carte et chargeur de chaque ennemi.
+- Vérifié en jeu sur le bac à sable (opérateur à sec, grenades partagées entre deux opérateurs, opérateur déjà pourvu, trousse ramassée puis utilisée, chargeur d'un ennemi abattu, rien pour un mannequin sans arme, sauvegarde rapide) et par un rendu des quatre modèles. La suite GUT n'a pas été lancée.
+

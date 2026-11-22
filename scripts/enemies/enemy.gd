@@ -161,6 +161,11 @@ var wary_left: float = 0.0
 ## Points de la fouille en cours et point visé.
 var _search_points: Array[Vector3] = []
 var _search_index: int = 0
+## Chargeurs laissés à sa mort (armé, avec des cartouches) : -1 tant qu'il
+## n'est pas mort ; ensuite, ce qu'il en reste au sol (0 : tout ramassé).
+const DROP_MAGAZINES := 1
+var _ammo_drop: SupplyPickup
+var _drop_left: int = -1
 ## Lacet du regard par rapport au corps (rad) : le cône de vision le suit.
 var gaze_yaw: float = 0.0
 var _glance_yaw: float = 0.0
@@ -863,6 +868,7 @@ func _wake_up() -> void:
 func _on_died() -> void:
 	is_dead = true
 	activity = Activity.NONE
+	_drop_ammo()
 	_traversal.cancel()
 	Sfx.play_at(&"fall", global_position, -2.0)
 	_cancel_melee()
@@ -1498,6 +1504,31 @@ func _update_feedback() -> void:
 	_mark.modulate = color
 
 
+## Mort, armé et avec des cartouches : il laisse un chargeur à ramasser
+## (ou ce qu'il en restait dans la partie sauvegardée).
+func _drop_ammo() -> void:
+	if _drop_left < 0:
+		_drop_left = DROP_MAGAZINES if armed and not disarmed and ammo != 0 else 0
+	if _drop_left <= 0 or not is_inside_tree():
+		return
+	var parent := get_tree().current_scene
+	if parent == null:
+		return
+	var at := global_position + global_basis.x * 0.6
+	_ammo_drop = SupplyPickup.drop(parent, at, SupplyPickup.Kind.AMMO, _drop_left)
+	_ammo_drop.tree_exited.connect(_on_drop_gone)
+
+
+func _on_drop_gone() -> void:
+	_drop_left = 0
+
+
+func _saved_drop() -> int:
+	if is_instance_valid(_ammo_drop) and _ammo_drop.is_inside_tree():
+		return _ammo_drop.amount
+	return _drop_left
+
+
 ## Sauvegarde rapide (`QuickSave`) : place, état (patrouille, alerte,
 ## inconscient…), détection, mémoire de la cible et vie.
 func save_state() -> Dictionary:
@@ -1509,7 +1540,7 @@ func save_state() -> Dictionary:
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
 		"rockets": rockets, "documents": documents,
 		"activity": activity, "look_only": _look_only, "look_left": _look_left,
-		"wary_left": wary_left, "search_points": _search_points.duplicate(), "search_index": _search_index,
+		"drop_left": _saved_drop(), "wary_left": wary_left, "search_points": _search_points.duplicate(), "search_index": _search_index,
 	}
 
 
@@ -1529,6 +1560,7 @@ func load_state(data: Dictionary) -> void:
 	carried_axis = data.get("carried_axis", carried_axis)
 	global_position = data.get("position", global_position)
 	rotation = Vector3(0.0, data.get("rotation", rotation.y), 0.0)
+	_drop_left = data.get("drop_left", _drop_left)
 	health.load_state(data.get("health", {}))
 	if is_dead:
 		return

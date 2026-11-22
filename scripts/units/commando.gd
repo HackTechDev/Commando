@@ -708,6 +708,58 @@ func pick_up_knife() -> bool:
 	return true
 
 
+## Grenades, fumigènes et trousses ramassés : on en porte au moins autant
+## (au-delà de la dotation de départ, qui peut être nulle).
+const PICKUP_CARRY := {SupplyPickup.Kind.GRENADES: 2, SupplyPickup.Kind.SMOKE: 2, SupplyPickup.Kind.MEDKIT: 1}
+
+
+## Ramassage d'un lot (`SupplyPickup`) de `amount` éléments : il prend ce
+## qui lui manque, sans dépasser sa dotation de départ (au moins
+## `PICKUP_CARRY` pour les grenades, fumigènes et trousses). Chargeurs :
+## pour l'arme principale d'abord, puis la secondaire. Renvoie le nombre
+## pris (0 : rien ne lui manque).
+func take_supplies(kind: SupplyPickup.Kind, amount: int) -> int:
+	if is_dead or amount <= 0:
+		return 0
+	var gear := _primary_stats if _primary_stats else stats
+	var taken := 0
+	match kind:
+		SupplyPickup.Kind.AMMO:
+			# Réserve de chaque arme : en main, ou à l'étui.
+			var weapons: Array = [[gear, not using_secondary]]
+			if _secondary_stats:
+				weapons.append([_secondary_stats, using_secondary])
+			for weapon: Array in weapons:
+				var weapon_stats: UnitStats = weapon[0]
+				var in_hand: bool = weapon[1]
+				var reserve := ammo_reserve if in_hand else _holstered_ammo.y
+				var magazine := maxi(weapon_stats.magazine_size, 1)
+				while taken < amount and reserve < weapon_stats.reserve_ammo:
+					reserve = mini(reserve + magazine, weapon_stats.reserve_ammo)
+					taken += 1
+				if in_hand:
+					ammo_reserve = reserve
+				else:
+					_holstered_ammo.y = reserve
+		SupplyPickup.Kind.GRENADES:
+			taken = clampi(maxi(gear.grenades, PICKUP_CARRY[kind]) - grenades, 0, amount)
+			grenades += taken
+		SupplyPickup.Kind.SMOKE:
+			taken = clampi(maxi(gear.smoke_grenades, PICKUP_CARRY[kind]) - smoke_grenades, 0, amount)
+			smoke_grenades += taken
+		SupplyPickup.Kind.MEDKIT:
+			taken = clampi(maxi(gear.medkits, PICKUP_CARRY[kind]) - medkits, 0, amount)
+			medkits += taken
+	if taken <= 0:
+		return 0
+	EventBus.unit_ammo_changed.emit(self)
+	Sfx.play_at(&"clink", global_position + Vector3.UP * 0.5, -8.0)
+	# Il se baisse s'il n'est pas déjà occupé ; son ordre reprend ensuite.
+	if _gesture == null and not _hopping:
+		_start(PickupGesture.new(self))
+	return taken
+
+
 ## Vrai si l'unité a une arme secondaire.
 func has_secondary() -> bool:
 	return _secondary_stats != null
