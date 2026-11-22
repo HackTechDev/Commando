@@ -329,6 +329,14 @@ static func _tooltip(id: String, tool: String) -> String:
 			return how + " Prend le nom et le numéro suivants (Alpha, Bravo…)."
 		"extraction":
 			return how + " Objectif « extracted » : toute l'équipe dans la zone."
+		"barrier":
+			return how + " Le cap (R / Maj+R) suit la route : la barrière se pose en travers, un muret de chaque côté."
+		"aircraft":
+			return how + " L'avion survole ce trajet (PatrolPaths) à `altitude` m ; ajoutez des points en sélectionnant le chemin."
+		"reinforcements":
+			return how + " Point d'arrivée des renforts ; ils foncent vers le dépôt (`target`) quand `start_objective` est rempli."
+		"ied":
+			return how + " Mine artisanale (engin explosif improvisé)."
 	return how
 
 

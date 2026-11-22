@@ -195,11 +195,16 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Mur de 6 m, Muret, Caisse, Échelle | 1 clic | `NavigationRegion3D` | |
 | | Haie / buisson | 1 clic | `Decor` | Cachette pour les corps ; `kind` : buisson, eau, abri. |
 | | Lampadaire | 1 clic | `Lamps` | |
+| | Immeuble à étages | 1 clic | `NavigationRegion3D` | 3 étages, 14 × 10 m ; `storeys`, `size`, `doors`, `windows` dans l'inspecteur. |
 | | Route, Trottoir, Piste | 2 clics | `Decor` | 9 m, 2,5 m, 4,5 m de large. |
+| Obstacles | Mine, Engin improvisé | 1 clic | `NavigationRegion3D` | |
+| | Barrière | 1 clic | `NavigationRegion3D` | Cap = sens de la route ; en travers, un muret de chaque côté. |
 | Équipe | Opérateur | 1 clic | `Units` | Alpha à Foxtrot, six au plus. |
 | | VIP | 1 clic | `Units` | Suit l'équipe ; objectifs `vip_alive`, `vip_extracted`. |
 | Ennemis | Garde posté | 1 clic | `Enemies` | |
 | | Garde en ronde, Pick-up armé | 2 clics | `Enemies` + `PatrolPaths` | Chemin `RouteN` créé avec lui. |
+| | Avion ennemi | 2 clics | `Enemies` + `PatrolPaths` | Survole son chemin à `altitude` m (25 par défaut), montré au premier point. |
+| | Renforts | 1 clic | `Enemies` | Point d'arrivée ; cible (`target`) : le dépôt de la carte, sinon la première cible de sabotage. |
 | Civils | Invité | 1 clic | `NavigationRegion3D` | |
 | | Passant | 2 clics | `Decor` | Aller-retour (`loop` pour une boucle). |
 | | Boucle de voitures | 2 clics (coins) | `Decor` | |
@@ -209,8 +214,9 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | Extraction et véhicules | Zone d'extraction | 1 clic | racine | `extracted`. |
 | | Convertible d'extraction | 1 clic | `NavigationRegion3D` | `extracted`, insertion. |
 | | Sabre | 1 clic | `NavigationRegion3D` | |
+| | Aire de poser | 1 clic | `Decor` | Disque de 14 m. |
 
-Pour les éléments absents de la palette (mines, barrières, tours, renforts, avion ennemi, ateliers du didacticiel), copiez un nœud d'une mission de série (Ctrl+C, Ctrl+V) ou ajoutez-le par « Instancier une scène enfant » ou par un nœud avec le bon script.
+Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'eau…), copiez un nœud d'une mission de série (Ctrl+C, Ctrl+V) ou ajoutez-le par « Instancier une scène enfant » ou par un nœud avec le bon script.
 
 ### Objectifs et leurs cibles
 
@@ -236,6 +242,7 @@ Pour les éléments absents de la palette (mines, barrières, tours, renforts, a
 | Aucun opérateur sous `Units`, ou plus de six | Erreur |
 | Mission sans objectif, objectif sans identifiant ou sans cible sur la carte | Erreur |
 | Garde, pick-up ou avion dont le trajet n'existe pas ou a moins de deux points | Erreur |
+| Renforts sans cible valable (`target`) | Erreur |
 | Pas de `NavigationRegion3D` avec un maillage, ou navigation vide | Erreur |
 | Pas de `mission.tres` (mission absente du choix des missions), pas de titre | Avertissement |
 | Identifiant d'objectif inconnu du jeu | Avertissement |

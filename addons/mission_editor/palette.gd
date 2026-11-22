@@ -8,7 +8,7 @@ extends RefCounted
 ## Une entrée : {"id", "label", "category", "parent", "tool"} où `tool` vaut
 ## "point" (un clic) ou "line" (deux clics : début et fin).
 
-const CATEGORIES: Array[String] = ["Décor", "Équipe", "Ennemis", "Civils", "Objectifs", "Extraction et véhicules"]
+const CATEGORIES: Array[String] = ["Décor", "Obstacles", "Équipe", "Ennemis", "Civils", "Objectifs", "Extraction et véhicules"]
 
 ## Revêtements posés à la ligne : couleur, hauteur, largeur par défaut.
 const SURFACES := {
@@ -18,6 +18,10 @@ const SURFACES := {
 }
 
 const WALL_LENGTH := 6.0
+## Barrière : largeur par défaut, et écart des murets de part et d'autre
+## (au-delà de la demi-largeur), comme `MapBuilder.barrier`.
+const BARRIER_WIDTH := 4.6
+const BARRIER_POST := 1.85
 ## Noms des opérateurs, dans l'ordre de `unit_index`.
 const OPERATOR_NAMES: Array[String] = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 ## Rayon des virages d'une boucle de voitures (m), comme `MapBuilder.traffic`.
@@ -42,14 +46,20 @@ static func entries() -> Array[Dictionary]:
 		{"id": "bush", "label": "Haie / buisson", "category": "Décor", "parent": "Decor", "tool": "point"},
 		{"id": "lamp", "label": "Lampadaire", "category": "Décor", "parent": "Lamps", "tool": "point"},
 		{"id": "ladder", "label": "Échelle", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "tower", "label": "Immeuble à étages", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"id": "sidewalk", "label": "Trottoir", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"id": "track", "label": "Piste", "category": "Décor", "parent": "Decor", "tool": "line"},
+		{"id": "mine", "label": "Mine", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "ied", "label": "Engin improvisé", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "barrier", "label": "Barrière", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "operator", "label": "Opérateur", "category": "Équipe", "parent": "Units", "tool": "point"},
 		{"id": "vip", "label": "VIP", "category": "Équipe", "parent": "Units", "tool": "point"},
 		{"id": "guard", "label": "Garde posté", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
 		{"id": "patrol", "label": "Garde en ronde", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
 		{"id": "technical", "label": "Pick-up armé", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
+		{"id": "aircraft", "label": "Avion ennemi", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
+		{"id": "reinforcements", "label": "Renforts", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
 		{"id": "guest", "label": "Invité", "category": "Civils", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "passerby", "label": "Passant", "category": "Civils", "parent": "Decor", "tool": "line"},
 		{"id": "traffic", "label": "Boucle de voitures", "category": "Civils", "parent": "Decor", "tool": "line"},
@@ -59,6 +69,7 @@ static func entries() -> Array[Dictionary]:
 		{"id": "extraction", "label": "Zone d'extraction", "category": "Extraction et véhicules", "parent": ".", "tool": "point"},
 		{"id": "tiltrotor", "label": "Convertible d'extraction", "category": "Extraction et véhicules", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "sabre", "label": "Sabre", "category": "Extraction et véhicules", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "pad", "label": "Aire de poser", "category": "Extraction et véhicules", "parent": "Decor", "tool": "point"},
 	]
 
 
@@ -111,6 +122,49 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			nodes.append(bush)
 		"lamp":
 			nodes.append(_lamp())
+		"tower":
+			var tower := _scripted("Node3D", "res://scripts/props/tower.gd", "Tower")
+			tower.set("storeys", 3)
+			tower.set("size", Vector2(14, 10))
+			nodes.append(tower)
+		"mine", "ied":
+			var mine := _scripted("Node3D", "res://scripts/props/landmine.gd", "Mine" if id == "mine" else "Ied")
+			if id == "ied":
+				mine.set("improvised", true)
+			nodes.append(mine)
+		"barrier":
+			# Barrière en travers de la route (cap = sens de la route), un
+			# muret de chaque côté.
+			var frame := Transform3D(Basis(Vector3.UP, -deg_to_rad(facing)), at)
+			var barrier := _scripted("Node3D", "res://scripts/props/road_barrier.gd", "Barrier")
+			barrier.set("width", BARRIER_WIDTH)
+			barrier.transform = frame
+			nodes.append(barrier)
+			for side in [-1.0, 1.0]:
+				var post := _instance("res://scenes/props/low_wall.tscn", "LowWall")
+				post.transform = Transform3D(frame.basis, at + frame.basis.x * side * (BARRIER_WIDTH * 0.5 + BARRIER_POST))
+				nodes.append(post)
+			return nodes
+		"aircraft":
+			var sky := _patrol_path(scene_root, at, to)
+			var plane := _scripted("Node3D", "res://scripts/enemies/enemy_aircraft.gd", "Gunship")
+			plane.set("patrol_path", NodePath("../../PatrolPaths/%s" % sky.name))
+			nodes.append(sky)
+			nodes.append(plane)
+			return nodes
+		"reinforcements":
+			var reinforcements := _scripted("Node3D", "res://scripts/levels/reinforcements.gd", "Reinforcements")
+			var target := _reinforcement_target(scene_root)
+			if target:
+				reinforcements.set("target", NodePath("../../NavigationRegion3D/%s" % target.name))
+			nodes.append(reinforcements)
+		"pad":
+			var pad := MeshInstance3D.new()
+			pad.name = "Pad"
+			pad.mesh = _pad_mesh(scene_root)
+			pad.transform = Transform3D(Basis.IDENTITY, at + Vector3.UP * 0.02)
+			nodes.append(pad)
+			return nodes
 		"wall_line":
 			var length := at.distance_to(to)
 			var count := maxi(1, ceili(length / WALL_LENGTH))
@@ -232,6 +286,39 @@ static func _scripted(type: String, script: String, base_name: String) -> Node3D
 	node.set_script(load(script))
 	node.name = base_name
 	return node
+
+
+## Cible des renforts : le dépôt de la carte (`depot`), sinon la première
+## cible de sabotage ; null s'il n'y en a pas (à régler dans l'inspecteur).
+static func _reinforcement_target(scene_root: Node) -> Node:
+	var region := scene_root.get_node_or_null(^"NavigationRegion3D") if scene_root else null
+	if region == null:
+		return null
+	var targets := region.get_children().filter(func(n: Node) -> bool: return n is SabotageTarget)
+	for target: Node in targets:
+		if target.get("objective_id") == &"depot":
+			return target
+	return targets[0] if not targets.is_empty() else null
+
+
+## Disque de l'aire de poser (7 m de rayon), partagé comme les revêtements.
+static func _pad_mesh(scene_root: Node) -> Mesh:
+	if scene_root:
+		for node in scene_root.find_children("*", "MeshInstance3D", true, false):
+			var mesh := (node as MeshInstance3D).mesh
+			if mesh and mesh.resource_name == "pad":
+				return mesh
+	var disc := CylinderMesh.new()
+	disc.resource_name = "pad"
+	disc.top_radius = 7.0
+	disc.bottom_radius = 7.0
+	disc.height = 0.04
+	disc.radial_segments = 32
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.3, 0.31, 0.3)
+	material.roughness = 1.0
+	disc.material = material
+	return disc
 
 
 static func _operator_count(scene_root: Node) -> int:

@@ -62,6 +62,7 @@ func _ready() -> void:
 		add_child(model)
 		model.scale = Vector3.ONE * Tiltrotor.SCALE
 		model.set_ramp_closed(true)
+		place_preview.call_deferred()
 		return
 	_night = LevelRoot.is_night(self)
 	model = TiltrotorModel.new()
@@ -110,6 +111,20 @@ func radius() -> float:
 ## Centre du cercle de détection, au sol.
 func spot() -> Vector3:
 	return _spot
+
+
+## Éditeur : montre l'avion au début de son trajet, à son altitude, tourné
+## vers le point suivant (le nœud, enregistré, ne bouge pas).
+func place_preview() -> void:
+	var path := get_node_or_null(patrol_path) as Path3D
+	if model == null or path == null or path.curve == null or path.curve.point_count == 0:
+		return
+	var curve := path.curve
+	var start := path.to_global(curve.get_point_position(0))
+	var ahead := path.to_global(curve.get_point_position(1)) if curve.point_count > 1 else start + Vector3.FORWARD
+	var heading := ahead - start
+	model.global_transform = Transform3D(Basis(Vector3.UP, atan2(-heading.x, -heading.z)), start + Vector3.UP * altitude)
+	model.scale = Vector3.ONE * Tiltrotor.SCALE
 
 
 func _physics_process(delta: float) -> void:

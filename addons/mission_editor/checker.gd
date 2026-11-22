@@ -77,6 +77,11 @@ static func _check_enemies(root: Node, report: Array[Dictionary]) -> void:
 	if enemies.size() > MAX_ENEMIES:
 		report.append(_item("warning", "%d gardes : au-delà de %d, la carte risque d'être lente." % [enemies.size(), MAX_ENEMIES], enemies))
 	for node in root.find_children("*", "", true, true):
+		if node is Reinforcements:
+			var target: NodePath = node.get("target")
+			if target.is_empty() or node.get_node_or_null(target) == null:
+				report.append(_item("error", "%s : pas de cible (target) vers laquelle foncer." % node.name, [node]))
+			continue
 		if not (node is Enemy or node is Technical or node is EnemyAircraft):
 			continue
 		var value: Variant = node.get("patrol_path")

@@ -117,7 +117,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR.md`.
 
 - **8.1 Combler les manques de la première version** :
-  - **a)** palette complète : mines, engins improvisés, barrières, tours, renforts, avion ennemi, plateformes d'atterrissage (aujourd'hui, par copier-coller depuis une autre mission) ;
   - **b)** pose sur les toits et les étages : viser les objets eux-mêmes plutôt que le plan y = 0, pour poser un tireur sur un toit ou une extraction en hauteur ;
   - **c)** ronde tracée en plusieurs clics (un clic par point, double-clic pour finir), au lieu de deux points complétés avec les outils de chemin de Godot ;
   - **d)** rondes dessinées dans la couleur du greffon, avec un trait qui relie chaque garde à son chemin ;

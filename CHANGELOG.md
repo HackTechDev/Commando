@@ -1324,3 +1324,10 @@
 - « Nouvelle mission » : nom de dossier, puis scène créée à partir du gabarit (`template.tscn`, écrit par `tools/gen_mission_template.py` : terrain d'herbe de 80 m, trois opérateurs, extraction) et son `mission.tres`, ouverte aussitôt et visible dans le choix des missions.
 - Première version de l'éditeur de mission terminée (étapes 1 à 5 de `MISSION_EDITOR.md`).
 - Vérifié dans l'éditeur (`tools/editor_check/step5.gd`) : rapport sans problème sur le Terrain d'essai, erreurs volontaires détectées, avertissements justes sur Kasbah (extraction sur le toit, officier à l'étage) et Réception ; nouvelle mission créée, vérifiée, essayée, puis jouée (ronde, porteur des documents, objectifs, titre au catalogue). Les 23 missions de série, ouvertes et enregistrées avec le greffon complet, restent identiques. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : palette complète (8.1 a)
+
+- Nouveaux éléments dans la palette : immeuble à étages, mine, engin improvisé, barrière (en travers de la route, un muret de chaque côté, comme `MapBuilder.barrier`), avion ennemi (deux clics : son chemin sous `PatrolPaths`), renforts (dirigés vers le dépôt de la carte, sinon la première cible de sabotage), aire de poser.
+- L'avion ennemi s'affiche dans l'éditeur au début de son trajet, à son altitude.
+- « Vérifier » signale des renforts sans cible valable.
+- Vérifié dans l'éditeur (`tools/editor_check/step81a.gd`, Convoi de nuit) puis en jeu : mines actives, barrière, immeuble construit, avion en vol à 25 m, renforts reliés au dépôt. La suite GUT n'a pas été lancée.
