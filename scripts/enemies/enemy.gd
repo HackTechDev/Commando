@@ -286,8 +286,8 @@ func _ready() -> void:
 		_agent.target_position = _waypoints[0]
 	_home = global_position
 	_home_yaw = rotation.y
-	_glance_wait = randf_range(GLANCE_INTERVAL.x, GLANCE_INTERVAL.y)
-	_halt_wait = randf_range(HALT_INTERVAL.x, HALT_INTERVAL.y)
+	_glance_wait = GameRng.of(self).randf_range(GLANCE_INTERVAL.x, GLANCE_INTERVAL.y)
+	_halt_wait = GameRng.of(self).randf_range(HALT_INTERVAL.x, HALT_INTERVAL.y)
 	_update_feedback()
 	if blind:
 		_vision.visible = false
@@ -1115,8 +1115,8 @@ func search_points(center: Vector3) -> Array[Vector3]:
 	var nav_ready := map.is_valid() and NavigationServer3D.map_get_iteration_id(map) > 0
 	for i in SEARCH_POINTS - 1:
 		# Directions réparties autour du centre, distances au hasard.
-		var angle := TAU * (float(i) + randf() * 0.6) / float(SEARCH_POINTS - 1)
-		var spot := center + Vector3(sin(angle), 0.0, cos(angle)) * randf_range(SEARCH_RADIUS * 0.4, SEARCH_RADIUS)
+		var angle := TAU * (float(i) + GameRng.of(self).randf() * 0.6) / float(SEARCH_POINTS - 1)
+		var spot := center + Vector3(sin(angle), 0.0, cos(angle)) * GameRng.of(self).randf_range(SEARCH_RADIUS * 0.4, SEARCH_RADIUS)
 		if nav_ready:
 			spot = NavigationServer3D.map_get_closest_point(map, spot)
 		points.append(spot)
@@ -1227,10 +1227,11 @@ func _update_gaze(delta: float, walking: bool) -> void:
 		else:
 			_glance_wait -= delta * (2.0 if wary else 1.0)
 			if _glance_wait <= 0.0:
-				_glance_wait = randf_range(GLANCE_INTERVAL.x, GLANCE_INTERVAL.y)
-				_glance_left = randf_range(GLANCE_TIME.x, GLANCE_TIME.y)
-				var angle := randf_range(GLANCE_ANGLE.x, GLANCE_ANGLE.y) * (1.2 if wary else 1.0)
-				_glance_yaw = deg_to_rad(angle) * (1.0 if randf() < 0.5 else -1.0)
+				var rng := GameRng.of(self)
+				_glance_wait = rng.randf_range(GLANCE_INTERVAL.x, GLANCE_INTERVAL.y)
+				_glance_left = rng.randf_range(GLANCE_TIME.x, GLANCE_TIME.y)
+				var angle := rng.randf_range(GLANCE_ANGLE.x, GLANCE_ANGLE.y) * (1.2 if wary else 1.0)
+				_glance_yaw = deg_to_rad(angle) * GameRng.side(self)
 	else:
 		_glance_left = 0.0
 		_scan_phase = 0.0
@@ -1257,8 +1258,8 @@ func _patrol(delta: float) -> Vector3:
 	# Pas de halte pour un garde fixe : il ne fait pas sa ronde.
 	_halt_wait -= 0.0 if stationary else delta
 	if _halt_wait <= 0.0:
-		_halt_wait = randf_range(HALT_INTERVAL.x, HALT_INTERVAL.y)
-		_halt_left = randf_range(HALT_TIME.x, HALT_TIME.y)
+		_halt_wait = GameRng.of(self).randf_range(HALT_INTERVAL.x, HALT_INTERVAL.y)
+		_halt_left = GameRng.of(self).randf_range(HALT_TIME.x, HALT_TIME.y)
 		return Vector3.ZERO
 	var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
 	to_next.y = 0.0
@@ -1350,12 +1351,12 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 		ignored.append_array(ride.body_rids())
 	last_cover = Cover.measure(get_world_3d(), muzzle, _target.global_position, _target.posture, ignored)
 	chance *= last_cover.hit_factor()
-	var hit := randf() < chance
+	var hit := GameRng.chance(self, chance)
 	var scene := get_tree().current_scene as Node3D
-	if not hit and last_cover.miss_hits_cover():
+	if not hit and last_cover.miss_hits_cover(GameRng.of(self)):
 		aim = ShotImpact.land(scene, muzzle, last_cover.hidden_point, ignored)
 	elif not hit:
-		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
+		var side := global_basis.x * (0.5 + GameRng.of(self).randf() * 0.5) * GameRng.side(self)
 		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)
 	# Un bouclier levé sur la trajectoire arrête la balle.
 	var stop := Commando.shield_in_the_way(get_tree(), muzzle, aim)
@@ -1450,8 +1451,9 @@ func _engage_aircraft(delta: float) -> void:
 	var scene := get_tree().current_scene as Node3D
 	if scene == null:
 		scene = get_parent() as Node3D
-	var spread := Vector3(randf_range(-1.2, 1.2), randf_range(-0.6, 0.8), randf_range(-1.2, 1.2))
-	if randf() < chance:
+	var rng := GameRng.of(self)
+	var spread := Vector3(rng.randf_range(-1.2, 1.2), rng.randf_range(-0.6, 0.8), rng.randf_range(-1.2, 1.2))
+	if rng.randf() < chance:
 		var query := PhysicsRayQueryParameters3D.create(muzzle, target + spread, Tiltrotor.LAYER_OCCLUDERS, [get_rid()])
 		var hit := get_world_3d().direct_space_state.intersect_ray(query)
 		var at: Vector3 = hit.get("position", target)
@@ -1480,7 +1482,8 @@ func _launch_rocket(delta: float, target: Vector3, to_target: Vector3) -> void:
 	_launch_reload = LAUNCHER_RELOAD
 	rockets -= 1
 	var muzzle := global_position + Vector3.UP * 1.55 + forward * 0.5
-	var scatter := Vector3(randf_range(-1.0, 1.0), randf_range(-0.5, 0.5), randf_range(-1.0, 1.0)) * LAUNCHER_SPREAD
+	var rng := GameRng.of(self)
+	var scatter := Vector3(rng.randf_range(-1.0, 1.0), rng.randf_range(-0.5, 0.5), rng.randf_range(-1.0, 1.0)) * LAUNCHER_SPREAD
 	var scene := get_tree().current_scene as Node3D
 	if scene == null:
 		scene = get_parent() as Node3D
@@ -1559,7 +1562,7 @@ func save_state() -> Dictionary:
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
 		"rockets": rockets, "documents": documents,
-		"activity": activity, "look_only": _look_only, "look_left": _look_left,
+		"rng": GameRng.save(self), "activity": activity, "look_only": _look_only, "look_left": _look_left,
 		"drop_left": _saved_drop(), "wary_left": wary_left, "search_points": _search_points.duplicate(), "search_index": _search_index,
 	}
 
@@ -1602,6 +1605,7 @@ func load_state(data: Dictionary) -> void:
 	detection = data.get("detection", detection)
 	_last_seen = data.get("last_seen", _last_seen)
 	_memory_left = data.get("memory_left", _memory_left)
+	GameRng.load(self, data.get("rng"))
 	activity = data.get("activity", Activity.NONE)
 	_look_only = data.get("look_only", false)
 	_look_left = data.get("look_left", 0.0)

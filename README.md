@@ -13,6 +13,7 @@ godot --path . scenes/levels/airbase/airbase.tscn          # lance directement l
 godot --path . scenes/levels/patrol/patrol.tscn          # lance directement la patrouille en Sabre
 godot --path . scenes/levels/training_a/training_a.tscn   # lance directement la carte UFO:AI « training_a »
 godot --headless --path . --quit-after 60   # vérification sans affichage
+godot --path . scenes/levels/sandbox/sandbox.tscn -- --seed=42   # rejoue les mêmes tirages (graine affichée au lancement de chaque mission)
 ```
 
 (`godot` = exécutable Godot 4.7.x.) Dans l'éditeur, F5 ouvre le menu ; F6 lance directement la scène ouverte. Le bouton « Menu » du HUD ramène au choix de la carte. Pour débuter : le niveau « Didacticiel », en tête du menu, enseigne les commandes en sept ateliers ; une petite fenêtre explique chacun quand un opérateur y entre (× pour la masquer, « ? Astuce » pour la rouvrir). Pour proposer un nouveau niveau dans le menu : un dossier `scenes/levels/<nom>/` avec la scène `<nom>.tscn` et ses informations `mission.tres` (`MissionInfo` : titre, description, camouflage conseillé, objectifs, place dans le menu), modifiables dans l'inspecteur.

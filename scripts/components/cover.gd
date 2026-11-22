@@ -53,6 +53,6 @@ func hit_factor() -> float:
 
 
 ## Vrai si une balle manquée doit finir dans l'abri (d'autant plus souvent
-## que la cible est couverte).
-func miss_hits_cover() -> bool:
-	return hidden_point != Vector3.INF and randf() < 1.0 - exposure
+## que la cible est couverte), tiré par `rng` (celui du tireur).
+func miss_hits_cover(rng: RandomNumberGenerator) -> bool:
+	return hidden_point != Vector3.INF and rng.randf() < 1.0 - exposure

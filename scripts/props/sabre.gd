@@ -1331,7 +1331,7 @@ func take_shot(damage: float, at: Vector3, _from: Vector3) -> void:
 	var local := to_local(at)
 	for wheel in SabreModel.WHEELS:
 		if local.y < SabreModel.WHEEL_RADIUS * 2.0 and Vector2(local.x - wheel.x, local.z - wheel.y).length() < 0.75 \
-				and randf() < TIRE_CHANCE:
+				and GameRng.chance(self, TIRE_CHANCE):
 			_puncture()
 			break
 	if local.z < SabreModel.CREW_FRONT:
@@ -1353,12 +1353,12 @@ func take_ram(damage: float, puncture: bool) -> void:
 ## deux (`RIDER_COVER`), à un point pris au hasard sur la caisse côté tireur.
 ## Renvoie vrai si elle l'a arrêtée.
 func shields_rider(damage: float, from: Vector3) -> bool:
-	if is_wrecked or randf() >= RIDER_COVER:
+	if is_wrecked or GameRng.of(self).randf() >= RIDER_COVER:
 		return false
 	var toward := to_local(from)
 	toward.y = 0.0
 	toward = toward.normalized() if toward.length() > 0.1 else Vector3.FORWARD
-	var at := Vector3(toward.x * SabreModel.HALF_WIDTH, randf_range(0.4, 1.3), clampf(toward.z * 2.4, -2.4, 2.4) + randf_range(-0.8, 0.8))
+	var at := Vector3(toward.x * SabreModel.HALF_WIDTH, GameRng.of(self).randf_range(0.4, 1.3), clampf(toward.z * 2.4, -2.4, 2.4) + GameRng.of(self).randf_range(-0.8, 0.8))
 	take_shot(damage, to_global(at), from)
 	return true
 

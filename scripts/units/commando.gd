@@ -1581,7 +1581,7 @@ func _release_knife(enemy: Enemy) -> void:
 	if distance > stats.throw_sure_range:
 		chance = lerpf(1.0, stats.throw_hit_chance_far, inverse_lerp(stats.throw_sure_range, stats.throw_range, minf(distance, stats.throw_range)))
 	var hand := global_position + Vector3.UP * (_weapon_height() + 0.25) + global_basis.x * 0.15 - global_basis.z * 0.3
-	ThrownKnife.spawn(get_tree().current_scene, hand, enemy, randf() < chance, global_position)
+	ThrownKnife.spawn(get_tree().current_scene, hand, enemy, GameRng.chance(self, chance), global_position)
 	Sfx.play_at(&"whoosh", hand, -6.0)
 
 
@@ -1606,7 +1606,7 @@ func defend_against(enemy: Enemy) -> bool:
 		return true
 	if not auto_parry:
 		return super(enemy)
-	var roll := randf()
+	var roll := GameRng.of(self).randf()
 	if roll >= stats.parry_chance + stats.dodge_chance:
 		return super(enemy)
 	_start(DefendGesture.new(self, enemy, roll >= stats.parry_chance))
@@ -1824,12 +1824,12 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	# finit souvent dans l'abri.
 	last_cover = Cover.measure(get_world_3d(), muzzle, enemy.global_position, SoldierModel.Posture.STANDING, ignored)
 	chance *= last_cover.hit_factor()
-	var hit := randf() < chance
+	var hit := GameRng.chance(self, chance)
 	var scene := get_tree().current_scene as Node3D
-	if not hit and last_cover.miss_hits_cover():
+	if not hit and last_cover.miss_hits_cover(GameRng.of(self)):
 		aim = ShotImpact.land(scene, muzzle, last_cover.hidden_point, ignored)
 	elif not hit:
-		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
+		var side := global_basis.x * (0.5 + GameRng.of(self).randf() * 0.5) * GameRng.side(self)
 		# La balle manquée file jusqu'au premier obstacle derrière la cible.
 		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)
 	else:
@@ -1890,7 +1890,8 @@ func _fire_at_point(point: Vector3) -> void:
 	# Écart aléatoire, plus grand de loin et avec une arme peu précise.
 	var sloppiness := 1.0 - lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / fire_range(), 0.0, 1.0)) * steadiness()
 	var spread := FREE_FIRE_SPREAD * (0.3 + sloppiness) * distance / 10.0
-	aim += Vector3(randf_range(-spread, spread), randf_range(-spread, spread) * 0.6, randf_range(-spread, spread))
+	var rng := GameRng.of(self)
+	aim += Vector3(rng.randf_range(-spread, spread), rng.randf_range(-spread, spread) * 0.6, rng.randf_range(-spread, spread))
 	var direction := (aim - muzzle).normalized()
 	var excluded: Array[RID] = [get_rid()]
 	if hostage:
@@ -1969,6 +1970,7 @@ func _on_died() -> void:
 func save_state() -> Dictionary:
 	var data := super()
 	data.merge({
+		"rng": GameRng.save(self),
 		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
 		"evacuated": is_evacuated, "documents": has_documents,
@@ -1981,6 +1983,7 @@ func save_state() -> Dictionary:
 
 func load_state(data: Dictionary) -> void:
 	stop()
+	GameRng.load(self, data.get("rng"))
 	release_crate()
 	# L'otage reprend l'état sauvegardé (le sien) : on le lâche sans plus.
 	_drop_hostage()

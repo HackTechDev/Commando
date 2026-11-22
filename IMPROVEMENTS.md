@@ -9,7 +9,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** les lancer automatiquement avant chaque commit (crochet Git) ou en intégration continue ;
   - **c)** couvrir ce qui manque encore : HUD et contrôles à la souris, sélection, caméra, transitions de posture debout/accroupi, patrouille et poursuite des ennemis, réveil puis lutte, chargement d'autres cartes UFO:AI ;
   - **d)** tester `SoldierModel.sample_keys` et les poses clés.
-- **1.2 Rendre le hasard injectable** : parade, esquive, précision des tirs et du lancer utilisent `randf()` directement. Les tests s'en sortent avec `seed()` et des probabilités fixées à 0 ou 1, mais un générateur par unité (ou global, avec graine) rendrait les parties rejouables.
 - **1.3 Restructurer l'IA ennemie en vraie machine à états** (§5.3). `enemy.gd` mélange avec un `enum` et des minuteurs :
   - la détection, la patrouille et la poursuite ;
   - le tir ;

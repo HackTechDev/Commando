@@ -1484,3 +1484,10 @@
 - Les cartes UFO:AI gardent leur propre découpe.
 - Vérifié en jeu sur le bac à sable par des rendus (Alpha derrière le bunker, puis dans un bâtiment). La suite GUT n'a pas été lancée.
 
+## Hasard rejouable (1.2)
+
+- `GameRng` : chaque unité a son propre générateur, dont la graine dérive de la graine de la mission. Parade, esquive, précision des tirs et du lancer, couverture, véhicules, regard et fouille des ennemis l'utilisent ; les effets visuels gardent le hasard global.
+- La graine de la mission est affichée dans la console au lancement ; `-- --seed=N` la rejoue. La sauvegarde rapide garde l'état des générateurs.
+- Les tests imposent la graine 1234 (`GameRng.forced_seed`).
+- Vérifié en jeu : 40 tirs d'un ennemi identiques avec la même graine, différents avec une autre, et identiques après une sauvegarde rapide au milieu. Tests de parade, désarmement, équipement, tirs, otage, prises, lancer, tir libre et fusil à pompe au vert ; suite complète non relancée.
+

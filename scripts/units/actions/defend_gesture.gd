@@ -52,7 +52,7 @@ func start() -> void:
 ## est libre ; au hasard si les deux le sont, 0 si aucun.
 static func free_side(unit: Commando, attacker: Node3D, right: Vector3) -> float:
 	var sides: Array[float] = [1.0, -1.0]
-	if randf() < 0.5:
+	if GameRng.chance(unit, 0.5):
 		sides.reverse()
 	for side in sides:
 		if _is_clear(unit, attacker, right * side):

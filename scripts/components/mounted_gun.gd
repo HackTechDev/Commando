@@ -202,7 +202,9 @@ func _find_target() -> Enemy:
 func _fire_round(aim: Vector3) -> void:
 	var from := muzzle()
 	var scatter := spread * from.distance_to(aim)
-	aim += Vector3(randf_range(-scatter, scatter), randf_range(-scatter, scatter) * 0.6, randf_range(-scatter, scatter))
+	# Tirage du véhicule qui porte l'arme.
+	var rng := GameRng.of(vehicle)
+	aim += Vector3(rng.randf_range(-scatter, scatter), rng.randf_range(-scatter, scatter) * 0.6, rng.randf_range(-scatter, scatter))
 	var direction := (aim - from).normalized()
 	var query := PhysicsRayQueryParameters3D.create(from, aim + direction * ShotImpact.MISS_RANGE, MASK, _excluded())
 	var hit := vehicle.get_world_3d().direct_space_state.intersect_ray(query)

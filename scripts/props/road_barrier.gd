@@ -221,7 +221,7 @@ func smash(sabre: Sabre, speed: float) -> void:
 		return
 	_set_broken(true, sabre.global_basis.z * -1.0)
 	var share := clampf(speed / Sabre.SPEED, 0.0, 1.0)
-	sabre.take_ram(lerpf(RAM_DAMAGE_SLOW, RAM_DAMAGE_FAST, share), share >= 0.7 and randf() < RAM_TIRE_CHANCE)
+	sabre.take_ram(lerpf(RAM_DAMAGE_SLOW, RAM_DAMAGE_FAST, share), share >= 0.7 and GameRng.chance(self, RAM_TIRE_CHANCE))
 	Sfx.play_at(&"block", global_position + Vector3.UP, 4.0)
 	Sfx.play_at(&"fall", global_position + Vector3.UP, 0.0)
 	EventBus.noise_emitted.emit(global_position, RAM_NOISE, &"distraction")

@@ -37,6 +37,12 @@ var _loading_screen: LoadingScreen
 var _was_paused: bool = false
 
 
+## Avant les unités : graine des tirages de la mission (`GameRng`).
+func _enter_tree() -> void:
+	if not Engine.is_editor_hint():
+		print("Graine de la mission : %d" % GameRng.begin_mission())
+
+
 func _ready() -> void:
 	# Nouvelle partie : l'alerte du niveau précédent ne compte plus.
 	GameState.alert_level = GameState.AlertLevel.CALM

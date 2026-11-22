@@ -349,8 +349,9 @@ func _fire_round(target: Unit) -> void:
 	if scene == null:
 		scene = get_parent() as Node3D
 	var riding := target.get(&"riding") as Sabre
-	var end := aim + Vector3(randf_range(-1, 1), randf_range(-0.4, 0.6), randf_range(-1, 1)) * 0.8
-	if randf() < chance:
+	var rng := GameRng.of(self)
+	var end := aim + Vector3(rng.randf_range(-1, 1), rng.randf_range(-0.4, 0.6), rng.randf_range(-1, 1)) * 0.8
+	if rng.randf() < chance:
 		if riding and riding.shields_rider(DAMAGE, from):
 			end = aim
 		elif riding == null and Sabre.blocks_shot(get_tree(), from, aim, DAMAGE) != null:

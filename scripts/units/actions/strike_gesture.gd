@@ -200,7 +200,7 @@ func _pick_move() -> SoldierModel.StrikeMove:
 	if _close:
 		moves = [SoldierModel.StrikeMove.ELBOW, SoldierModel.StrikeMove.KNEE]
 	moves.erase(unit._model.strike_move)
-	return moves.pick_random()
+	return moves[GameRng.of(unit).randi() % moves.size()]
 
 
 func update(delta: float) -> Vector3:
