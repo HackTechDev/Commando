@@ -1,7 +1,10 @@
 class_name AttackOrder
 extends CommandoAction
-## Attaquer `enemy` à distance : s'approcher jusqu'à avoir une ligne de tir,
-## puis tirer (rechargements compris) jusqu'à ce qu'il soit neutralisé.
+## Attaquer `enemy` à distance, depuis sa place : l'opérateur le garde en
+## joue et tire (rechargements compris) tant qu'il est à portée et en ligne
+## de tir, jusqu'à ce qu'il soit neutralisé. Il ne s'approche pas : hors de
+## portée ou derrière un obstacle, il le signale et attend ; c'est au joueur
+## de le déplacer.
 
 var enemy: Enemy
 var run: bool
@@ -48,18 +51,11 @@ func update(delta: float) -> Vector3:
 				and unit._fire_cooldown <= 0.0 and (-unit.global_basis.z).angle_to(to_target) < 0.25:
 			unit._fire(enemy, distance)
 		return Vector3.ZERO
-	# Pas de ligne de tir : s'approcher, puis viser de nouveau.
+	# Hors de portée ou derrière un obstacle : il le signale et attend, en
+	# joue, que le joueur le déplace ou que la cible passe à portée.
 	unit.report_hint(Commando.Hint.OUT_OF_RANGE if distance > unit.fire_range() else Commando.Hint.OBSTACLE)
 	unit._fire_cooldown = unit.stats.aim_time
-	# En vol ou à bord d'un véhicule, on ne s'approche pas : on attend que la
-	# cible passe à portée.
-	if unit.airborne_in or unit.riding:
-		return Vector3.ZERO
-	if unit.perched_on:
-		unit._descend(enemy.global_position, func() -> void: pass)
-		return Vector3.ZERO
-	if unit._agent.target_position.distance_to(enemy.global_position) > 0.5:
-		unit._agent.target_position = enemy.global_position
-	if unit._agent.is_navigation_finished():
-		return Vector3.ZERO
-	return unit._follow_path(delta)
+	# À pied, il reste tourné vers elle.
+	if distance > 0.01 and not unit.airborne_in and not unit.riding:
+		unit._face(to_target, delta)
+	return Vector3.ZERO

@@ -1525,3 +1525,9 @@
 - Les quatre missions de nuit ont une heure nocturne : Feux éteints 02:30, Nuit sans lune 01:45, Convoi de nuit 03:10, Col silencieux 04:20 (date : celle du lancement).
 - Vérifié en jeu (Nuit sans lune à 01:45, Terrain d'essai à l'heure du lancement, préparation de Feux éteints).
 
+## Tir sur ordre : de sa place
+
+- Clic droit sur un ennemi : l'opérateur tire de là où il est. Hors de portée ou derrière un obstacle, il ne s'approche plus : il garde l'ennemi en joue, affiche « Hors de portée » ou l'obstacle, et tire dès que la cible passe à portée. C'est au joueur de le rapprocher.
+- Aide en jeu et README mis à jour ; tests du tir adaptés (l'opérateur est placé à portée).
+- Vérifié en jeu : immobile hors de portée, tir dès que la cible est à portée ; le stand de tir du didacticiel reste à portée (13 m pour 16 m).
+

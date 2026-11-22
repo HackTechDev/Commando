@@ -31,7 +31,7 @@ const SECTIONS: Array = [
 		[[&"stop"], "Annuler l'ordre en cours"],
 	]],
 	["Combat", [
-		[["Clic droit sur un ennemi"], "Tirer"],
+		[["Clic droit sur un ennemi"], "Tirer, de sa place (hors de portée : rapprochez l'opérateur)"],
 		[[&"action_knife"], "Couteau, puis clic gauche sur l'ennemi"],
 		[[&"action_knockout"], "Assommer, puis clic gauche sur l'ennemi"],
 		[["Clic milieu sur un ennemi"], "Corps à corps au choix (désarmer, otage…)"],

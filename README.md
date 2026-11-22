@@ -48,7 +48,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Sélectionner | Clic gauche, rectangle, touches 1 à 3 (Maj : ajouter ; Ctrl : centrer aussi la caméra sur l'opérateur) |
 | Marcher / courir (la course s'entend à 2,5 m ; la marche est silencieuse) | Clic droit / double clic droit |
 | Arrêter une unité en route (puis choisir une autre destination) | Clic droit pendant qu'elle marche |
-| Tirer sur un ennemi | Clic droit sur l'ennemi |
+| Tirer sur un ennemi (de sa place : hors de portée ou derrière un obstacle, l'opérateur le garde en joue et attend qu'on le rapproche) | Clic droit sur l'ennemi |
 | Tir libre (rafale de 5 coups sur un mur, un objet ou le sol) | : (touche à droite de « ; » en AZERTY), puis clic gauche sur le point |
 | Porter un corps (ennemi mort ou assommé) / le déposer | ! (touche à droite de « : » en AZERTY), puis clic gauche sur le corps ; de nouveau ! pour le déposer |
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |

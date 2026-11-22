@@ -29,6 +29,10 @@ func test_out_of_range_then_firing() -> void:
 	await get_tree().process_frame
 	assert_true(_label().visible)
 	assert_eq(_label().text, "Hors de portée")
+	# Il ne s'approche pas : c'est au joueur de le déplacer.
+	var start := alpha.global_position
+	await frames(60)
+	assert_lt(alpha.global_position.distance_to(start), 0.1, "reste à sa place")
 	alpha.stop()
 	await frames(5)
 	await get_tree().process_frame

@@ -13,6 +13,9 @@ func test_operator_kills_enemy_reloading_on_the_way() -> void:
 	park(node("Enemies/TrainingDummy"), Vector3(25, 0, 25))
 	alpha.health.reset(10000.0)
 	alpha.ammo_in_magazine = 2
+	# L'opérateur tire de sa place : on le met à portée, face au soldat.
+	alpha.global_position = enemy.global_position - enemy.global_basis.z * 8.0
+	await frames(3)
 	alpha.attack(enemy, false)
 	var reloaded := [false]
 	var dead := func() -> bool:
