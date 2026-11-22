@@ -96,6 +96,8 @@ var _menu_radio: bool = false
 ## sélectionnés qui en reçoivent les ordres.
 var _menu_vehicle: Sabre
 var _menu_walkers: Array[Commando] = []
+## Voiture civile du menu ouvert (« S'abriter derrière »).
+var _menu_car: TrafficCar
 ## Véhicule et passager du menu de bord du Sabre ouvert.
 var _menu_sabre: Sabre
 ## Convertible visé par l'action armée (`ACTION_FLY`).
@@ -142,6 +144,7 @@ func _ready() -> void:
 		_menu_sabre = null
 		_menu_rider = null
 		_menu_vehicle = null
+		_menu_car = null
 		_menu_walkers = [])
 	SelectionManager.selection_changed.connect(func(units: Array[Commando]) -> void:
 		if units.is_empty():
@@ -462,6 +465,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif _middle_start != Vector2.INF:
 			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
 				if open_vip_menu(middle.position) or open_sabre_menu(middle.position) or open_vehicle_menu(middle.position) \
+						or open_car_menu(middle.position) \
 						or open_aircraft_menu(middle.position) \
 						or open_radio_menu(middle.position) or open_melee_menu(middle.position):
 					get_viewport().set_input_as_handled()
@@ -812,6 +816,23 @@ func open_vehicle_menu(screen_position: Vector2) -> bool:
 	return true
 
 
+## Ouvre le menu d'une voiture civile sous `screen_position`, pour les
+## opérateurs à pied sélectionnés. Renvoie faux s'il n'y en a pas.
+func open_car_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_GROUND)
+	var car := hit.get("collider") as TrafficCar
+	if car == null:
+		return false
+	cancel_pending_action()
+	_menu_car = car
+	_menu_walkers = walkers()
+	var nobody := "sélectionnez un opérateur à pied" if _menu_walkers.is_empty() else ""
+	_radial.open(screen_position, [{"id": &"cover", "label": "S'abriter derrière",
+		"detail": "elle s'arrête ; accroupis, côté opposé aux ennemis" if nobody == "" else nobody, "enabled": nobody == ""}], "Voiture")
+	Sfx.play_ui(&"select")
+	return true
+
+
 ## Opérateurs sélectionnés à pied (ni à bord ni en vol).
 static func walkers() -> Array[Commando]:
 	var result: Array[Commando] = []
@@ -1096,6 +1117,18 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 func _on_radial_chosen(id: StringName) -> void:
 	if _menu_vip:
 		_on_vip_order(id)
+		return
+	if _menu_car:
+		var car := _menu_car
+		var units := _menu_walkers
+		_menu_car = null
+		_menu_walkers = []
+		if id == &"cover" and is_instance_valid(car) and car.take_cover(units, false):
+			for point in car.last_cover_spots:
+				_spawn_marker(point, marker_color)
+			Sfx.play_ui(&"order")
+		else:
+			Sfx.play_ui(&"denied")
 		return
 	if _menu_vehicle:
 		_on_vehicle_order(id)

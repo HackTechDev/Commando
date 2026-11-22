@@ -26,6 +26,12 @@ const WHEEL_RADIUS := 0.32
 const LAYER_OCCLUDERS := 0b10
 ## Unités : la voiture les attend sans limite (elle ne les traverse pas).
 const UNIT_GROUPS: Array[StringName] = [&"commandos", &"enemies", &"vips"]
+## « S'abriter derrière » : la voiture reste arrêtée tant qu'un opérateur
+## abrité est à moins de `HOLD_REACH` m, et au moins `HOLD_ARRIVAL` s (le
+## temps qu'ils arrivent).
+const HOLD_REACH := 3.5
+const HOLD_ARRIVAL := 12.0
+const HALF_WIDTH_BODY := 0.89
 ## Demi-longueur de la voiture (m), du centre au pare-chocs.
 const HALF_LENGTH := 2.2
 
@@ -48,6 +54,16 @@ var _total: float = 0.0
 var _at: float = 0.0
 var _waited: float = 0.0
 var _wheels: Array[Node3D] = []
+## Opérateurs abrités derrière la voiture (elle les attend), et depuis
+## combien de temps (s).
+var _holders: Array[Commando] = []
+var _held_for: float = 0.0
+## Arrêtée pour une unité, un abri ou une voiture elle-même arrêtée ainsi :
+## les voitures derrière l'attendent sans limite.
+var halted: bool = false
+## Empreinte de la boucle : deux voitures de la même boucle se suivent le
+## long du tracé (y compris dans les virages).
+var _loop_key: int = 0
 
 
 func _ready() -> void:
@@ -65,6 +81,7 @@ func _ready() -> void:
 		_total += points[i - 1].distance_to(points[i % points.size()])
 		_lengths.append(_total)
 	_at = fposmod(start_at, maxf(_total, 0.01))
+	_loop_key = hash(points)
 	if points.size() >= 2:
 		position = _place(_at)
 		rotation.y = _heading(_at)
@@ -74,9 +91,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if points.size() < 2 or _total <= 0.0:
 		return
-	var unit_gap := _gap_ahead(UNIT_GROUPS)
+	var held := _update_hold(delta)
+	var unit_gap := minf(_gap_ahead(UNIT_GROUPS), _halted_car_gap())
 	var other_gap := _gap_ahead([Passerby.GROUP, GROUP])
-	var gap := unit_gap
+	halted = held or unit_gap < LOOK_AHEAD
+	var gap := 0.0 if held else unit_gap
 	if other_gap < LOOK_AHEAD and _waited < MAX_WAIT:
 		gap = minf(gap, other_gap)
 	var target := cruise
@@ -96,6 +115,70 @@ func _process(delta: float) -> void:
 		wheel.rotation.x -= step / WHEEL_RADIUS
 
 
+## Vrai tant que des opérateurs s'abritent derrière la voiture : près
+## d'elle, ou depuis moins de `HOLD_ARRIVAL` s.
+func _update_hold(delta: float) -> bool:
+	if _holders.is_empty():
+		return false
+	_held_for += delta
+	_holders = _holders.filter(func(unit: Commando) -> bool:
+		return is_instance_valid(unit) and not unit.is_dead and unit.riding == null and unit.airborne_in == null)
+	var near := _holders.any(func(unit: Commando) -> bool: return unit.global_position.distance_to(global_position) <= HOLD_REACH)
+	if not near and _held_for > HOLD_ARRIVAL:
+		_holders.clear()
+	return not _holders.is_empty()
+
+
+## Distance au pare-chocs d'une voiture arrêtée (`halted`) devant, dans la
+## voie (`INF` sinon).
+func _halted_car_gap() -> float:
+	var forward := -global_basis.z
+	var right := global_basis.x
+	var nearest := INF
+	for node in get_tree().get_nodes_in_group(GROUP):
+		var other := node as TrafficCar
+		if other == null or other == self or not other.halted:
+			continue
+		var ahead := _car_ahead(other, forward, right)
+		if ahead < nearest:
+			nearest = ahead
+	return nearest
+
+
+## Distance de pare-chocs à pare-chocs jusqu'à `other` s'il est devant, dans
+## la voie (`INF` sinon) : le long du tracé pour une voiture de la même
+## boucle, en ligne droite pour une autre.
+func _car_ahead(other: TrafficCar, forward: Vector3, right: Vector3) -> float:
+	if other._loop_key == _loop_key:
+		var along := fposmod(other._at - _at, _total) - HALF_LENGTH * 2.0
+		return maxf(along, 0.0) if along < LOOK_AHEAD else INF
+	var offset := other.global_position - global_position
+	var ahead := offset.dot(forward) - HALF_LENGTH * 2.0
+	if ahead > -0.5 and absf(offset.dot(right)) < HALF_WIDTH:
+		return maxf(ahead, 0.0)
+	return INF
+
+
+## Envoie `units` s'abriter derrière la voiture, accroupis : elle pile et
+## les attend. Les places sont prises là où elle s'arrêtera.
+func take_cover(units: Array[Commando], run: bool) -> bool:
+	if units.is_empty():
+		return false
+	var stop := speed * speed / (2.0 * BRAKE)
+	var frame := Transform3D(Basis(Vector3.UP, _heading(_at + stop + 1.5) if stop > 0.1 else rotation.y), _place(_at + stop))
+	var threat := CoverSpots.threat_direction(get_tree(), frame.origin, -frame.basis.z)
+	var spots := CoverSpots.points(get_world_3d(), frame, HALF_WIDTH_BODY, HALF_LENGTH, threat, units.size())
+	CoverSpots.send(units, spots, run)
+	_holders = units.duplicate()
+	_held_for = 0.0
+	last_cover_spots = spots
+	return true
+
+
+## Places attribuées au dernier « S'abriter derrière » (repères au sol).
+var last_cover_spots: Array[Vector3] = []
+
+
 ## Distance (m) du pare-chocs avant au premier membre des groupes `groups`
 ## qui se trouve devant la voiture, dans sa voie (`INF` s'il n'y en a pas).
 func _gap_ahead(groups: Array[StringName]) -> float:
@@ -107,11 +190,12 @@ func _gap_ahead(groups: Array[StringName]) -> float:
 			var other := node as Node3D
 			if other == null or other == self:
 				continue
+			if group == GROUP:
+				nearest = minf(nearest, _car_ahead(other as TrafficCar, forward, right))
+				continue
 			var offset := other.global_position - global_position
-			var ahead := offset.dot(forward)
-			# Mesuré depuis le pare-chocs avant ; une autre voiture, de
-			# pare-chocs à pare-chocs.
-			ahead -= HALF_LENGTH * 2.0 if group == GROUP else HALF_LENGTH
+			# Mesuré depuis le pare-chocs avant.
+			var ahead := offset.dot(forward) - HALF_LENGTH
 			if ahead > -0.5 and ahead < nearest and absf(offset.dot(right)) < HALF_WIDTH:
 				nearest = maxf(ahead, 0.0)
 	return nearest

@@ -1238,3 +1238,18 @@
 - Elles arrêtent le regard et les balles : un opérateur accroupi ou couché derrière est caché ; debout, il dépasse du toit et reste visible. Elles barrent aussi le passage.
 - Devant une unité (opérateur, garde, VIP), une voiture attend sans limite au lieu de passer au bout de 5 s. Devant un passant ou une autre voiture, l'attente maximale reste.
 - Vérifié par scénario : garde à 8 m, Alpha derrière une voiture arrêtée. Debout il est vu, accroupi ou couché il ne l'est pas ; la voiture partie, il l'est à nouveau. Alpha posé sur la voie depuis 9 s, la voiture reste arrêtée, pare-chocs à 1,5 m. La suite GUT n'a pas été lancée.
+
+## « S'abriter derrière » une voiture
+
+- Clic milieu sur une voiture civile avec des opérateurs à pied sélectionnés : menu « Voiture », « S'abriter derrière ».
+  - La voiture pile, et les places se calculent là où elle s'arrête.
+  - Les opérateurs s'y accroupissent côte à côte, du côté opposé aux ennemis (alertés ou méfiants, sinon le plus proche).
+  - Elle attend tant qu'un opérateur abrité reste à moins de 3,5 m, et au moins 12 s pour leur laisser le temps d'arriver ; elle repart quand ils s'en vont.
+- Le calcul de la menace et des places est commun avec le Sabre (`CoverSpots`). Les gardes morts n'y comptent plus.
+- Une voiture arrêtée pour une unité ou un abri (`TrafficCar.halted`) est attendue sans limite par celles qui la suivent. Deux voitures de la même boucle mesurent leur écart le long du tracé : la suivante freine à temps, même au sortir d'un virage.
+- Vérifié par scénario :
+  - le menu s'ouvre sur la voiture et la voiture s'arrête aussitôt ;
+  - Alpha et Bravo, vus debout sur le trottoir par un garde de l'autre côté de la rue, s'accroupissent à 2 m de la voiture, côté opposé, et ne sont plus vus ;
+  - la voiture suivante s'arrête 1,6 m derrière, au sortir d'un virage ;
+  - après 13 s les deux voitures attendent toujours, et repartent quand les opérateurs s'éloignent.
+- La suite GUT n'a pas été lancée.

@@ -1498,57 +1498,23 @@ func cover_problem() -> String:
 	return ""
 
 
-## Direction (à plat) des ennemis à craindre vus depuis le véhicule :
-## moyenne des ennemis en alerte ou méfiants, sinon le plus proche debout.
+## Direction (à plat) des ennemis à craindre vus depuis le véhicule
+## (`CoverSpots.threat_direction`).
 func threat_direction() -> Vector3:
-	var sum := Vector3.ZERO
-	var nearest := Vector3.ZERO
-	var nearest_distance := INF
-	for node in get_tree().get_nodes_in_group(&"enemies"):
-		var enemy := node as Enemy
-		if enemy == null or enemy.state == Enemy.State.STUNNED:
-			continue
-		var to_enemy := enemy.global_position - global_position
-		to_enemy.y = 0.0
-		if enemy.state != Enemy.State.PATROL:
-			sum += to_enemy.normalized()
-		if to_enemy.length() < nearest_distance:
-			nearest_distance = to_enemy.length()
-			nearest = to_enemy.normalized()
-	var direction := sum if sum.length() > 0.1 else nearest
-	return direction.normalized() if direction.length() > 0.1 else -global_basis.z
+	return CoverSpots.threat_direction(get_tree(), global_position, -global_basis.z)
 
 
 ## `count` points au sol, côte à côte, derrière la caisse par rapport aux
 ## ennemis (`threat_direction`).
 func cover_points(count: int) -> Array[Vector3]:
-	var threat := threat_direction()
-	var local := global_basis.inverse() * threat
-	local.y = 0.0
-	local = local.normalized()
-	# Distance du centre au bord de la caisse dans cette direction.
-	var half_length := 2.5
-	var edge := minf(SabreModel.HALF_WIDTH / maxf(absf(local.x), 0.01), half_length / maxf(absf(local.z), 0.01))
-	var across := Vector3(-threat.z, 0.0, threat.x)
-	# Longueur abritée, le long de la caisse vue des ennemis.
-	var span := absf(local.x) * half_length * 2.0 + absf(local.z) * SabreModel.HALF_WIDTH * 2.0
-	var points: Array[Vector3] = []
-	for i in count:
-		var offset := 0.0 if count == 1 else lerpf(-0.5, 0.5, float(i) / (count - 1)) * minf(span - 0.6, count * 0.9)
-		points.append(_on_navmesh(global_position - threat * (edge + 0.65) + across * offset))
-	return points
+	return CoverSpots.points(get_world_3d(), global_transform, SabreModel.HALF_WIDTH, 2.5, threat_direction(), count)
 
 
 ## Envoie `units` s'abriter derrière le véhicule, accroupis.
 func take_cover(units: Array[Commando], run: bool) -> bool:
 	if cover_problem() != "" or units.is_empty():
 		return false
-	var points := cover_points(units.size())
-	for i in units.size():
-		var unit := units[i]
-		unit.move_to(points[i], run)
-		if unit.posture != SoldierModel.Posture.CROUCHED:
-			unit.toggle_posture(SoldierModel.Posture.CROUCHED)
+	CoverSpots.send(units, cover_points(units.size()), run)
 	return true
 
 
