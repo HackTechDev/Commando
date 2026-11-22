@@ -124,7 +124,7 @@ res://
 - Traces de pas dans la neige/boue (bonus, jalon tardif).
 
 ### 5.3 IA ennemie
-Machine à états (classes de nœuds ou `Resource`s, au choix, mais documentée) :
+Machine à états (objets `EnemyBehavior`, un par état, dans `scripts/enemies/behaviors/` ; voir `DECISIONS.md`) :
 
 | État | Comportement |
 |---|---|

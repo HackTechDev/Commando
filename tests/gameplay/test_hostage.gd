@@ -138,7 +138,7 @@ func test_the_hostage_cries_for_help_and_draws_the_others() -> void:
 	soldier.look_at(soldier.global_position + Vector3(-1, 0, 0), Vector3.UP)
 	alpha.take_hostage(dummy)
 	assert_eq(dummy.cries, 0, "pas tout de suite")
-	assert_gt(await frames_until(func() -> bool: return dummy.cries > 0, int(Enemy.HELP_DELAY * 60) + 20), -1, "il appelle à l'aide")
+	assert_gt(await frames_until(func() -> bool: return dummy.cries > 0, int(EnemyGrabbed.HELP_DELAY * 60) + 20), -1, "il appelle à l'aide")
 	assert_gt(await frames_until(func() -> bool: return soldier.state == Enemy.State.ALERT, 10), -1, "le soldat accourt")
 	assert_lt(flat_distance(soldier._agent.target_position, dummy.global_position), 0.5, "il court vers le cri")
 	var start := soldier.global_position

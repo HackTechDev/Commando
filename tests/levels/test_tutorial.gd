@@ -96,7 +96,7 @@ func test_dummies_are_blind_and_count_once_down() -> void:
 	for path in station.targets:
 		var dummy := station.get_node(path) as Enemy
 		dummy.knock_out()
-		dummy._stun_left = 0.05
+		dummy.stunned_behavior.left = 0.05
 	assert_gt(await frames_until(func() -> bool: return station.is_done, 30), -1, "trois mannequins neutralisés")
 	await frames(10)
 	assert_false(front.is_stunned(), "relevé, l'exercice reste réussi")

@@ -61,7 +61,7 @@ func test_enemy_takes_the_ladder() -> void:
 	enemy.set_physics_process(true)
 	enemy._waypoints = [ROOF] as Array[Vector3]
 	enemy._waypoint_index = 0
-	enemy._pause_left = 0.0
+	enemy.patrol_behavior.pause_left = 0.0
 	enemy._agent.target_position = ROOF
 	var climbed := await frames_until(func() -> bool: return enemy.is_traversing(), 400)
 	assert_gt(climbed, -1, "il grimpe")

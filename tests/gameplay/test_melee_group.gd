@@ -43,7 +43,7 @@ func test_second_attacker_goes_for_the_flank() -> void:
 	var from_flank := flank - alpha.global_position
 	from_soldier.y = 0.0
 	from_flank.y = 0.0
-	assert_almost_eq(rad_to_deg(from_soldier.angle_to(from_flank)), Enemy.FLANK_ANGLE, 1.0, "de flanc")
+	assert_almost_eq(rad_to_deg(from_soldier.angle_to(from_flank)), EnemyBrawler.FLANK_ANGLE, 1.0, "de flanc")
 	assert_lt(flat_distance(dummy._agent.target_position, flank), 0.6, "il s'y rend")
 	assert_eq(soldier.flank_point(), Vector3.INF, "le premier frappe de face")
 
@@ -58,7 +58,7 @@ func test_second_attacker_strikes_through_a_parry() -> void:
 	dummy.global_position = alpha.global_position + alpha.global_basis.x * 1.0
 	dummy.look_at(alpha.global_position, Vector3.UP)
 	await frames(2)
-	dummy._melee_cooldown = 10.0
+	dummy.brawler.cooldown = 10.0
 	var hp := alpha.health.health
 	# Alpha pare le coup du soldat (touche pressée à temps).
 	assert_gt(await frames_until(soldier.is_attacking, 200), -1, "le soldat frappe")

@@ -1501,3 +1501,9 @@
 - Son activé, une barre règle le volume général (0 à 100 %, enregistré ; c'est le même réglage que « Volume général » des options). Son coupé, la barre est masquée.
 - Vérifié en jeu (rendu de la page, barre masquée son coupé).
 
+## IA ennemie en machine à états (1.3)
+
+- `enemy.gd` (1 640 lignes) est découpé : un état par comportement dans `scripts/enemies/behaviors/` (`EnemyPatrol`, `EnemyWatch`, `EnemyInvestigate`, `EnemySearch`, `EnemyReturn`, `EnemyChase`, `EnemyStunned`, `EnemyGrabbed`, `EnemyDisarmed`), et trois composants : tir (`EnemyGunner`), corps à corps (`EnemyBrawler`), regard (`EnemyGaze`). `enemy.gd` garde la perception, les transitions, les corps et la sauvegarde.
+- Comportement inchangé. Vérifié en jeu, ancien et nouveau code avec la même graine : corps à corps, poussée, saisie et cris, réveil, fouille, sauvegarde rapide et rechargement, désarmement donnent les mêmes résultats ; ouïe, fouille et retour, regard et couverture se comportent comme avant. Seul changement : un ennemi assommé ou saisi n'affiche plus d'activité périmée.
+- Tests mis à jour pour les nouveaux noms (`stunned_behavior.left`, `brawler.cooldown`, `patrol_behavior.pause_left`, `EnemyBrawler.FLANK_ANGLE`, `EnemyGrabbed.HELP_DELAY`). Suite GUT non lancée.
+

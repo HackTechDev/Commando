@@ -9,11 +9,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** les lancer automatiquement avant chaque commit (crochet Git) ou en intégration continue ;
   - **c)** couvrir ce qui manque encore : HUD et contrôles à la souris, sélection, caméra, transitions de posture debout/accroupi, patrouille et poursuite des ennemis, réveil puis lutte, chargement d'autres cartes UFO:AI ;
   - **d)** tester `SoldierModel.sample_keys` et les poses clés.
-- **1.3 Restructurer l'IA ennemie en vraie machine à états** (§5.3). `enemy.gd` mélange avec un `enum` et des minuteurs :
-  - la détection, la patrouille et la poursuite ;
-  - le tir ;
-  - le corps à corps (coup, poussée, déséquilibre) ;
-  - la saisie et la perte de connaissance.
 
   Il deviendra ingérable avec les états `Investigate`, `Search` et `Return`.
 - **1.5 Factoriser le code commun à `Commando` et `Enemy`** : déplacement par navigation, évitement, pas de côté, orientation et tir sont dupliqués. Extraire des composants (`MovementComponent`, `WeaponComponent`), comme le prévoit le §3.

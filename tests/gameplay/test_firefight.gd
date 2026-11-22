@@ -46,7 +46,7 @@ func test_knocked_out_enemy_falls_then_wakes_up_alert() -> void:
 	await frames(60)
 	assert_true(dummy.is_stunned())
 	assert_almost_eq(model._body.rotation.x, 1.56, 0.05, "au sol")
-	dummy._stun_left = 0.01
+	dummy.stunned_behavior.left = 0.01
 	await frames(120)
 	assert_false(dummy.is_stunned())
 	assert_eq(dummy.state, Enemy.State.ALERT, "se réveille en alerte")
