@@ -59,6 +59,9 @@ var _new_depth: SpinBox
 var _new_ground: OptionButton
 var _new_night: CheckBox
 var _report_box: VBoxContainer
+var _summary: Button
+var _on_save: CheckBox
+var _scroll: ScrollContainer
 var _grid: CheckBox
 var _surface: CheckBox
 var _coverage: CheckBox
@@ -80,6 +83,16 @@ func _init() -> void:
 	_warning = _label("", WARN_COLOR)
 	_warning.visible = false
 	add_child(_warning)
+	# Résumé de la dernière vérification, toujours visible ; un clic montre
+	# le rapport.
+	_summary = Button.new()
+	_summary.flat = true
+	_summary.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_summary.tooltip_text = "Cliquez pour voir le rapport (section Vérification)."
+	_summary.visible = false
+	_summary.pressed.connect(func() -> void: _scroll.ensure_control_visible(_report_box))
+	add_child(_summary)
 	var new_row := HBoxContainer.new()
 	_new_folder = LineEdit.new()
 	_new_folder.placeholder_text = "dossier (ex. raid_desert)"
@@ -115,13 +128,13 @@ func _init() -> void:
 	_new_status = _label("", WARN_COLOR)
 	_new_status.visible = false
 	add_child(_new_status)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(_scroll)
 	_body = VBoxContainer.new()
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_body)
+	_scroll.add_child(_body)
 
 	_section("Vérification")
 	var check_row := HBoxContainer.new()
@@ -136,6 +149,11 @@ func _init() -> void:
 	play.pressed.connect(func() -> void: play_requested.emit())
 	check_row.add_child(play)
 	_body.add_child(check_row)
+	_on_save = CheckBox.new()
+	_on_save.text = "Vérifier à chaque enregistrement"
+	_on_save.button_pressed = true
+	_on_save.tooltip_text = "Après chaque Ctrl+S, la vérification tourne seule ; son résumé s'affiche sous le titre du dock."
+	_body.add_child(_on_save)
 	_report_box = VBoxContainer.new()
 	_body.add_child(_report_box)
 
@@ -311,6 +329,29 @@ func _show_info(root: Node, info: MissionInfo) -> void:
 
 
 ## Résultat de « Vérifier » (`Checker.check`) ; vide : efface.
+func check_on_save() -> bool:
+	return _on_save.button_pressed
+
+
+## Résumé du rapport `report` sous le titre : nombre d'erreurs et
+## d'avertissements, origine (`reason`) et heure. Masqué si `report` est vide.
+func show_summary(report: Array, reason: String) -> void:
+	_summary.visible = not report.is_empty()
+	if report.is_empty():
+		return
+	var errors := report.filter(func(item: Dictionary) -> bool: return item["level"] == "error").size()
+	var warnings := report.filter(func(item: Dictionary) -> bool: return item["level"] == "warning").size()
+	var counts: Array[String] = []
+	if errors > 0:
+		counts.append("%d erreur%s" % [errors, "s" if errors > 1 else ""])
+	if warnings > 0:
+		counts.append("%d avertissement%s" % [warnings, "s" if warnings > 1 else ""])
+	var mark := "✗" if errors > 0 else ("⚠" if warnings > 0 else "✓")
+	var time := Time.get_time_dict_from_system()
+	_summary.text = "%s Vérification (%s, %02d:%02d) : %s" % [mark, reason, time["hour"], time["minute"], ", ".join(counts) if not counts.is_empty() else "aucun problème"]
+	_summary.add_theme_color_override(&"font_color", Color(1.0, 0.45, 0.4) if errors > 0 else (WARN_COLOR if warnings > 0 else OK_COLOR))
+
+
 func show_report(report: Array) -> void:
 	for child in _report_box.get_children():
 		child.queue_free()

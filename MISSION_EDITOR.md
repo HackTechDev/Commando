@@ -171,6 +171,8 @@ Cliquez sur **Vérifier**. Le greffon calcule la navigation de la carte, comme l
 
 Un clic sur une ligne sélectionne le nœud en cause. Le détail des contrôles est dans la référence ci-dessous.
 
+La vérification tourne aussi seule à chaque enregistrement (Ctrl+S), tant que la case **Vérifier à chaque enregistrement** est cochée. Son résumé reste affiché sous le titre du dock (« ⚠ Vérification (enregistrement, 14:02) : 2 avertissements ») ; un clic dessus fait défiler le dock jusqu'au rapport. Si l'on enregistre pendant une vérification, une seconde la suit.
+
 Les chemins passent, comme en jeu, par les échelles, les portes (même verrouillées : on les crochète ou on les fait sauter), les murets et les fenêtres. Une cible est atteinte quand le chemin arrive à 2 m du bord de son emprise au sol (un convertible ou un bâtiment n'a pas à être atteint en son centre). Un avertissement « pas de chemin à pied » n'est pas forcément une faute : les cordes de grappin, lancées en cours de partie, ne sont pas comptées, et une cible peut se rejoindre autrement qu'à pied (à Héliportage, le Sabre, au-delà du ravin, s'élingue sous le convertible).
 
 La vérification contrôle aussi le placement : opérateurs vus par un garde dès le départ, unités dans un mur ou les unes dans les autres, caisses qui se chevauchent, éléments hors du terrain ou trop loin des limites de la caméra, points de ronde hors de la zone praticable ou inaccessibles. Sur les cartes UFO:AI, l'équipe est placée au lancement sur les départs de la carte : sa place dans la scène n'est pas contrôlée.

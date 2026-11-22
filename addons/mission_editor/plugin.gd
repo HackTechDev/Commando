@@ -87,6 +87,9 @@ var _coverage_pending: bool = false
 ## Historique de la scène ouverte, suivi en plus du gestionnaire : une
 ## annulation qui passe directement par lui n'émet que `version_changed`.
 var _history: UndoRedo
+## Vérification en cours ; une autre demandée entre-temps (enregistrement).
+var _checking: bool = false
+var _check_again: String = ""
 
 
 ## Nom de la métadonnée du moteur qui désigne le greffon (scénarios de
@@ -108,7 +111,7 @@ func _enter_tree() -> void:
 	_dock.route_point_added.connect(_on_route_point.bind(true))
 	_dock.route_point_removed.connect(_on_route_point.bind(false))
 	_dock.new_mission_requested.connect(new_mission)
-	_dock.check_requested.connect(check)
+	_dock.check_requested.connect(func() -> void: check())
 	_dock.play_requested.connect(_on_play_requested)
 	_dock.camera_fit_requested.connect(fit_camera_bounds)
 	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
@@ -174,6 +177,18 @@ func _on_scene_saved(path: String) -> void:
 	_reapply.call_deferred()
 	# Un fichier de mission enregistré : le catalogue du jeu le relira.
 	LevelCatalog.reload()
+	# Vérification de la mission ouverte, après l'enregistrement (pas des
+	# autres scènes enregistrées avec elle).
+	var root := EditorInterface.get_edited_scene_root()
+	if _dock.check_on_save() and root is LevelRoot and root.scene_file_path == path:
+		_check_after_save.call_deferred()
+
+
+func _check_after_save() -> void:
+	if _checking:
+		_check_again = "enregistrement"
+		return
+	check("enregistrement")
 
 
 func _on_scene_changed(root: Node) -> void:
@@ -182,6 +197,8 @@ func _on_scene_changed(root: Node) -> void:
 	_cancel_tool()
 	_load_info(root)
 	_dock.show_report([])
+	_dock.show_summary([], "")
+	_check_again = ""
 	_follow_history(root)
 	refresh_coverage()
 	_dock.show_scene(root, generator_of(root))
@@ -597,10 +614,22 @@ static func _write_info(scene_path: String, title: String) -> String:
 # --- Vérification, essai, nouvelle mission ---------------------------------
 
 ## Vérifie la scène ouverte et affiche le résultat dans le dock (coroutine).
-func check() -> Array[Dictionary]:
+## `reason` : origine de la vérification, pour le résumé du dock.
+func check(reason: String = "bouton") -> Array[Dictionary]:
+	_checking = true
+	var root := EditorInterface.get_edited_scene_root()
 	_dock.show_report([{"level": "ok", "text": "Vérification en cours…", "nodes": []}])
-	var report: Array[Dictionary] = await Checker.check(EditorInterface.get_edited_scene_root())
+	var report: Array[Dictionary] = await Checker.check(root)
+	_checking = false
+	# Greffon retiré ou autre scène ouverte entre-temps : rapport périmé.
+	if not is_instance_valid(_dock) or EditorInterface.get_edited_scene_root() != root:
+		return report
 	_dock.show_report(report)
+	_dock.show_summary(report, reason)
+	if not _check_again.is_empty():
+		var again := _check_again
+		_check_again = ""
+		check(again)
 	return report
 
 

@@ -117,7 +117,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR.md`.
 
 - **8.2 Vérification plus juste** :
-  - **c)** vérification à chaque enregistrement, résumée dans le dock ;
   - **d)** compter aussi les cordes de grappin dans les chemins (lancées en cours de partie, sans nœud sur la carte).
 - **8.3 Aides à la conception d'infiltration** :
   - **b)** rondes et voitures animées dans l'éditeur (bouton lecture et barre de temps), pour régler leur rythme sans lancer le jeu ;

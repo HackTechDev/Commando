@@ -1385,3 +1385,8 @@
 - Les limites de déplacement de la caméra (`CameraRig.bounds`) sont dessinées au sol en cadre bleu clair. `CameraRig` sélectionné, une poignée au milieu de chaque bord les règle : aimantée à la grille, gardée sur le terrain, collée à son bord à moins de 1 m, 10 m de côté au moins.
 - Bouton « Caler les limites de la caméra sur le terrain » (section Carte) : cadre à 2 m des bords du terrain.
 - Vérifié (`tools/editor_check/step81f.gd`, Terrain d'essai) : chaque bord tiré, annulations, geste abandonné, calage et son annulation, limites enregistrées dans la scène. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : vérification à chaque enregistrement (8.2 c)
+
+- « Vérifier » tourne seule après chaque enregistrement de la mission (case « Vérifier à chaque enregistrement », cochée par défaut). Son résumé (erreurs, avertissements, origine et heure) s'affiche sous le titre du dock ; un clic montre le rapport. Un enregistrement pendant une vérification en relance une à la fin.
+- Vérifié (`tools/editor_check/step82c.gd`, Terrain d'essai) : résumé après Ctrl+S, faute signalée à l'enregistrement, seconde vérification en attente puis lancée, case décochée sans effet, résumé masqué à l'ouverture d'une autre scène. La suite GUT n'a pas été lancée.
