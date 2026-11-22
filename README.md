@@ -6,7 +6,7 @@ Voir `CAHIER_DES_CHARGES.md` pour la vision, l'architecture et les jalons.
 ## Lancement
 
 ```sh
-godot --path .            # menu de démarrage : choix de la carte
+godot --path .            # menu de démarrage : choix de la carte ; « Configuration » (son activé ou coupé)
 godot --path . scenes/levels/tutorial/tutorial.tscn        # lance directement le didacticiel
 godot --path . scenes/levels/sandbox/sandbox.tscn          # lance directement le terrain d'essai
 godot --path . scenes/levels/airbase/airbase.tscn          # lance directement la base aérienne (sabotage du convertible)

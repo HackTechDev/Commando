@@ -1491,3 +1491,8 @@
 - Les tests imposent la graine 1234 (`GameRng.forced_seed`).
 - Vérifié en jeu : 40 tirs d'un ennemi identiques avec la même graine, différents avec une autre, et identiques après une sauvegarde rapide au milieu. Tests de parade, désarmement, équipement, tirs, otage, prises, lancer, tir libre et fusil à pompe au vert ; suite complète non relancée.
 
+## Page « Configuration »
+
+- Menu de démarrage : bouton « Configuration », qui ouvre la page du même nom. Pour l'instant, une option : son activé ou coupé (enregistrée, appliquée aussitôt ; les volumes des options sont gardés).
+- Vérifié en jeu (rendu du menu et de la page ; son coupé puis rétabli ; Échap). Tests du menu au vert.
+

@@ -1,6 +1,6 @@
 extends Node
 ## Réglages du joueur, conservés entre les parties (`user://settings.cfg`) :
-## dernière carte jouée, volumes, plein écran, défilement par le bord de
+## dernière carte jouée, son activé, volumes, plein écran, défilement par le bord de
 ## l'écran, parade automatique.
 
 const PATH := "user://settings.cfg"
@@ -50,6 +50,12 @@ func set_last_level(scene_or_map: String) -> void:
 	set_value("game", "last_level", scene_or_map)
 
 
+## Son activé (page « Configuration ») : coupé, plus aucun bus n'est
+## entendu, quels que soient les volumes.
+func sound_enabled() -> bool:
+	return value("audio", "enabled", true)
+
+
 ## Volume (0 à 1) du bus `bus`.
 func volume(bus: StringName) -> float:
 	return value("audio", String(bus), 1.0)
@@ -81,7 +87,7 @@ func apply() -> void:
 		if index >= 0:
 			var linear := volume(bus)
 			AudioServer.set_bus_volume_db(index, linear_to_db(maxf(linear, 0.0001)))
-			AudioServer.set_bus_mute(index, linear <= 0.001)
+			AudioServer.set_bus_mute(index, linear <= 0.001 or (bus == &"Master" and not sound_enabled()))
 	if DisplayServer.get_name() != "headless":
 		var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen() else DisplayServer.WINDOW_MODE_WINDOWED
 		if DisplayServer.window_get_mode() != mode and not (mode == DisplayServer.WINDOW_MODE_WINDOWED and DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_MAXIMIZED):

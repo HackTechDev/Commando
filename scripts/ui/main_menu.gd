@@ -4,7 +4,7 @@ extends Control
 ## cartes UFO:AI du dossier), avec aperçu et dernière carte jouée en tête de
 ## liste ; préparation de la mission (tenues et camouflage conseillé),
 ## chargement en arrière-plan puis lancement du niveau ; accès à l'écran
-## « Opérateurs ».
+## « Opérateurs » et à la page « Configuration ».
 
 ## Taille des vignettes d'aperçu.
 const THUMB_SIZE := Vector2(150, 96)
@@ -13,6 +13,7 @@ const THUMB_SIZE := Vector2(150, 96)
 @onready var _status: Label = %Status
 @onready var _quit: Button = %Quit
 @onready var _operators: Button = %Operators
+@onready var _configuration_button: Button = %Configuration
 
 ## Scène en cours de chargement, ou vide.
 var _loading: String = ""
@@ -27,6 +28,8 @@ var _suggest_all: Button
 var _briefing_preview: Control
 var _briefing_objectives: VBoxContainer
 var _briefing_text: Label
+## Page « Configuration » (son…), ouverte par son bouton.
+var configuration: ConfigurationScreen
 ## Écran « Opérateurs » ouvert depuis la préparation, ou null.
 var operator_editor: OperatorScreen
 
@@ -51,6 +54,10 @@ func _ready() -> void:
 	add_child(quit_dialog)
 	_quit.pressed.connect(quit_dialog.ask)
 	_operators.pressed.connect(open_operators)
+	configuration = ConfigurationScreen.new()
+	add_child(configuration)
+	configuration.closed.connect(_configuration_button.grab_focus)
+	_configuration_button.pressed.connect(configuration.open)
 	var first: Button = null
 	var last: Button = null
 	var last_key := Settings.last_level()
