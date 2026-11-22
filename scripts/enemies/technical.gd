@@ -339,6 +339,12 @@ func _fire_round(target: Unit) -> void:
 	var aim := target.global_position + Vector3.UP * 1.0
 	var distance := from.distance_to(aim)
 	var chance := lerpf(HIT_NEAR, HIT_FAR, clampf(distance / SIGHT, 0.0, 1.0))
+	# Cible en partie à couvert : plus dure à toucher.
+	var ignored: Array[RID] = [target.get_rid()]
+	var ride := target.get(&"riding") as Sabre
+	if ride:
+		ignored.append_array(ride.body_rids())
+	chance *= Cover.measure(get_world_3d(), from, target.global_position, target.posture, ignored).hit_factor()
 	var scene := get_tree().current_scene as Node3D
 	if scene == null:
 		scene = get_parent() as Node3D

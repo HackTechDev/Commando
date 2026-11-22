@@ -161,6 +161,8 @@ var wary_left: float = 0.0
 ## Points de la fouille en cours et point visé.
 var _search_points: Array[Vector3] = []
 var _search_index: int = 0
+## Couverture de sa cible au dernier tir (mise au point, tests).
+var last_cover: Cover
 ## Chargeurs laissés à sa mort (armé, avec des cartouches) : -1 tant qu'il
 ## n'est pas mort ; ensuite, ce qu'il en reste au sol (0 : tout ramassé).
 const DROP_MAGAZINES := 1
@@ -1332,11 +1334,21 @@ func _try_fire(delta: float, to_target: Vector3) -> void:
 		# Un camarade en bouclier humain : il ne tire pas.
 		hesitations += 1
 		return
+	# Cible en partie à couvert (caisse, muret, angle de mur) : plus dure à
+	# toucher ; la balle manquée finit souvent dans l'abri.
+	var ignored: Array[RID] = [get_rid(), _target.get_rid()]
+	var ride := _target.get(&"riding") as Sabre
+	if ride:
+		ignored.append_array(ride.body_rids())
+	last_cover = Cover.measure(get_world_3d(), muzzle, _target.global_position, _target.posture, ignored)
+	chance *= last_cover.hit_factor()
 	var hit := randf() < chance
 	var scene := get_tree().current_scene as Node3D
-	if not hit:
+	if not hit and last_cover.miss_hits_cover():
+		aim = ShotImpact.land(scene, muzzle, last_cover.hidden_point, ignored)
+	elif not hit:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
-		aim = ShotImpact.land(scene, muzzle, aim + side, [get_rid(), _target.get_rid()] as Array[RID])
+		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)
 	# Un bouclier levé sur la trajectoire arrête la balle.
 	var stop := Commando.shield_in_the_way(get_tree(), muzzle, aim)
 	Tracer.spawn(scene, muzzle, aim if stop == Vector3.INF else stop)

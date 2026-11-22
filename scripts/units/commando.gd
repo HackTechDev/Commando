@@ -120,6 +120,8 @@ static var auto_parry: bool = false
 var profile: OperatorProfile
 
 var is_selected: bool = false
+## Couverture de sa cible au dernier tir (mise au point, tests).
+var last_cover: Cover
 ## Cartouches dans le chargeur engagé.
 var ammo_in_magazine: int = 0
 ## Cartouches en réserve.
@@ -1811,18 +1813,24 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	var muzzle := global_position + Vector3.UP * _weapon_height() + forward * 0.7
 	var aim := enemy.global_position + Vector3.UP * 1.2
 	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(distance / fire_range(), 0.0, 1.0)) * steadiness()
+	var ignored: Array[RID] = [get_rid(), enemy.get_rid()]
+	if airborne_in:
+		ignored.append_array(airborne_in.body_rids())
+	if riding:
+		ignored.append_array(riding.body_rids())
+	if hostage:
+		ignored.append(hostage.get_rid())
+	# Ennemi en partie à couvert : plus dur à toucher, et la balle manquée
+	# finit souvent dans l'abri.
+	last_cover = Cover.measure(get_world_3d(), muzzle, enemy.global_position, SoldierModel.Posture.STANDING, ignored)
+	chance *= last_cover.hit_factor()
 	var hit := randf() < chance
 	var scene := get_tree().current_scene as Node3D
-	if not hit:
+	if not hit and last_cover.miss_hits_cover():
+		aim = ShotImpact.land(scene, muzzle, last_cover.hidden_point, ignored)
+	elif not hit:
 		var side := global_basis.x * (0.5 + randf() * 0.5) * (1.0 if randf() < 0.5 else -1.0)
 		# La balle manquée file jusqu'au premier obstacle derrière la cible.
-		var ignored: Array[RID] = [get_rid(), enemy.get_rid()]
-		if airborne_in:
-			ignored.append_array(airborne_in.body_rids())
-		if riding:
-			ignored.append_array(riding.body_rids())
-		if hostage:
-			ignored.append(hostage.get_rid())
 		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)
 	else:
 		ShotImpact.hit(scene, enemy, aim, muzzle, stats.damage_at(distance), false)

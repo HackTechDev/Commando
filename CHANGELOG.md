@@ -1471,3 +1471,9 @@
 - Sauvegarde rapide : quantité restante des lots de la carte et chargeur de chaque ennemi.
 - Vérifié en jeu sur le bac à sable (opérateur à sec, grenades partagées entre deux opérateurs, opérateur déjà pourvu, trousse ramassée puis utilisée, chargeur d'un ennemi abattu, rien pour un mannequin sans arme, sauvegarde rapide) et par un rendu des quatre modèles. La suite GUT n'a pas été lancée.
 
+## Couverture (2.12)
+
+- Derrière une caisse, un muret ou à l'angle d'un mur, une cible est plus dure à toucher : la chance de toucher dépend de la part du corps visible depuis l'arme (`Cover`), et une balle manquée finit souvent dans l'abri.
+- S'applique aux tirs des ennemis, des opérateurs et des pick-up armés.
+- Vérifié en jeu sur le bac à sable, 200 tirs par cas à 8-9 m : 56 % de touchés à découvert, 33 % debout derrière une caisse (moitié du corps visible), 40 % à l'angle d'un mur (deux tiers), aucun accroupi derrière la caisse ; balles manquées arrêtées par la caisse ou le mur. La suite GUT n'a pas été lancée.
+
