@@ -42,6 +42,9 @@ var objectives: Objectives
 var objectives_panel: ObjectivesPanel
 var minimap: Minimap
 var options: OptionsPanel
+## Date et heure de l'opération, et chronomètre (en haut à droite, avant
+## l'alerte).
+var operation_label: Label
 
 
 func _ready() -> void:
@@ -121,6 +124,7 @@ func _ready() -> void:
 ## Objectifs (d'après le catalogue des niveaux), leur journal en haut à
 ## droite, et la minicarte en haut à gauche.
 func _build_mission_panels() -> void:
+	_build_operation_clock()
 	var level := get_parent() as Node3D
 	var key := ""
 	if level is LevelRoot:
@@ -140,6 +144,37 @@ func _build_mission_panels() -> void:
 	if level:
 		minimap.setup(level, key)
 	minimap.position = Vector2(16, 44)
+
+
+func _build_operation_clock() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "OperationPanel"
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.tooltip_text = "Date et heure du lancement de l'opération, et sa durée (le chronomètre s'arrête pendant les pauses)."
+	operation_label = Label.new()
+	operation_label.name = "OperationLabel"
+	operation_label.add_theme_font_size_override(&"font_size", 13)
+	operation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	panel.add_child(operation_label)
+	var top_right := _controller.get_node_or_null(^"TopRight")
+	if top_right:
+		top_right.add_child(panel)
+		top_right.move_child(panel, 0)
+	_update_operation_clock()
+
+
+## Texte de l'horloge : « Opération du 22/11/2026 à 14:32 » et la durée.
+func _update_operation_clock() -> void:
+	var clock := OperationClock.of(get_tree())
+	if operation_label == null:
+		return
+	operation_label.get_parent().visible = clock != null
+	if clock:
+		operation_label.text = "Opération du %s\nDurée  %s" % [clock.date_text(), clock.duration_text()]
+
+
+func _process(_delta: float) -> void:
+	_update_operation_clock()
 
 
 ## Recommence la mission : la scène du niveau est rechargée.

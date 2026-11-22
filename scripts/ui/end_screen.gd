@@ -20,6 +20,8 @@ var success: bool = false
 var message: String = ""
 var _title: Label
 var _message: Label
+## Date et durée de l'opération (`OperationClock`).
+var _duration: Label
 var _restart: Button
 var _was_paused: bool = false
 ## Déjà affiché une fois : un second événement de fin ne le rouvre pas.
@@ -53,6 +55,10 @@ func show_result() -> void:
 	_title.text = "MISSION RÉUSSIE" if success else "MISSION ÉCHOUÉE"
 	_title.add_theme_color_override(&"font_color", Color(0.45, 0.9, 0.5) if success else Color(1.0, 0.35, 0.3))
 	_message.text = message
+	var clock := OperationClock.of(get_tree())
+	_duration.visible = clock != null
+	if clock:
+		_duration.text = "Opération du %s — durée %s" % [clock.date_text(), clock.duration_text()]
 	_was_paused = get_tree().paused
 	get_tree().paused = true
 	visible = true
@@ -104,6 +110,11 @@ func _build() -> void:
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.add_theme_font_size_override(&"font_size", 18)
 	column.add_child(_message)
+	_duration = Label.new()
+	_duration.name = "Duration"
+	_duration.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_duration.add_theme_color_override(&"font_color", Color(0.7, 0.75, 0.8))
+	column.add_child(_duration)
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override(&"separation", 10)

@@ -1512,3 +1512,10 @@
 
 - Ctrl + chiffre (rangée du haut) sélectionne l'opérateur et centre la caméra sur lui (action `select_focus` de l'InputMap, Ctrl par défaut). Le chiffre seul ne fait que sélectionner, comme avant.
 - Aide en jeu et README mis à jour. Vérifié en jeu.
+
+## Date, heure et durée de l'opération
+
+- En haut à droite, avant l'alerte : « Opération du 22/11/2026 à 14:32 » (lancement de la mission, heure locale) et un chronomètre de la durée (temps de jeu, arrêté pendant les pauses).
+- L'écran de fin rappelle la date et la durée de l'opération. La sauvegarde rapide les garde.
+- Vérifié en jeu (rendus du HUD et de l'écran de fin ; chronomètre arrêté en pause, rendu au rechargement).
+
