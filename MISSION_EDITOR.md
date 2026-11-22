@@ -211,7 +211,7 @@ Pour jouer la mission depuis le jeu complet, lancez le projet (F5) : « Raid sur
 Les missions de série s'ouvrent comme les autres : `scenes/levels/<dossier>/<dossier>.tscn`. Deux cas :
 
 - **Carte écrite à la main ou par le greffon** (Terrain d'essai, Escorte, cartes UFO:AI…) : modifiez-la librement, puis enregistrez.
-- **Carte générée** : le dock affiche en orange le générateur qui l'écrit, par exemple `tools/gen_wadi.py`. Une carte modifiée dans l'éditeur ne doit plus être régénérée. Le générateur le sait : il refuse d'écraser une carte modifiée depuis sa génération (ou une carte sans empreinte, comme le Didacticiel, retouché à la main) et l'indique. `MAPKIT_FORCE=1 python3 tools/gen_wadi.py` l'écrase quand même, en perdant les modifications. Une fois une carte reprise dans l'éditeur, elle devient la source : retirez son générateur du dépôt.
+- **Cartes de série** : toutes se modifient dans l'éditeur ; leur scène est la source (elles n'ont plus de générateur, § 6).
 
 Les cartes UFO:AI (Entraînement A et B, Gare du désert) s'affichent dans l'éditeur, mais leurs tuiles sont construites à chaque ouverture. Seuls les éléments ajoutés à la scène sont enregistrés.
 
@@ -358,7 +358,7 @@ L'annulation et le rétablissement viennent de Godot (`EditorUndoRedoManager`), 
 2. **Les décors procéduraux sont invisibles dans l'éditeur.** Les bâtiments, gardes (`SoldierModel`), invités, passants, voitures, Sabre, convertible, etc. sont construits par leur script au lancement. Seuls `ladder.gd` et `low_wall.gd` sont `@tool`. Il faut les rendre `@tool` un par un, en ne gardant dans l'éditeur que la construction du modèle : pas de déplacement, d'IA, de bruit ni de groupes (garde `Engine.is_editor_hint()`).
    - Les cartes UFO:AI (`UfoMapLevel`) sont aussi construites au chargement : il faut un aperçu, construit dans l'éditeur sans être enregistré dans la scène.
    - Les textures externes (`TextureLibrary`) : même chose. C'est le point 101 a) d'`IMPROVEMENTS.md`.
-3. **18 cartes sont générées** par `tools/gen_*.py` (`MapBuilder`). Une carte modifiée dans l'éditeur, puis régénérée, perdrait ses modifications. Voir § 6.
+3. **18 cartes étaient générées** par `tools/gen_*.py` (`MapBuilder`). Une carte modifiée dans l'éditeur, puis régénérée, aurait perdu ses modifications. Voir § 6 : elles ont depuis été reprises dans l'éditeur.
 
 ### 2. Le greffon
 
@@ -414,3 +414,5 @@ Après la première version : copier-coller entre missions, dessin des routes au
 - **Retrait au cas par cas** : une carte reprise dans l'éditeur devient la source ; son générateur est ensuite retiré du dépôt.
 
 Fait à l'étape 3 : la scène porte le nom de son générateur et son empreinte (`metadata/generator`, `metadata/generated_hash` sur la racine). Une scène sans empreinte n'est pas écrasée non plus : c'est le cas du didacticiel, retouché à la main après sa génération. `MAPKIT_FORCE=1` force l'écriture.
+
+**Sort des cartes (point 8.5 b) : toutes reprises dans l'éditeur.** Chacune des 17 cartes à empreinte a été ouverte dans l'éditeur, enregistrée, puis comparée à la scène générée, nœud par nœud et propriété par propriété (`tools/editor_check/check_all.sh`) : identiques. Les scènes enregistrées par l'éditeur, sans leurs métadonnées de génération, sont devenues la source, et les 18 générateurs (didacticiel compris) ont quitté le dépôt (l'historique git les garde). Une carte se modifie désormais dans l'éditeur. Restent `tools/mapkit.py` et `tools/gen_mission_template.py`, qui écrivent le gabarit des nouvelles missions ; l'avertissement du dock reste en place pour une carte qui aurait de nouveau un générateur (`tools/gen_<dossier>.py`).

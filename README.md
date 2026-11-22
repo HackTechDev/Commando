@@ -132,7 +132,7 @@ Un greffon de l'éditeur Godot (`addons/mission_editor`, activé dans le projet)
 - **Vérifier** : équipe, objectifs et leurs cibles, trajets des rondes, nombre de gardes (au-delà de 40, la carte ralentit), chemins depuis le premier opérateur vers chaque cible et l'extraction, par les échelles, portes, murets et fenêtres, et à défaut par une corde de grappin (indique d'où la lancer) ; placement : opérateurs vus dès le départ, unités dans un obstacle ou superposées, caisses qui se chevauchent, éléments hors du terrain ou loin des limites de la caméra, points de ronde inaccessibles. Un clic sur un problème sélectionne le nœud en cause. Lancée aussi à chaque enregistrement (case à cocher), résumée sous le titre du dock.
 - **Essayer** : enregistre la scène et la lance seule.
 - Les raccourcis se changent dans Éditeur > Paramètres de l'éditeur > Raccourcis (« mission_editor »).
-- **Cartes générées** : 17 cartes de série sont écrites par `tools/gen_*.py`. Le dock le signale, et un générateur refuse d'écraser une carte modifiée depuis sa génération (`MAPKIT_FORCE=1` pour l'écraser quand même).
+- **Cartes de série** : elles se modifient dans l'éditeur, leur scène est la source (les générateurs `tools/gen_*.py` ont été retirés ; seul reste celui du gabarit des nouvelles missions, `tools/gen_mission_template.py`).
 
 Vérification sans toucher au projet : `tools/editor_check/check_all.sh` ouvre les missions dans l'éditeur (dans une copie), les enregistre et les compare aux originales.
 

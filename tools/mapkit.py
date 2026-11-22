@@ -1,4 +1,6 @@
-"""Outils communs aux générateurs de cartes (`tools/gen_*.py`).
+"""Outils de génération de cartes : aujourd'hui le gabarit des nouvelles
+missions (`tools/gen_mission_template.py`) ; les cartes de série, reprises
+dans l'éditeur de mission, n'ont plus de générateur.
 
 Une carte se décrit avec `MapBuilder` : décor, unités, ennemis, véhicules,
 puis `write()` écrit la scène `.tscn`. La scène écrite porte le nom du

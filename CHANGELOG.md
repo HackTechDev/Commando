@@ -1430,3 +1430,9 @@
 - Vérification : bâtiment sans pièce, ouverture loin des murs, escalier hors des pièces de son étage.
 - Vérifié (`tools/editor_check/step86a.gd`, puis en jeu) : extractions sur le plateau, dans la seconde pièce et à l'étage toutes atteintes, dans la vérification comme en jeu (rampe, porte intérieure, escalier) ; coupe au rez-de-chaussée puis à l'étage. La suite GUT n'a pas été lancée.
 
+## Cartes de série reprises dans l'éditeur (8.5 b)
+
+- Les 17 cartes générées (Base aérienne, Pont aérien, Embuscade, Feux éteints, Convoi de nuit, Ligne de front, Héliportage, Nid de frelons, Kasbah, Escorte motorisée, Nuit sans lune, Patrouille Sabre, Réception, Col silencieux, Enlèvement, La Tour, Oued sec) sont désormais des scènes enregistrées par l'éditeur Godot, sans métadonnées de génération : elles se modifient dans l'éditeur de mission, sans avertissement du dock.
+- Leurs générateurs `tools/gen_*.py` et celui du didacticiel sont retirés du dépôt ; restent `tools/mapkit.py` et `tools/gen_mission_template.py` (gabarit des nouvelles missions).
+- Vérifié carte par carte (`tools/editor_check/check_all.sh` puis `compare.gd`) : chaque scène reprise est identique à la scène générée, nœud par nœud et propriété par propriété, aux deux métadonnées de génération près. La suite GUT n'a pas été lancée.
+
