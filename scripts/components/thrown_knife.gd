@@ -109,10 +109,7 @@ func _arrive() -> void:
 		_plant(_target)
 		return
 	else:
-		if is_instance_valid(_target) and not _target.is_dead:
-			# La lame tombe près de lui : il l'entend et va voir.
-			if _target.global_position.distance_to(global_position) <= MISS_NOISE_RADIUS:
-				_target.startle(global_position)
+		# La lame tombe : qui l'entend (la cible, près d'elle) va voir.
 		EventBus.noise_emitted.emit(global_position, MISS_NOISE_RADIUS, &"knife")
 		Sfx.play_at(&"clink", global_position, -4.0)
 	_land(rest)

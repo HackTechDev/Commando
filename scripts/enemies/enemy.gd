@@ -5,7 +5,8 @@ extends CharacterBody3D
 ## Machine à états minimale (jalon M3) :
 ## - PATROL : suit les points du `patrol_path` avec une pause à chacun
 ##   (ou garde son poste s'il n'a pas de chemin) ;
-## - SUSPICIOUS : la jauge de détection monte, il s'arrête et regarde la cible ;
+## - SUSPICIOUS : la jauge de détection monte, il s'arrête et regarde la cible,
+##   ou va voir d'où vient un bruit (activité `INVESTIGATE`) ;
 ## - ALERT : cible repérée. Il la poursuit jusqu'à portée de tir et tire tant
 ##   qu'il la voit ; s'il la perd, il court à sa dernière position connue,
 ##   y attend `alert_memory` secondes, puis reprend sa patrouille ;
@@ -20,6 +21,9 @@ extends CharacterBody3D
 ## son état : inoffensif, mais toujours conscient.
 
 enum State { PATROL, SUSPICIOUS, ALERT, STUNNED, GRABBED }
+## Ce qu'il fait, en plus de son état de vigilance (`State`) :
+## - INVESTIGATE : il va voir d'où vient un bruit (méfiant) et regarde autour.
+enum Activity { NONE, INVESTIGATE }
 
 signal state_changed(state: State)
 
@@ -115,8 +119,16 @@ var shots_blocked: int = 0
 ## Cris d'appel à l'aide poussés.
 var cries: int = 0
 var _help_left: float = 0.0
+## Activité en cours (`Activity`).
+var activity: Activity = Activity.NONE
 ## Va voir d'où vient un bruit (`_last_seen`), méfiant.
-var investigating: bool = false
+var investigating: bool:
+	get:
+		return activity == Activity.INVESTIGATE
+## Dernier bruit entendu (type), pour la mise au point et les tests.
+var last_heard: StringName = &""
+## Enquête sur un bruit faible : il se tourne vers lui sans y aller.
+var _look_only: bool = false
 ## Opérateur qui porte ce corps (mort ou assommé), ou null.
 var carrier: Commando
 ## Véhicule sur le plateau duquel il est couché (corps, ou otage ligoté), ou
@@ -180,6 +192,7 @@ var _launch_reload: float = 0.0
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
 @onready var _vision: VisionComponent = $VisionComponent
+@onready var _hearing: HearingComponent = get_node_or_null(^"HearingComponent")
 @onready var _gauge: Node3D = $Gauge
 @onready var _gauge_back: MeshInstance3D = $Gauge/Back
 @onready var _gauge_fill: MeshInstance3D = $Gauge/Fill
@@ -196,7 +209,11 @@ func _ready() -> void:
 	health.reset(stats.max_health)
 	ammo = stats.ammo
 	health.died.connect(_on_died)
-	EventBus.noise_emitted.connect(_on_noise)
+	if _hearing == null:
+		_hearing = HearingComponent.new()
+		_hearing.name = "HearingComponent"
+		add_child(_hearing)
+	_hearing.heard.connect(_on_heard)
 	_model.set_armed(armed)
 	_model.set_launcher(launcher)
 	if documents:
@@ -221,6 +238,8 @@ func _ready() -> void:
 	if blind:
 		_vision.visible = false
 		_vision.set_physics_process(false)
+		# Mannequin : sourd aussi.
+		_hearing.deaf = true
 
 
 func _physics_process(delta: float) -> void:
@@ -593,17 +612,6 @@ func _cancel_melee() -> void:
 	_model.staggered = false
 
 
-## Bruit suspect tout près (couteau tombé) : il devient méfiant et regarde
-## vers `at`, sans passer en alerte.
-func startle(at: Vector3) -> void:
-	if is_dead or state == State.STUNNED or state == State.GRABBED or state == State.ALERT:
-		return
-	detection = maxf(detection, stats.suspicion_threshold + 0.15)
-	_last_seen = at
-	_update_state()
-	_update_feedback()
-
-
 ## Appel à l'aide : les ennemis qui l'entendent accourent.
 func _cry_for_help() -> void:
 	cries += 1
@@ -612,31 +620,47 @@ func _cry_for_help() -> void:
 	EventBus.noise_emitted.emit(global_position, HELP_RADIUS_MUFFLED if muffled else HELP_RADIUS, &"help")
 
 
-## Ouïe : réaction aux bruits entendus (dans leur rayon). Seul l'appel à
-## l'aide d'un camarade est écouté pour l'instant : il passe en alerte et
-## court vers lui.
-func _on_noise(at: Vector3, radius: float, type: StringName) -> void:
+## Force en dessous de laquelle un bruit qui intrigue (pas un appât) le
+## fait seulement se tourner vers lui.
+const FAINT_NOISE := 0.3
+
+
+## Ouïe (`HearingComponent`) : bruit entendu en `at`. Un bruit d'alerte
+## (cri, appel à l'aide, tir, explosion) le fait courir à la source, en
+## alerte ; un bruit qui intrigue (pas, lame, coup, appât) le rend méfiant
+## et l'envoie voir. Déjà en alerte, il ne répond qu'aux appels à l'aide,
+## et seulement s'il n'a pas de cible en vue.
+func _on_heard(at: Vector3, type: StringName, reaction: HearingComponent.Reaction, loudness: float) -> void:
 	if is_dead or disarmed or state == State.STUNNED or state == State.GRABBED:
 		return
-	if global_position.distance_to(at) > radius:
+	if global_position.distance_to(at) < 0.3:
 		return
-	match type:
-		&"help":
+	last_heard = type
+	if state == State.ALERT:
+		if type == &"help" and _target == null:
 			hear_alarm(at)
-		&"distraction":
-			investigate(at)
+		return
+	if reaction == HearingComponent.Reaction.ALARM:
+		hear_alarm(at)
+	else:
+		investigate(at, type != &"distraction" and loudness < FAINT_NOISE)
 
 
-## Bruit suspect en `at` (caillou) : méfiant, il va voir, regarde autour
-## de lui, puis reprend sa ronde. En alerte, il n'en tient pas compte.
-func investigate(at: Vector3) -> void:
+## Bruit suspect en `at` (caillou, pas, lame) : méfiant, il va voir
+## (`look_only` : il se tourne seulement vers le bruit), regarde autour de
+## lui, puis reprend sa ronde. En alerte, il n'en tient pas compte.
+func investigate(at: Vector3, look_only: bool = false) -> void:
 	if state == State.ALERT:
 		return
 	detection = maxf(detection, stats.suspicion_threshold + 0.15)
 	_last_seen = at
-	investigating = true
+	# Un bruit faible n'annule pas une enquête déjà en route.
+	if not (look_only and activity == Activity.INVESTIGATE and not _look_only):
+		_look_only = look_only
+	activity = Activity.INVESTIGATE
 	_look_left = INVESTIGATE_LOOK_TIME
-	_agent.target_position = at
+	if not _look_only:
+		_agent.target_position = at
 	_update_state()
 	_update_feedback()
 
@@ -644,30 +668,30 @@ func investigate(at: Vector3) -> void:
 ## Méfiant : il regarde vers ce qui l'a intrigué ; s'il enquête sur un
 ## bruit, il s'y rend d'abord au pas.
 func _suspicious(delta: float) -> Vector3:
-	if not investigating:
+	if activity != Activity.INVESTIGATE:
 		_face(_last_seen - global_position, delta)
 		return Vector3.ZERO
 	if _agent.target_position.distance_to(_last_seen) > 0.3:
 		_agent.target_position = _last_seen
-	if not stationary and not _agent.is_navigation_finished():
+	if not stationary and not _look_only and not _agent.is_navigation_finished():
 		var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
 		to_next.y = 0.0
 		if to_next.length_squared() > 0.0001:
 			_face(to_next, delta)
 			return to_next.normalized() * stats.patrol_speed
-	# Poste fixe : il ne s'en va pas, mais se tourne vers le bruit et le
-	# surveille.
-	if stationary:
+	# Poste fixe, ou bruit faible : il ne s'en va pas, mais se tourne vers le
+	# bruit et le surveille.
+	if stationary or _look_only:
 		_face(_last_seen - global_position, delta)
 		_look_left -= delta
 		if _look_left <= 0.0:
-			investigating = false
+			activity = Activity.NONE
 		return Vector3.ZERO
 	# Sur place : il balaie les alentours du regard.
 	_look_left -= delta
 	rotation.y += delta * 0.9 * sin(_look_left * 1.6)
 	if _look_left <= 0.0:
-		investigating = false
+		activity = Activity.NONE
 	return Vector3.ZERO
 
 
@@ -780,6 +804,7 @@ func _wake_up() -> void:
 
 func _on_died() -> void:
 	is_dead = true
+	activity = Activity.NONE
 	_traversal.cancel()
 	Sfx.play_at(&"fall", global_position, -2.0)
 	_cancel_melee()
@@ -850,7 +875,7 @@ func _update_detection(delta: float) -> void:
 	else:
 		detection -= delta / stats.forget_time
 		# Tant qu'il enquête, il reste méfiant.
-		if investigating:
+		if activity == Activity.INVESTIGATE:
 			detection = maxf(detection, stats.suspicion_threshold)
 	detection = clampf(detection, 0.0, 1.0)
 
@@ -873,7 +898,7 @@ func _update_state() -> void:
 	elif state == State.SUSPICIOUS and previous == State.PATROL:
 		Sfx.play_at(&"suspicious", global_position + Vector3.UP * 2.0, -4.0)
 	if state != State.SUSPICIOUS:
-		investigating = false
+		activity = Activity.NONE
 	if state == State.ALERT:
 		alert_age = 0.0
 		_fire_cooldown = stats.aim_time
@@ -1269,6 +1294,7 @@ func save_state() -> Dictionary:
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
 		"rockets": rockets, "documents": documents,
+		"activity": activity, "look_only": _look_only, "look_left": _look_left,
 	}
 
 
@@ -1309,6 +1335,11 @@ func load_state(data: Dictionary) -> void:
 	detection = data.get("detection", detection)
 	_last_seen = data.get("last_seen", _last_seen)
 	_memory_left = data.get("memory_left", _memory_left)
+	activity = data.get("activity", Activity.NONE)
+	_look_only = data.get("look_only", false)
+	_look_left = data.get("look_left", 0.0)
+	if activity == Activity.INVESTIGATE and not _look_only:
+		_agent.target_position = _last_seen
 	_update_feedback()
 	state_changed.emit(state)
 

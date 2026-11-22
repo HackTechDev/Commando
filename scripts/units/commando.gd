@@ -196,6 +196,7 @@ var _reload_left: float = 0.0
 ## Ordre en cours et geste en cours (null : aucun).
 var _order: CommandoAction
 var _gesture: CommandoAction
+var _run_noise_left: float = 0.0
 var _gear_noise_left: float = 0.0
 ## Réglages des deux armes, et munitions (chargeur, réserve) de celle rangée.
 var _primary_stats: UnitStats
@@ -942,9 +943,18 @@ func _most_wounded_nearby() -> Commando:
 	return best
 
 
-## Charge lourde : l'équipement s'entrechoque quand l'opérateur court.
+## Course : bruit des pas (`run`), et, avec une charge lourde, de
+## l'équipement qui s'entrechoque (`gear`).
 func _update_gear_noise(delta: float) -> void:
-	if stats.gear_noise_radius <= 0.0 or not _wants_to_move or not _running or posture != SoldierModel.Posture.STANDING:
+	if not _wants_to_move or not _running or posture != SoldierModel.Posture.STANDING:
+		_run_noise_left = 0.0
+		return
+	if stats.run_noise_radius > 0.0:
+		_run_noise_left -= delta
+		if _run_noise_left <= 0.0:
+			_run_noise_left = stats.run_noise_interval
+			EventBus.noise_emitted.emit(global_position, stats.run_noise_radius, &"run")
+	if stats.gear_noise_radius <= 0.0:
 		return
 	_gear_noise_left -= delta
 	if _gear_noise_left <= 0.0:

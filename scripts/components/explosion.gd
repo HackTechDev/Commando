@@ -3,14 +3,12 @@ extends Node3D
 ## Explosion d'une grenade ou d'une charge : dégâts qui décroissent avec la
 ## distance (ennemis et opérateurs à découvert, les murs protègent), décor
 ## touché (murs fragiles abattus, caisses et bidons détruits ou projetés), grand
-## bruit, ennemis plus loin rendus méfiants, éclair et boule de feu.
+## bruit (les ennemis qui l'entendent donnent l'alerte), éclair et boule de feu.
 
 ## Véhicules au sol que le souffle abîme (`blast(at, radius)`).
 const VEHICLES_GROUP := &"ground_vehicles"
 
 const MASK_OCCLUDERS := 0b10
-## Les ennemis jusqu'à ce multiple du rayon, épargnés, deviennent méfiants.
-const STARTLE_FACTOR := 3.0
 const DURATION := 0.7
 
 var radius: float = 4.0
@@ -40,8 +38,6 @@ func _blast(damage: float, noise_radius: float) -> void:
 		var distance := enemy.global_position.distance_to(global_position)
 		if distance < radius and _exposed(center, enemy.global_position + Vector3.UP):
 			enemy.take_hit(damage_at(distance, radius, damage), global_position)
-		elif distance < radius * STARTLE_FACTOR:
-			enemy.startle(global_position)
 	for unit in Unit.targets(get_tree()):
 		var distance := unit.global_position.distance_to(global_position)
 		if distance < radius and _exposed(center, unit.global_position + Vector3.UP):

@@ -100,6 +100,10 @@ extends Resource
 @export var heal_amount: float = 50.0
 @export var heal_time: float = 2.0
 @export var heal_range: float = 2.2
+## Bruit des pas en course, debout (rayon, 0 : aucun ; type `run`), et
+## intervalle entre deux bruits. Marcher, accroupi ou couché, est silencieux.
+@export var run_noise_radius: float = 2.5
+@export var run_noise_interval: float = 0.5
 ## Bruit de l'équipement qui s'entrechoque en courant (rayon, 0 : aucun) et
 ## intervalle entre deux bruits (charge lourde).
 @export var gear_noise_radius: float = 0.0

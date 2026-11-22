@@ -1441,3 +1441,11 @@
 - Section « Informations » : chaque objectif se modifie sur place, avec son identifiant (liste du jeu), son texte, ↑ / ↓ pour l'ordre du journal et ✕ pour le retirer ; « + Ajouter un objectif… » en ajoute un, avec un texte proposé. L'état des cibles (✓, ⚠, •) reste affiché à côté. Chaque changement s'annule par Ctrl+Z ; `mission.tres` est enregistré avec la scène.
 - Vérifié (`tools/editor_check/step84c.gd`, Kasbah) : texte, identifiant, ajout, ordre, retrait, annulation et rétablissement, enregistrement, puis objectifs relus dans le catalogue du jeu dans le nouvel ordre. La suite GUT n'a pas été lancée.
 
+## Ouïe des ennemis (2.1)
+
+- `HearingComponent` sur chaque ennemi : il entend tous les bruits du jeu dans leur rayon, réduit de moitié à travers un mur. Cris, appels à l'aide, coups de feu (y compris ceux des opérateurs, selon le silencieux) et explosions donnent l'alerte : il court à la source.
+- Pas de course, coups, couteau raté qui tombe, réception d'un saut, caisse poussée, équipement lourd, fumigène et appâts le rendent méfiant : il va voir (activité `Investigate`), regarde autour de lui, puis reprend sa ronde. Un bruit faible le fait seulement se tourner.
+- Nouveau bruit : les pas d'un opérateur qui court debout (2,5 m) ; la marche reste silencieuse. La réception d'un saut (4 m) est désormais entendue (point 7.8 a).
+- `Enemy.startle` est retiré : le couteau raté et les ennemis épargnés par une explosion réagissent à leur bruit.
+- Vérifié en jeu sur le bac à sable (pas dans le dos, coup faible, caillou, tir derrière le bunker et à découvert, explosion, couteau tombé, cri, fumigène trop loin, sauvegarde rapide pendant une enquête). La suite GUT n'a pas été lancée.
+

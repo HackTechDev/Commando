@@ -21,10 +21,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 ## 2. Gameplay d'infiltration
 
-- **2.1 Ouïe des ennemis** (§5.2) : beaucoup d'actions émettent déjà `noise_emitted`, mais personne n'écoute. C'est le cas des tirs, des coups, du cri d'une victime poignardée de face, du couteau raté, des explosions et de l'équipement d'un opérateur trop chargé qui court. *Amorcé avec 3.12 : `Enemy._on_noise` écoute le bus, mais ne réagit qu'à l'appel à l'aide (`&"help"`) et au caillou de diversion (`&"distraction"`, 3.7 b) ; les autres bruits restent à brancher.*
-  - **a)** ajouter un `HearingComponent` et le bruit de la course ;
-  - **b)** ajouter un état `Investigate`, qui envoie l'ennemi voir la source ;
-  - **c)** remplacer `Enemy.startle` (couteau raté, ennemis épargnés par une explosion), qui n'est qu'un palliatif.
 - **2.3 Ligoter un ennemi assommé** (§5.4), pour qu'il ne se réveille pas.
 - **2.4 États `Search` et `Return`** : après avoir perdu sa cible, l'ennemi repart aujourd'hui comme si de rien n'était. Il devrait fouiller la zone, puis reprendre sa ronde avec une vigilance accrue.
 - **2.5 Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
@@ -88,7 +84,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** la lecture de la carte sur un fil de travail est trois fois plus lente que sur le fil principal (2,2 s contre 0,7 s) : à creuser ;
   - **c)** charger les modèles 3D des cartes (`misc_model`, `.md2`) pour l'épave de `fighter_crash` et les autres cartes.
 - **7.8 Murs escaladables, suite** :
-  - **a)** réaction des sentinelles au bruit de réception d'un saut (signalé, pas encore écouté) ;
   - **b)** corniches sur les murs minces ou en biais (aujourd'hui, seules les cases entières du dessus comptent) ;
   - **c)** vue et tir depuis le haut d'un mur à régler (portée de vision, couverture).
 - **7.9 Cartes UFO:AI, suite** :
