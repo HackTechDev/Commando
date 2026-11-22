@@ -75,7 +75,7 @@ _data = {
 }
 point_count = 2
 
-[node name="Kasbah" type="Node3D" unique_id=495174093]
+[node name="CentreDeCommandement" type="Node3D" unique_id=495174093]
 script = ExtResource("10")
 dress_code = &"casual"
 

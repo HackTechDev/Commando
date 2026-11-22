@@ -1531,3 +1531,7 @@
 - Aide en jeu et README mis à jour ; tests du tir adaptés (l'opérateur est placé à portée).
 - Vérifié en jeu : immobile hors de portée, tir dès que la cible est à portée ; le stand de tir du didacticiel reste à portée (13 m pour 16 m).
 
+## « Kasbah » devient « Centre de commandement »
+
+- La carte s'appelle désormais « Centre de commandement » (titre du menu, de la préparation et du HUD ; nœud racine de la scène). Le dossier `scenes/levels/kasbah/` garde son nom, pour ne pas perdre la dernière partie enregistrée ni les aperçus du menu.
+
