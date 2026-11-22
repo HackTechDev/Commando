@@ -1202,12 +1202,13 @@ func _return(delta: float) -> Vector3:
 
 ## Regard en patrouille, au calme : coups d'œil sur le côté de temps en
 ## temps (plus souvent et plus loin s'il est vigilant), balayage de gauche à
-## droite pendant les pauses et les haltes. Ailleurs, il regarde droit
+## droite pendant les pauses et les haltes (pas un garde fixe, qui n'a que
+## les coups d'œil). Ailleurs, il regarde droit
 ## devant (ce qu'il fixe, il le fixe du corps entier).
 func _update_gaze(delta: float, walking: bool) -> void:
 	var goal := 0.0
 	var calm := state == State.PATROL and activity == Activity.NONE and not _model.aiming
-	if calm and not walking and not _waypoints.is_empty() and (_pause_left > 0.0 or _halt_left > 0.0):
+	if calm and not walking and not stationary and not _waypoints.is_empty() and (_pause_left > 0.0 or _halt_left > 0.0):
 		_scan_phase += delta * SCAN_SPEED
 		goal = sin(_scan_phase) * deg_to_rad(SCAN_ANGLE)
 		_glance_left = 0.0
@@ -1247,7 +1248,8 @@ func _patrol(delta: float) -> Vector3:
 	if _agent.is_navigation_finished():
 		_pause_left = maxf(stats.patrol_pause, 0.01)
 		return Vector3.ZERO
-	_halt_wait -= delta
+	# Pas de halte pour un garde fixe : il ne fait pas sa ronde.
+	_halt_wait -= 0.0 if stationary else delta
 	if _halt_wait <= 0.0:
 		_halt_wait = randf_range(HALT_INTERVAL.x, HALT_INTERVAL.y)
 		_halt_left = randf_range(HALT_TIME.x, HALT_TIME.y)
