@@ -1221,3 +1221,13 @@
   - Les 54 figurants immobiles de Réception coûtaient environ 26 ms de script par image. La carte passe de 7 à 27 images/s, mesurées pendant qu'une autre partie tournait sur la machine.
   - Avec les 32 passants en marche, elle reste autour de 22 à 29 images/s, autant qu'avec les passants immobiles.
 - Vérifié par scénario : cap dans le sens de la marche, demi-tour au bout du trottoir, arrêt devant Alpha puis reprise. La suite GUT n'a pas été lancée.
+
+## Voitures dans les rues
+
+- Nouveau décor `TrafficCar` : une berline procédurale aux couleurs variées, avec caisse, capot et coffre, habitacle vitré, pare-chocs, phares, feux arrière, rétroviseurs et roues qui tournent.
+  - Elle roule en boucle sur la voie de droite et accélère ou freine en douceur.
+  - Elle s'arrête à environ 1,5 m de son pare-chocs devant quelqu'un (opérateur, garde, VIP, passant) ou derrière une autre voiture. Au bout de 5 s, elle passe quand même.
+  - Comme les figurants, elle ne voit rien, ne fait pas de bruit qui compte et ne barre pas le passage.
+- `MapBuilder.traffic` décale le tracé des rues sur la voie de droite et arrondit les virages aux carrefours.
+- Réception : 7 voitures sur trois boucles (autour de l'îlot de la placette, autour de la résidence, grand tour en sens inverse).
+- Vérifié par scénario : 6,8 m/s de moyenne sur sa boucle ; arrêt devant Alpha posé sur la voie (pare-chocs à 1,4 m), reprise quand il s'écarte ; prise de virage dans un carrefour. La suite GUT n'a pas été lancée.

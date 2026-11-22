@@ -312,6 +312,50 @@ class MapBuilder:
                               f'start_at = {total * (i + 0.5) / count:.2f}\nbackward = {"true" if i % 2 else "false"}\n'
                               f'speed = {pace:.2f}\nlook_seed = {seed}\ndress = &"{dress}"')
 
+    def traffic(self, loop, count, lane=1.75, radius=4.0, cruise=7.0):
+        """Voitures civiles qui roulent en boucle sur les rues : `loop`, axes
+        des rues (x, z) dans le sens de circulation ; le tracé est décalé sur
+        la voie de droite (`lane`) et arrondi aux virages (`radius`)."""
+        n = len(loop)
+        dirs = []
+        for i in range(n):
+            (x1, z1), (x2, z2) = loop[i], loop[(i + 1) % n]
+            d = math.hypot(x2 - x1, z2 - z1)
+            dirs.append(((x2 - x1) / d, (z2 - z1) / d))
+        # Coins de la voie de droite : intersection des deux segments décalés.
+        corners = []
+        for i in range(n):
+            (ax, az), (bx, bz) = dirs[i - 1], dirs[i]
+            ra, rb = (-az, ax), (-bz, bx)
+            px, pz = loop[i]
+            cross = ax * bz - az * bx
+            if abs(cross) < 1e-6:
+                corners.append((px + ra[0] * lane, pz + ra[1] * lane))
+                continue
+            # p + ra*lane + a*s = p + rb*lane + b*u
+            dx, dz = (rb[0] - ra[0]) * lane, (rb[1] - ra[1]) * lane
+            s = (dx * bz - dz * bx) / cross
+            corners.append((px + ra[0] * lane + ax * s, pz + ra[1] * lane + az * s))
+        pts = []
+        for i in range(n):
+            (ax, az), (bx, bz) = dirs[i - 1], dirs[i]
+            cx, cz = corners[i]
+            p0 = (cx - ax * radius, cz - az * radius)
+            p2 = (cx + bx * radius, cz + bz * radius)
+            for k in range(5):
+                t = k / 4
+                pts.append(((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * cx + t * t * p2[0],
+                            (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * cz + t * t * p2[1]))
+        total = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(pts, pts[1:] + pts[:1]))
+        script = self.script("res://scripts/props/traffic_car.gd")
+        packed = ", ".join(f"{x:.2f}, 0, {z:.2f}" for x, z in pts)
+        for i in range(count):
+            name = self._name("Car")
+            seed = (self._count["Car"] * 7331 + 5) % 100003
+            self.decor.append(f'[node name="{name}" type="Node3D" parent="Decor"]\nscript = {script}\n'
+                              f'points = PackedVector3Array({packed})\nstart_at = {total * i / count:.2f}\n'
+                              f'cruise = {cruise * (0.85 + 0.3 * ((seed % 5) / 4)):.2f}\nlook_seed = {seed}')
+
     def vip(self, x, z, name="Vip", display="VIP"):
         scene = self.scene("res://scenes/units/vip.tscn")
         self.units.append(f'[node name="{name}" parent="Units" instance={scene}]\ntransform = {tf(x, z)}\ndisplay_name = "{display}"')

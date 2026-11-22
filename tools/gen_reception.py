@@ -77,6 +77,10 @@ m.passersby([(52 + SW, -100), (52 + SW, 100)], 4)
 m.passersby([(52 - SW, -56), (52 - SW, 35)], 2)
 m.passersby([(-100, -62 + SW), (100, -62 + SW)], 3)
 m.passersby([(-100, -62 - SW), (100, -62 - SW)], 2)
+# Circulation : voitures en boucle sur les rues, voie de droite.
+m.traffic([(-52, 40), (52, 40), (52, 84), (-52, 84)], 2)
+m.traffic([(-52, -62), (-52, 40), (52, 40), (52, -62)], 3)
+m.traffic([(-52, 84), (52, 84), (52, -62), (-52, -62)], 2)
 
 m.team([("Alpha", -96, 90), ("Bravo", -94, 90), ("Charlie", -92, 90)], nvg=False,
        primary={"Alpha": "smg", "Bravo": "smg", "Charlie": "smg"}, clothing="suit")
