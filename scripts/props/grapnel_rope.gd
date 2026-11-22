@@ -42,10 +42,12 @@ var _from: Vector3
 ## (un point en hauteur, sur le maillage de navigation). Renvoie
 ## {"ok": bool, "reason": String, "foot", "top", "anchor": Vector3,
 ## "faces": Array[Vector4] (x, z de la face, sol bas, sol haut ; du pied au
-## sommet)}.
-static func plan(world: World3D, from: Vector3, target: Vector3) -> Dictionary:
+## sommet)}. `map` : carte de navigation à consulter (à défaut, celle du
+## monde ; la vérification de l'éditeur de mission passe la sienne).
+static func plan(world: World3D, from: Vector3, target: Vector3, map: RID = RID()) -> Dictionary:
 	var result := {"ok": false, "reason": ""}
-	var map := world.navigation_map
+	if not map.is_valid():
+		map = world.navigation_map
 	var space := world.direct_space_state
 	var on_mesh := NavigationServer3D.map_get_closest_point(map, target)
 	if Vector2(on_mesh.x - target.x, on_mesh.z - target.z).length() > 0.6 or absf(on_mesh.y - target.y) > 1.0:

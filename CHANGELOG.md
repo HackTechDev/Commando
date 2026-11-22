@@ -1390,3 +1390,8 @@
 
 - « Vérifier » tourne seule après chaque enregistrement de la mission (case « Vérifier à chaque enregistrement », cochée par défaut). Son résumé (erreurs, avertissements, origine et heure) s'affiche sous le titre du dock ; un clic montre le rapport. Un enregistrement pendant une vérification en relance une à la fin.
 - Vérifié (`tools/editor_check/step82c.gd`, Terrain d'essai) : résumé après Ctrl+S, faute signalée à l'enregistrement, seconde vérification en attente puis lancée, case décochée sans effet, résumé masqué à l'ouverture d'une autre scène. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : chemins par une corde de grappin (8.2 d)
+
+- « Vérifier » cherche, pour une cible qu'aucun chemin n'atteint, une corde de grappin lancée depuis la zone atteinte par l'équipe, avec le calcul du jeu (`GrapnelRope.plan`, qui accepte désormais une carte de navigation). Trouvée, la ligne (✓) dit d'où la lancer et rappelle d'emporter un grappin ; sinon l'avertissement précise « même avec une corde de grappin ».
+- Vérifié (`tools/editor_check/step82d.gd`, Terrain d'essai) : extraction sur un toit de 3,2 m sans échelle, atteinte par corde ; cible sur un toit de 10,2 m, signalée. En jeu, Alpha, avec un grappin, monte sur ce toit par la corde. Sur les 23 cartes de série, rien de nouveau, moins d'une seconde par carte. La suite GUT n'a pas été lancée.

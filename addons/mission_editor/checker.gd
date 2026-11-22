@@ -6,7 +6,9 @@ extends RefCounted
 ## chaque cible et vers l'extraction (navigation calculée dans l'éditeur,
 ## comme `build/shots/check_map.sh` le fait en jeu), avec les passages que
 ## le jeu crée au lancement : échelles, portes (même verrouillées : on les
-## crochète ou on les fait sauter), murets, fenêtres (`link_ends`).
+## crochète ou on les fait sauter), murets, fenêtres (`link_ends`) ; à
+## défaut, par une corde de grappin (`GrapnelRope.plan`, le calcul du jeu),
+## si un grappin est emporté.
 ## Contrôles de placement : opérateurs vus par un garde dès le départ,
 ## unités dans un obstacle ou les unes dans les autres, caisses et cibles
 ## qui se chevauchent, éléments hors du terrain ou loin des limites de la
@@ -26,6 +28,13 @@ const MAX_OPERATORS := 6
 ## Une cible plus loin que cela (m) de la zone praticable, mesuré depuis le
 ## bord de son emprise au sol (convertible, bâtiment…), n'est pas atteignable.
 const REACH := 2.0
+## Corde de grappin : points d'arrivée essayés autour de la cible (pas et
+## rayon de la grille, nombre au plus), directions et distances de lancer.
+const ROPE_GRID := 3.0
+const ROPE_RADIUS := 24.0
+const ROPE_TOPS := 60
+const ROPE_DIRECTIONS := 12
+const ROPE_DISTANCES: Array[float] = [2.0, 4.0, 6.0, 8.0, 10.0]
 ## Images d'attente au plus pour que la carte de navigation soit prête.
 const SYNC_FRAMES := 120
 ## Couches du sol et du décor (obstacles où une unité ne peut pas être).
@@ -176,6 +185,7 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 		if zone is ExtractionZone:
 			goals[zone] = goals.get(zone, []) + ["extraction"]
 	var blocked := 0
+	var roped := 0
 	for node: Node3D in goals:
 		var target := node.global_position
 		if node is Passerby or node is TrafficCar:
@@ -185,10 +195,16 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 		var reached := not path.is_empty() and path[path.size() - 1].distance_to(near) < 0.5
 		var flat := _distance_to_footprint(node, near)
 		if not reached or flat > REACH:
+			var rope := _rope_route(root, map, from, near)
+			if not rope.is_empty():
+				roped += 1
+				var foot: Vector3 = rope["foot"]
+				report.append(_item("ok", "%s (%s) : atteint par une corde de grappin, lancée depuis (%.0f, %.0f) jusqu'à %.1f m (grappin à emporter)." % [node.name, ", ".join(goals[node]), foot.x, foot.z, (rope["top"] as Vector3).y - foot.y], [node]))
+				continue
 			blocked += 1
-			report.append(_item("warning", "%s (%s) : pas de chemin à pied depuis %s (les cordes de grappin ne sont pas comptées)." % [node.name, ", ".join(goals[node]), start.name], [node]))
+			report.append(_item("warning", "%s (%s) : pas de chemin depuis %s, même avec une corde de grappin." % [node.name, ", ".join(goals[node]), start.name], [node]))
 	if blocked == 0 and not goals.is_empty():
-		report.append(_item("ok", "Chemins depuis %s : %d cibles atteignables (%d passages : échelles, portes, murets, fenêtres)." % [start.name, goals.size(), links.size()]))
+		report.append(_item("ok", "Chemins depuis %s : %d cibles atteignables%s (%d passages : échelles, portes, murets, fenêtres)." % [start.name, goals.size(), ", dont %d par une corde de grappin" % roped if roped > 0 else "", links.size()]))
 	_check_patrols(root, map, report)
 	_free(map, nav_region, links)
 
@@ -362,6 +378,60 @@ static func _label(node: Node) -> String:
 	while owner_node.owner and owner_node.owner != owner_node.get_tree().edited_scene_root and owner_node.get_parent():
 		owner_node = owner_node.get_parent()
 	return String(owner_node.name)
+
+
+## Corde de grappin qui mène de la zone atteinte depuis `from` à celle de
+## `goal` (points de la carte `map`) : {"foot", "top"} du premier lancer
+## trouvé (`GrapnelRope.plan`), ou vide. Une seule corde, pas de chaîne.
+static func _rope_route(root: Node, map: RID, from: Vector3, goal: Vector3) -> Dictionary:
+	var world := (root as Node3D).get_world_3d()
+	var space := world.direct_space_state
+	# Points d'arrivée : la zone de la cible, autour d'elle.
+	var tops: Array[Vector3] = [goal]
+	var seen := {}
+	var steps := int(ROPE_RADIUS / ROPE_GRID)
+	for dx in range(-steps, steps + 1):
+		for dz in range(-steps, steps + 1):
+			var point := NavigationServer3D.map_get_closest_point(map, goal + Vector3(dx * ROPE_GRID, 0.0, dz * ROPE_GRID))
+			var key := Vector3i(point.snapped(Vector3.ONE * ROPE_GRID * 0.5))
+			if seen.has(key) or point.y - from.y < GrapnelRope.MIN_HEIGHT or not _joins(map, point, goal):
+				continue
+			seen[key] = true
+			tops.append(point)
+	tops.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(from) < b.distance_squared_to(from))
+	var reachable := {}
+	for top: Vector3 in tops.slice(0, ROPE_TOPS):
+		for i in ROPE_DIRECTIONS:
+			var angle := TAU * i / ROPE_DIRECTIONS
+			for distance: float in ROPE_DISTANCES:
+				var guess := top + Vector3(cos(angle), 0.0, sin(angle)) * distance
+				var foot := NavigationServer3D.map_get_closest_point(map, Vector3(guess.x, from.y, guess.z))
+				if top.y - foot.y < GrapnelRope.MIN_HEIGHT:
+					continue
+				var key := Vector3i(foot.snapped(Vector3.ONE * 0.5) * 2.0)
+				if not reachable.has(key):
+					reachable[key] = _joins(map, from, foot)
+				if not reachable[key]:
+					continue
+				# `plan` attend, comme en jeu, des points sur les surfaces (la
+				# navigation flotte un peu au-dessus).
+				var route := GrapnelRope.plan(world, _surface(space, foot), _surface(space, top), map)
+				if route["ok"] and _joins(map, from, route["foot"]):
+					return route
+	return {}
+
+
+## Point `point` de la navigation ramené sur la surface au-dessous.
+static func _surface(space: PhysicsDirectSpaceState3D, point: Vector3) -> Vector3:
+	var height := GrapnelRope._ground_height(space, point, point.y + 0.5, point.y - 2.0)
+	return Vector3(point.x, height, point.z) if not is_nan(height) else point
+
+
+## Un chemin mène-t-il de `a` à `b` sur la carte `map` ?
+static func _joins(map: RID, a: Vector3, b: Vector3) -> bool:
+	var end := NavigationServer3D.map_get_closest_point(map, b)
+	var path := NavigationServer3D.map_get_path(map, NavigationServer3D.map_get_closest_point(map, a), end, true)
+	return not path.is_empty() and path[path.size() - 1].distance_to(end) < 0.5
 
 
 ## Distance horizontale (m) du point `point` à l'emprise au sol de `node`
