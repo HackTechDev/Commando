@@ -624,6 +624,11 @@ func _select_by_index(index: int) -> void:
 	for unit in _commandos():
 		if unit.unit_index == index:
 			SelectionManager.select([unit] as Array[Commando], Input.is_action_pressed(&"select_additive"))
+			# Ctrl (`select_focus`) : la caméra se centre aussi sur lui.
+			if Input.is_action_pressed(&"select_focus"):
+				var rig := get_viewport().get_camera_3d().get_parent() as CameraRig
+				if rig:
+					rig.focus_on(unit.global_position)
 			return
 
 

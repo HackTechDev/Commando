@@ -1507,3 +1507,8 @@
 - Comportement inchangé. Vérifié en jeu, ancien et nouveau code avec la même graine : corps à corps, poussée, saisie et cris, réveil, fouille, sauvegarde rapide et rechargement, désarmement donnent les mêmes résultats ; ouïe, fouille et retour, regard et couverture se comportent comme avant. Seul changement : un ennemi assommé ou saisi n'affiche plus d'activité périmée.
 - Tests mis à jour pour les nouveaux noms (`stunned_behavior.left`, `brawler.cooldown`, `patrol_behavior.pause_left`, `EnemyBrawler.FLANK_ANGLE`, `EnemyGrabbed.HELP_DELAY`). Suite GUT non lancée.
 
+
+## Ctrl + chiffre : sélection et centrage
+
+- Ctrl + chiffre (rangée du haut) sélectionne l'opérateur et centre la caméra sur lui (action `select_focus` de l'InputMap, Ctrl par défaut). Le chiffre seul ne fait que sélectionner, comme avant.
+- Aide en jeu et README mis à jour. Vérifié en jeu.

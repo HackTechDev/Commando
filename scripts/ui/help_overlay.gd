@@ -10,7 +10,7 @@ extends Control
 const SECTIONS: Array = [
 	["Sélection et déplacement", [
 		[["Clic gauche", "rectangle"], "Sélectionner (Maj : ajouter)"],
-		[["1 à 6"], "Sélectionner un opérateur (rangée des chiffres)"],
+		[["1 à 6"], "Sélectionner un opérateur (rangée des chiffres ; Ctrl : centrer la caméra sur lui)"],
 		[["Clic droit"], "Marcher (double clic : courir)"],
 		[["Clic droit en route"], "S'arrêter (le clic suivant : nouvelle destination)"],
 		[["Clic droit sur une caisse"], "Grimper dessus"],
