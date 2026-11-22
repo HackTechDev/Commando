@@ -9,7 +9,9 @@ extends CharacterBody3D
 ##   ou va voir d'où vient un bruit (activité `INVESTIGATE`) ;
 ## - ALERT : cible repérée. Il la poursuit jusqu'à portée de tir et tire tant
 ##   qu'il la voit ; s'il la perd, il court à sa dernière position connue,
-##   y attend `alert_memory` secondes, puis reprend sa patrouille ;
+##   y attend `alert_memory` secondes, puis fouille les environs (activité
+##   `SEARCH`, méfiant) et rentre à sa ronde ou à son poste (`RETURN`),
+##   plus vigilant pendant `WARY_TIME` secondes ;
 ## - STUNNED : assommé, au sol, aveugle, pendant `stun_duration` secondes. Au
 ##   réveil, il passe en alerte sur place, puis reprend sa patrouille ;
 ##   au contact de sa cible, il frappe au lieu de tirer ; un coup paré ou
@@ -22,8 +24,10 @@ extends CharacterBody3D
 
 enum State { PATROL, SUSPICIOUS, ALERT, STUNNED, GRABBED }
 ## Ce qu'il fait, en plus de son état de vigilance (`State`) :
-## - INVESTIGATE : il va voir d'où vient un bruit (méfiant) et regarde autour.
-enum Activity { NONE, INVESTIGATE }
+## - INVESTIGATE : il va voir d'où vient un bruit (méfiant) et regarde autour ;
+## - SEARCH : cible perdue, il fouille autour du dernier point connu (méfiant) ;
+## - RETURN : fouille finie, il rentre à sa ronde ou à son poste (calme).
+enum Activity { NONE, INVESTIGATE, SEARCH, RETURN }
 
 signal state_changed(state: State)
 
@@ -84,6 +88,17 @@ const HELP_RADIUS := 12.0
 const HELP_RADIUS_MUFFLED := 4.0
 ## Bruit de diversion : il va voir, puis regarde autour de lui ce temps (s).
 const INVESTIGATE_LOOK_TIME := 3.0
+## Fouille : points visités (le dernier point connu, puis d'autres au
+## hasard dans ce rayon, en m), regard autour de chacun (s), allure
+## (multiple de celle de la ronde).
+const SEARCH_POINTS := 3
+const SEARCH_RADIUS := 7.0
+const SEARCH_LOOK_TIME := 2.5
+const SEARCH_SPEED := 1.4
+## Après une fouille, vigilance accrue pendant ce temps (s) : la jauge de
+## détection monte `WARY_GAIN` fois plus vite.
+const WARY_TIME := 90.0
+const WARY_GAIN := 1.5
 ## Tous les ennemis, vivants ou non (corps à découvrir).
 const ALL_GROUP := &"all_enemies"
 ## Ennemis qui portent des documents (`documents`).
@@ -129,6 +144,14 @@ var investigating: bool:
 var last_heard: StringName = &""
 ## Enquête sur un bruit faible : il se tourne vers lui sans y aller.
 var _look_only: bool = false
+## Vigilance accrue restante (s), après une fouille.
+var wary_left: float = 0.0
+## Points de la fouille en cours et point visé.
+var _search_points: Array[Vector3] = []
+var _search_index: int = 0
+## Poste d'origine (place et cap), où rentre un garde sans ronde.
+var _home := Vector3.ZERO
+var _home_yaw: float = 0.0
 ## Opérateur qui porte ce corps (mort ou assommé), ou null.
 var carrier: Commando
 ## Véhicule sur le plateau duquel il est couché (corps, ou otage ligoté), ou
@@ -234,6 +257,8 @@ func _ready() -> void:
 			_waypoints.append(patrol_path.to_global(patrol_path.curve.get_point_position(i)))
 	if not _waypoints.is_empty():
 		_agent.target_position = _waypoints[0]
+	_home = global_position
+	_home_yaw = rotation.y
 	_update_feedback()
 	if blind:
 		_vision.visible = false
@@ -269,6 +294,7 @@ func _physics_process(delta: float) -> void:
 		_apply_velocity(Vector3.ZERO)
 		return
 	alert_age += delta
+	wary_left = maxf(wary_left - delta, 0.0)
 	_update_detection(delta)
 	_look_for_bodies(delta)
 	_update_state()
@@ -306,7 +332,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		match state:
 			State.PATROL:
-				horizontal = _patrol(delta)
+				horizontal = _return(delta) if activity == Activity.RETURN else _patrol(delta)
 			State.SUSPICIOUS:
 				horizontal = _suspicious(delta)
 			State.ALERT:
@@ -652,6 +678,11 @@ func _on_heard(at: Vector3, type: StringName, reaction: HearingComponent.Reactio
 func investigate(at: Vector3, look_only: bool = false) -> void:
 	if state == State.ALERT:
 		return
+	# En pleine fouille, un bruit net la déplace là où il vient.
+	if activity == Activity.SEARCH:
+		if not look_only:
+			_begin_search(at)
+		return
 	detection = maxf(detection, stats.suspicion_threshold + 0.15)
 	_last_seen = at
 	# Un bruit faible n'annule pas une enquête déjà en route.
@@ -668,6 +699,8 @@ func investigate(at: Vector3, look_only: bool = false) -> void:
 ## Méfiant : il regarde vers ce qui l'a intrigué ; s'il enquête sur un
 ## bruit, il s'y rend d'abord au pas.
 func _suspicious(delta: float) -> Vector3:
+	if activity == Activity.SEARCH:
+		return _search(delta)
 	if activity != Activity.INVESTIGATE:
 		_face(_last_seen - global_position, delta)
 		return Vector3.ZERO
@@ -687,11 +720,11 @@ func _suspicious(delta: float) -> Vector3:
 		if _look_left <= 0.0:
 			activity = Activity.NONE
 		return Vector3.ZERO
-	# Sur place : il balaie les alentours du regard.
+	# Sur place : il balaie les alentours du regard, puis rentre.
 	_look_left -= delta
 	rotation.y += delta * 0.9 * sin(_look_left * 1.6)
 	if _look_left <= 0.0:
-		activity = Activity.NONE
+		_begin_return()
 	return Vector3.ZERO
 
 
@@ -862,6 +895,8 @@ func _update_detection(delta: float) -> void:
 			# Au-delà de la portée (phares d'un véhicule, la nuit) : au plus lent.
 			var closeness := 1.0 if best_zone == VisionComponent.Zone.NEAR else clampf(1.0 - inverse_lerp(config.near_range, config.far_range, best_distance), 0.0, 1.0)
 			var gain := delta / stats.detection_time * lerpf(0.6, 1.6, closeness) * blend
+			if wary_left > 0.0:
+				gain *= WARY_GAIN
 			if blend <= Commando.BLEND_MATCH and best_zone != VisionComponent.Zone.NEAR:
 				detection = maxf(detection, minf(detection + gain, stats.suspicion_threshold * 0.8))
 			else:
@@ -871,11 +906,12 @@ func _update_detection(delta: float) -> void:
 		if _chase_arrived:
 			_memory_left -= delta
 			if _memory_left <= 0.0:
-				detection = 0.0
+				# Cible perdue pour de bon : il fouille les environs.
+				_begin_search(_last_seen)
 	else:
 		detection -= delta / stats.forget_time
-		# Tant qu'il enquête, il reste méfiant.
-		if activity == Activity.INVESTIGATE:
+		# Tant qu'il enquête ou fouille, il reste méfiant.
+		if activity == Activity.INVESTIGATE or activity == Activity.SEARCH:
 			detection = maxf(detection, stats.suspicion_threshold)
 	detection = clampf(detection, 0.0, 1.0)
 
@@ -884,9 +920,9 @@ func _update_state() -> void:
 	var new_state := State.PATROL
 	if detection >= 1.0:
 		new_state = State.ALERT
-	elif state == State.ALERT and detection > 0.0:
+	elif state == State.ALERT and detection > 0.0 and activity != Activity.SEARCH:
 		new_state = State.ALERT
-	elif detection >= stats.suspicion_threshold or (state == State.SUSPICIOUS and detection > 0.0):
+	elif activity == Activity.SEARCH or detection >= stats.suspicion_threshold or (state == State.SUSPICIOUS and detection > 0.0):
 		new_state = State.SUSPICIOUS
 	if new_state == state:
 		return
@@ -897,7 +933,8 @@ func _update_state() -> void:
 		Sfx.play_at(&"alert", global_position + Vector3.UP * 2.0)
 	elif state == State.SUSPICIOUS and previous == State.PATROL:
 		Sfx.play_at(&"suspicious", global_position + Vector3.UP * 2.0, -4.0)
-	if state != State.SUSPICIOUS:
+	# L'alerte interrompt tout ; le calme revenu, seul le retour continue.
+	if state == State.ALERT or (state == State.PATROL and activity != Activity.RETURN):
 		activity = Activity.NONE
 	if state == State.ALERT:
 		alert_age = 0.0
@@ -905,6 +942,8 @@ func _update_state() -> void:
 		_chase_arrived = false
 		if _target:
 			EventBus.unit_spotted.emit(_target, self)
+	elif state == State.PATROL and activity == Activity.RETURN:
+		_agent.target_position = _return_goal()
 	elif state == State.PATROL and not _waypoints.is_empty():
 		_agent.target_position = _waypoints[_waypoint_index]
 	state_changed.emit(state)
@@ -1016,6 +1055,116 @@ func set_patrol(points: Array[Vector3]) -> void:
 ## Points de la ronde (vide pour un ennemi fixe).
 func patrol_points() -> Array[Vector3]:
 	return _waypoints
+
+
+## Cible perdue (ou bruit entendu en pleine fouille) : il fouille autour de
+## `center`, méfiant : d'abord `center`, puis d'autres points au hasard,
+## en regardant autour de chacun. Il sera plus vigilant ensuite.
+func _begin_search(center: Vector3) -> void:
+	activity = Activity.SEARCH
+	wary_left = WARY_TIME
+	_last_seen = center
+	_search_points = search_points(center)
+	_search_index = 0
+	_look_left = SEARCH_LOOK_TIME
+	_chase_arrived = false
+	detection = stats.suspicion_threshold + 0.1
+	if not stationary:
+		_agent.target_position = _search_points[0]
+	_update_state()
+	_update_feedback()
+
+
+## Points d'une fouille autour de `center`, sur le maillage de navigation.
+func search_points(center: Vector3) -> Array[Vector3]:
+	var points: Array[Vector3] = [center]
+	var map := _agent.get_navigation_map()
+	var nav_ready := map.is_valid() and NavigationServer3D.map_get_iteration_id(map) > 0
+	for i in SEARCH_POINTS - 1:
+		# Directions réparties autour du centre, distances au hasard.
+		var angle := TAU * (float(i) + randf() * 0.6) / float(SEARCH_POINTS - 1)
+		var spot := center + Vector3(sin(angle), 0.0, cos(angle)) * randf_range(SEARCH_RADIUS * 0.4, SEARCH_RADIUS)
+		if nav_ready:
+			spot = NavigationServer3D.map_get_closest_point(map, spot)
+		points.append(spot)
+	return points
+
+
+## Fouille : il va (d'un bon pas) à chaque point et y regarde autour de lui,
+## puis rentre. Un garde fixe fouille du regard, sur place.
+func _search(delta: float) -> Vector3:
+	if _search_index >= _search_points.size():
+		_begin_return()
+		return Vector3.ZERO
+	var spot := _search_points[_search_index]
+	if not stationary and not _agent.is_navigation_finished() \
+			and Vector2(spot.x - global_position.x, spot.z - global_position.z).length() > 0.6:
+		var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
+		to_next.y = 0.0
+		if to_next.length_squared() > 0.0001:
+			_face(to_next, delta)
+			return to_next.normalized() * stats.patrol_speed * SEARCH_SPEED
+	# Sur place : regard qui balaie les alentours, puis point suivant.
+	if stationary:
+		_face(spot - global_position, delta)
+	else:
+		rotation.y += delta * 1.1 * sin(_look_left * 2.2)
+	_look_left -= delta
+	if _look_left <= 0.0:
+		_search_index += 1
+		_look_left = SEARCH_LOOK_TIME
+		if _search_index < _search_points.size() and not stationary:
+			_agent.target_position = _search_points[_search_index]
+	return Vector3.ZERO
+
+
+## Fouille finie : il rentre, au calme (mais vigilant).
+func _begin_return() -> void:
+	activity = Activity.RETURN
+	_search_points.clear()
+	detection = 0.0
+	_update_state()
+	_agent.target_position = _return_goal()
+	_update_feedback()
+
+
+## Où il rentre : le point de sa ronde le plus proche (il la reprend de
+## là), ou son poste.
+func _return_goal() -> Vector3:
+	if _waypoints.is_empty():
+		return _home
+	var best := 0
+	for i in _waypoints.size():
+		if _waypoints[i].distance_squared_to(global_position) < _waypoints[best].distance_squared_to(global_position):
+			best = i
+	_waypoint_index = best
+	return _waypoints[best]
+
+
+## Retour : il marche jusqu'à sa ronde (qu'il reprend) ou à son poste (où
+## il reprend son cap).
+func _return(delta: float) -> Vector3:
+	if stationary:
+		_face(Vector3(-sin(_home_yaw), 0.0, -cos(_home_yaw)), delta)
+		if absf(angle_difference(rotation.y, _home_yaw)) < 0.05:
+			activity = Activity.NONE
+		return Vector3.ZERO
+	if not _agent.is_navigation_finished():
+		var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
+		to_next.y = 0.0
+		if to_next.length_squared() > 0.0001:
+			_face(to_next, delta)
+			return to_next.normalized() * stats.patrol_speed
+	if _waypoints.is_empty():
+		# À son poste : il reprend son cap.
+		_face(Vector3(-sin(_home_yaw), 0.0, -cos(_home_yaw)), delta)
+		if absf(angle_difference(rotation.y, _home_yaw)) < 0.05:
+			activity = Activity.NONE
+		return Vector3.ZERO
+	activity = Activity.NONE
+	_pause_left = 0.0
+	_agent.target_position = _waypoints[_waypoint_index]
+	return Vector3.ZERO
 
 
 func _patrol(delta: float) -> Vector3:
@@ -1295,6 +1444,7 @@ func save_state() -> Dictionary:
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
 		"rockets": rockets, "documents": documents,
 		"activity": activity, "look_only": _look_only, "look_left": _look_left,
+		"wary_left": wary_left, "search_points": _search_points.duplicate(), "search_index": _search_index,
 	}
 
 
@@ -1338,8 +1488,15 @@ func load_state(data: Dictionary) -> void:
 	activity = data.get("activity", Activity.NONE)
 	_look_only = data.get("look_only", false)
 	_look_left = data.get("look_left", 0.0)
+	wary_left = data.get("wary_left", 0.0)
+	_search_points.assign(data.get("search_points", []))
+	_search_index = data.get("search_index", 0)
 	if activity == Activity.INVESTIGATE and not _look_only:
 		_agent.target_position = _last_seen
+	elif activity == Activity.SEARCH and _search_index < _search_points.size():
+		_agent.target_position = _search_points[_search_index]
+	elif activity == Activity.RETURN:
+		_agent.target_position = _return_goal()
 	_update_feedback()
 	state_changed.emit(state)
 

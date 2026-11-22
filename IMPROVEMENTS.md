@@ -22,7 +22,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 ## 2. Gameplay d'infiltration
 
 - **2.3 Ligoter un ennemi assommé** (§5.4), pour qu'il ne se réveille pas.
-- **2.4 États `Search` et `Return`** : après avoir perdu sa cible, l'ennemi repart aujourd'hui comme si de rien n'était. Il devrait fouiller la zone, puis reprendre sa ronde avec une vigilance accrue.
 - **2.5 Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
 - **2.6 Plusieurs ennemis et types** : sentinelle fixe qui balaie du regard, officier, chien. Le sandbox n'a qu'un soldat et une cible d'entraînement. On ne peut donc pas tester la coordination : un ennemi qui voit un camarade se faire saisir, plusieurs ennemis au corps à corps.
 - **2.7 Mouvement de tête des ennemis** : pauses et rotations du regard en patrouille, pour rendre les cônes moins prévisibles.

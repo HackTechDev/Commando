@@ -1449,3 +1449,11 @@
 - `Enemy.startle` est retiré : le couteau raté et les ennemis épargnés par une explosion réagissent à leur bruit.
 - Vérifié en jeu sur le bac à sable (pas dans le dos, coup faible, caillou, tir derrière le bunker et à découvert, explosion, couteau tombé, cri, fumigène trop loin, sauvegarde rapide pendant une enquête). La suite GUT n'a pas été lancée.
 
+## Fouille et retour des ennemis (2.4)
+
+- Cible perdue : l'ennemi fouille les environs du dernier point connu (trois points, regard autour de chacun), méfiant, puis rentre au point de sa ronde le plus proche, ou à son poste et à son cap pour un garde sans ronde. Un garde fixe fouille du regard.
+- Après une fouille, il reste plus vigilant pendant 90 s (jauge de détection 1,5 fois plus rapide).
+- Un bruit entendu en pleine fouille la déplace ; une enquête sur un bruit se termine aussi par le retour au poste.
+- Fouille, retour et vigilance sont gardés par la sauvegarde rapide.
+- Vérifié en jeu sur le bac à sable : alerte sans cible, fouille, reprise de la ronde ; garde sans ronde revenu à son poste et à son cap ; caillou ; bruit en pleine fouille ; sauvegarde pendant une fouille ; alerte en 1,2 s au lieu de 1,8 s quand il est vigilant. La suite GUT n'a pas été lancée.
+
