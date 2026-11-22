@@ -99,6 +99,18 @@ const SEARCH_SPEED := 1.4
 ## détection monte `WARY_GAIN` fois plus vite.
 const WARY_TIME := 90.0
 const WARY_GAIN := 1.5
+## Regard en patrouille (le cône de vision suit la tête) : coups d'œil sur
+## le côté (angle en degrés, durée et intervalle en s, tirés au hasard),
+## balayage pendant les pauses, haltes imprévues en route.
+const GLANCE_ANGLE := Vector2(25.0, 55.0)
+const GLANCE_TIME := Vector2(1.0, 1.8)
+const GLANCE_INTERVAL := Vector2(3.0, 8.0)
+const SCAN_ANGLE := 60.0
+const SCAN_SPEED := 1.3
+const HALT_TIME := Vector2(1.5, 3.0)
+const HALT_INTERVAL := Vector2(10.0, 22.0)
+## Vitesse de rotation du regard (rad/s).
+const GAZE_SPEED := 2.2
 ## Tous les ennemis, vivants ou non (corps à découvrir).
 const ALL_GROUP := &"all_enemies"
 ## Ennemis qui portent des documents (`documents`).
@@ -149,6 +161,14 @@ var wary_left: float = 0.0
 ## Points de la fouille en cours et point visé.
 var _search_points: Array[Vector3] = []
 var _search_index: int = 0
+## Lacet du regard par rapport au corps (rad) : le cône de vision le suit.
+var gaze_yaw: float = 0.0
+var _glance_yaw: float = 0.0
+var _glance_left: float = 0.0
+var _glance_wait: float = 0.0
+var _scan_phase: float = 0.0
+var _halt_left: float = 0.0
+var _halt_wait: float = 0.0
 ## Poste d'origine (place et cap), où rentre un garde sans ronde.
 var _home := Vector3.ZERO
 var _home_yaw: float = 0.0
@@ -259,6 +279,8 @@ func _ready() -> void:
 		_agent.target_position = _waypoints[0]
 	_home = global_position
 	_home_yaw = rotation.y
+	_glance_wait = randf_range(GLANCE_INTERVAL.x, GLANCE_INTERVAL.y)
+	_halt_wait = randf_range(HALT_INTERVAL.x, HALT_INTERVAL.y)
 	_update_feedback()
 	if blind:
 		_vision.visible = false
@@ -314,6 +336,8 @@ func _physics_process(delta: float) -> void:
 		_model.look_target = _target.global_position + Vector3.UP * 1.4
 	elif state != State.PATROL:
 		_model.look_target = _last_seen + Vector3.UP * 1.4
+	elif absf(gaze_yaw) > 0.05:
+		_model.look_target = global_position + Vector3.UP * 1.6 + global_basis * Vector3(-sin(gaze_yaw), 0.0, -cos(gaze_yaw)) * 6.0
 	else:
 		_model.look_target = Vector3.INF
 
@@ -339,6 +363,7 @@ func _physics_process(delta: float) -> void:
 				horizontal = _alert(delta)
 	if stationary:
 		horizontal = Vector3.ZERO
+	_update_gaze(delta, horizontal != Vector3.ZERO)
 
 	_vertical_velocity = 0.0 if is_on_floor() else velocity.y - _gravity * delta
 	_wants_to_move = horizontal != Vector3.ZERO
@@ -1167,8 +1192,43 @@ func _return(delta: float) -> Vector3:
 	return Vector3.ZERO
 
 
+## Regard en patrouille, au calme : coups d'œil sur le côté de temps en
+## temps (plus souvent et plus loin s'il est vigilant), balayage de gauche à
+## droite pendant les pauses et les haltes. Ailleurs, il regarde droit
+## devant (ce qu'il fixe, il le fixe du corps entier).
+func _update_gaze(delta: float, walking: bool) -> void:
+	var goal := 0.0
+	var calm := state == State.PATROL and activity == Activity.NONE and not _model.aiming
+	if calm and not walking and not _waypoints.is_empty() and (_pause_left > 0.0 or _halt_left > 0.0):
+		_scan_phase += delta * SCAN_SPEED
+		goal = sin(_scan_phase) * deg_to_rad(SCAN_ANGLE)
+		_glance_left = 0.0
+	elif calm:
+		_scan_phase = 0.0
+		var wary := wary_left > 0.0
+		if _glance_left > 0.0:
+			_glance_left -= delta
+			goal = _glance_yaw
+		else:
+			_glance_wait -= delta * (2.0 if wary else 1.0)
+			if _glance_wait <= 0.0:
+				_glance_wait = randf_range(GLANCE_INTERVAL.x, GLANCE_INTERVAL.y)
+				_glance_left = randf_range(GLANCE_TIME.x, GLANCE_TIME.y)
+				var angle := randf_range(GLANCE_ANGLE.x, GLANCE_ANGLE.y) * (1.2 if wary else 1.0)
+				_glance_yaw = deg_to_rad(angle) * (1.0 if randf() < 0.5 else -1.0)
+	else:
+		_glance_left = 0.0
+		_scan_phase = 0.0
+	gaze_yaw = move_toward(gaze_yaw, goal, GAZE_SPEED * delta)
+	_vision.rotation.y = gaze_yaw
+
+
 func _patrol(delta: float) -> Vector3:
 	if _waypoints.is_empty():
+		return Vector3.ZERO
+	# Halte imprévue en route : il s'arrête et regarde autour de lui.
+	if _halt_left > 0.0:
+		_halt_left -= delta
 		return Vector3.ZERO
 	if _pause_left > 0.0:
 		_pause_left -= delta
@@ -1178,6 +1238,11 @@ func _patrol(delta: float) -> Vector3:
 		return Vector3.ZERO
 	if _agent.is_navigation_finished():
 		_pause_left = maxf(stats.patrol_pause, 0.01)
+		return Vector3.ZERO
+	_halt_wait -= delta
+	if _halt_wait <= 0.0:
+		_halt_wait = randf_range(HALT_INTERVAL.x, HALT_INTERVAL.y)
+		_halt_left = randf_range(HALT_TIME.x, HALT_TIME.y)
 		return Vector3.ZERO
 	var to_next := _walker.next_point(_agent, self, get_physics_process_delta_time()) - global_position
 	to_next.y = 0.0

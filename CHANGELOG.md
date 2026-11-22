@@ -1457,3 +1457,9 @@
 - Fouille, retour et vigilance sont gardés par la sauvegarde rapide.
 - Vérifié en jeu sur le bac à sable : alerte sans cible, fouille, reprise de la ronde ; garde sans ronde revenu à son poste et à son cap ; caillou ; bruit en pleine fouille ; sauvegarde pendant une fouille ; alerte en 1,2 s au lieu de 1,8 s quand il est vigilant. La suite GUT n'a pas été lancée.
 
+## Regard des ennemis en patrouille (2.7)
+
+- Au calme, les ennemis jettent des coups d'œil sur le côté au hasard (25 à 55°), balaient du regard pendant leurs pauses (±60°) et font des haltes imprévues en route. Le cône de vision et la tête suivent le regard.
+- Plus vigilants après une fouille : coups d'œil plus fréquents et plus larges.
+- Vérifié en jeu sur le bac à sable : 6 coups d'œil et 2 haltes en 60 s de ronde ; un opérateur à 50° sur le côté n'est vu que pendant un coup d'œil ; en alerte, le regard revient dans l'axe. La suite GUT n'a pas été lancée.
+
