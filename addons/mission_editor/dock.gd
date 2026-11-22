@@ -80,7 +80,7 @@ var _plan_buttons: HBoxContainer
 var _route_label: Label
 ## Sols proposés pour une nouvelle mission (couleurs dans le greffon,
 ## `GROUNDS`, comme `tools/mapkit.py`).
-const GROUND_LABELS := {"grass": "Herbe", "desert": "Désert", "sand": "Sable", "dirt": "Terre", "rock": "Roche", "urban": "Ville"}
+const GROUND_LABELS := {"grass": "Herbe", "desert": "Désert", "sand": "Sable", "dirt": "Terre", "rock": "Roche", "urban": "Ville", "snow": "Neige"}
 ## Animation : durée de la barre de temps (s, comme `timeline.gd`) et
 ## vitesses proposées.
 const TIMELINE_DURATION := 180.0

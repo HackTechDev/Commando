@@ -1535,3 +1535,11 @@
 
 - La carte s'appelle désormais « Centre de commandement » (titre du menu, de la préparation et du HUD ; nœud racine de la scène). Le dossier devient `scenes/levels/command_center/` (scène `command_center.tscn`).
 
+
+## Carte polaire : « Station polaire »
+
+- Nouvelle mission « Station polaire » (`scenes/levels/polar_station/`), de jour, 110 × 96 m, sur sol enneigé : une station de recherche aux bâtiments rouges dans une enceinte (portail au sud, brèche à l'est), un groupe électrogène à saboter (il éteint les lampadaires), une crête de glace à l'ouest, un lac gelé à l'est, des congères, des sapins. Huit gardes : deux au portail, une ronde dehors, une dedans, un guetteur sur la crête, un au groupe électrogène, un devant le dortoir, un autour du lac. Camouflage conseillé : neige.
+- Lumière froide et brume légère, chute de neige continue.
+- `SnowPine` : sapin enneigé procédural ; le tronc arrête la vue et les balles.
+- `Snowfall` : particules de neige qui suivent la caméra.
+- Éditeur de mission : sol « Neige » pour une nouvelle mission ; « Sapin enneigé » et « Chute de neige » dans la palette (Décor).

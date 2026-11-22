@@ -33,7 +33,7 @@ Le dock « Mission » contient, de haut en bas :
 ### 2. Créer la mission
 
 1. En haut du dock, tapez le nom du dossier : `raid_depot`. Il doit être en minuscules, avec des chiffres et `_`, et commencer par une lettre.
-2. Sur la ligne en dessous, choisissez le terrain : largeur et profondeur (de 40 à 200 m, par pas de 10 ; ici 80 × 80), sol (Herbe, Désert, Sable, Terre, Roche, Ville ; ici Herbe) et **Nuit** (laissez-la décochée : on la règle à l'étape 4).
+2. Sur la ligne en dessous, choisissez le terrain : largeur et profondeur (de 40 à 200 m, par pas de 10 ; ici 80 × 80), sol (Herbe, Désert, Sable, Terre, Roche, Ville, Neige ; ici Herbe) et **Nuit** (laissez-la décochée : on la règle à l'étape 4).
 3. Cliquez sur **Nouvelle mission** (ou appuyez sur Entrée).
 
 Le greffon crée deux fichiers et ouvre la scène :
@@ -228,6 +228,8 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Mur de 6 m, Muret, Caisse, Échelle | 1 clic | `NavigationRegion3D` | |
 | | Haie / buisson | 1 clic | `Decor` | Cachette pour les corps ; `kind` : buisson, eau, abri. |
 | | Lampadaire | 1 clic | `Lamps` | |
+| | Sapin enneigé | 1 clic | `NavigationRegion3D` | Tronc solide (vue, balles), feuillage poudré de neige ; `height`, `variant`. |
+| | Chute de neige | 1 clic | `Decor` | Flocons autour de ce que regarde la caméra ; `flakes`, `wind`. Une seule par carte. |
 | | Immeuble à étages | 1 clic | `NavigationRegion3D` | 3 étages, 14 × 10 m ; `storeys`, `size`, `doors`, `windows` dans l'inspecteur. |
 | | Route, Trottoir, Piste | 2 clics | `Decor` | 9 m, 2,5 m, 4,5 m de large. |
 | Relief et plans | Plateau | 2 clics (coins) | `NavigationRegion3D` | Dessus à 2 m, une rampe au sud ; `height`, `ramps`, `ramp_width`. |

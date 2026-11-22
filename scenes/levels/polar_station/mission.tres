@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_obj"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_info"]
+
+[sub_resource type="Resource" id="Resource_sabotage"]
+script = ExtResource("1_obj")
+id = "sabotage"
+text = "Saboter le groupe électrogène de la station"
+
+[sub_resource type="Resource" id="Resource_extracted"]
+script = ExtResource("1_obj")
+id = "extracted"
+text = "Rejoindre la zone d'extraction, au nord-est"
+
+[sub_resource type="Resource" id="Resource_no_loss"]
+script = ExtResource("1_obj")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_info")
+title = "Station polaire"
+description = "Grand Nord, sous la neige. Une station de recherche aux bâtiments rouges, entourée d'un mur, est gardée par deux sentinelles au portail sud, une ronde dehors et une dedans, un guetteur sur la crête de glace à l'ouest, un garde près du groupe électrogène et un autre devant le dortoir ; un dernier fait le tour du lac gelé, à l'est. Les sapins couvrent l'approche, les congères et les caisses abandonnées aussi. Sabotez le groupe électrogène (Alpha et Bravo ont une charge) : les lampadaires s'éteignent. Sortez par la brèche du mur est et rejoignez l'extraction au nord-est. Tenue blanche conseillée."
+camo = "snow"
+time = "13:40"
+order = 205
+objectives = Array[ExtResource("1_obj")]([SubResource("Resource_sabotage"), SubResource("Resource_extracted"), SubResource("Resource_no_loss")])

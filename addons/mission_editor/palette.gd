@@ -55,6 +55,8 @@ static func entries() -> Array[Dictionary]:
 		{"id": "crate", "label": "Caisse", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "bush", "label": "Haie / buisson", "category": "Décor", "parent": "Decor", "tool": "point"},
 		{"id": "lamp", "label": "Lampadaire", "category": "Décor", "parent": "Lamps", "tool": "point"},
+		{"ground": true, "id": "pine", "label": "Sapin enneigé", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "snowfall", "label": "Chute de neige", "category": "Décor", "parent": "Decor", "tool": "point"},
 		{"id": "ladder", "label": "Échelle", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "tower", "label": "Immeuble à étages", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
@@ -180,6 +182,12 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			nodes.append(bush)
 		"lamp":
 			nodes.append(_lamp())
+		"pine":
+			var pine := _scripted("StaticBody3D", "res://scripts/props/snow_pine.gd", "Pine")
+			pine.set("variant", randi() % 8)
+			nodes.append(pine)
+		"snowfall":
+			nodes.append(_scripted("GPUParticles3D", "res://scripts/levels/snowfall.gd", "Snowfall"))
 		"tower":
 			var tower := _scripted("Node3D", "res://scripts/props/tower.gd", "Tower")
 			tower.set("storeys", 3)

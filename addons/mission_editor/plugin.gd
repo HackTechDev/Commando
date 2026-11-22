@@ -49,6 +49,7 @@ const GROUNDS := {
 	"grass": [Color(0.3, 0.36, 0.22), Color(0.36, 0.32, 0.24)],
 	"urban": [Color(0.36, 0.36, 0.35), Color(0.22, 0.22, 0.23)],
 	"rock": [Color(0.42, 0.4, 0.37), Color(0.33, 0.3, 0.26)],
+	"snow": [Color(0.86, 0.89, 0.93), Color(0.68, 0.71, 0.75)],
 }
 ## Gabarit : équipe à 6 m du bord sud, extraction à 6 m du bord nord,
 ## caméra à 10 m du bord sud, limites de la caméra à 2 m des bords.
