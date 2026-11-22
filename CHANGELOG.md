@@ -1496,3 +1496,8 @@
 - Menu de démarrage : bouton « Configuration », qui ouvre la page du même nom. Pour l'instant, une option : son activé ou coupé (enregistrée, appliquée aussitôt ; les volumes des options sont gardés).
 - Vérifié en jeu (rendu du menu et de la page ; son coupé puis rétabli ; Échap). Tests du menu au vert.
 
+## Page « Configuration » : volume
+
+- Son activé, une barre règle le volume général (0 à 100 %, enregistré ; c'est le même réglage que « Volume général » des options). Son coupé, la barre est masquée.
+- Vérifié en jeu (rendu de la page, barre masquée son coupé).
+
