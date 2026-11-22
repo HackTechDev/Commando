@@ -368,6 +368,21 @@ static func _operator_count(scene_root: Node) -> int:
 	return units.get_children().filter(func(n: Node) -> bool: return n.scene_file_path == COMMANDO_SCENE).size()
 
 
+## Emprise du terrain (maillages de `NavigationRegion3D/Ground`) ; AABB
+## vide sans terrain.
+static func ground_bounds(root: Node) -> AABB:
+	var ground := root.get_node_or_null(^"NavigationRegion3D/Ground") if root else null
+	var bounds := AABB()
+	if ground == null:
+		return bounds
+	var found := false
+	for item in ground.find_children("*", "VisualInstance3D", true, false):
+		var box: AABB = (item as VisualInstance3D).global_transform * (item as VisualInstance3D).get_aabb()
+		bounds = box if not found else bounds.merge(box)
+		found = true
+	return bounds
+
+
 ## Chemin de ronde par les points `route` sous `PatrolPaths`, au premier
 ## nom libre (le garde ou le pick-up le désigne par ce nom).
 static func _patrol_path(scene_root: Node, route: PackedVector3Array) -> Path3D:

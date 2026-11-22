@@ -23,6 +23,8 @@ signal route_point_added
 signal route_point_removed
 ## Carte de couverture des gardes affichée ou non.
 signal coverage_toggled(on: bool)
+## Limites de la caméra à caler sur le terrain.
+signal camera_fit_requested
 ## Nouvelle mission dans `scenes/levels/<folder>/`.
 signal new_mission_requested(folder: String)
 ## Boutons « Vérifier » et « Essayer ».
@@ -169,6 +171,11 @@ func _init() -> void:
 			dress_code_selected.emit(DRESS_CODES[index]))
 	dress_row.add_child(_dress)
 	_body.add_child(dress_row)
+	var fit := Button.new()
+	fit.text = "Caler les limites de la caméra sur le terrain"
+	fit.tooltip_text = "Limites de déplacement de la caméra (cadre bleu dans la vue) à 2 m des bords du terrain. Pour les retoucher, sélectionnez CameraRig et tirez les poignées des bords."
+	fit.pressed.connect(func() -> void: camera_fit_requested.emit())
+	_body.add_child(fit)
 	_coverage = CheckBox.new()
 	_coverage.text = "Couverture des gardes"
 	_coverage.tooltip_text = "Colore le sol selon ce que voient les gardes (postés, et sur toute leur ronde), avec les règles du jeu et la nuit."

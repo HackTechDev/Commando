@@ -1379,3 +1379,9 @@
 
 - Sous « Nouvelle mission », le dock propose la largeur et la profondeur du terrain (40 à 200 m), le sol (herbe, désert, sable, terre, roche, ville) et la nuit. L'équipe, l'extraction, la caméra et ses limites suivent la taille du terrain.
 - Vérifié (`tools/editor_check/step81e.gd`) : réglages par défaut, scène identique à la précédente ; mission de 120 × 60 m sur sable, de nuit : sol, couleurs, éclairage, positions et limites justes, « Vérifier » sans problème. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : limites de la caméra (8.1 f)
+
+- Les limites de déplacement de la caméra (`CameraRig.bounds`) sont dessinées au sol en cadre bleu clair. `CameraRig` sélectionné, une poignée au milieu de chaque bord les règle : aimantée à la grille, gardée sur le terrain, collée à son bord à moins de 1 m, 10 m de côté au moins.
+- Bouton « Caler les limites de la caméra sur le terrain » (section Carte) : cadre à 2 m des bords du terrain.
+- Vérifié (`tools/editor_check/step81f.gd`, Terrain d'essai) : chaque bord tiré, annulations, geste abandonné, calage et son annulation, limites enregistrées dans la scène. La suite GUT n'a pas été lancée.

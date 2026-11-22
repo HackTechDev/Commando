@@ -9,7 +9,7 @@ extends EditorPlugin
 ## - Pose au clic dans la vue 3D, au sol ou sur les toits, avec annulation ;
 ##   rondes tracées point par point.
 ## - Repères dans la vue 3D (`gizmos.gd`) : cônes de vue, trajets à poignées,
-##   portée des bruits.
+##   rondes, portée des bruits, limites de la caméra à poignées.
 ## - Informations de la mission (`MissionInfo`) : objectifs et leurs cibles,
 ##   modifiées dans l'inspecteur, enregistrées avec la scène.
 ## - Carte de couverture des gardes (`coverage.gd`), dessinée sans être
@@ -110,6 +110,7 @@ func _enter_tree() -> void:
 	_dock.new_mission_requested.connect(new_mission)
 	_dock.check_requested.connect(check)
 	_dock.play_requested.connect(_on_play_requested)
+	_dock.camera_fit_requested.connect(fit_camera_bounds)
 	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
@@ -696,6 +697,21 @@ static func _num(value: float) -> String:
 
 static func _color(color: Color) -> String:
 	return "Color(%s, %s, %s, 1)" % [_num(color.r), _num(color.g), _num(color.b)]
+
+
+## Limites de la caméra à `BOUNDS_INSET` des bords du terrain, en une action
+## annulable. Renvoie les nouvelles limites (AABB vide : rien à caler).
+func fit_camera_bounds() -> AABB:
+	var root := EditorInterface.get_edited_scene_root()
+	var rig := root.get_node_or_null(^"CameraRig") as Node3D if root else null
+	var terrain := Palette.ground_bounds(root)
+	if rig == null or terrain.size == Vector3.ZERO:
+		return AABB()
+	var before: AABB = rig.get("bounds")
+	var after := AABB(Vector3(terrain.position.x + BOUNDS_INSET, before.position.y, terrain.position.z + BOUNDS_INSET),
+		Vector3(terrain.size.x - 2.0 * BOUNDS_INSET, before.size.y, terrain.size.z - 2.0 * BOUNDS_INSET))
+	_gizmos.call("set_bounds", rig, after, before, "Caler les limites de la caméra sur le terrain")
+	return after
 
 
 static func _new_mission_error(folder: String) -> String:

@@ -72,6 +72,7 @@ Dans la section **Carte** :
 
 - Cochez **Nuit**. Le ciel, la lumière ambiante et le soleil (devenu lune) passent en réglage de nuit. En jeu, les gardes voient moins loin et les jumelles de vision nocturne sont abaissées d'office.
 - **Tenue de rigueur** : « Aucune » ici. Les autres choix (Costume-cravate, Décontractée, Treillis) imposent une tenue à l'équipe, comme à la Réception.
+- **Limites de la caméra** : le cadre bleu clair, au sol, montre jusqu'où le centre de la vue peut aller en jeu. « Caler les limites de la caméra sur le terrain » le place à 2 m des bords du terrain. Pour le retoucher, sélectionnez `CameraRig` dans l'arbre de scène et tirez la poignée au milieu d'un bord : elle s'aimante à la grille, ne sort pas du terrain, se colle à son bord à moins de 1 m, et le cadre garde au moins 10 m de côté. « Vérifier » signale tout élément à plus de 10 m de ce cadre.
 
 Chaque réglage s'annule par Ctrl+Z.
 

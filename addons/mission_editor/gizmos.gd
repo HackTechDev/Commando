@@ -10,7 +10,9 @@ extends EditorNode3DGizmoPlugin
 ##   chemin avec le sens de marche et le retour au premier point, trait
 ##   pointillé de l'unité à son premier point. Les chemins sont des `Path3D`,
 ##   que l'éditeur Godot sait modifier (poignées, ajout et retrait de
-##   points) ; le repère suit en direct.
+##   points) ; le repère suit en direct ;
+## - limites de la caméra (`CameraRig.bounds`) : cadre au sol, une poignée
+##   au milieu de chaque bord, aimantée à la grille et gardée sur le terrain.
 
 const Palette := preload("res://addons/mission_editor/palette.gd")
 
@@ -22,6 +24,12 @@ const PATROL_COLOR := Color(0.4, 1.0, 0.5)
 ## Pointillés du trait unité-chemin : longueur d'un tiret et d'un pas (m).
 const DASH := 0.5
 const DASH_STEP := 1.0
+## Limites de la caméra : couleur, plus petit côté (m), distance (m) à
+## laquelle un bord se colle à celui du terrain.
+const BOUNDS_COLOR := Color(0.55, 0.75, 1.0)
+const BOUNDS_MIN := 10.0
+const BOUNDS_SNAP := 1.0
+const BOUNDS_HANDLES: Array[String] = ["Bord ouest des limites de la caméra", "Bord est des limites de la caméra", "Bord nord des limites de la caméra", "Bord sud des limites de la caméra"]
 ## Largeur des bandes et taille des chevrons du sens de marche (m).
 const BAND := 0.3
 const CHEVRON := 1.2
@@ -38,6 +46,7 @@ func _init() -> void:
 	create_material("noise", Color(1.0, 0.45, 0.3))
 	create_material("patrol", Color(PATROL_COLOR, 0.85))
 	create_material("patrol_back", Color(PATROL_COLOR, 0.4))
+	create_material("bounds", Color(BOUNDS_COLOR, 0.8))
 	create_handle_material("handles")
 
 
@@ -46,14 +55,16 @@ func _get_gizmo_name() -> String:
 
 
 func _has_gizmo(node: Node3D) -> bool:
-	return node is Enemy or node is Passerby or node is TrafficCar or node is Sabre or node is Technical or node is EnemyAircraft
+	return node is Enemy or node is Passerby or node is TrafficCar or node is Sabre or node is Technical or node is EnemyAircraft or node is CameraRig
 
 
 func _redraw(gizmo: EditorNode3DGizmo) -> void:
 	gizmo.clear()
 	var node := gizmo.get_node_3d()
 	_draw_patrol(gizmo, node)
-	if node is Enemy:
+	if node is CameraRig:
+		_draw_bounds(gizmo, node)
+	elif node is Enemy:
 		_draw_cone(gizmo, node)
 	elif node is Passerby or node is TrafficCar:
 		_draw_route(gizmo, node)
@@ -188,6 +199,57 @@ static func _square(faces: PackedVector3Array, at: Vector3, size: float) -> void
 	faces.append_array([c[0], c[1], c[2], c[0], c[2], c[3]])
 
 
+# --- Limites de la caméra ----------------------------------------------------
+
+func _draw_bounds(gizmo: EditorNode3DGizmo, rig: Node3D) -> void:
+	var box: AABB = rig.get("bounds")
+	var to_local := rig.global_transform.affine_inverse()
+	var y := LIFT * 2.0
+	var corners: Array[Vector3] = [Vector3(box.position.x, y, box.position.z), Vector3(box.end.x, y, box.position.z),
+		Vector3(box.end.x, y, box.end.z), Vector3(box.position.x, y, box.end.z)]
+	var faces := PackedVector3Array()
+	for i in 4:
+		_band(faces, corners[i], corners[(i + 1) % 4], BAND, false)
+	gizmo.add_mesh(_faces(_local(faces, to_local)), get_material("bounds", gizmo))
+	gizmo.add_handles(_local(PackedVector3Array(bounds_handles(box)), to_local), get_material("handles", gizmo), PackedInt32Array())
+
+
+## Poignées des bords (ouest, est, nord, sud), dans le monde.
+static func bounds_handles(box: AABB) -> Array[Vector3]:
+	var center := box.get_center()
+	var y := LIFT * 2.0
+	return [Vector3(box.position.x, y, center.z), Vector3(box.end.x, y, center.z), Vector3(center.x, y, box.position.z), Vector3(center.x, y, box.end.z)]
+
+
+## Limites `box` dont le bord `edge` (ouest, est, nord, sud) passe par
+## `point` : gardées sur le terrain `terrain` (s'il existe), collées à son
+## bord à moins de `BOUNDS_SNAP`, au moins `BOUNDS_MIN` de côté.
+static func moved_bounds(box: AABB, edge: int, point: Vector3, terrain: AABB) -> AABB:
+	var x0 := box.position.x
+	var x1 := box.end.x
+	var z0 := box.position.z
+	var z1 := box.end.z
+	var has_terrain := terrain.size != Vector3.ZERO
+	var low_x := terrain.position.x if has_terrain else -INF
+	var high_x := terrain.end.x if has_terrain else INF
+	var low_z := terrain.position.z if has_terrain else -INF
+	var high_z := terrain.end.z if has_terrain else INF
+	match edge:
+		0:
+			x0 = clampf(_stick(point.x, low_x), low_x, x1 - BOUNDS_MIN)
+		1:
+			x1 = clampf(_stick(point.x, high_x), x0 + BOUNDS_MIN, high_x)
+		2:
+			z0 = clampf(_stick(point.z, low_z), low_z, z1 - BOUNDS_MIN)
+		3:
+			z1 = clampf(_stick(point.z, high_z), z0 + BOUNDS_MIN, high_z)
+	return AABB(Vector3(x0, box.position.y, z0), Vector3(x1 - x0, box.size.y, z1 - z0))
+
+
+static func _stick(value: float, edge: float) -> float:
+	return edge if absf(value - edge) < BOUNDS_SNAP else value
+
+
 # --- Trajets ----------------------------------------------------------------
 
 ## Le trajet est-il une boucle (voitures, passants en boucle) ?
@@ -211,11 +273,15 @@ func _draw_route(gizmo: EditorNode3DGizmo, node: Node3D) -> void:
 	gizmo.add_handles(local, get_material("handles", gizmo), PackedInt32Array())
 
 
-func _get_handle_name(_gizmo: EditorNode3DGizmo, handle_id: int, _secondary: bool) -> String:
+func _get_handle_name(gizmo: EditorNode3DGizmo, handle_id: int, _secondary: bool) -> String:
+	if gizmo.get_node_3d() is CameraRig:
+		return BOUNDS_HANDLES[handle_id]
 	return "Point %d" % (handle_id + 1)
 
 
 func _get_handle_value(gizmo: EditorNode3DGizmo, handle_id: int, _secondary: bool) -> Variant:
+	if gizmo.get_node_3d() is CameraRig:
+		return gizmo.get_node_3d().get("bounds")
 	return (gizmo.get_node_3d().get("points") as PackedVector3Array)[handle_id]
 
 
@@ -224,6 +290,10 @@ func _set_handle(gizmo: EditorNode3DGizmo, handle_id: int, _secondary: bool, cam
 	var snap: bool = plugin.call("grid_enabled") if plugin else true
 	var point := Palette.ground_point(camera, screen_pos, GRID_STEP if snap else 0.0)
 	if point == Vector3.INF:
+		return
+	if node is CameraRig:
+		node.set("bounds", moved_bounds(node.get("bounds"), handle_id, point, Palette.ground_bounds(node.owner if node.owner else node.get_parent())))
+		node.update_gizmos()
 		return
 	var points: PackedVector3Array = node.get("points")
 	points[handle_id] = point
@@ -234,6 +304,13 @@ func _set_handle(gizmo: EditorNode3DGizmo, handle_id: int, _secondary: bool, cam
 
 func _commit_handle(gizmo: EditorNode3DGizmo, handle_id: int, _secondary: bool, restore: Variant, cancel: bool) -> void:
 	var node := gizmo.get_node_3d()
+	if node is CameraRig:
+		if cancel:
+			node.set("bounds", restore)
+			node.update_gizmos()
+		else:
+			set_bounds(node, node.get("bounds"), restore, "Déplacer une limite de la caméra")
+		return
 	var points: PackedVector3Array = node.get("points")
 	var before := points.duplicate()
 	before[handle_id] = restore
@@ -249,6 +326,18 @@ func _commit_handle(gizmo: EditorNode3DGizmo, handle_id: int, _secondary: bool, 
 	for method: StringName in [&"place_preview", &"update_gizmos"]:
 		undo.add_do_method(node, method)
 		undo.add_undo_method(node, method)
+	undo.commit_action()
+
+
+## Limites de la caméra `rig` passées de `before` à `after`, en une action
+## annulable `label`.
+func set_bounds(rig: Node3D, after: AABB, before: AABB, label: String) -> void:
+	var undo := plugin.get_undo_redo()
+	undo.create_action(label)
+	undo.add_do_property(rig, &"bounds", after)
+	undo.add_undo_property(rig, &"bounds", before)
+	undo.add_do_method(rig, &"update_gizmos")
+	undo.add_undo_method(rig, &"update_gizmos")
 	undo.commit_action()
 
 

@@ -18,6 +18,7 @@ extends RefCounted
 const MissionTargets := preload("res://addons/mission_editor/mission_targets.gd")
 const Coverage := preload("res://addons/mission_editor/coverage.gd")
 const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
+const Palette := preload("res://addons/mission_editor/palette.gd")
 
 ## Au-delà, la carte devient lente (72 gardes : 10 images/s).
 const MAX_ENEMIES := 40
@@ -317,7 +318,7 @@ static func _check_props(props: Array, space: PhysicsDirectSpaceState3D, report:
 ## Éléments hors du terrain (sol `NavigationRegion3D/Ground`) ou loin des
 ## limites de la caméra.
 static func _check_bounds(root: Node, placed_later: bool, report: Array[Dictionary]) -> void:
-	var ground := _ground_bounds(root)
+	var ground := Palette.ground_bounds(root)
 	var rig := root.get_node_or_null(^"CameraRig")
 	var camera: Variant = rig.get("bounds") if rig else null
 	var items := root.find_children("*", "", true, true).filter(func(n: Node) -> bool:
@@ -337,19 +338,6 @@ static func _check_bounds(root: Node, placed_later: bool, report: Array[Dictiona
 			if camera is AABB and not _inside(camera, spot, CAMERA_MARGIN):
 				report.append(_item("warning", "%s%s est à plus de %d m des limites de la caméra (CameraRig.bounds) : on ne pourra pas le voir." % [node.name, where, int(CAMERA_MARGIN)], [node, rig]))
 				break
-
-
-static func _ground_bounds(root: Node) -> AABB:
-	var ground := root.get_node_or_null(^"NavigationRegion3D/Ground")
-	var bounds := AABB()
-	if ground == null:
-		return bounds
-	var found := false
-	for item in ground.find_children("*", "VisualInstance3D", true, false):
-		var box: AABB = (item as VisualInstance3D).global_transform * (item as VisualInstance3D).get_aabb()
-		bounds = box if not found else bounds.merge(box)
-		found = true
-	return bounds
 
 
 static func _inside(box: AABB, point: Vector3, margin: float) -> bool:

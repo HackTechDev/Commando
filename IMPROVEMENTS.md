@@ -116,8 +116,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR.md`.
 
-- **8.1 Combler les manques de la première version** :
-  - **f)** limites de la caméra (`bounds` de `CameraRig`) affichées, réglables par poignées et calées sur le terrain.
 - **8.2 Vérification plus juste** :
   - **c)** vérification à chaque enregistrement, résumée dans le dock ;
   - **d)** compter aussi les cordes de grappin dans les chemins (lancées en cours de partie, sans nœud sur la carte).
