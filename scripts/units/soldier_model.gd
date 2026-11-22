@@ -2803,8 +2803,7 @@ func _build_specialty(front: float, back: float) -> void:
 	var gear := _pivot(_torso, Vector3.ZERO, "Specialty")
 	match specialty:
 		&"marksman":
-			# Écharpe de camouflage au cou, télémètre, tapis de tir roulé
-			# en travers du haut du dos.
+			# Écharpe de camouflage au cou, télémètre.
 			var scarf := _tapered(gear, 0.088, 0.105, 0.06, Vector3(0.0, 0.565, 0.008), _m_scrim)
 			scarf.scale.z = 0.9
 			for side: float in [-1.0, 1.0]:
@@ -2812,11 +2811,6 @@ func _build_specialty(front: float, back: float) -> void:
 				tail.rotation.z = 0.15 * side
 			_box(gear, Vector3(0.05, 0.09, 0.04), Vector3(0.11, 0.45, front - 0.02), _m_gear)
 			_box(gear, Vector3(0.035, 0.03, 0.05), Vector3(0.11, 0.51, front - 0.02), _m_weapon)
-			var mat := _cylinder(gear, 0.055, 0.46, Vector3(0.0, 0.6, back + 0.05), _m_scrim)
-			mat.rotation.z = PI / 2.0
-			for side: float in [-1.0, 1.0]:
-				var band := _cylinder(gear, 0.058, 0.02, Vector3(0.15 * side, 0.6, back + 0.05), _m_weapon)
-				band.rotation.z = PI / 2.0
 		&"scout":
 			# Jumelles sur la poitrine, poche à eau plate dans le dos.
 			for side: float in [-1.0, 1.0]:
