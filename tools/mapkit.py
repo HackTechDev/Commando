@@ -1,11 +1,17 @@
 """Outils communs aux générateurs de cartes (`tools/gen_*.py`).
 
 Une carte se décrit avec `MapBuilder` : décor, unités, ennemis, véhicules,
-puis `write()` écrit la scène `.tscn`. Repère : x vers l'est, z vers le sud ;
+puis `write()` écrit la scène `.tscn`. La scène écrite porte le nom du
+générateur et une empreinte de son contenu (métadonnées de la racine) :
+`write()` refuse d'écraser une scène modifiée depuis (dans l'éditeur Godot,
+par exemple), sauf avec la variable d'environnement `MAPKIT_FORCE=1`. Repère : x vers l'est, z vers le sud ;
 `facing` en degrés, 0 = nord (-Z), 90 = est (+X).
 """
+import hashlib
 import math
 import os
+import re
+import sys
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
@@ -453,10 +459,50 @@ class MapBuilder:
         text += "\n".join(f'[ext_resource type="{t}" path="{p}" id="{i}"]' for t, p, i in self._ext) + "\n\n"
         text += "\n".join(subs) + "\n"
         text += "\n\n".join(nodes) + "\n"
-        os.makedirs(os.path.dirname(self.out), exist_ok=True)
-        with open(self.out, "w") as handle:
-            handle.write(text)
+        write_scene(self.out, text)
         print(os.path.relpath(self.out, ROOT), len(nodes), "nœuds")
+
+
+HASH_LINE = re.compile(r'^metadata/generated_hash = "([0-9a-f]*)"$', re.M)
+
+
+def fingerprint(text):
+    """Empreinte d'une scène générée, calculée sans sa propre valeur."""
+    return hashlib.sha1(HASH_LINE.sub('metadata/generated_hash = ""', text).encode()).hexdigest()
+
+
+def write_scene(path, text):
+    """Écrit la scène générée `text` dans `path`, avec le nom du générateur
+    et son empreinte (métadonnées de la racine, le premier nœud) ; s'arrête
+    sans rien écrire si la scène existante a été modifiée depuis sa
+    génération (`may_overwrite`)."""
+    generator = "tools/" + os.path.basename(sys.argv[0])
+    header = re.search(r"^\[node [^\n]*\]$", text, re.M)
+    stamp = f'\nmetadata/generator = "{generator}"\nmetadata/generated_hash = ""'
+    text = text[:header.end()] + stamp + text[header.end():]
+    text = HASH_LINE.sub(f'metadata/generated_hash = "{fingerprint(text)}"', text, count=1)
+    if not may_overwrite(path):
+        sys.exit(1)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as handle:
+        handle.write(text)
+
+
+def may_overwrite(path):
+    """Vrai si la scène `path` peut être réécrite : absente, ou inchangée
+    depuis sa génération. Une scène sans empreinte (retouchée à la main
+    avant leur introduction, comme le didacticiel) n'est pas écrasée."""
+    if not os.path.exists(path) or os.environ.get("MAPKIT_FORCE") == "1":
+        return True
+    with open(path) as handle:
+        old = handle.read()
+    found = HASH_LINE.search(old)
+    if found is not None and found.group(1) == fingerprint(old):
+        return True
+    why = "sans empreinte de génération" if found is None else "modifiée depuis sa génération (éditeur Godot ?)"
+    print(f"{os.path.relpath(path, ROOT)} : {why}, non écrasée. "
+          "MAPKIT_FORCE=1 pour l'écraser quand même.", file=sys.stderr)
+    return False
 
 
 def add_tower(m, name, x, z, storeys=3, size=(14, 10), doors="Vector3(0, 0, 0)", windows=""):

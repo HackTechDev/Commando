@@ -86,6 +86,8 @@ material = SubResource("paint_mat")
 size = Vector3(0.5, 0.02, 30)
 
 [node name="Airbase" type="Node3D"]
+metadata/generator = "tools/gen_airbase.py"
+metadata/generated_hash = "a4d4a55cec7089112c6ee612f73bb714f285131e"
 script = ExtResource("1")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

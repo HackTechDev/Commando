@@ -106,6 +106,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Hornets" type="Node3D"]
+metadata/generator = "tools/gen_hornets.py"
+metadata/generated_hash = "478d898c4b396cc427fc79084eda0c7844acd416"
 script = ExtResource("9")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

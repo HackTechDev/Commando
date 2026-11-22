@@ -114,6 +114,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="SilentPass" type="Node3D"]
+metadata/generator = "tools/gen_silentpass.py"
+metadata/generated_hash = "80f2b93cf3b08f941406c35423887070af13a280"
 script = ExtResource("10")
 night = true
 

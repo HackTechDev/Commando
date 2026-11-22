@@ -69,6 +69,8 @@ material = SubResource("lane_mat")
 size = Vector3(0.2, 0.02, 2.5)
 
 [node name="Tower" type="Node3D"]
+metadata/generator = "tools/gen_tower.py"
+metadata/generated_hash = "61146ee640b5dfafb17864b543f3d33ea287db91"
 script = ExtResource("1")
 dress_code = &"suit"
 

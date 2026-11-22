@@ -121,6 +121,8 @@ material = SubResource("ground_mat")
 size = Vector3(90, 1, 90)
 
 [node name="Kasbah" type="Node3D"]
+metadata/generator = "tools/gen_kasbah.py"
+metadata/generated_hash = "cf82e69113d10bab905d1d03cda31fcff804d05a"
 script = ExtResource("10")
 dress_code = &"casual"
 

@@ -116,6 +116,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Blackout" type="Node3D"]
+metadata/generator = "tools/gen_blackout.py"
+metadata/generated_hash = "07af9aaa5237c2a247c77c070c4bd54c300ab795"
 script = ExtResource("12")
 night = true
 

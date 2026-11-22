@@ -101,6 +101,8 @@ radial_segments = 7
 rings = 4
 
 [node name="Patrol" type="Node3D"]
+metadata/generator = "tools/gen_patrol.py"
+metadata/generated_hash = "8e02c9542f8eb0fbb2f673a717fd2ead1d86809e"
 script = ExtResource("1")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

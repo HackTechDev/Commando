@@ -125,6 +125,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Motorcade" type="Node3D"]
+metadata/generator = "tools/gen_motorcade.py"
+metadata/generated_hash = "8fa652fa5d4d3c391ff70ea0fe2307a7f2854090"
 script = ExtResource("14")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

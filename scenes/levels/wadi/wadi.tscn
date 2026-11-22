@@ -125,6 +125,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Wadi" type="Node3D"]
+metadata/generator = "tools/gen_wadi.py"
+metadata/generated_hash = "1f68e064a4c44fd85cb5ca98123db02558248dfb"
 script = ExtResource("14")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

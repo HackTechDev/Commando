@@ -2,6 +2,8 @@
 ateliers (`TutorialStation`) et leurs textes. Usage : python3 tools/gen_tutorial.py
 Les touches s'écrivent {action} (nom d'une action de l'InputMap)."""
 import os
+
+from mapkit import write_scene
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scenes", "levels", "tutorial", "tutorial.tscn")
 
 def esc(s):
@@ -281,7 +283,7 @@ for st in STATIONS:
     L.append("\n".join(lines) + "\n")
 
 L.append(f'[node name="HUD" parent="." instance=ExtResource("{EXT["hud"]}")]\n')
-open(OUT, "w").write("\n".join(L))
+write_scene(OUT, "\n".join(L))
 
 # Objectifs, pour le catalogue.
 for st in STATIONS:

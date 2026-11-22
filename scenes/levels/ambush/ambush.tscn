@@ -122,6 +122,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Ambush" type="Node3D"]
+metadata/generator = "tools/gen_ambush.py"
+metadata/generated_hash = "09fa55b56c953b3f8d88cbe1ac23f092fa0bef5f"
 script = ExtResource("11")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

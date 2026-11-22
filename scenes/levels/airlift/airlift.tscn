@@ -125,6 +125,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Airlift" type="Node3D"]
+metadata/generator = "tools/gen_airlift.py"
+metadata/generated_hash = "ace85aeec15058da2a80a7b1cd0e9eeffca090e8"
 script = ExtResource("14")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

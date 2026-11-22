@@ -115,6 +115,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Snatch" type="Node3D"]
+metadata/generator = "tools/gen_snatch.py"
+metadata/generated_hash = "6bfdfdd38e0eedd7f89602a67ff3406532387cb5"
 script = ExtResource("11")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

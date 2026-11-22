@@ -118,6 +118,17 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 
 Les touches sont définies par position physique dans l'InputMap : sur un clavier QWERTY, ZQSD devient WASD et A/E devient Q/E.
 
+## Éditeur de mission
+
+Un greffon de l'éditeur Godot (`addons/mission_editor`, activé dans le projet) sert à modifier les missions (voir `MISSION_EDITOR.md`). Ouvrez la scène d'une mission (`scenes/levels/<dossier>/<dossier>.tscn`) : décors, unités et textures s'affichent dans la vue 3D, et l'onglet « Mission » apparaît dans le panneau de droite.
+
+- **Carte** : nuit ou jour (avec l'éclairage), tenue de rigueur.
+- **Pose** : choisissez un élément de la palette, puis cliquez sur le sol dans la vue 3D (deux clics pour un tracé : mur, route, trottoir, piste). Grille de 0,5 m (case à cocher), R / Maj+R pour tourner de 15°, clic droit ou Échap pour arrêter. Chaque pose s'annule par Ctrl+Z.
+- Les raccourcis se changent dans Éditeur > Paramètres de l'éditeur > Raccourcis (« mission_editor »).
+- **Cartes générées** : 17 cartes de série sont écrites par `tools/gen_*.py`. Le dock le signale, et un générateur refuse d'écraser une carte modifiée depuis sa génération (`MAPKIT_FORCE=1` pour l'écraser quand même).
+
+Vérification sans toucher au projet : `tools/editor_check/check_all.sh` ouvre les missions dans l'éditeur (dans une copie), les enregistre et les compare aux originales.
+
 ## Tests
 
 Les tests utilisent [GUT](https://github.com/bitwes/Gut) 9.7.1 (licence MIT), installé dans `addons/gut`.

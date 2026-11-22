@@ -115,6 +115,8 @@ material = SubResource("ground_mat")
 size = Vector3(100, 1, 100)
 
 [node name="Frontline" type="Node3D"]
+metadata/generator = "tools/gen_frontline.py"
+metadata/generated_hash = "c62d5a131e6b634ea17bb210b1477df9bc9c8e0f"
 script = ExtResource("11")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]

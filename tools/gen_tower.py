@@ -1,5 +1,7 @@
 """Génère scenes/levels/tower/tower.tscn (La Tour). Usage : python3 tools/gen_tower.py"""
 import os
+
+from mapkit import write_scene
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scenes", "levels", "tower", "tower.tscn")
 import math
 
@@ -173,5 +175,5 @@ text += "\n".join(f'[ext_resource type="{t}" path="{p}" id="{i}"]' for t, p, i i
 text += "\n".join(subs) + "\n"
 text += "\n\n".join(nodes) + "\n"
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
-open(OUT, "w").write(text)
+write_scene(OUT, text)
 print(len(nodes), "nœuds")

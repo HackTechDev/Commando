@@ -1300,3 +1300,11 @@
 - Rien de ce qui s'affiche dans l'éditeur n'est enregistré : les scripts ne modifient dans l'éditeur aucune propriété enregistrée (les couches de collision des cibles, invités et murs fragiles ne sont plus réglées que dans le jeu).
 - Outils de vérification `tools/editor_check` : `run.sh` ouvre et photographie des scènes dans l'éditeur, dans une copie du projet ; `check_all.sh` les enregistre aussi et compare chaque scène enregistrée à l'originale, propriété par propriété.
 - Vérifié : les 23 missions s'ouvrent dans l'éditeur sans erreur de script, avec décors, unités et textures ; enregistrées depuis l'éditeur, elles sont identiques aux originales. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission, étape 3 : base du greffon
+
+- Dock « Mission » (panneau de droite) quand une mission est ouverte : titre, réglages de la carte (nuit ou jour avec son éclairage, tenue de rigueur), grille, palette du décor.
+- Pose au clic dans la vue 3D : bâtiment, mur de 6 m, tracé de mur, muret, caisse, haie, lampadaire, échelle, route, trottoir, piste. Grille de 0,5 m, rotation par pas de 15° (R / Maj+R), arrêt par clic droit ou Échap ; repère du point visé, du cap et de la longueur du tracé dans la vue. Poses et réglages s'annulent (Ctrl+Z).
+- Raccourcis du greffon dans les raccourcis de l'éditeur (« mission_editor »).
+- Cartes générées : le dock nomme le générateur. Les générateurs (`tools/mapkit.py`, `write_scene`) écrivent leur nom et une empreinte dans la scène, et refusent d'écraser une carte modifiée depuis ou sans empreinte (`MAPKIT_FORCE=1` pour forcer). Les 17 cartes générées sont estampillées (seules les deux lignes de métadonnées changent) ; le didacticiel, retouché à la main, n'est plus écrasé par `gen_tutorial.py`.
+- Vérifié dans l'éditeur (`tools/editor_check/step3.gd`, sur le Terrain d'essai et l'Oued sec) : poses sous le bon parent, au bon cap, enregistrées sans les nœuds d'aperçu ; nuit et tenue annulées puis rétablies ; dock et avertissement affichés. La suite GUT n'a pas été lancée.

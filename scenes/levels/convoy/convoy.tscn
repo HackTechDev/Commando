@@ -115,6 +115,8 @@ radius = 0.18
 height = 0.36
 
 [node name="Convoy" type="Node3D"]
+metadata/generator = "tools/gen_convoy.py"
+metadata/generated_hash = "8daa75441f154c6851813acf5ab58906947e5350"
 script = ExtResource("1")
 night = true
 

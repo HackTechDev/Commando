@@ -1,5 +1,7 @@
 """Génère scenes/levels/airbase/airbase.tscn (Base aérienne). Usage : python3 tools/gen_airbase.py"""
 import os
+
+from mapkit import write_scene
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scenes", "levels", "airbase", "airbase.tscn")
 import math
 
@@ -181,5 +183,5 @@ text = f"[gd_scene load_steps={len(ext) + len(subs) + 1} format=3]\n\n"
 text += "\n".join(f'[ext_resource type="{t}" path="{p}" id="{i}"]' for t, p, i in ext) + "\n\n"
 text += "\n".join(subs) + "\n"
 text += "\n\n".join(nodes) + "\n"
-open(OUT, "w").write(text)
+write_scene(OUT, text)
 print(len(nodes), "nœuds")

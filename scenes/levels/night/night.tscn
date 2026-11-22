@@ -85,6 +85,8 @@ radius = 0.18
 height = 0.36
 
 [node name="Night" type="Node3D"]
+metadata/generator = "tools/gen_night.py"
+metadata/generated_hash = "511b4be9ff98a5719ad8b4dd8b30fc9cfd19e1fa"
 script = ExtResource("1")
 night = true
 

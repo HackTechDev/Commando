@@ -153,6 +153,8 @@ material = SubResource("ground_mat")
 size = Vector3(220, 1, 220)
 
 [node name="Reception" type="Node3D"]
+metadata/generator = "tools/gen_reception.py"
+metadata/generated_hash = "d18173dca181023aeb900847274b526ccc67d046"
 script = ExtResource("12")
 dress_code = &"suit"
 
