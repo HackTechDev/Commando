@@ -43,8 +43,19 @@ var _night: CheckBox
 var _dress: OptionButton
 var _route_box: VBoxContainer
 var _route_label: Label
+## Sols proposés pour une nouvelle mission (couleurs dans le greffon,
+## `GROUNDS`, comme `tools/mapkit.py`).
+const GROUND_LABELS := {"grass": "Herbe", "desert": "Désert", "sand": "Sable", "dirt": "Terre", "rock": "Roche", "urban": "Ville"}
+## Taille d'un côté du terrain d'une nouvelle mission (m).
+const NEW_SIZE_MIN := 40
+const NEW_SIZE_MAX := 200
+
 var _new_folder: LineEdit
 var _new_status: Label
+var _new_width: SpinBox
+var _new_depth: SpinBox
+var _new_ground: OptionButton
+var _new_night: CheckBox
 var _report_box: VBoxContainer
 var _grid: CheckBox
 var _surface: CheckBox
@@ -75,10 +86,30 @@ func _init() -> void:
 	new_row.add_child(_new_folder)
 	var create := Button.new()
 	create.text = "Nouvelle mission"
-	create.tooltip_text = "Crée scenes/levels/<dossier>/<dossier>.tscn (terrain, équipe, extraction) et son mission.tres, puis l'ouvre."
+	create.tooltip_text = "Crée scenes/levels/<dossier>/<dossier>.tscn (terrain de la taille et du sol choisis, de jour ou de nuit, équipe au sud, extraction au nord) et son mission.tres, puis l'ouvre."
 	create.pressed.connect(func() -> void: new_mission_requested.emit(_new_folder.text.strip_edges()))
 	new_row.add_child(create)
 	add_child(new_row)
+	# Terrain de la nouvelle mission : taille, sol, jour ou nuit.
+	var terrain_row := HBoxContainer.new()
+	_new_width = _size_box("Largeur du terrain (m, ouest-est)")
+	terrain_row.add_child(_new_width)
+	terrain_row.add_child(_label("×", Color(0, 0, 0, 0)))
+	_new_depth = _size_box("Profondeur du terrain (m, nord-sud)")
+	terrain_row.add_child(_new_depth)
+	terrain_row.add_child(_label("m", Color(0, 0, 0, 0)))
+	_new_ground = OptionButton.new()
+	_new_ground.tooltip_text = "Couleur du sol de la nouvelle mission (et de ses pistes)."
+	for ground: String in GROUND_LABELS:
+		_new_ground.add_item(GROUND_LABELS[ground])
+		_new_ground.set_item_metadata(_new_ground.item_count - 1, ground)
+	_new_ground.select(GROUND_LABELS.keys().find("grass"))
+	terrain_row.add_child(_new_ground)
+	_new_night = CheckBox.new()
+	_new_night.text = "Nuit"
+	_new_night.tooltip_text = "La nouvelle mission commence de nuit (modifiable ensuite dans la section Carte)."
+	terrain_row.add_child(_new_night)
+	add_child(terrain_row)
 	_new_status = _label("", WARN_COLOR)
 	_new_status.visible = false
 	add_child(_new_status)
@@ -290,6 +321,25 @@ func show_report(report: Array) -> void:
 			line.tooltip_text = "Cliquez pour sélectionner."
 			line.pressed.connect(func() -> void: nodes_selected.emit(nodes))
 		_report_box.add_child(line)
+
+
+## Réglages de la nouvelle mission : {"size": Vector2, "ground", "night"}.
+func new_mission_options() -> Dictionary:
+	return {
+		"size": Vector2(_new_width.value, _new_depth.value),
+		"ground": String(_new_ground.get_selected_metadata()),
+		"night": _new_night.button_pressed,
+	}
+
+
+func _size_box(tip: String) -> SpinBox:
+	var box := SpinBox.new()
+	box.min_value = NEW_SIZE_MIN
+	box.max_value = NEW_SIZE_MAX
+	box.step = 10
+	box.value = 80
+	box.tooltip_text = tip
+	return box
 
 
 ## Message sous « Nouvelle mission » (vide : aucun).

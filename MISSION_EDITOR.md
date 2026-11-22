@@ -33,11 +33,12 @@ Le dock « Mission » contient, de haut en bas :
 ### 2. Créer la mission
 
 1. En haut du dock, tapez le nom du dossier : `raid_depot`. Il doit être en minuscules, avec des chiffres et `_`, et commencer par une lettre.
-2. Cliquez sur **Nouvelle mission** (ou appuyez sur Entrée).
+2. Sur la ligne en dessous, choisissez le terrain : largeur et profondeur (de 40 à 200 m, par pas de 10 ; ici 80 × 80), sol (Herbe, Désert, Sable, Terre, Roche, Ville ; ici Herbe) et **Nuit** (laissez-la décochée : on la règle à l'étape 4).
+3. Cliquez sur **Nouvelle mission** (ou appuyez sur Entrée).
 
 Le greffon crée deux fichiers et ouvre la scène :
 
-- `scenes/levels/raid_depot/raid_depot.tscn` : terrain d'herbe de 80 × 80 m, de jour, trois opérateurs (Alpha, Bravo, Charlie) au sud, zone d'extraction au nord, caméra ;
+- `scenes/levels/raid_depot/raid_depot.tscn` : terrain de la taille et du sol choisis, de jour ou de nuit, trois opérateurs (Alpha, Bravo, Charlie) à 6 m du bord sud, zone d'extraction à 6 m du bord nord, caméra sur l'équipe, limites de la caméra à 2 m des bords ;
 - `scenes/levels/raid_depot/mission.tres` : titre « Raid Depot », placée après les missions existantes, objectif « extracted ».
 
 La mission figure déjà dans le choix des missions du jeu.

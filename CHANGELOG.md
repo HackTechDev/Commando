@@ -1374,3 +1374,8 @@
 
 - `BarrierGuard2` était posé dans le muret nord-est de la barrière (signalé par les contrôles de placement de l'éditeur) : décalé de 1,2 m vers la piste, en (16,4 ; -15,3), même cap (`tools/gen_airlift.py`, carte régénérée).
 - Vérifié : « Vérifier » ne signale plus que le Sabre, au-delà du ravin. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : terrain choisi à la création (8.1 e)
+
+- Sous « Nouvelle mission », le dock propose la largeur et la profondeur du terrain (40 à 200 m), le sol (herbe, désert, sable, terre, roche, ville) et la nuit. L'équipe, l'extraction, la caméra et ses limites suivent la taille du terrain.
+- Vérifié (`tools/editor_check/step81e.gd`) : réglages par défaut, scène identique à la précédente ; mission de 120 × 60 m sur sable, de nuit : sol, couleurs, éclairage, positions et limites justes, « Vérifier » sans problème. La suite GUT n'a pas été lancée.

@@ -38,6 +38,20 @@ const SHORTCUTS := {
 	"mission_editor/finish_route": {"key": KEY_ENTER, "shift": false, "label": "Finir le tracé d'une ronde"},
 	"mission_editor/remove_route_point": {"key": KEY_BACKSPACE, "shift": false, "label": "Retirer le dernier point d'une ronde"},
 }
+## Sol (couleur du terrain, couleur des pistes), comme `tools/mapkit.py`.
+const GROUNDS := {
+	"desert": [Color(0.62, 0.52, 0.36), Color(0.5, 0.42, 0.3)],
+	"sand": [Color(0.55, 0.47, 0.33), Color(0.45, 0.38, 0.27)],
+	"dirt": [Color(0.4, 0.36, 0.28), Color(0.32, 0.28, 0.21)],
+	"grass": [Color(0.3, 0.36, 0.22), Color(0.36, 0.32, 0.24)],
+	"urban": [Color(0.36, 0.36, 0.35), Color(0.22, 0.22, 0.23)],
+	"rock": [Color(0.42, 0.4, 0.37), Color(0.33, 0.3, 0.26)],
+}
+## Gabarit : équipe à 6 m du bord sud, extraction à 6 m du bord nord,
+## caméra à 10 m du bord sud, limites de la caméra à 2 m des bords.
+const TEAM_INSET := 6.0
+const CAMERA_INSET := 10.0
+const BOUNDS_INSET := 2.0
 ## Éclairage selon le moment : fond, lumière ambiante, soleil ou lune
 ## (mêmes valeurs que `tools/mapkit.py`).
 const LIGHTING := {
@@ -604,16 +618,20 @@ func _on_play_requested() -> void:
 ## Crée `scenes/levels/<folder>/<folder>.tscn` à partir du gabarit, et son
 ## `mission.tres`, puis l'ouvre. Renvoie le chemin de la scène, ou vide
 ## (raison affichée dans le dock).
-func new_mission(folder: String) -> String:
+## `options` : {"size": Vector2 (m), "ground" (clé de `GROUNDS`), "night"} ;
+## à défaut, les réglages du dock.
+func new_mission(folder: String, options: Dictionary = {}) -> String:
 	var error := _new_mission_error(folder)
 	_dock.set_new_mission_status(error)
 	if not error.is_empty():
 		return ""
+	if options.is_empty():
+		options = _dock.new_mission_options()
 	var scene_path := "%s/%s/%s.tscn" % [LEVELS_DIR, folder, folder]
-	var text := FileAccess.get_file_as_string(TEMPLATE)
-	# Plus un fichier généré : sans le nom du générateur ni son empreinte.
-	var lines := Array(text.split("\n")).filter(func(line: String) -> bool: return not line.begins_with("metadata/generat"))
-	text = "\n".join(lines).replace('[node name="Mission" type="Node3D"]', '[node name="%s" type="Node3D"]' % folder.to_pascal_case())
+	var text := mission_text(FileAccess.get_file_as_string(TEMPLATE), folder.to_pascal_case(), options)
+	if text.is_empty():
+		_dock.set_new_mission_status("Gabarit inattendu (%s) : régénérez-le avec tools/gen_mission_template.py." % TEMPLATE)
+		return ""
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(scene_path.get_base_dir()))
 	var file := FileAccess.open(scene_path, FileAccess.WRITE)
 	file.store_string(text)
@@ -625,6 +643,59 @@ func new_mission(folder: String) -> String:
 	LevelCatalog.reload()
 	EditorInterface.open_scene_from_path(scene_path)
 	return scene_path
+
+
+## Texte de la scène d'une nouvelle mission, d'après le gabarit `template`
+## (80 × 80 m, herbe, de jour) : racine `root_name`, terrain, positions et
+## éclairage selon `options`. Vide si le gabarit n'a pas la forme attendue.
+static func mission_text(template: String, root_name: String, options: Dictionary) -> String:
+	var size: Vector2 = options.get("size", Vector2(80, 80))
+	var colors: Array = GROUNDS.get(options.get("ground", "grass"), GROUNDS["grass"])
+	var night: bool = options.get("night", false)
+	var hx := size.x * 0.5
+	var hz := size.y * 0.5
+	# Plus un fichier généré : sans le nom du générateur ni son empreinte.
+	var lines := Array(template.split("\n")).filter(func(line: String) -> bool: return not line.begins_with("metadata/generat"))
+	var text := "\n".join(lines)
+	var root_line := '[node name="Mission" type="Node3D"]\nscript = ExtResource("4")'
+	var changes: Array = [
+		[root_line, root_line.replace("Mission", root_name) + ("\nnight = true" if night else "")],
+		["size = Vector3(80, 1, 80)", "size = Vector3(%s, 1, %s)" % [_num(size.x), _num(size.y)]],
+		['id="ground_mat"]\nalbedo_color = Color(0.3, 0.36, 0.22, 1)', 'id="ground_mat"]\nalbedo_color = %s' % _color(colors[0])],
+		['id="track_mat"]\nalbedo_color = Color(0.36, 0.32, 0.24, 1)', 'id="track_mat"]\nalbedo_color = %s' % _color(colors[1])],
+		["bounds = AABB(-38, 0, -38, 76, 0, 76)", "bounds = AABB(%s, 0, %s, %s, 0, %s)" % [
+			_num(-(hx - BOUNDS_INSET)), _num(-(hz - BOUNDS_INSET)), _num(size.x - 2.0 * BOUNDS_INSET), _num(size.y - 2.0 * BOUNDS_INSET)]],
+	]
+	if night:
+		var preset: Dictionary = LIGHTING[true]
+		var day: Dictionary = LIGHTING[false]
+		for key: String in ["background_color", "ambient_light_color", "light_color"]:
+			changes.append(["%s = %s" % [key, _color(day[key])], "%s = %s" % [key, _color(preset[key])]])
+		for key: String in ["ambient_light_energy", "light_energy"]:
+			changes.append(["%s = %s" % [key, _num(day[key])], "%s = %s" % [key, _num(preset[key])]])
+	for change: Array in changes:
+		if not text.contains(change[0]):
+			return ""
+		text = text.replace(change[0], change[1])
+	# Équipe au sud, extraction au nord, caméra sur l'équipe.
+	for node_z: Array in [["Alpha", hz - TEAM_INSET], ["Bravo", hz - TEAM_INSET], ["Charlie", hz - TEAM_INSET],
+			["ExtractionZone", -(hz - TEAM_INSET)], ["CameraRig", hz - CAMERA_INSET]]:
+		var pattern := RegEx.create_from_string('(\\[node name="%s"[^\\n]*\\]\\ntransform = Transform3D\\(1, 0, 0, 0, 1, 0, 0, 0, 1, [^,]+, 0, )[^)]+\\)' % node_z[0])
+		var found := pattern.search(text)
+		if found == null:
+			return ""
+		text = text.substr(0, found.get_start()) + found.get_string(1) + _num(node_z[1]) + ")" + text.substr(found.get_end())
+	return text
+
+
+## Nombre écrit comme dans une scène : « 34 », « 0.96 ».
+static func _num(value: float) -> String:
+	value = snappedf(value, 0.0001)
+	return str(int(value)) if is_equal_approx(value, roundf(value)) else str(value)
+
+
+static func _color(color: Color) -> String:
+	return "Color(%s, %s, %s, 1)" % [_num(color.r), _num(color.g), _num(color.b)]
 
 
 static func _new_mission_error(folder: String) -> String:
