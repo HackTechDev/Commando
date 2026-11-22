@@ -165,7 +165,7 @@ Cliquez sur **Vérifier**. Le greffon calcule la navigation de la carte, comme l
 
 Un clic sur une ligne sélectionne le nœud en cause. Le détail des contrôles est dans la référence ci-dessous.
 
-Un avertissement « pas de chemin à pied » n'est pas forcément une faute. La vérification ne compte ni les échelles, ni les cordes, ni les portes : une cible sur un toit, à l'étage ou derrière une porte est signalée, alors qu'elle est atteignable en jeu.
+Les chemins passent, comme en jeu, par les échelles, les portes (même verrouillées : on les crochète ou on les fait sauter), les murets et les fenêtres. Une cible est atteinte quand le chemin arrive à 2 m du bord de son emprise au sol (un convertible ou un bâtiment n'a pas à être atteint en son centre). Un avertissement « pas de chemin à pied » n'est pas forcément une faute : les cordes de grappin, lancées en cours de partie, ne sont pas comptées, et une cible peut se rejoindre autrement qu'à pied (à Héliportage, le Sabre, au-delà du ravin, s'élingue sous le convertible).
 
 ### 10. Essayer
 
@@ -247,7 +247,7 @@ Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'
 | Pas de `mission.tres` (mission absente du choix des missions), pas de titre | Avertissement |
 | Identifiant d'objectif inconnu du jeu | Avertissement |
 | Plus de 40 gardes (la carte ralentit) | Avertissement |
-| Cible ou extraction sans chemin à pied depuis le premier opérateur | Avertissement |
+| Cible ou extraction sans chemin depuis le premier opérateur (échelles, portes, murets et fenêtres comptés ; cordes de grappin non comptées) | Avertissement |
 
 ### Raccourcis
 

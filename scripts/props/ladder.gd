@@ -43,8 +43,9 @@ func _rebuild() -> void:
 	link.name = "Link"
 	link.kind = TraversalLink.Kind.LADDER
 	link.face_distance = foot_distance
-	link.start_position = Vector3(0.0, 0.0, foot_distance)
-	link.end_position = Vector3(0.0, height, -top_inset)
+	var ends := link_ends()[0]
+	link.start_position = ends[0]
+	link.end_position = ends[1]
 	add_child(link)
 
 
@@ -97,3 +98,9 @@ static func _add_beam(surface: SurfaceTool, from: Vector3, to: Vector3, size: fl
 		surface.add_vertex(end + corners[0])
 		surface.add_vertex(end + (corners[3] if flip else corners[2]))
 		surface.add_vertex(end + (corners[2] if flip else corners[3]))
+
+
+## Extrémités, dans le repère du nœud, des passages (`TraversalLink`) que
+## le jeu crée ici ; la vérification de l'éditeur de mission s'en sert aussi.
+func link_ends() -> Array[PackedVector3Array]:
+	return [PackedVector3Array([Vector3(0.0, 0.0, foot_distance), Vector3(0.0, height, -top_inset)])]

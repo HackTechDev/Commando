@@ -91,8 +91,9 @@ func _ready() -> void:
 	link.name = "Link"
 	link.kind = TraversalLink.Kind.DOOR
 	link.door = self
-	link.start_position = Vector3(0.0, 0.0, LINK_REACH)
-	link.end_position = Vector3(0.0, 0.0, -LINK_REACH)
+	var ends := link_ends()[0]
+	link.start_position = ends[0]
+	link.end_position = ends[1]
 	add_child(link)
 	is_locked = locked
 	_set_open(open, false)
@@ -285,3 +286,9 @@ func _set_broken(broken: bool) -> void:
 func _update_link() -> void:
 	if link:
 		link.navigation_layers = NAV_ENEMIES if is_locked and not is_open and not is_broken else NAV_EVERYONE
+
+
+## Extrémités, dans le repère du nœud, des passages (`TraversalLink`) que
+## le jeu crée ici ; la vérification de l'éditeur de mission s'en sert aussi.
+func link_ends() -> Array[PackedVector3Array]:
+	return [PackedVector3Array([Vector3(0.0, 0.0, LINK_REACH), Vector3(0.0, 0.0, -LINK_REACH)])]

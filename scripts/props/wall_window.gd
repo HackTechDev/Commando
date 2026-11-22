@@ -53,8 +53,9 @@ func _ready() -> void:
 	link.name = "Link"
 	link.kind = TraversalLink.Kind.VAULT
 	link.height = sill
-	link.start_position = Vector3(0.0, 0.0, LINK_REACH)
-	link.end_position = Vector3(0.0, 0.0, -LINK_REACH)
+	var ends := link_ends()[0]
+	link.start_position = ends[0]
+	link.end_position = ends[1]
 	add_child(link)
 
 
@@ -83,3 +84,9 @@ func _part(material: Material, bottom: float, top_y: float) -> MeshInstance3D:
 func set_cutaway(cut: bool) -> void:
 	if lintel:
 		lintel.visible = not cut
+
+
+## Extrémités, dans le repère du nœud, des passages (`TraversalLink`) que
+## le jeu crée ici ; la vérification de l'éditeur de mission s'en sert aussi.
+func link_ends() -> Array[PackedVector3Array]:
+	return [PackedVector3Array([Vector3(0.0, 0.0, LINK_REACH), Vector3(0.0, 0.0, -LINK_REACH)])]

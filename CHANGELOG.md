@@ -1337,3 +1337,10 @@
 - Les éléments se posent sur la surface visée : toit d'un bâtiment, étage ou toit d'un immeuble, dessus d'un mur, décor des cartes UFO:AI ; les murs sont traversés. Case « Sur les toits et les étages » dans le dock (cochée par défaut).
 - Revêtements, bâtiments, immeubles, buissons, barrières, aire de poser et civils restent au sol ; le second point d'un tracé reste à la hauteur du premier.
 - Vérifié dans l'éditeur (`tools/editor_check/step81b.gd`, Kasbah) : garde sur le toit d'une maison (3,4 m) et d'un immeuble (9,6 m), route et case décochée au sol, ronde tracée sur un toit ; en jeu, les gardes y tiennent et la ronde parcourt le toit. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : chemins par échelles, portes, murets et fenêtres (8.2 a)
+
+- « Vérifier » recrée dans sa navigation les passages que le jeu crée au lancement : échelles, portes (même verrouillées), murets, fenêtres, y compris ceux des bâtiments. Les extrémités viennent d'une fonction partagée avec le jeu (`link_ends()` dans `ladder.gd`, `door.gd`, `low_wall.gd`, `wall_window.gd`).
+- Une cible est atteinte à 2 m du bord de son emprise au sol, et non plus à 4 m de son centre (convertible posé sur un toit).
+- Fausses alertes levées : hôte de Réception, officier, extraction de Kasbah et de La Tour. Reste, à juste titre, le Sabre d'Héliportage, au-delà du ravin.
+- Vérifié en jeu : les passages créés sont identiques avant et après (nombre et positions, Kasbah, Réception, La Tour). La suite GUT n'a pas été lancée.

@@ -4,7 +4,9 @@ extends RefCounted
 ## équipe, informations de la mission et cibles des objectifs, rondes,
 ## nombre de gardes, et chemins à pied depuis le départ de l'équipe vers
 ## chaque cible et vers l'extraction (navigation calculée dans l'éditeur,
-## comme `build/shots/check_map.sh` le fait en jeu).
+## comme `build/shots/check_map.sh` le fait en jeu), avec les passages que
+## le jeu crée au lancement : échelles, portes (même verrouillées : on les
+## crochète ou on les fait sauter), murets, fenêtres (`link_ends`).
 ##
 ## Chaque problème : {"level": "error" | "warning" | "ok", "text", "nodes"}.
 ## `check` est une coroutine (la navigation est prête après quelques images).
@@ -14,8 +16,9 @@ const MissionTargets := preload("res://addons/mission_editor/mission_targets.gd"
 ## Au-delà, la carte devient lente (72 gardes : 10 images/s).
 const MAX_ENEMIES := 40
 const MAX_OPERATORS := 6
-## Une cible plus loin que cela de la zone praticable n'est pas atteignable.
-const REACH := 4.0
+## Une cible plus loin que cela (m) de la zone praticable, mesuré depuis le
+## bord de son emprise au sol (convertible, bâtiment…), n'est pas atteignable.
+const REACH := 2.0
 ## Images d'attente au plus pour que la carte de navigation soit prête.
 const SYNC_FRAMES := 120
 
@@ -117,6 +120,7 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 	var nav_region := NavigationServer3D.region_create()
 	NavigationServer3D.region_set_map(nav_region, map)
 	NavigationServer3D.region_set_navigation_mesh(nav_region, mesh)
+	var links := _create_links(root, map)
 	# La carte est synchronisée par le serveur de navigation, à l'image, et
 	# la région y entre après coup (calcul en arrière-plan) : prête quand
 	# elle porte le point le plus proche du départ.
@@ -129,8 +133,7 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 			break
 	if not ready:
 		report.append(_item("warning", "Navigation pas prête : chemins non vérifiés."))
-		NavigationServer3D.free_rid(nav_region)
-		NavigationServer3D.free_rid(map)
+		_free(map, nav_region, links)
 		return
 	var from := NavigationServer3D.map_get_closest_point(map, start.global_position)
 	var goals := {}
@@ -152,11 +155,58 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 		var near := NavigationServer3D.map_get_closest_point(map, target)
 		var path := NavigationServer3D.map_get_path(map, from, near, true)
 		var reached := not path.is_empty() and path[path.size() - 1].distance_to(near) < 0.5
-		var flat := Vector2(near.x - target.x, near.z - target.z).length()
+		var flat := _distance_to_footprint(node, near)
 		if not reached or flat > REACH:
 			blocked += 1
-			report.append(_item("warning", "%s (%s) : pas de chemin à pied depuis %s (échelles, cordes et portes ne sont pas comptées)." % [node.name, ", ".join(goals[node]), start.name], [node]))
+			report.append(_item("warning", "%s (%s) : pas de chemin à pied depuis %s (les cordes de grappin ne sont pas comptées)." % [node.name, ", ".join(goals[node]), start.name], [node]))
 	if blocked == 0 and not goals.is_empty():
-		report.append(_item("ok", "Chemins à pied depuis %s : %d cibles atteignables." % [start.name, goals.size()]))
-	NavigationServer3D.free_rid(nav_region)
+		report.append(_item("ok", "Chemins depuis %s : %d cibles atteignables (%d passages : échelles, portes, murets, fenêtres)." % [start.name, goals.size(), links.size()]))
+	_free(map, nav_region, links)
+
+
+## Distance horizontale (m) du point `point` à l'emprise au sol de `node`
+## (maillages qu'il affiche, construits par son script compris) ; à défaut,
+## à sa position.
+static func _distance_to_footprint(node: Node3D, point: Vector3) -> float:
+	var bounds := AABB()
+	var found := false
+	var items: Array = [node]
+	items.append_array(node.find_children("*", "VisualInstance3D", true, false))
+	for item in items:
+		if not item is VisualInstance3D:
+			continue
+		var box: AABB = (item as VisualInstance3D).global_transform * (item as VisualInstance3D).get_aabb()
+		bounds = box if not found else bounds.merge(box)
+		found = true
+	if not found:
+		return Vector2(point.x - node.global_position.x, point.z - node.global_position.z).length()
+	var dx := maxf(maxf(bounds.position.x - point.x, point.x - bounds.end.x), 0.0)
+	var dz := maxf(maxf(bounds.position.z - point.z, point.z - bounds.end.z), 0.0)
+	return Vector2(dx, dz).length()
+
+
+## Passages de navigation (`TraversalLink`) que le jeu crée au lancement,
+## recréés dans la carte `map` d'après les nœuds qui les décrivent
+## (`link_ends`, y compris les portes et fenêtres construites par les
+## bâtiments).
+static func _create_links(root: Node, map: RID) -> Array[RID]:
+	var links: Array[RID] = []
+	for node in root.find_children("*", "Node3D", true, false):
+		if not node.has_method(&"link_ends"):
+			continue
+		var frame := (node as Node3D).global_transform
+		for ends: PackedVector3Array in node.call(&"link_ends"):
+			var link := NavigationServer3D.link_create()
+			NavigationServer3D.link_set_map(link, map)
+			NavigationServer3D.link_set_bidirectional(link, true)
+			NavigationServer3D.link_set_start_position(link, frame * ends[0])
+			NavigationServer3D.link_set_end_position(link, frame * ends[1])
+			links.append(link)
+	return links
+
+
+static func _free(map: RID, region: RID, links: Array[RID]) -> void:
+	for link in links:
+		NavigationServer3D.free_rid(link)
+	NavigationServer3D.free_rid(region)
 	NavigationServer3D.free_rid(map)

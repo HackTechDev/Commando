@@ -65,13 +65,23 @@ func _rebuild() -> void:
 	add_child(mesh)
 	if Engine.is_editor_hint():
 		return
-	var count := maxi(1, int(length / link_spacing))
-	for i in count:
-		var x := (float(i) + 0.5) / count * length - length * 0.5
+	var ends := link_ends()
+	for i in ends.size():
 		var link := TraversalLink.new()
 		link.name = "Link%d" % i
 		link.kind = TraversalLink.Kind.VAULT
 		link.height = height
-		link.start_position = Vector3(x, 0.0, link_reach)
-		link.end_position = Vector3(x, 0.0, -link_reach)
+		link.start_position = ends[i][0]
+		link.end_position = ends[i][1]
 		add_child(link)
+
+
+## Extrémités, dans le repère du nœud, des passages (`TraversalLink`) que
+## le jeu crée ici ; la vérification de l'éditeur de mission s'en sert aussi.
+func link_ends() -> Array[PackedVector3Array]:
+	var ends: Array[PackedVector3Array] = []
+	var count := maxi(1, int(length / link_spacing))
+	for i in count:
+		var x := (float(i) + 0.5) / count * length - length * 0.5
+		ends.append(PackedVector3Array([Vector3(x, 0.0, link_reach), Vector3(x, 0.0, -link_reach)]))
+	return ends
