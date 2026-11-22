@@ -1543,3 +1543,12 @@
 - `SnowPine` : sapin enneigé procédural ; le tronc arrête la vue et les balles.
 - `Snowfall` : particules de neige qui suivent la caméra.
 - Éditeur de mission : sol « Neige » pour une nouvelle mission ; « Sapin enneigé » et « Chute de neige » dans la palette (Décor).
+
+## Carte urbaine sous la pluie : « Quartier sous la pluie »
+
+- Nouvelle mission « Quartier sous la pluie » (`scenes/levels/rainy_district/`), en fin de journée, 120 × 124 m : quatre rues avec trottoirs et passages piétons, huit immeubles de deux à six niveaux (escaliers, toits-terrasses), des boutiques, voitures et passants, des flaques, des lampadaires allumés.
+- Objectif : prendre les documents de l'officier, au 4e étage du siège, et les rapporter à bord du convertible d'extraction, sur la place nord-est. Quatorze gardes : dans les rues, à chaque niveau du siège, sur les toits.
+- Ciel bas, lumière grise, brume, sol mouillé (brillant).
+- `Rainfall` : pluie en traits fins qui suit la caméra, avec le bruit de l'averse (boucle synthétisée, bus SFX).
+- `WeatherParticles` : base commune de la neige (`Snowfall`) et de la pluie.
+- Éditeur de mission : « Pluie » dans la palette (Décor). Les deux nouvelles cartes s'ouvrent et s'enregistrent dans l'éditeur sans changement.

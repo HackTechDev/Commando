@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_obj"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_info"]
+
+[sub_resource type="Resource" id="Resource_documents"]
+script = ExtResource("1_obj")
+id = "documents"
+text = "Rapporter à bord les documents de l'officier (siège, 4e étage)"
+
+[sub_resource type="Resource" id="Resource_extracted"]
+script = ExtResource("1_obj")
+id = "extracted"
+text = "Être extrait par le convertible, sur la place nord-est"
+
+[sub_resource type="Resource" id="Resource_no_loss"]
+script = ExtResource("1_obj")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_info")
+title = "Quartier sous la pluie"
+description = "En ville, sous une pluie battante, en fin de journée. Au centre du quartier, le siège (six niveaux) : un officier, au 4e étage, porte des documents ; un garde du corps veille à côté de lui. Gardes à la porte principale (sud), à la porte est et dans le hall, une ronde au 2e étage, un garde au 3e, un guetteur sur le toit. Dehors : une ronde autour de l'îlot central, une à l'est, une le long de la rue nord, un tireur sur le toit de l'immeuble ouest, un guetteur sur le toit de la résidence, au sud. Voitures et passants dans les rues. Prenez les documents (sur l'officier abattu ou assommé), appelez le convertible et rapportez-les à bord, sur la place nord-est."
+camo = "urban"
+time = "18:20"
+order = 206
+objectives = Array[ExtResource("1_obj")]([SubResource("Resource_documents"), SubResource("Resource_extracted"), SubResource("Resource_no_loss")])

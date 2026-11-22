@@ -57,6 +57,7 @@ static func entries() -> Array[Dictionary]:
 		{"id": "lamp", "label": "Lampadaire", "category": "Décor", "parent": "Lamps", "tool": "point"},
 		{"ground": true, "id": "pine", "label": "Sapin enneigé", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "snowfall", "label": "Chute de neige", "category": "Décor", "parent": "Decor", "tool": "point"},
+		{"id": "rainfall", "label": "Pluie", "category": "Décor", "parent": "Decor", "tool": "point"},
 		{"id": "ladder", "label": "Échelle", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "tower", "label": "Immeuble à étages", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
@@ -188,6 +189,8 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			nodes.append(pine)
 		"snowfall":
 			nodes.append(_scripted("GPUParticles3D", "res://scripts/levels/snowfall.gd", "Snowfall"))
+		"rainfall":
+			nodes.append(_scripted("GPUParticles3D", "res://scripts/levels/rainfall.gd", "Rainfall"))
 		"tower":
 			var tower := _scripted("Node3D", "res://scripts/props/tower.gd", "Tower")
 			tower.set("storeys", 3)

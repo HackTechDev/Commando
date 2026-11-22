@@ -230,6 +230,7 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Lampadaire | 1 clic | `Lamps` | |
 | | Sapin enneigé | 1 clic | `NavigationRegion3D` | Tronc solide (vue, balles), feuillage poudré de neige ; `height`, `variant`. |
 | | Chute de neige | 1 clic | `Decor` | Flocons autour de ce que regarde la caméra ; `flakes`, `wind`. Une seule par carte. |
+| | Pluie | 1 clic | `Decor` | Gouttes autour de ce que regarde la caméra, bruit de l'averse ; `drops`, `wind`, `volume_db`. Une seule par carte. |
 | | Immeuble à étages | 1 clic | `NavigationRegion3D` | 3 étages, 14 × 10 m ; `storeys`, `size`, `doors`, `windows` dans l'inspecteur. |
 | | Route, Trottoir, Piste | 2 clics | `Decor` | 9 m, 2,5 m, 4,5 m de large. |
 | Relief et plans | Plateau | 2 clics (coins) | `NavigationRegion3D` | Dessus à 2 m, une rampe au sud ; `height`, `ramps`, `ramp_width`. |
