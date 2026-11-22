@@ -27,7 +27,7 @@ L'annulation et le rétablissement viennent de Godot (`EditorUndoRedoManager`), 
 2. **Les décors procéduraux sont invisibles dans l'éditeur.** Les bâtiments, gardes (`SoldierModel`), invités, passants, voitures, Sabre, convertible, etc. sont construits par leur script au lancement. Seuls `ladder.gd` et `low_wall.gd` sont `@tool`. Il faut les rendre `@tool` un par un, en ne gardant dans l'éditeur que la construction du modèle : pas de déplacement, d'IA, de bruit ni de groupes (garde `Engine.is_editor_hint()`).
    - Les cartes UFO:AI (`UfoMapLevel`) sont aussi construites au chargement : il faut un aperçu, construit dans l'éditeur sans être enregistré dans la scène.
    - Les textures externes (`TextureLibrary`) : même chose. C'est le point 101 a) d'`IMPROVEMENTS.md`.
-3. **18 cartes sont générées** par `tools/gen_*.py` (`MapBuilder`). Une carte modifiée dans l'éditeur, puis régénérée, perd ses modifications. Voir la question ouverte en fin de document.
+3. **18 cartes sont générées** par `tools/gen_*.py` (`MapBuilder`). Une carte modifiée dans l'éditeur, puis régénérée, perdrait ses modifications. Voir § 6.
 
 ## 2. Le greffon
 
@@ -60,7 +60,7 @@ L'annulation et le rétablissement viennent de Godot (`EditorUndoRedoManager`), 
 
 1. **`MissionInfo`** : ressource des informations de mission, migration des 24 entrées de `level_catalog.gd` par un script, `LevelCatalog` qui lit les ressources. Le jeu doit se comporter exactement comme avant.
 2. **Affichage dans l'éditeur** : décors et unités `@tool` (construction seule) ; aperçu des cartes UFO:AI et des textures externes, non enregistré. Vérifié en ouvrant chaque mission de série dans l'éditeur.
-3. **Base du greffon** : dock, palette de décor, pose au clic, grille, rotation, annulation ; réglages de la carte.
+3. **Base du greffon** : dock, palette de décor, pose au clic, grille, rotation, annulation ; réglages de la carte ; avertissement sur les cartes générées et protection contre l'écrasement (§ 6).
 4. **Unités, trajets et mission** : équipe, gardes et rondes, civils, voitures, avec leurs repères visuels et poignées de trajet ; panneau `MissionInfo` avec les objectifs et leurs cibles ; extraction.
 5. **Vérification et essai** : bouton « Vérifier », bouton « Essayer », nouvelle mission visible dans le catalogue.
 
@@ -73,11 +73,12 @@ Après la première version : copier-coller entre missions, dessin des routes au
 - **Événements scriptés** : renforts déclenchés, pick-ups qui arrivent, ateliers du didacticiel. Les missions de série qui en ont s'ouvrent et se modifient, mais ces scripts ne s'éditent pas dans le greffon.
 - **Missions créées par les joueurs** : le greffon ne sert pas dans le jeu exporté.
 
-## 6. Question ouverte
+## 6. Cartes générées
 
-**Cartes générées par `tools/gen_*.py`** : une fois modifiée dans l'éditeur, la carte ne doit plus être régénérée. Trois possibilités :
-1. la scène devient la source : le générateur de la carte modifiée est retiré, comme celui des cartes qu'on ne touche plus ;
-2. le greffon affiche un avertissement sur une carte générée, et le générateur refuse d'écraser une scène modifiée depuis sa dernière génération ;
-3. on retire tous les générateurs d'un coup, au début, et `tools/mapkit.py` ne sert plus que de référence.
+18 cartes de série sont produites par `tools/gen_*.py` (`MapBuilder`). Une carte modifiée dans l'éditeur, puis régénérée, perdrait ses modifications. Règle retenue :
 
-Proposition : la 2, puis la 1 au cas par cas.
+- **Avertissement** : quand la scène ouverte vient d'un générateur, le dock « Mission » l'affiche et nomme le script.
+- **Pas d'écrasement** : `MapBuilder` note dans la scène une empreinte de son contenu au moment de la génération. Avant d'écrire, il compare la scène existante à cette empreinte. Si elle a été modifiée depuis, il refuse d'écrire et le signale.
+- **Retrait au cas par cas** : une carte reprise dans l'éditeur devient la source ; son générateur est ensuite retiré du dépôt.
+
+Ce travail fait partie de l'étape 3 (base du greffon).
