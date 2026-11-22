@@ -1183,3 +1183,11 @@
 - Gardes : deux à la grille d'honneur, à l'écart de l'allée ; un sur le perron, un dans le bureau ; deux rondes dans le parc, une autour de la résidence ; un à la grille de service.
 - Objectif bonus `no_alert` (« Ne jamais donner l'alerte ») : il échoue à la première alerte générale sans empêcher la réussite. Il était déjà listé par « Entraînement B » mais n'était géré nulle part.
 - Vérifié par scénario. L'équipe, PM à la bretelle, passe la grille et traverse le parc au pas : détection plafonnée à 0,16, aucune méfiance. Dans le bureau, le garde devient méfiant. Chemins de navigation contrôlés (rue, perron, bureau, porte de service, extraction). La suite GUT n'a pas été lancée.
+
+## Cravate et devant du costume refaits
+
+- Cravate : nœud bombé, plus large en haut ; pan qui s'élargit vers le bas ; soie à rayures en biais plus claires. La couleur varie selon le personnage (bordeaux, marine, vert, or, prune) et reste la même pour un même civil.
+- Chemise dans l'encolure en V, col à pointes de part et d'autre du nœud, col blanc autour du cou.
+- Les revers se croisent au bas du V, comme une veste boutonnée, et cachent le bout de la cravate.
+- Toutes ces pièces épousent désormais le buste (`SoldierModel._chest_panel`, `_chest_front`, poitrine féminine comprise) : de profil, elles ne flottent plus en planche devant la poitrine.
+- Vérifié par rendus rapprochés (face, trois-quarts, profil ; homme et femme). La suite GUT n'a pas été lancée.

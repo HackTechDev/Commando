@@ -2598,23 +2598,120 @@ func shield_blocks(from: Vector3, to: Vector3) -> Vector3:
 	return frame * hit
 
 
-## Costume d'un civil : plastron et col de chemise, cravate, revers de la
-## veste, boutons et pochette.
+## Costume d'un civil : chemise dans l'encolure en V de la veste, col à
+## pointes, cravate (nœud, pan qui s'élargit, rayures en biais), revers qui
+## la recouvrent au bas du V, boutons et pochette. Les pièces épousent le
+## buste (`_chest_panel`).
 func _build_suit() -> void:
 	var suit := _pivot(_torso, Vector3.ZERO, "Suit")
-	var lapel_material := _mat((_m_top.albedo_color as Color).darkened(0.25), 0.7)
-	var tie_material := _mat(Color(0.45, 0.08, 0.1), 0.5)
-	_box(suit, Vector3(0.1, 0.17, 0.012), Vector3(0.0, 0.47, -0.107), _m_white).rotation.x = -0.1
-	_tapered(suit, 0.074, 0.084, 0.035, Vector3(0.0, 0.555, 0.004), _m_white)
-	_box(suit, Vector3(0.034, 0.03, 0.02), Vector3(0.0, 0.535, -0.106), tie_material)
-	var tie := _box(suit, Vector3(0.036, 0.17, 0.01), Vector3(0.0, 0.44, -0.114), tie_material)
-	tie.rotation.x = -0.1
+	var lapel_material := _mat((_m_top.albedo_color as Color).darkened(0.18), 0.55)
+	var tie_material := _tie_material()
+	# Chemise : de l'encolure à la pointe du V.
+	_chest_panel(suit, [[0.565, -0.046, 0.046], [0.52, -0.052, 0.052], [0.44, -0.03, 0.03], [0.355, -0.004, 0.004]], 0.002, 0.0, _m_white)
+	# Col de chemise autour du cou, au-dessus de celui de la veste.
+	_tapered(suit, 0.071, 0.083, 0.03, Vector3(0.0, 0.576, 0.004), _m_white)
+	# Col : pointes de part et d'autre du nœud.
 	for side: float in [-1.0, 1.0]:
-		var lapel := _box(suit, Vector3(0.05, 0.19, 0.012), Vector3(0.062 * side, 0.45, -0.112), lapel_material)
-		lapel.rotation = Vector3(-0.1, 0.0, 0.32 * side)
-	for y: float in [0.33, 0.25]:
-		_sphere(suit, 0.009, Vector3(0.0, y, -0.108), _m_weapon)
-	_box(suit, Vector3(0.05, 0.018, 0.008), Vector3(-0.1, 0.43, -0.11), _m_white)
+		var rows := [[0.566, 0.012, 0.046], [0.545, 0.014, 0.036], [0.515, 0.024, 0.028]]
+		var point := []
+		for row: Array in rows:
+			point.append([row[0], row[1] * side if side > 0.0 else -row[2], row[2] * side if side > 0.0 else -row[1]])
+		_chest_panel(suit, point, 0.013, 0.006, _m_white)
+	# Nœud, plus large en haut, bombé ; puis le pan qui s'élargit vers le bas.
+	_chest_panel(suit, [[0.56, -0.019, 0.019], [0.54, -0.017, 0.017], [0.522, -0.01, 0.01]], 0.016, 0.012, tie_material)
+	_chest_panel(suit, [[0.524, -0.009, 0.009], [0.45, -0.018, 0.018], [0.35, -0.024, 0.024]], 0.008, 0.004, tie_material)
+	# Revers : du col à la pointe du V, par-dessus les bords de la cravate ;
+	# ils se croisent en bas (veste boutonnée) et en cachent le bout.
+	for side: float in [-1.0, 1.0]:
+		var rows := [[0.56, 0.05, 0.095], [0.5, 0.036, 0.1], [0.43, 0.02, 0.085], [0.375, 0.006, 0.05], [0.33, -0.014, 0.03]]
+		var lapel := []
+		for row: Array in rows:
+			lapel.append([row[0], row[1] if side > 0.0 else -row[2], row[2] if side > 0.0 else -row[1]])
+		_chest_panel(suit, lapel, 0.0125 if side > 0.0 else 0.012, 0.004, lapel_material)
+	for y: float in [0.31, 0.24]:
+		_sphere(suit, 0.009, Vector3(0.0, y, _chest_front(y, 0.0) - 0.004), _m_weapon)
+	var pocket_x := -0.105
+	_box(suit, Vector3(0.045, 0.016, 0.008), Vector3(pocket_x, 0.44, _chest_front(0.44, pocket_x) - 0.004), _m_white)
+
+
+## Profondeur (z) du devant du buste à la hauteur `y` et à l'écart `x` de
+## l'axe : la poitrine (cône du torse aplati), qui s'incurve vers les côtés
+## et remonte vers le cou au-dessus des épaules ; la poitrine d'une femme.
+func _chest_front(y: float, x: float) -> float:
+	var z := -0.1 - (y - 0.28) * 0.0833 if y <= 0.52 else -0.12 + (y - 0.52)
+	z += x * x * 1.6
+	if _female:
+		var bust := maxf(0.0, 1.0 - absf(y - 0.385) / 0.08) * clampf(absf(x) / 0.06, 0.0, 1.0)
+		z -= 0.016 * bust
+	return z
+
+
+## Pièce plaquée sur le buste : contour donné par rangées [y, x gauche, x
+## droit] (de haut en bas), à `offset` devant la poitrine, avec une tranche
+## de `depth` vers l'arrière (épaisseur vue de profil). UV en mètres.
+func _chest_panel(parent: Node3D, rows: Array, offset: float, depth: float, material: Material) -> MeshInstance3D:
+	const STEPS := 4
+	var grid: Array = []
+	for r in rows.size() - 1:
+		var a: Array = rows[r]
+		var b: Array = rows[r + 1]
+		for s in STEPS:
+			var f := float(s) / STEPS
+			grid.append([lerpf(a[0], b[0], f), lerpf(a[1], b[1], f), lerpf(a[2], b[2], f)])
+	grid.append(rows[rows.size() - 1])
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var front := func(y: float, x: float, back: float) -> Vector3:
+		return Vector3(x, y, _chest_front(y, x) - offset + back)
+	var quad := func(p: Array) -> void:
+		for i: int in [0, 2, 1, 0, 3, 2]:
+			var v: Vector3 = p[i]
+			tool.set_uv(Vector2(v.x, -v.y) * 40.0)
+			tool.add_vertex(v)
+	for g in grid.size() - 1:
+		var a: Array = grid[g]
+		var b: Array = grid[g + 1]
+		const COLUMNS := 3
+		for c in COLUMNS:
+			var fa := float(c) / COLUMNS
+			var fb := float(c + 1) / COLUMNS
+			quad.call([front.call(a[0], lerpf(a[1], a[2], fa), 0.0), front.call(a[0], lerpf(a[1], a[2], fb), 0.0),
+				front.call(b[0], lerpf(b[1], b[2], fb), 0.0), front.call(b[0], lerpf(b[1], b[2], fa), 0.0)])
+		if depth > 0.0:
+			for edge: int in [1, 2]:
+				var top: Vector3 = front.call(a[0], a[edge], 0.0)
+				var bottom: Vector3 = front.call(b[0], b[edge], 0.0)
+				var walls := [top, bottom, bottom + Vector3.BACK * depth, top + Vector3.BACK * depth]
+				if edge == 1:
+					walls.reverse()
+				quad.call(walls)
+	if depth > 0.0:
+		var first: Array = grid[0]
+		var left: Vector3 = front.call(first[0], first[1], 0.0)
+		var right: Vector3 = front.call(first[0], first[2], 0.0)
+		quad.call([left, left + Vector3.BACK * depth, right + Vector3.BACK * depth, right])
+	tool.generate_normals()
+	return _mesh(parent, tool.commit(), Vector3.ZERO, material)
+
+
+## Soie de la cravate : couleur tirée de l'apparence (toujours la même pour
+## un même civil), rayures en biais plus claires.
+func _tie_material() -> StandardMaterial3D:
+	const COLORS: Array[Color] = [Color(0.45, 0.08, 0.1), Color(0.1, 0.16, 0.36), Color(0.12, 0.26, 0.16), Color(0.5, 0.38, 0.12), Color(0.3, 0.1, 0.32)]
+	var index := 0
+	if outfit:
+		index = (outfit.skin * 7 + outfit.hair_color * 3 + String(outfit.hair_style).length()) % COLORS.size()
+	var base := COLORS[index]
+	var stripe := base.lightened(0.35)
+	var image := Image.create(16, 16, false, Image.FORMAT_RGB8)
+	for y in 16:
+		for x in 16:
+			image.set_pixel(x, y, stripe if (x + y) % 8 < 2 else base)
+	var material := _mat(Color.WHITE, 0.4)
+	material.albedo_texture = ImageTexture.create_from_image(image)
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	material.uv1_scale = Vector3(0.5, 0.5, 1.0)
+	return material
 
 
 ## Tenue décontractée : blouson ouvert (couleur du haut) sur un t-shirt
