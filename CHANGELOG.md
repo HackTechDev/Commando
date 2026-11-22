@@ -1265,3 +1265,11 @@
   - un garde à 40 m ne réagit pas ;
   - un garde posté se tourne vers le bruit sans bouger.
 - La suite GUT n'a pas été lancée.
+
+## Jumelles de vision nocturne GPNVG-18
+
+- L'accessoire du casque balistique devient « Jumelles de vision nocturne GPNVG-18 (casque) ».
+- Le modèle 3D est refait en panoramique à quatre tubes : un pont large avec un bouton et des molettes, deux tubes centraux devant les yeux avec oculaires, et deux tubes extérieurs plus petits, tournés de 30° vers l'extérieur.
+- Relevées, l'appareil bascule vers le ciel au-dessus du front ; abaissées, les quatre tubes passent devant les yeux. Le contrepoids sur la nuque et le support ne changent pas.
+- Poids : 0,75 kg (au lieu de 0,6).
+- Vérifié par rendu (face, profil, trois-quarts, relevées et abaissées). La suite GUT n'a pas été lancée.

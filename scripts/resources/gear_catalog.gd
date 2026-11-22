@@ -117,7 +117,7 @@ const BEARDS: Dictionary = {
 ## Accessoires (interrupteurs de `OperatorProfile`) : nom affiché.
 const ACCESSORIES: Dictionary = {
 	&"balaclava": "Cagoule",
-	&"nvg": "Jumelles de vision nocturne (casque)",
+	&"nvg": "Jumelles de vision nocturne GPNVG-18 (casque)",
 	&"headset": "Casque audio",
 	&"vest": "Gilet tactique",
 	&"backpack": "Sac à dos",
@@ -285,7 +285,7 @@ const WEIGHTS: Dictionary = {
 	&"carbine": 3.5, &"smg": 2.8, &"dmr": 6.0, &"shotgun": 4.0, &"pump_shotgun": 3.6,
 	&"famas": 3.8, &"scar_l": 3.6, &"scar_h": 4.3, &"hk417": 5.0, &"m249": 8.0, &"hecate": 13.8,
 	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
-	&"helmet": 1.4, &"nvg": 0.6, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
+	&"helmet": 1.4, &"nvg": 0.75, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0, &"sunglasses": 0.05,
 	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"explosives": 2.0, &"medkit": 1.5,
 	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9,

@@ -3548,36 +3548,55 @@ func _build_operator_helmet(nvg: bool, headset: bool) -> void:
 	_box(shroud, Vector3(0.075, 0.008, 0.06), Vector3.ZERO, _m_weapon)
 	_box(shroud, Vector3(0.042, 0.02, 0.03), Vector3(0.0, 0.012, 0.0), _m_weapon)
 	if nvg:
-		# Jumelles relevées : bras articulé, boîtier et tubes inclinés vers le ciel.
+		# GPNVG-18 relevées : bras articulé, l'appareil basculé vers le ciel
+		# au-dessus du front.
 		var raised := _pivot(_head, Vector3.ZERO, "NvgRaised")
 		_strap(shroud.transform * Vector3(0.0, 0.02, 0.0), Vector3(0.0, 0.3, -0.13), 0.026, 0.018, _m_weapon, raised)
-		var housing := _box(raised, Vector3(0.105, 0.03, 0.04), Vector3(0.0, 0.314, -0.125), _m_weapon)
-		housing.rotation.x = deg_to_rad(-65.0)
-		for side: float in [-1.0, 1.0]:
-			var tube := _cylinder(raised, 0.021, 0.10, Vector3(0.033 * side, 0.335, -0.145), _m_weapon)
-			tube.name = "NvgTube"
-			tube.rotation.x = deg_to_rad(-65.0)
-			var ring := _cylinder(raised, 0.023, 0.014, Vector3(0.033 * side, 0.352, -0.181), _m_gear)
-			ring.rotation.x = deg_to_rad(-65.0)
-			var lens := _cylinder(raised, 0.017, 0.006, Vector3(0.033 * side, 0.36, -0.198), _m_lens)
-			lens.rotation.x = deg_to_rad(-65.0)
-		# Jumelles abaissées : le bras descend du support, le boîtier passe
-		# devant le front, les tubes devant les yeux, objectifs vers l'avant.
+		var up := _pivot(raised, Vector3(0.0, 0.318, -0.128), "Gpnvg")
+		up.rotation.x = deg_to_rad(68.0)
+		_build_gpnvg(up)
+		# Abaissées : le bras descend du support, le boîtier passe devant le
+		# front, les quatre tubes devant les yeux.
 		var lowered := _pivot(_head, Vector3.ZERO, "NvgLowered")
 		_strap(shroud.transform * Vector3(0.0, 0.02, 0.0), Vector3(0.0, 0.235, -0.165), 0.026, 0.018, _m_weapon, lowered)
-		_box(lowered, Vector3(0.105, 0.04, 0.035), Vector3(0.0, 0.225, -0.165), _m_weapon)
-		for side: float in [-1.0, 1.0]:
-			var tube := _cylinder(lowered, 0.021, 0.10, Vector3(0.033 * side, 0.19, -0.18), _m_weapon)
-			tube.name = "NvgTube"
-			tube.rotation.x = PI / 2.0
-			var ring := _cylinder(lowered, 0.023, 0.014, Vector3(0.033 * side, 0.19, -0.226), _m_gear)
-			ring.rotation.x = PI / 2.0
-			var lens := _cylinder(lowered, 0.017, 0.006, Vector3(0.033 * side, 0.19, -0.235), _m_lens)
-			lens.rotation.x = PI / 2.0
+		_build_gpnvg(_pivot(lowered, Vector3(0.0, 0.225, -0.165), "Gpnvg"))
 		_show_nvg()
 		# Contrepoids (pochette) sur la nuque.
 		_shell_box(Vector3(0.11, 0.035, 0.055), 1.42, PI, 0.016, _m_gear, false)
 		_shell_box(Vector3(0.112, 0.008, 0.02), 1.32, PI, 0.032, _m_gear, false)
+
+
+## Jumelles panoramiques GPNVG-18 dans le repère `parent` (boîtier à
+## l'origine, objectifs vers -Z) : pont large, deux tubes centraux devant
+## les yeux (avec oculaires) et deux tubes extérieurs plus petits, tournés
+## vers l'extérieur pour élargir le champ.
+func _build_gpnvg(parent: Node3D) -> void:
+	_box(parent, Vector3(0.15, 0.034, 0.036), Vector3.ZERO, _m_weapon)
+	# Bouton de mise en marche et molettes de réglage sur le pont.
+	_box(parent, Vector3(0.022, 0.01, 0.016), Vector3(0.0, 0.021, 0.004), _m_dark)
+	for side: float in [-1.0, 1.0]:
+		var knob := _cylinder(parent, 0.008, 0.012, Vector3(0.05 * side, 0.02, 0.008), _m_dark)
+		knob.rotation.z = PI / 2.0
+		# Tube central (oculaire derrière, objectif devant).
+		_gpnvg_tube(parent, Vector3(0.03 * side, -0.033, -0.012), 0.0, 0.019, 0.1, true)
+		# Tube extérieur, plus court, tourné de 30° vers l'extérieur.
+		_gpnvg_tube(parent, Vector3(0.071 * side, -0.026, -0.02), deg_to_rad(-30.0) * side, 0.016, 0.075, false)
+
+
+## Un tube de GPNVG-18 centré en `at`, tourné de `yaw` autour de la
+## verticale, objectif vers -Z ; avec un oculaire à l'arrière si `eyepiece`.
+func _gpnvg_tube(parent: Node3D, at: Vector3, yaw: float, radius: float, length: float, eyepiece: bool) -> void:
+	var holder := _pivot(parent, at, "NvgTube")
+	holder.rotation.y = yaw
+	var tube := _cylinder(holder, radius, length, Vector3.ZERO, _m_weapon)
+	tube.rotation.x = PI / 2.0
+	var ring := _cylinder(holder, radius + 0.002, 0.012, Vector3(0.0, 0.0, -length * 0.5 + 0.004), _m_gear)
+	ring.rotation.x = PI / 2.0
+	var lens := _cylinder(holder, radius - 0.004, 0.005, Vector3(0.0, 0.0, -length * 0.5 - 0.003), _m_lens)
+	lens.rotation.x = PI / 2.0
+	if eyepiece:
+		var eye := _cylinder(holder, radius - 0.003, 0.02, Vector3(0.0, 0.0, length * 0.5 + 0.008), _m_dark)
+		eye.rotation.x = PI / 2.0
 
 
 ## Affiche les jumelles abaissées ou relevées selon `nvg_lowered`.
