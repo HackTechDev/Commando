@@ -108,6 +108,15 @@ Pour l'exemple :
 5. **Haie / buisson** : quelques-uns hors de la cour. Ils cachent les corps.
 6. **Lampadaire** : deux ou trois dans la cour, pour l'ambiance de nuit.
 
+**Relief et bâtiments dessinés** (catégorie « Relief et plans » de la palette, réglages dans la section du même nom du dock) :
+
+- **Plateau** : deux clics aux coins opposés du dessus. Un plateau de 2 m aux flancs à pic, une rampe au sud (pente de 25°). Dans l'inspecteur : `height`, `size`, `ramps` (côté, décalage le long du côté ; côtés comme le bâtiment), `ramp_width`, couleurs. Le dessus se vise comme un toit (case « Sur les toits et les étages ») : un plateau sur un plateau fait un relief en gradins. Une échelle contre un flanc y fait monter aussi. Les flancs arrêtent la vue et les balles.
+- **Pièce** : deux clics aux coins opposés. La première pièce crée un bâtiment dessiné ; les suivantes s'ajoutent au bâtiment sélectionné (ou à celui où l'on clique), à l'**étage** choisi dans le dock. Deux pièces qui se touchent partagent leur mur ; une pièce d'étage pose son sol sur le toit de celles du dessous, ou en surplomb.
+- **Porte** et **Fenêtre** : un clic à moins de 1 m d'un mur de l'étage choisi. Les portes sont celles de l'immeuble (battant, crochetables si verrouillées : genre 2 dans `openings`) ; on voit à travers les fenêtres. Loin de tout mur, le geste est refusé et la ligne d'état le dit.
+- **Escalier** : un clic au bas de la volée, **R** / **Maj+R** pour son sens ; la volée monte d'un étage (pente de 31°), la dalle au-dessus est percée. Une volée du dernier étage mène au toit.
+- Le dock montre les pièces par étage, les ouvertures et les escaliers du bâtiment sélectionné, et retire le dernier de chaque. Pour commencer un autre bâtiment, sélectionnez autre chose (dans l'arbre de scène) avant de tracer sa première pièce.
+- En jeu, le bâtiment s'affiche en coupe comme l'immeuble : l'étage le plus bas occupé par un opérateur, ou le niveau de vue choisi, et rien au-dessus.
+
 Les éléments qui bloquent le passage (murs, caisses, bâtiments) vont sous `NavigationRegion3D`, pour que les unités les contournent. Les revêtements et les buissons vont sous `Decor`, les lampadaires sous `Lamps`. Le greffon s'en charge. Si vous déplacez des nœuds à la main dans l'arbre, gardez ce rangement.
 
 ### 6. Placer l'équipe et les ennemis
@@ -221,6 +230,10 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Lampadaire | 1 clic | `Lamps` | |
 | | Immeuble à étages | 1 clic | `NavigationRegion3D` | 3 étages, 14 × 10 m ; `storeys`, `size`, `doors`, `windows` dans l'inspecteur. |
 | | Route, Trottoir, Piste | 2 clics | `Decor` | 9 m, 2,5 m, 4,5 m de large. |
+| Relief et plans | Plateau | 2 clics (coins) | `NavigationRegion3D` | Dessus à 2 m, une rampe au sud ; `height`, `ramps`, `ramp_width`. |
+| | Pièce | 2 clics (coins) | `NavigationRegion3D` | Crée un bâtiment dessiné, ou s'ajoute au bâtiment sélectionné, à l'étage du dock. |
+| | Porte, Fenêtre | 1 clic près d'un mur | (bâtiment) | À l'étage du dock ; refusée loin des murs. |
+| | Escalier | 1 clic, R pour le sens | (bâtiment) | Monte d'un étage depuis celui du dock. |
 | Obstacles | Mine, Engin improvisé | 1 clic | `NavigationRegion3D` | |
 | | Barrière | 1 clic | `NavigationRegion3D` | Cap = sens de la route ; en travers, un muret de chaque côté. |
 | Équipe | Opérateur | 1 clic | `Units` | Alpha à Foxtrot, six au plus. |
@@ -274,6 +287,8 @@ Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'
 | Événement que rien ne déclenche (ni objectif, ni zone), objectif déclencheur absent de la mission, personne qui arrive | Avertissement |
 | Zone de déclenchement sans chemin depuis le premier opérateur | Avertissement |
 | Pas de `NavigationRegion3D` avec un maillage, ou navigation vide | Erreur |
+| Bâtiment dessiné sans pièce | Erreur |
+| Ouverture loin de tout mur de son étage, escalier hors des pièces de son étage ou à travers un mur | Avertissement |
 | Pas de `mission.tres` (mission absente du choix des missions), pas de titre | Avertissement |
 | Identifiant d'objectif inconnu du jeu | Avertissement |
 | Plus de 40 gardes (la carte ralentit) | Avertissement |
@@ -301,9 +316,9 @@ Les raccourcis du greffon se changent dans Éditeur > Paramètres de l'éditeur 
 
 ### Limites de la première version
 
-- **Sol plat** : le terrain n'a pas de relief. Les toits et les étages se visent directement (case « Sur les toits et les étages »).
+- **Relief en plateaux** : des plateaux à flancs droits et des rampes, pas de pente libre ni de terrain sculpté. La couverture des gardes et les éléments « au sol » restent à y = 0 (un garde sur un plateau voit bien depuis sa hauteur, mais les cases du dessus du plateau sont calculées au pied).
 - **Fond UFO:AI** : les éléments « au sol » (revêtements, bâtiments, civils…) se posent à y = 0, la hauteur des départs de l'équipe, même là où la carte est plus haute ou plus basse ; la couverture des gardes est calculée à y = 0 aussi. La carte se construit à chaque ouverture de la scène (quelques secondes).
-- **Bâtiments** : seulement le bâtiment réglable et ce qui existe déjà ; pas de dessin libre de pièces ni d'étages.
+- **Bâtiments dessinés** : pièces rectangulaires alignées sur les axes du bâtiment, murs d'une seule épaisseur, volées droites ; pas de murs en biais, de balcons à garde-corps ni de parapets.
 - **Événements scriptés** : renforts et pick-ups qui arrivent se règlent dans la section Événements du dock ; les ateliers du didacticiel, dans l'inspecteur.
 - **Missions des joueurs** : le greffon ne sert que dans l'éditeur, pas dans le jeu exporté.
 - **Animation** : trajets en ligne droite entre les points (en jeu, la navigation contourne les obstacles), sans les arrêts imprévus (passant bloqué, voiture qui freine derrière une autre ou klaxonne, garde alerté) ; le pick-up armé, qui ralentit dans les virages en jeu, prend un peu d'avance (environ 5 % de la distance parcourue).

@@ -40,6 +40,10 @@ signal new_mission_requested(folder: String)
 signal event_changed(event: Node3D, property: StringName, value: Variant)
 ## « Tracer une zone » : outil de zone pour cet événement.
 signal event_zone_requested(event: Node3D)
+## Bâtiment dessiné : retirer le dernier élément ("rooms", "openings",
+## "stairs") ; étage des pièces, ouvertures et volées à poser.
+signal plan_remove_requested(kind: String)
+signal plan_storey_changed(storey: int)
 ## Boutons « Vérifier » et « Essayer ».
 signal check_requested
 signal play_requested
@@ -63,6 +67,9 @@ var _route_box: VBoxContainer
 var _events_box: VBoxContainer
 var _event_rows: Dictionary = {}
 var _events_signature: String = "-"
+var _plan_storey: SpinBox
+var _plan_label: Label
+var _plan_buttons: HBoxContainer
 var _route_label: Label
 ## Sols proposés pour une nouvelle mission (couleurs dans le greffon,
 ## `GROUNDS`, comme `tools/mapkit.py`).
@@ -294,6 +301,29 @@ func _init() -> void:
 	_body.add_child(_label("Renforts et pick-ups qui arrivent (catégorie Événements de la palette) : ce qui les déclenche, quand et combien. Une zone de déclenchement les appelle quand un opérateur y entre.", DIM_COLOR))
 	_events_box = VBoxContainer.new()
 	_body.add_child(_events_box)
+
+	_section("Relief et bâtiments dessinés")
+	_body.add_child(_label("Plateau : deux clics aux coins, une rampe au sud (côtés, rampes et hauteur dans l'inspecteur). Bâtiment dessiné : une pièce par rectangle (deux clics) ; la première crée le bâtiment, les suivantes s'ajoutent au bâtiment sélectionné. Portes et fenêtres : un clic près d'un mur. Escalier : un clic au bas de la volée, R pour son sens ; il monte d'un étage.", DIM_COLOR))
+	var storey_row := HBoxContainer.new()
+	storey_row.add_child(_inline_label("Étage"))
+	_plan_storey = SpinBox.new()
+	_plan_storey.min_value = 0
+	_plan_storey.max_value = 9
+	_plan_storey.tooltip_text = "Étage des pièces, portes, fenêtres et escaliers à poser (0 : rez-de-chaussée)."
+	_plan_storey.value_changed.connect(func(value: float) -> void: plan_storey_changed.emit(int(value)))
+	storey_row.add_child(_plan_storey)
+	_body.add_child(storey_row)
+	_plan_label = _label("", DIM_COLOR)
+	_body.add_child(_plan_label)
+	_plan_buttons = HBoxContainer.new()
+	for spec: Array in [["Retirer la dernière pièce", "rooms"], ["… ouverture", "openings"], ["… escalier", "stairs"]]:
+		var remove_last := Button.new()
+		remove_last.text = spec[0]
+		var kind: String = spec[1]
+		remove_last.pressed.connect(func() -> void: plan_remove_requested.emit(kind))
+		_plan_buttons.add_child(remove_last)
+	_body.add_child(_plan_buttons)
+	show_plan(null)
 
 	_route_box = VBoxContainer.new()
 	_route_box.visible = false
@@ -673,6 +703,32 @@ func show_route(node: Node) -> void:
 		_route_label.text = "Trajet de %s : %d points" % [node.name, (node.get("points") as PackedVector3Array).size()]
 
 
+## Bâtiment dessiné sélectionné (`node`), ou aucun.
+func show_plan(node: Node) -> void:
+	_plan_buttons.visible = node != null
+	if node == null:
+		_plan_label.text = "Aucun bâtiment dessiné sélectionné : une pièce tracée en crée un."
+		return
+	var counts := {}
+	var levels: PackedInt32Array = node.get("room_storeys")
+	var rooms: Array = node.get("rooms")
+	for i in rooms.size():
+		var storey := levels[i] if i < levels.size() else 0
+		counts[storey] = counts.get(storey, 0) + 1
+	var parts: Array[String] = []
+	var keys := counts.keys()
+	keys.sort()
+	for storey: int in keys:
+		parts.append("étage %d : %d" % [storey, counts[storey]])
+	_plan_label.text = "%s : %d pièce%s (%s), %d ouverture%s, %d escalier%s." % [node.name, rooms.size(), "s" if rooms.size() > 1 else "", ", ".join(parts),
+		(node.get("openings") as Array).size(), "s" if (node.get("openings") as Array).size() > 1 else "",
+		(node.get("stairs") as Array).size(), "s" if (node.get("stairs") as Array).size() > 1 else ""]
+
+
+func plan_storey() -> int:
+	return int(_plan_storey.value)
+
+
 ## Relâche le bouton de l'outil en cours.
 func clear_tool() -> void:
 	var pressed := _group.get_pressed_button()
@@ -733,6 +789,16 @@ static func _tooltip(id: String, tool: String) -> String:
 			return how + " Point d'arrivée des renforts ; ils foncent vers le dépôt (`target`) quand `start_objective` est rempli, ou quand un opérateur entre dans une de leurs zones de déclenchement. Réglages dans la section Événements."
 		"arrival":
 			return how + " Un pick-up armé arrive ici sans annonce, quelques secondes après l'entrée d'un opérateur dans sa zone de déclenchement (à tracer ensuite), et fonce vers la zone."
+		"terrace":
+			return "Deux clics : coins opposés du dessus. Plateau de 2 m, une rampe au sud ; hauteur, rampes (côté, décalage) et couleurs dans l'inspecteur. Une échelle contre un flanc y fait monter aussi."
+		"plan_room":
+			return "Deux clics : coins opposés de la pièce, à l'étage choisi (section Relief et bâtiments dessinés). Ajoutée au bâtiment dessiné sélectionné, ou à celui où l'on clique ; sinon, un nouveau bâtiment. Deux pièces qui se touchent partagent leur mur."
+		"plan_door":
+			return "Un clic près d'un mur (1 m au plus) du bâtiment dessiné, à l'étage choisi : porte de 1,2 m, comme celles de l'immeuble (verrouillée : genre 2 dans `openings`, inspecteur)."
+		"plan_window":
+			return "Un clic près d'un mur du bâtiment dessiné, à l'étage choisi : fenêtre (appui 0,9 m, linteau 2,1 m) ; on voit au travers."
+		"plan_stairs":
+			return "Un clic au bas de la volée, à l'étage choisi ; R / Maj+R : sens de la montée. Elle monte d'un étage ; la dalle au-dessus est percée."
 		"trigger_zone":
 			return "Deux clics : coins opposés de la zone. Elle déclenche l'événement sélectionné (ou choisi par « Tracer une zone » dans la section Événements, sinon le dernier sans zone) quand un opérateur y entre. Coins à poignées pour la retoucher."
 		"ied":

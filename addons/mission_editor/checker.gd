@@ -75,6 +75,7 @@ static func check(root: Node) -> Array[Dictionary]:
 	_check_info(root, report)
 	_check_enemies(root, report)
 	_check_events(root, report)
+	_check_plans(root, report)
 	_check_placement(root, operators, report)
 	if not operators.is_empty():
 		await _check_paths(root, operators[0] as Node3D, report)
@@ -114,6 +115,37 @@ static func _check_info(root: Node, report: Array[Dictionary]) -> void:
 		var nodes: Variant = MissionTargets.targets_of(objective.id, found)
 		if nodes is Array and (nodes as Array).is_empty():
 			report.append(_item("error", "Objectif « %s » (%s) : aucune cible sur la carte." % [objective.text, objective.id]))
+
+
+## Bâtiments dessinés : ouvertures sur un mur, volées dans une pièce et
+## arrivant à l'étage au-dessus (ou sur le toit).
+static func _check_plans(root: Node, report: Array[Dictionary]) -> void:
+	for plan: Node in root.find_children("*", "DrawnBuilding", true, false):
+		if (plan.get("rooms") as Array).is_empty():
+			report.append(_item("error", "%s : aucune pièce." % plan.name, [plan]))
+			continue
+		var openings: Array = plan.get("openings")
+		var stray := 0
+		for opening: Vector4 in openings:
+			if plan.call("opening_wall", opening, plan.call("wall_lines", int(opening.z))).is_empty():
+				stray += 1
+		if stray > 0:
+			report.append(_item("warning", "%s : %d ouverture%s loin de tout mur de son étage (ignorée%s)." % [plan.name, stray, "s" if stray > 1 else "", "s" if stray > 1 else ""], [plan]))
+		var flights: Array = plan.get("stairs")
+		for i in flights.size():
+			var flight: Vector4 = flights[i]
+			var area: Rect2 = plan.call("flight_rect", i)
+			var rooms: Array = plan.call("rooms_at", int(flight.z))
+			if not _covered(area.grow(-0.05), rooms):
+				report.append(_item("warning", "%s : escalier %d (étage %d) en dehors des pièces de son étage ou à travers un mur." % [plan.name, i + 1, int(flight.z)], [plan]))
+
+
+## Le rectangle `area` est-il entièrement dans l'une des pièces `rooms` ?
+static func _covered(area: Rect2, rooms: Array) -> bool:
+	for room: Rect2 in rooms:
+		if room.encloses(area):
+			return true
+	return false
 
 
 ## Événements scriptés et zones de déclenchement.

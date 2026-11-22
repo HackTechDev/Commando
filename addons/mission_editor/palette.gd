@@ -9,9 +9,10 @@ extends RefCounted
 ## "point" (un clic), "line" (deux clics : début et fin) ou "route" (un
 ## clic par point, double-clic ou Entrée pour finir) ; "ground": true
 ## pour ce qui se pose toujours au sol (revêtements, bâtiments, civils…),
-## les autres se posent aussi sur les toits et les étages.
+## les autres se posent aussi sur les toits et les étages ; "rect": true
+## pour un tracé à deux clics qui donne un rectangle (coins opposés).
 
-const CATEGORIES: Array[String] = ["Décor", "Obstacles", "Équipe", "Ennemis", "Événements", "Civils", "Objectifs", "Extraction et véhicules"]
+const CATEGORIES: Array[String] = ["Décor", "Relief et plans", "Obstacles", "Équipe", "Ennemis", "Événements", "Civils", "Objectifs", "Extraction et véhicules"]
 
 ## Revêtements posés à la ligne : couleur, hauteur, largeur par défaut.
 const SURFACES := {
@@ -36,6 +37,8 @@ const PARENT_META := &"_mission_editor_parent"
 const ARRIVAL_DELAY := 8.0
 ## Plus petit côté d'une zone de déclenchement (m).
 const ZONE_MIN := 2.0
+## Plus petit côté d'un plateau ou d'une pièce (m).
+const PLAN_MIN := 2.0
 
 const ENEMY_SCENE := "res://scenes/enemies/enemy.tscn"
 const COMMANDO_SCENE := "res://scenes/units/commando.tscn"
@@ -57,6 +60,11 @@ static func entries() -> Array[Dictionary]:
 		{"ground": true, "id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"ground": true, "id": "sidewalk", "label": "Trottoir", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"ground": true, "id": "track", "label": "Piste", "category": "Décor", "parent": "Decor", "tool": "line"},
+		{"id": "terrace", "label": "Plateau", "category": "Relief et plans", "parent": "NavigationRegion3D", "tool": "line", "rect": true},
+		{"id": "plan_room", "label": "Pièce", "category": "Relief et plans", "parent": "NavigationRegion3D", "tool": "line", "rect": true},
+		{"id": "plan_door", "label": "Porte", "category": "Relief et plans", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "plan_window", "label": "Fenêtre", "category": "Relief et plans", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "plan_stairs", "label": "Escalier", "category": "Relief et plans", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "mine", "label": "Mine", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "ied", "label": "Engin improvisé", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "barrier", "label": "Barrière", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
@@ -68,7 +76,7 @@ static func entries() -> Array[Dictionary]:
 		{"id": "aircraft", "label": "Avion ennemi", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "reinforcements", "label": "Renforts", "category": "Événements", "parent": "Enemies", "tool": "point"},
 		{"id": "arrival", "label": "Pick-up qui arrive", "category": "Événements", "parent": "Enemies", "tool": "point"},
-		{"ground": true, "id": "trigger_zone", "label": "Zone de déclenchement", "category": "Événements", "parent": "Triggers", "tool": "line"},
+		{"ground": true, "id": "trigger_zone", "label": "Zone de déclenchement", "category": "Événements", "parent": "Triggers", "tool": "line", "rect": true},
 		{"ground": true, "id": "guest", "label": "Invité", "category": "Civils", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "passerby", "label": "Passant", "category": "Civils", "parent": "Decor", "tool": "route"},
 		{"ground": true, "id": "traffic", "label": "Boucle de voitures", "category": "Civils", "parent": "Decor", "tool": "line"},
@@ -215,6 +223,22 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			arrival.set("technical", true)
 			arrival.set("announce", false)
 			nodes.append(arrival)
+		"terrace":
+			var terrace := _scripted("Node3D", "res://scripts/props/terrace.gd", "Terrace")
+			terrace.set("size", Vector2(maxf(absf(to.x - at.x), PLAN_MIN), maxf(absf(to.z - at.z), PLAN_MIN)))
+			terrace.transform = Transform3D(Basis.IDENTITY, Vector3((at.x + to.x) * 0.5, minf(at.y, to.y), (at.z + to.z) * 0.5))
+			nodes.append(terrace)
+			return nodes
+		"plan_room":
+			# Premier bâtiment dessiné : centré sur sa première pièce (les
+			# suivantes s'y ajoutent, `plugin.plan_edit`).
+			var plan := _scripted("Node3D", "res://scripts/props/drawn_building.gd", "DrawnBuilding")
+			var extent := Vector2(maxf(absf(to.x - at.x), PLAN_MIN), maxf(absf(to.z - at.z), PLAN_MIN))
+			plan.set("rooms", [Rect2(-extent * 0.5, extent)] as Array[Rect2])
+			plan.set("room_storeys", PackedInt32Array([0]))
+			plan.transform = Transform3D(Basis.IDENTITY, Vector3((at.x + to.x) * 0.5, minf(at.y, to.y), (at.z + to.z) * 0.5))
+			nodes.append(plan)
+			return nodes
 		"trigger_zone":
 			# Rectangle de coins `at` et `to` ; l'événement est relié par le
 			# greffon (`event`).

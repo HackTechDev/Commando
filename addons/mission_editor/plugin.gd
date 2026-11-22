@@ -81,6 +81,8 @@ var _start: Vector3 = Vector3.INF
 var _trace := PackedVector3Array()
 ## Événement que la prochaine zone de déclenchement tracée appellera.
 var _zone_event: Node3D
+## Remarque sur le dernier geste de l'outil (ouverture refusée…).
+var _status_note: String = ""
 var _camera: Camera3D
 var _gizmos: EditorNode3DGizmoPlugin
 ## Informations de la mission ouverte et leur état à l'ouverture (pour
@@ -141,6 +143,8 @@ func _enter_tree() -> void:
 	_dock.game_view_requested.connect(show_game_view)
 	_dock.event_changed.connect(set_event_property)
 	_dock.event_zone_requested.connect(draw_zone_for)
+	_dock.plan_remove_requested.connect(plan_remove_last)
+	_dock.plan_storey_changed.connect(func(_storey: int) -> void: _update_status())
 	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
@@ -425,9 +429,16 @@ func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF, ro
 	var entry := Palette.find(id)
 	if root == null or entry.is_empty():
 		return []
+	_status_note = ""
+	if id.begins_with("plan_"):
+		var plan := plan_target(root, at)
+		if plan or id != "plan_room":
+			return plan_edit(plan, id, at, facing, to)
 	var nodes := Palette.make(id, at, facing, to, root, route)
 	if nodes.is_empty():
 		return nodes
+	if id == "plan_room":
+		nodes[0].set("room_storeys", PackedInt32Array([_dock.plan_storey()]))
 	if id == "trigger_zone":
 		var event := zone_event(root)
 		if event:
@@ -456,6 +467,96 @@ func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF, ro
 	# Textures externes sur les nouveaux éléments aussi.
 	_refresh_textures.call_deferred()
 	return nodes
+
+
+# --- Bâtiments dessinés ------------------------------------------------------
+
+## Bâtiment dessiné que vise l'outil : celui sélectionné, sinon celui dont
+## une pièce contient `at` (monde) ; null sinon.
+func plan_target(root: Node, at: Vector3) -> Node3D:
+	var selected := EditorInterface.get_selection().get_selected_nodes()
+	if selected.size() == 1 and selected[0] is DrawnBuilding:
+		return selected[0]
+	if at == Vector3.INF:
+		return null
+	for node in root.find_children("*", "DrawnBuilding", true, false):
+		var plan := node as Node3D
+		var local := plan.to_local(at)
+		for room: Rect2 in plan.get("rooms"):
+			if room.grow(0.5).has_point(Vector2(local.x, local.z)):
+				return plan
+	return null
+
+
+## Ajoute au bâtiment dessiné `plan` une pièce (`plan_room`, de `at` à `to`),
+## une porte, une fenêtre (au mur le plus proche de `at`) ou une volée
+## (départ en `at`, montant vers le cap `facing`), à l'étage choisi dans le
+## dock, en une action annulable. Renvoie [plan], ou [] si refusé (la raison
+## s'affiche dans le dock).
+func plan_edit(plan: Node3D, id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF) -> Array[Node3D]:
+	if plan == null:
+		_status_note = "aucun bâtiment dessiné ici"
+		_update_status()
+		return []
+	var storey: int = _dock.plan_storey()
+	var local := plan.to_local(at)
+	var undo := get_undo_redo()
+	match id:
+		"plan_room":
+			var other := plan.to_local(to)
+			var a := Vector2(minf(local.x, other.x), minf(local.z, other.z))
+			var b := Vector2(maxf(local.x, other.x), maxf(local.z, other.z))
+			var extent := (b - a).max(Vector2(Palette.PLAN_MIN, Palette.PLAN_MIN))
+			var rooms: Array[Rect2] = plan.get("rooms").duplicate()
+			var levels: PackedInt32Array = plan.get("room_storeys").duplicate()
+			levels.resize(rooms.size())
+			rooms.append(Rect2(a, extent))
+			levels.append(storey)
+			undo.create_action("Bâtiment dessiné : pièce à l'étage %d" % storey)
+			undo.add_do_property(plan, &"rooms", rooms)
+			undo.add_do_property(plan, &"room_storeys", levels)
+			undo.add_undo_property(plan, &"rooms", plan.get("rooms"))
+			undo.add_undo_property(plan, &"room_storeys", plan.get("room_storeys"))
+		"plan_door", "plan_window":
+			var opening := Vector4(local.x, local.z, storey, DrawnBuilding.KIND_DOOR if id == "plan_door" else DrawnBuilding.KIND_WINDOW)
+			if plan.call("opening_wall", opening, plan.call("wall_lines", storey)).is_empty():
+				_status_note = "pas de mur de l'étage %d à moins de %d m" % [storey, int(DrawnBuilding.SNAP)]
+				_update_status()
+				return []
+			var openings: Array[Vector4] = plan.get("openings").duplicate()
+			openings.append(opening)
+			undo.create_action("Bâtiment dessiné : %s" % ("porte" if id == "plan_door" else "fenêtre"))
+			undo.add_do_property(plan, &"openings", openings)
+			undo.add_undo_property(plan, &"openings", plan.get("openings"))
+		"plan_stairs":
+			# Cap 0 = nord (-Z) : sens 2 ; 90 = est (+X) : 1 ; 180 : 0 ; 270 : 3.
+			var sense: int = [2, 1, 0, 3][posmod(roundi(facing / 90.0), 4)]
+			var flights: Array[Vector4] = plan.get("stairs").duplicate()
+			flights.append(Vector4(local.x, local.z, storey, sense))
+			undo.create_action("Bâtiment dessiné : escalier depuis l'étage %d" % storey)
+			undo.add_do_property(plan, &"stairs", flights)
+			undo.add_undo_property(plan, &"stairs", plan.get("stairs"))
+	undo.commit_action()
+	_refresh_textures.call_deferred()
+	_on_selection_changed()
+	return [plan]
+
+
+## Retire le dernier élément `kind` ("rooms", "openings", "stairs") du
+## bâtiment dessiné sélectionné, en une action annulable.
+func plan_remove_last(kind: String) -> void:
+	var plan := plan_target(EditorInterface.get_edited_scene_root(), Vector3.INF)
+	if plan == null or (plan.get(kind) as Array).is_empty():
+		return
+	var after: Array = (plan.get(kind) as Array).duplicate()
+	after.pop_back()
+	var undo := get_undo_redo()
+	undo.create_action("Bâtiment dessiné : retirer %s" % {"rooms": "une pièce", "openings": "une ouverture", "stairs": "un escalier"}[kind])
+	undo.add_do_property(plan, StringName(kind), after)
+	undo.add_undo_property(plan, StringName(kind), plan.get(kind))
+	undo.commit_action()
+	_refresh_textures.call_deferred()
+	_on_selection_changed()
 
 
 ## Événement relié à la prochaine zone tracée : celui choisi (dock, ou
@@ -534,7 +635,14 @@ func _update_status() -> void:
 		var root := EditorInterface.get_edited_scene_root()
 		var event := zone_event(root) if root else null
 		text += " — déclenche %s" % (event.name if event else "rien (posez d'abord des renforts)")
-		text += " — cliquez le coin opposé" if _start != Vector3.INF else " — cliquez un coin de la zone"
+	if _tool.begins_with("plan_"):
+		var root := EditorInterface.get_edited_scene_root()
+		var plan := plan_target(root, _point) if root else null
+		text += " — étage %d, %s" % [_dock.plan_storey(), ("bâtiment %s" % plan.name) if plan else ("nouveau bâtiment" if _tool == "plan_room" else "aucun bâtiment : sélectionnez-en un ou visez une pièce")]
+	if _status_note != "":
+		text += " — " + _status_note
+	if entry.get("rect", false):
+		text += " — cliquez le coin opposé" if _start != Vector3.INF else " — cliquez un coin"
 	elif entry.get("tool") == "line":
 		text += " — cliquez la fin du tracé" if _start != Vector3.INF else " — cliquez le début du tracé"
 	elif entry.get("tool") == "route":
@@ -568,7 +676,7 @@ func _forward_3d_draw_over_viewport(overlay: Control) -> void:
 			overlay.draw_circle(a, 4.0, color)
 		overlay.draw_string(overlay.get_theme_default_font(), at + Vector2(12, -12), "%d points, %.1f m" % [_trace.size() + 1, length],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
-	elif _start != Vector3.INF and _tool == "trigger_zone":
+	elif _start != Vector3.INF and Palette.find(_tool).get("rect", false):
 		# Rectangle au sol de coins `_start` et `_point`.
 		var corners: Array[Vector3] = [_start, Vector3(_point.x, _start.y, _start.z), _point, Vector3(_start.x, _start.y, _point.z)]
 		for i in 4:
@@ -661,6 +769,7 @@ func _on_selection_changed() -> void:
 	if selected.size() == 1 and (selected[0] is Passerby or selected[0] is TrafficCar):
 		_route = selected[0]
 	_dock.show_route(_route)
+	_dock.show_plan(selected[0] if selected.size() == 1 and selected[0] is DrawnBuilding else null)
 
 
 ## Ajoute un point au trajet sélectionné (`add`), ou retire le dernier (il en

@@ -1423,3 +1423,10 @@
 - Vérification : sur une carte de fond, l'équipe est contrôlée comme ailleurs (elle n'est sautée que si la carte la place au lancement) ; le terrain des contrôles et du calage de la caméra est l'emprise de la carte.
 - Vérifié (`tools/editor_check/step86b.gd`, carte « office ») : mission créée en 7 s, 3 opérateurs, extraction, 16 gardes ; en jeu : 17 ennemis (les gardes posés et une ronde, pas de sentinelles ajoutées), équipe à sa place, Alpha suit la navigation jusqu'à son but. La suite GUT n'a pas été lancée.
 
+## Éditeur de mission : relief et bâtiments dessinés (8.6 a)
+
+- Jeu : plateau (`Terrace`) aux flancs à pic et à rampes, dont le dessus est un sol où l'on marche et les flancs un obstacle ; bâtiment dessiné (`DrawnBuilding`) fait de pièces rectangulaires par étage, aux murs partagés, avec portes (celles de l'immeuble), fenêtres et volées d'escalier ; il hérite de l'immeuble sa coupe par étage et le niveau de vue.
+- Palette, catégorie « Relief et plans » : Plateau, Pièce, Porte, Fenêtre, Escalier. Section « Relief et bâtiments dessinés » du dock : étage où poser, contenu du bâtiment sélectionné, retrait du dernier élément. Chaque geste s'annule ; un plateau ou un bâtiment se reconstruit dès qu'un réglage change.
+- Vérification : bâtiment sans pièce, ouverture loin des murs, escalier hors des pièces de son étage.
+- Vérifié (`tools/editor_check/step86a.gd`, puis en jeu) : extractions sur le plateau, dans la seconde pièce et à l'étage toutes atteintes, dans la vérification comme en jeu (rampe, porte intérieure, escalier) ; coupe au rez-de-chaussée puis à l'étage. La suite GUT n'a pas été lancée.
+
