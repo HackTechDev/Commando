@@ -1,12 +1,15 @@
 class_name TrafficCar
-extends Node3D
+extends AnimatableBody3D
 ## Voiture civile (décor) : une berline qui roule en boucle sur un tracé de
 ## rues (déjà décalé sur la voie de droite et arrondi aux virages par
 ## `MapBuilder.traffic`). Elle ralentit puis s'arrête devant quelqu'un
 ## (opérateur, garde, VIP, passant) ou derrière une autre voiture, et
-## repart ; au bout de `MAX_WAIT`, elle passe quand même (pas d'embouteillage
-## sans fin). Comme les figurants, elle ne voit rien, ne fait pas de bruit
-## qui compte et ne barre pas le passage.
+## repart. Elle ne passe jamais à travers une unité ; un passant ou une autre
+## voiture, au bout de `MAX_WAIT` (pas d'embouteillage sans fin).
+## Comme les figurants, elle ne voit rien et ne fait pas de bruit qui compte.
+## Mais sa caisse est solide (couche des obstacles qui cachent la vue,
+## comme un mur) : elle arrête le regard et les balles, et un opérateur
+## accroupi ou couché derrière elle est à l'abri, tant qu'elle reste là.
 
 const GROUP := &"traffic"
 ## Accélération et freinage (m/s²).
@@ -19,6 +22,10 @@ const HALF_WIDTH := 1.3
 const MAX_WAIT := 5.0
 const TURN_SPEED := 3.0
 const WHEEL_RADIUS := 0.32
+## Couche des obstacles qui cachent la vue (murs, Sabre).
+const LAYER_OCCLUDERS := 0b10
+## Unités : la voiture les attend sans limite (elle ne les traverse pas).
+const UNIT_GROUPS: Array[StringName] = [&"commandos", &"enemies", &"vips"]
 ## Demi-longueur de la voiture (m), du centre au pare-chocs.
 const HALF_LENGTH := 2.2
 
@@ -45,6 +52,13 @@ var _wheels: Array[Node3D] = []
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	collision_layer = LAYER_OCCLUDERS
+	collision_mask = 0
+	sync_to_physics = false
+	# Caisse jusqu'au ras du sol (un opérateur couché derrière est caché),
+	# habitacle jusqu'au toit (1,38 m : un opérateur debout dépasse).
+	_add_shape(Vector3(1.78, 0.74, 4.3), Vector3(0, 0.49, 0))
+	_add_shape(Vector3(1.6, 0.55, 2.1), Vector3(0, 1.1, 0.25))
 	_build()
 	_lengths.append(0.0)
 	for i in range(1, points.size() + 1):
@@ -60,14 +74,18 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if points.size() < 2 or _total <= 0.0:
 		return
-	var gap := _gap_ahead()
+	var unit_gap := _gap_ahead(UNIT_GROUPS)
+	var other_gap := _gap_ahead([Passerby.GROUP, GROUP])
+	var gap := unit_gap
+	if other_gap < LOOK_AHEAD and _waited < MAX_WAIT:
+		gap = minf(gap, other_gap)
 	var target := cruise
-	if gap < LOOK_AHEAD and _waited < MAX_WAIT:
-		# Freine pour s'arrêter à 2 m de l'obstacle.
-		target = clampf((gap - 2.0) * 1.5, 0.0, cruise)
-	if speed < 0.2 and target < 0.2:
+	if gap < LOOK_AHEAD:
+		# Freine pour s'arrêter à 1,5 m de l'obstacle.
+		target = clampf((gap - 1.5) * 1.5, 0.0, cruise)
+	if speed < 0.2 and target < 0.2 and unit_gap >= LOOK_AHEAD:
 		_waited += delta
-	elif gap >= LOOK_AHEAD:
+	elif other_gap >= LOOK_AHEAD:
 		_waited = 0.0
 	speed = move_toward(speed, target, (ACCEL if target > speed else BRAKE) * delta)
 	var step := speed * delta
@@ -78,13 +96,13 @@ func _process(delta: float) -> void:
 		wheel.rotation.x -= step / WHEEL_RADIUS
 
 
-## Distance (m) au premier obstacle devant la voiture, dans sa voie
-## (`INF` s'il n'y en a pas).
-func _gap_ahead() -> float:
+## Distance (m) du pare-chocs avant au premier membre des groupes `groups`
+## qui se trouve devant la voiture, dans sa voie (`INF` s'il n'y en a pas).
+func _gap_ahead(groups: Array[StringName]) -> float:
 	var forward := -global_basis.z
 	var right := global_basis.x
 	var nearest := INF
-	for group: StringName in [&"commandos", &"enemies", &"vips", Passerby.GROUP, GROUP]:
+	for group: StringName in groups:
 		for node in get_tree().get_nodes_in_group(group):
 			var other := node as Node3D
 			if other == null or other == self:
@@ -184,6 +202,15 @@ func _build() -> void:
 			# Rayon visible : la roue se voit tourner.
 			_box(wheel, Vector3(0.235, 0.05, 0.3), Vector3.ZERO, dark)
 			_wheels.append(wheel)
+
+
+func _add_shape(size: Vector3, at: Vector3) -> void:
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	shape.position = at
+	add_child(shape)
 
 
 func _material(color: Color, roughness: float, metallic: float) -> StandardMaterial3D:

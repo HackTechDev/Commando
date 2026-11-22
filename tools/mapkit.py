@@ -352,7 +352,7 @@ class MapBuilder:
         for i in range(count):
             name = self._name("Car")
             seed = (self._count["Car"] * 7331 + 5) % 100003
-            self.decor.append(f'[node name="{name}" type="Node3D" parent="Decor"]\nscript = {script}\n'
+            self.decor.append(f'[node name="{name}" type="AnimatableBody3D" parent="Decor"]\nscript = {script}\n'
                               f'points = PackedVector3Array({packed})\nstart_at = {total * i / count:.2f}\n'
                               f'cruise = {cruise * (0.85 + 0.3 * ((seed % 5) / 4)):.2f}\nlook_seed = {seed}')
 

@@ -1231,3 +1231,10 @@
 - `MapBuilder.traffic` décale le tracé des rues sur la voie de droite et arrondit les virages aux carrefours.
 - Réception : 7 voitures sur trois boucles (autour de l'îlot de la placette, autour de la résidence, grand tour en sens inverse).
 - Vérifié par scénario : 6,8 m/s de moyenne sur sa boucle ; arrêt devant Alpha posé sur la voie (pare-chocs à 1,4 m), reprise quand il s'écarte ; prise de virage dans un carrefour. La suite GUT n'a pas été lancée.
+
+## Voitures abris
+
+- Les voitures (`TrafficCar`, désormais `AnimatableBody3D`) ont une caisse solide sur la couche des obstacles qui cachent la vue, comme les murs et le Sabre. Elle va du ras du sol au toit (1,38 m).
+- Elles arrêtent le regard et les balles : un opérateur accroupi ou couché derrière est caché ; debout, il dépasse du toit et reste visible. Elles barrent aussi le passage.
+- Devant une unité (opérateur, garde, VIP), une voiture attend sans limite au lieu de passer au bout de 5 s. Devant un passant ou une autre voiture, l'attente maximale reste.
+- Vérifié par scénario : garde à 8 m, Alpha derrière une voiture arrêtée. Debout il est vu, accroupi ou couché il ne l'est pas ; la voiture partie, il l'est à nouveau. Alpha posé sur la voie depuis 9 s, la voiture reste arrêtée, pare-chocs à 1,5 m. La suite GUT n'a pas été lancée.
