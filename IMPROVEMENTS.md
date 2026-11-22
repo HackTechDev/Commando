@@ -111,3 +111,34 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **e)** sons d'ambiance ;
   - **f)** sous-titres des sons importants, pour l'accessibilité (le signal `Sfx.played` existe).
 
+
+## 8. Éditeur de mission
+
+Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR.md`.
+
+- **8.1 Combler les manques de la première version** :
+  - **a)** palette complète : mines, engins improvisés, barrières, tours, renforts, avion ennemi, plateformes d'atterrissage (aujourd'hui, par copier-coller depuis une autre mission) ;
+  - **b)** pose sur les toits et les étages : viser les objets eux-mêmes plutôt que le plan y = 0, pour poser un tireur sur un toit ou une extraction en hauteur ;
+  - **c)** ronde tracée en plusieurs clics (un clic par point, double-clic pour finir), au lieu de deux points complétés avec les outils de chemin de Godot ;
+  - **d)** rondes dessinées dans la couleur du greffon, avec un trait qui relie chaque garde à son chemin ;
+  - **e)** taille du terrain, type de sol et jour ou nuit choisis à la création d'une mission (aujourd'hui : herbe, 80 × 80 m, de jour) ;
+  - **f)** limites de la caméra (`bounds` de `CameraRig`) affichées, réglables par poignées et calées sur le terrain.
+- **8.2 Vérification plus juste** :
+  - **a)** compter échelles, cordes et portes dans les chemins à pied (fausses alertes aujourd'hui : extraction sur le toit de Kasbah, hôte de Réception) ;
+  - **b)** contrôles de placement : opérateurs vus par un garde dès le départ, éléments dans un mur ou qui se chevauchent, éléments hors du terrain ou des limites de la caméra, points de ronde inaccessibles ;
+  - **c)** vérification à chaque enregistrement, résumée dans le dock.
+- **8.3 Aides à la conception d'infiltration** :
+  - **a)** carte de couverture : sol coloré selon le nombre de gardes qui le voient, de jour et de nuit ;
+  - **b)** rondes et voitures animées dans l'éditeur (bouton lecture et barre de temps), pour régler leur rythme sans lancer le jeu ;
+  - **c)** aperçu de la carte sous l'angle et le zoom de la caméra du jeu.
+- **8.4 Confort d'édition** :
+  - **a)** copier-coller entre missions ; rotation et alignement d'un groupe d'éléments ;
+  - **b)** routes au pinceau, avec carrefours, et trottoirs posés le long des routes ;
+  - **c)** objectifs modifiés dans le dock (liste des identifiants, texte, ordre), sans passer par l'inspecteur ;
+  - **d)** événements scriptés (renforts déclenchés, pick-ups qui arrivent) édités avec des zones de déclenchement.
+- **8.5 Fiabilité et ménage** :
+  - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification ;
+  - **b)** sort des 17 cartes générées, carte par carte : une carte reprise dans l'éditeur devient la source et son générateur sort du dépôt (§ 6 de `MISSION_EDITOR.md`) ; le Didacticiel est déjà dans ce cas.
+- **8.6 Plus tard** :
+  - **a)** relief, et dessin libre de bâtiments (pièces, étages) ;
+  - **b)** partir d'une carte UFO:AI comme fond, puis y ajouter ses éléments.
