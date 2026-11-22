@@ -200,6 +200,14 @@ func open_briefing(level: Dictionary) -> void:
 	(briefing.find_child("BriefingTitle", true, false) as Label).text = "Préparation — %s" % level["title"]
 	_briefing_text.text = level["description"]
 	_briefing_camo.text = "Camouflage conseillé pour cette carte : %s" % camo_name
+	# Date et heure de l'opération, si la mission en a.
+	if level.has("date") or level.has("time"):
+		var when := "Opération"
+		if level.has("date"):
+			when += " le %s" % level["date"]
+		if level.has("time"):
+			when += " à %s" % level["time"]
+		_briefing_camo.text = "%s\n%s" % [when, _briefing_camo.text]
 	for child in _briefing_preview.get_children():
 		child.queue_free()
 	_briefing_preview.add_child(preview_of(level, BRIEFING_PREVIEW_SIZE))

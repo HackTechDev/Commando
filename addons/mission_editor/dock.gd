@@ -472,7 +472,7 @@ func _build_objectives(info: MissionInfo) -> void:
 		_info_box.add_child(_label("Pas encore d'informations : la mission n'apparaît pas dans le jeu.", WARN_COLOR))
 		_info_button.text = "Créer les informations"
 		return
-	_info_button.text = "Titre, description, camouflage : inspecteur"
+	_info_button.text = "Titre, description, camouflage, date : inspecteur"
 	_info_box.add_child(_label("Camouflage conseillé : %s" % info.camo, DIM_COLOR))
 	var pairs := _pairs(info)
 	if pairs.is_empty():

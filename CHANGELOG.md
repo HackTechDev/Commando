@@ -1519,3 +1519,9 @@
 - L'écran de fin rappelle la date et la durée de l'opération. La sauvegarde rapide les garde.
 - Vérifié en jeu (rendus du HUD et de l'écran de fin ; chronomètre arrêté en pause, rendu au rechargement).
 
+## Date et heure fictives des missions
+
+- `MissionInfo` : champs `date` (« JJ/MM/AAAA ») et `time` (« HH:MM ») de l'opération, réglables dans l'inspecteur depuis l'éditeur de mission (« Titre, description, camouflage, date : inspecteur »). Affichés en jeu (en haut à droite, écran de fin) et dans la préparation de la mission ; vides ou invalides, ce sont la date et l'heure du lancement.
+- Les quatre missions de nuit ont une heure nocturne : Feux éteints 02:30, Nuit sans lune 01:45, Convoi de nuit 03:10, Col silencieux 04:20 (date : celle du lancement).
+- Vérifié en jeu (Nuit sans lune à 01:45, Terrain d'essai à l'heure du lancement, préparation de Feux éteints).
+

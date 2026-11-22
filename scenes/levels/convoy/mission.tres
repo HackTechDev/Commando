@@ -33,5 +33,6 @@ script = ExtResource("2_tq3a3")
 title = "Convoi de nuit"
 description = "Raid éclair de nuit : faire sauter un dépôt de carburant, puis ramener le Sabre jusqu'au convertible d'extraction, qui ne repartira qu'avec le véhicule dans sa soute. Dès que le dépôt saute, un compte à rebours s'affiche : deux minutes plus tard, des renforts (soldats et pick-up armé) arrivent par le nord ; partez avant pour l'objectif bonus. Montez à bord au départ de la piste (sud-ouest) et rejoignez le terrain d'extraction au nord-est. Phares éteints, le Sabre se faufile mais roule moins vite ; allumés, il se voit de loin. Un poste fermé par une barrière garde le tronçon nord : forcez-la (bruit, dégâts) ou envoyez quelqu'un la lever. La piste est minée par endroits : un opérateur à pied devant le véhicule repère les engins. Un pick-up armé tourne à l'est. Au terrain, appelez l'extraction par radio : elle se pose, rampe vers la piste ; clic droit sur l'appareil avec un passager sélectionné pour y faire monter le Sabre, tout l'équipage à bord."
 camo = "night"
+time = "03:10"
 order = 80
 objectives = Array[ExtResource("1_8abal")]([SubResource("Resource_0bumf"), SubResource("Resource_o8xj0"), SubResource("Resource_xfvce"), SubResource("Resource_x1we3"), SubResource("Resource_nh3vy")])

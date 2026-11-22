@@ -49,7 +49,7 @@ Si le dossier existe déjà, ou si le nom n'est pas valable, le dock l'indique e
 
 ### 3. Écrire les informations
 
-1. Dans la section **Informations**, cliquez sur **Titre, description, camouflage : inspecteur**. L'inspecteur affiche `mission.tres`.
+1. Dans la section **Informations**, cliquez sur **Titre, description, camouflage, date : inspecteur**. L'inspecteur affiche `mission.tres`, dont **Date** (« JJ/MM/AAAA ») et **Time** (« HH:MM ») : date et heure fictives de l'opération, affichées en jeu en haut à droite et sur l'écran de fin. Laissées vides, ce sont la date et l'heure du lancement de la mission.
 2. Réglez :
    - **Title** : « Raid sur le dépôt » ;
    - **Description** : le briefing, affiché avant le lancement ;

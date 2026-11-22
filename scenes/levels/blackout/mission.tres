@@ -23,5 +23,6 @@ script = ExtResource("2_c7awy")
 title = "Feux éteints"
 description = "De nuit. Une station radio, éclairée par ses lampadaires, est gardée par deux sentinelles au portail, une ronde, un garde à lance-roquettes, et survolée par un appareil ennemi dont le projecteur balaie le sol : à découvert dans sa tache, on est repéré. L'équipe commence en vol stationnaire, tous feux éteints : les gardes ne voient l'appareil que de près, mais entendent ses rotors ; une rafale du canon latéral le trahit. Rappel, puis renvoyez l'appareil. Parti, il peut faire une diversion (menu radio, puis clic sur la carte) : un passage en rase-mottes qui attire les sentinelles sans donner l'alerte. Sabotez le groupe électrogène avec une charge (Alpha et Bravo en ont une) : les lampadaires s'éteignent. Rappelez l'appareil pour repartir."
 camo = "night"
+time = "02:30"
 order = 130
 objectives = Array[ExtResource("1_f4gqx")]([SubResource("Resource_ilru5"), SubResource("Resource_tvujl"), SubResource("Resource_kpab2")])

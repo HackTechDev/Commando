@@ -58,7 +58,9 @@ func _ready() -> void:
 	# Murs et bâtiments qui cachent un opérateur : estompés.
 	add_child(OcclusionFader.new())
 	# Date, heure et durée de l'opération.
-	add_child(OperationClock.new())
+	var clock := OperationClock.new()
+	clock.setup(LevelCatalog.find(level_key()))
+	add_child(clock)
 	_loading_screen = LoadingScreen.new(LevelCatalog.title_of(scene_file_path))
 	add_child(_loading_screen)
 	_was_paused = get_tree().paused
