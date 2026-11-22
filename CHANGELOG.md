@@ -1291,3 +1291,12 @@
 - Chaque mission a son fichier `scenes/levels/<nom>/mission.tres`, à côté de sa scène `<nom>.tscn`. Les 23 entrées du tableau `LevelCatalog.LEVELS` y ont été migrées par `tools/godot/migrate_missions.gd`.
 - `LevelCatalog.levels()` lit ces fichiers (triés par `order`) et les garde en mémoire ; `LevelCatalog.reload()` les relit. Le tableau `LEVELS` disparaît ; tests et scripts de rendu passent par `levels()`.
 - Vérifié par scénario : le catalogue lu des fichiers est identique à l'ancien tableau, entrée par entrée (23 missions) ; menu, briefing et lancement d'une mission inchangés. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission, étape 2 : décors et unités visibles dans l'éditeur
+
+- Les décors et unités construits par leur script s'affichent dans l'éditeur Godot : bâtiments et tours (portes, fenêtres), haies, mines, barrières, cibles de sabotage, murs fragiles, invités, passants et voitures (au début de leur trajet), Sabre, convertibles, avion ennemi, pick-ups armés, zone d'extraction, ateliers du didacticiel, et les modèles des gardes, opérateurs et VIP.
+- Les cartes UFO:AI (Entraînement A et B, Gare du désert) sont construites en aperçu dans l'éditeur, sans placer les unités ni les ennemis.
+- Nouveau greffon `addons/mission_editor` (activé) : il pose les textures externes sur la scène de mission ouverte et les retire le temps de chaque enregistrement (point 7.10 a d'`IMPROVEMENTS.md`).
+- Rien de ce qui s'affiche dans l'éditeur n'est enregistré : les scripts ne modifient dans l'éditeur aucune propriété enregistrée (les couches de collision des cibles, invités et murs fragiles ne sont plus réglées que dans le jeu).
+- Outils de vérification `tools/editor_check` : `run.sh` ouvre et photographie des scènes dans l'éditeur, dans une copie du projet ; `check_all.sh` les enregistre aussi et compare chaque scène enregistrée à l'originale, propriété par propriété.
+- Vérifié : les 23 missions s'ouvrent dans l'éditeur sans erreur de script, avec décors, unités et textures ; enregistrées depuis l'éditeur, elles sont identiques aux originales. La suite GUT n'a pas été lancée.

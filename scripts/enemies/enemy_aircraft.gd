@@ -1,3 +1,4 @@
+@tool
 class_name EnemyAircraft
 extends Node3D
 ## Convertible ennemi en patrouille : il suit en boucle un chemin
@@ -47,11 +48,21 @@ var _spot := Vector3.ZERO
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		model = TiltrotorModel.new()
+		model.livery = TiltrotorModel.Livery.GREY
+		model.tail_number = tail_number
+		add_child(model)
+		model.scale = Vector3.ONE * Tiltrotor.SCALE
+		model.set_ramp_closed(true)
+		return
 	_night = LevelRoot.is_night(self)
 	model = TiltrotorModel.new()
 	model.livery = TiltrotorModel.Livery.GREY
@@ -102,6 +113,8 @@ func spot() -> Vector3:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	_sweep_time += delta
 	_place(delta)

@@ -1,3 +1,4 @@
+@tool
 class_name ExtractionZone
 extends Area3D
 ## Zone d'extraction et objectif d'escorte : la mission est réussie quand
@@ -16,10 +17,15 @@ var _arrived: Array[Vip] = []
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		_build_marking()
+		return
 	collision_layer = 0
 	# Couche des unités du joueur (opérateurs, VIP).
 	collision_mask = 0b100

@@ -1,3 +1,4 @@
+@tool
 class_name TrafficCar
 extends AnimatableBody3D
 ## Voiture civile (décor) : une berline qui roule en boucle sur un tracé de
@@ -78,6 +79,17 @@ var _stopped_for: float = 0.0
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		# Aperçu au début de la boucle, sans déplacer le nœud (enregistré) :
+		# la caisse est construite puis décalée.
+		_build()
+		if points.size() >= 2:
+			var heading := points[1] - points[0]
+			var frame := Transform3D(Basis(Vector3.UP, atan2(-heading.x, -heading.z)), points[0] - position)
+			for child in get_children():
+				if child is Node3D:
+					(child as Node3D).transform = frame * (child as Node3D).transform
+		return
 	add_to_group(GROUP)
 	collision_layer = LAYER_OCCLUDERS
 	collision_mask = 0
@@ -100,6 +112,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if points.size() < 2 or _total <= 0.0:
 		return
 	var held := _update_hold(delta)

@@ -1,3 +1,4 @@
+@tool
 class_name FragileWall
 extends StaticBody3D
 ## Pan de mur fragile (briques fissurées, cloison) : arrête les balles et la
@@ -24,13 +25,18 @@ var _mesh: MeshInstance3D
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
-	collision_layer = LAYER_OCCLUDERS
-	collision_mask = 0
+	# Couches réglées en jeu seulement : dans l'éditeur, elles seraient
+	# enregistrées dans la scène.
+	if not Engine.is_editor_hint():
+		collision_layer = LAYER_OCCLUDERS
+		collision_mask = 0
 	_shape = CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = size

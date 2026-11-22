@@ -1,3 +1,4 @@
+@tool
 class_name Passerby
 extends Node3D
 ## Passant (décor) : un civil qui marche le long d'un tracé, en aller-retour
@@ -46,6 +47,18 @@ var _hidden_frames: int = 0
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		# Aperçu au début du trajet, sans déplacer le nœud (enregistré).
+		model = CrowdModel.new()
+		model.civilian = dress == &"suit"
+		model.silent = true
+		model.outfit = Guest.random_look(look_seed, dress)
+		add_child(model)
+		model.set_armed(false)
+		if points.size() >= 2:
+			var heading := points[1] - points[0]
+			model.transform = Transform3D(Basis(Vector3.UP, atan2(-heading.x, -heading.z)), points[0] - position)
+		return
 	add_to_group(GROUP)
 	model = CrowdModel.new()
 	(model as CrowdModel).every = 2
@@ -69,6 +82,8 @@ func _ready() -> void:
 
 ## Il avance une fois par image (pas à chaque pas de physique).
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if points.size() < 2 or _total <= 0.0:
 		return
 	var seen := (model as CrowdModel).is_seen()

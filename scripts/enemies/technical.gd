@@ -1,3 +1,4 @@
+@tool
 class_name Technical
 extends StaticBody3D
 ## Pick-up ennemi armé (« technical ») : un chauffeur et un mitrailleur
@@ -79,12 +80,17 @@ var _smoke: CPUParticles3D
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(Explosion.VEHICLES_GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		_build_model()
+		return
 	collision_layer = 0b10
 	collision_mask = 0
 	var shape := CollisionShape3D.new()
@@ -235,6 +241,8 @@ func _drive(delta: float, speed: float) -> bool:
 # --- Comportement ---------------------------------------------------------------
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if is_wrecked:
 		return
 	_alarm_left -= delta

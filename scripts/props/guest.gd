@@ -1,3 +1,4 @@
+@tool
 class_name Guest
 extends StaticBody3D
 ## Invité d'une réception ou passant (décor) : un civil en costume ou en
@@ -28,8 +29,11 @@ var model: SoldierModel
 
 
 func _ready() -> void:
-	collision_layer = 1
-	collision_mask = 0
+	# Couches réglées en jeu seulement : dans l'éditeur, elles seraient
+	# enregistrées dans la scène.
+	if not Engine.is_editor_hint():
+		collision_layer = 1
+		collision_mask = 0
 	var shape := CollisionShape3D.new()
 	var cylinder := CylinderShape3D.new()
 	cylinder.radius = 0.3

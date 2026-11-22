@@ -1,3 +1,4 @@
+@tool
 class_name HidingSpot
 extends Node3D
 ## Cachette pour un corps : buisson épais, eau (mare, fossé) ou abri sans toit
@@ -36,6 +37,8 @@ func contains(point: Vector3) -> bool:
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 
 

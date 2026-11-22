@@ -1,3 +1,4 @@
+@tool
 class_name SabreModel
 extends FacetModel
 ## Véhicule léger des forces spéciales, d'après l'Arquus Sabre (4×4 ouvert

@@ -117,6 +117,9 @@ func is_revealed() -> bool:
 
 
 func _process(delta: float) -> void:
+	# Toits d'une carte UFO:AI en aperçu dans l'éditeur : rien à masquer.
+	if Engine.is_editor_hint():
+		return
 	_check_left -= delta
 	if _check_left <= 0.0:
 		_check_left = CHECK_INTERVAL

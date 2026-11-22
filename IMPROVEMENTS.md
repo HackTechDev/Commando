@@ -98,7 +98,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **f)** remplacer les modèles absents (arbres, mobilier) par des modèles CC0 ;
   - **h)** cartes aléatoires assemblées à partir des tuiles et des `.ump`.
 - **7.10 Textures, suite** :
-  - **a)** aperçu des textures externes dans l'éditeur : un greffon qui les applique à l'ouverture d'une scène, sans les enregistrer dans le `.tscn` ;
   - **b)** si le chargement devient lent : compression pour la carte graphique (`Image.compress`), ou cache des textures préparées ;
   - **c)** remplacer les textures UFO:AI, aux licences mélangées (voir `assets/TEXTURES.md`), par des textures CC0 (M10) ;
   - **d)** ajouter des cartes normales et de rugosité ;

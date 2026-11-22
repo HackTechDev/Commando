@@ -1,3 +1,4 @@
+@tool
 class_name Building
 extends Node3D
 ## Bâtiment où l'on entre : quatre murs percés de portes (`Door`) et de
@@ -78,6 +79,8 @@ func contains(point: Vector3) -> bool:
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 
 
@@ -237,6 +240,8 @@ func _build_roof() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_check_left -= delta
 	if _check_left <= 0.0:
 		_check_left = CHECK_INTERVAL

@@ -1,3 +1,4 @@
+@tool
 class_name FacetModel
 extends Node3D
 ## Base des véhicules construits en code (`TiltrotorModel`, `SabreModel`) :

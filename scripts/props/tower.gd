@@ -1,3 +1,4 @@
+@tool
 class_name Tower
 extends Node3D
 ## Immeuble à étages : `storeys` niveaux de `storey_height` m, des dalles
@@ -113,6 +114,8 @@ func storey_of(point: Vector3) -> int:
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 
 
@@ -401,6 +404,8 @@ func _build_parapet() -> void:
 # --- Coupe ----------------------------------------------------------------------
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_check_left -= delta
 	if _check_left <= 0.0:
 		_check_left = CHECK_INTERVAL

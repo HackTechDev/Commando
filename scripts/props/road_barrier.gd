@@ -1,3 +1,4 @@
+@tool
 class_name RoadBarrier
 extends Node3D
 ## Barrière de poste de contrôle : deux poteaux et une lisse rayée rouge et
@@ -42,6 +43,8 @@ var _operate_left: float = 0.0
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(QuickSave.GROUP)
 
@@ -175,6 +178,8 @@ func request_toggle(unit: Commando, run: bool) -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if _operator == null:
 		return
 	if not is_instance_valid(_operator) or _operator.is_dead or _operator.riding or is_broken:

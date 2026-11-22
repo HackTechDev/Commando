@@ -1,3 +1,4 @@
+@tool
 class_name TiltrotorModel
 extends FacetModel
 ## Convertible quadrirotor (fictif), construit en code comme les soldats :
@@ -103,6 +104,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if not is_equal_approx(_cut, _cut_goal):
 		_cut = move_toward(_cut, _cut_goal, delta * 3.0)
 		if _body:

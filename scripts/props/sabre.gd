@@ -1,3 +1,4 @@
+@tool
 class_name Sabre
 extends StaticBody3D
 ## Véhicule léger des forces spéciales (`SabreModel`), cinq places.
@@ -267,12 +268,20 @@ var _coast_left: float = 0.0
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(Explosion.VEHICLES_GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		model = SabreModel.new()
+		model.name = "Model"
+		model.livery = livery
+		add_child(model)
+		return
 	collision_layer = LAYER_OCCLUDERS
 	collision_mask = 0
 	model = SabreModel.new()
@@ -1259,6 +1268,8 @@ func _is_blocked() -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	# Un VIP tué libère sa place ; arrivé dans la zone d'extraction, il
 	# descend.
 	for index in vip_seats.size():

@@ -1,3 +1,4 @@
+@tool
 class_name CrowdModel
 extends SoldierModel
 ## Modèle d'un figurant (invité, passant) : la même silhouette, animée à
@@ -29,6 +30,9 @@ func is_seen() -> bool:
 
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		super._process(delta)
+		return
 	_elapsed += delta
 	_skipped += 1
 	if _skipped < every or not _notifier.is_on_screen():

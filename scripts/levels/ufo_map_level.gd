@@ -1,3 +1,4 @@
+@tool
 class_name UfoMapLevel
 extends Node3D
 ## Construit un niveau à partir d'une carte source UFO:AI (`UfoMap`) lue à la
@@ -136,6 +137,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_update_see_through()
 
 
@@ -205,6 +208,11 @@ func _build_level() -> void:
 		_build_ledges(solids)
 	await get_tree().process_frame
 	TextureLibrary.apply_to_tree(self)
+	if Engine.is_editor_hint():
+		# Aperçu dans l'éditeur : le décor seul (unités, ennemis et caméra
+		# restent tels qu'enregistrés).
+		_finish_build()
+		return
 	_place_units(map)
 	_spawn_enemies(map)
 	_setup_camera()
@@ -221,8 +229,9 @@ func _finish_build() -> void:
 ## l'affichage. Un fil dédié plutôt que le `WorkerThreadPool` : dans la suite
 ## de tests, une tâche du pool restait parfois sans jamais démarrer.
 func _run_in_thread(task: Callable) -> Variant:
-	# Export Web sans fils : la tâche tourne d'un bloc dans le fil principal.
-	if OS.has_feature("nothreads"):
+	# Export Web sans fils, ou aperçu dans l'éditeur (un fil à part y restait
+	# parfois bloqué) : la tâche tourne d'un bloc dans le fil principal.
+	if OS.has_feature("nothreads") or Engine.is_editor_hint():
 		await get_tree().process_frame
 		return task.call()
 	var thread := Thread.new()

@@ -1,3 +1,4 @@
+@tool
 class_name Landmine
 extends Node3D
 ## Mine antichar ou engin explosif improvisé (`improvised`) enfoui sur une
@@ -41,6 +42,8 @@ var _disarm_left: float = 0.0
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(QuickSave.GROUP)
 
@@ -76,6 +79,9 @@ func _ready() -> void:
 	skull.modulate = Color(1.0, 0.35, 0.25)
 	skull.position = Vector3(0.45, 1.25, 0)
 	_flag.add_child(skull)
+	if Engine.is_editor_hint():
+		# Dans l'éditeur, la mine et son fanion sont toujours visibles.
+		return
 	_update_look()
 
 
@@ -139,6 +145,8 @@ func reveal(by: Commando = null) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if not is_armed():
 		return
 	_update_disarm(delta)

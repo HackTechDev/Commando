@@ -1,3 +1,4 @@
+@tool
 class_name WallWindow
 extends StaticBody3D
 ## Fenêtre sans vitre dans un mur : l'allège (en bas) et le linteau (en haut)
@@ -46,6 +47,8 @@ func _ready() -> void:
 	ledge.material_override = stone
 	ledge.position.y = sill + 0.025
 	add_child(ledge)
+	if Engine.is_editor_hint():
+		return
 	link = TraversalLink.new()
 	link.name = "Link"
 	link.kind = TraversalLink.Kind.VAULT

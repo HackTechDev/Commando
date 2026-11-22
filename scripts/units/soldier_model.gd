@@ -1,3 +1,4 @@
+@tool
 class_name SoldierModel
 extends Node3D
 ## Modèle 3D procédural d'un opérateur des forces spéciales modernes.
@@ -540,6 +541,8 @@ const PICKUP_HAND := Vector3(0.2, 0.15, -0.45)
 ## reconstruit le modèle.
 ## Pas de bruits de pas (aperçu de l'écran « Opérateurs »).
 var silent: bool = false
+## Éditeur Godot : la pose de repos est calculée une fois.
+var _editor_posed: bool = false
 ## Jumelles de vision nocturne abaissées devant les yeux (sinon relevées).
 var nvg_lowered: bool = false:
 	set(value):
@@ -940,6 +943,12 @@ func _build() -> void:
 
 
 func _process(delta: float) -> void:
+	# Dans l'éditeur : une seule pose, sans bruit de pas.
+	if Engine.is_editor_hint():
+		if _editor_posed:
+			return
+		_editor_posed = true
+		silent = true
 	_time += delta
 	_shot_time += delta
 	_update_weapon_switch(delta)

@@ -1,3 +1,4 @@
+@tool
 class_name Tiltrotor
 extends StaticBody3D
 ## Convertible posé au sol (`TiltrotorModel`) : obstacle (marche, vue, balles)
@@ -321,11 +322,22 @@ var _gun: MountedGun
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		model = TiltrotorModel.new()
+		model.name = "Model"
+		model.livery = livery
+		model.tail_number = tail_number
+		model.blade_count = blade_count
+		add_child(model)
+		model.scale = Vector3.ONE * SCALE
+		return
 	collision_layer = LAYER_OCCLUDERS
 	collision_mask = 0
 	model = TiltrotorModel.new()
@@ -1922,6 +1934,8 @@ func _ready_to_leave() -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	for unit: Node3D in _passengers:
 		if is_instance_valid(unit):
 			unit.global_transform = global_transform * (_passengers[unit] as Transform3D)

@@ -1,3 +1,4 @@
+@tool
 class_name SabotageTarget
 extends StaticBody3D
 ## Cible de sabotage : groupe électrogène sur patins (capot, réservoir,
@@ -28,13 +29,18 @@ var _parts: Array[MeshInstance3D] = []
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
-	collision_layer = 0b10
-	collision_mask = 0
+	# Couches réglées en jeu seulement : dans l'éditeur, elles seraient
+	# enregistrées dans la scène.
+	if not Engine.is_editor_hint():
+		collision_layer = 0b10
+		collision_mask = 0
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = size()

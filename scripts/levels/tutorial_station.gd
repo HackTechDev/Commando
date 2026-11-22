@@ -1,3 +1,4 @@
+@tool
 class_name TutorialStation
 extends Area3D
 ## Atelier du didacticiel : quand un opérateur entre dans la zone, une petite
@@ -49,6 +50,11 @@ var _reminded: bool = false
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		_build_sign()
+		if goal == Goal.REACH or goal == Goal.FINISH:
+			_build_goal_marker()
+		return
 	add_to_group(GROUP)
 	collision_layer = 0
 	# Couche des unités du joueur.
@@ -77,6 +83,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if is_done:
 		return
 	_check_left -= delta

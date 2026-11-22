@@ -1,3 +1,4 @@
+@tool
 class_name Door
 extends StaticBody3D
 ## Porte pivotante dans l'ouverture d'un mur : fermée, elle arrête la marche,
@@ -56,11 +57,16 @@ var _swing: float = 1.0
 
 
 func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group(GROUP)
 	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		_build_panel()
+		return
 	collision_mask = 0
 	_shape = CollisionShape3D.new()
 	var box := BoxShape3D.new()
