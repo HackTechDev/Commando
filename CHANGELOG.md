@@ -1157,3 +1157,9 @@
 - Un crochet (lest et anneau d'acier) termine le câble du treuil. La corde de rappel n'en a pas.
 - Quand plus personne n'est accroché, le câble redescend au sol à 3 m/s (`CABLE_DROP_SPEED`) pour le suivant ; il retombe aussitôt si quelqu'un s'accroche entre-temps.
 - Vérifié par scénario : bas du câble à la hauteur de la ceinture pendant la montée (3,09 m pour 3,09 m), redescente en 3 s depuis 8,8 m ; rendu rapproché du crochet. La suite GUT n'a pas été lancée.
+
+## Le VIP grimpe aussi à la corde
+
+- Au treuil, le VIP grimpe désormais main après main, comme les opérateurs, accroché au câble par la ceinture, à la même vitesse (1,2 m/s, `Tiltrotor.CLIMB_SPEED`).
+- La pose « pendu au crochet » (`RopeMove.HOIST`) et la vitesse du treuil seul (`WINCH_SPEED`, 1,8 m/s) n'ont plus d'usage et sont retirées.
+- Vérifié par scénario : un VIP au pied du câble, sous Alpha qui monte déjà ; sa main serrée reste fixe sur la corde ; il arrive à bord. La suite GUT n'a pas été lancée.
