@@ -1533,5 +1533,5 @@
 
 ## « Kasbah » devient « Centre de commandement »
 
-- La carte s'appelle désormais « Centre de commandement » (titre du menu, de la préparation et du HUD ; nœud racine de la scène). Le dossier `scenes/levels/kasbah/` garde son nom, pour ne pas perdre la dernière partie enregistrée ni les aperçus du menu.
+- La carte s'appelle désormais « Centre de commandement » (titre du menu, de la préparation et du HUD ; nœud racine de la scène). Le dossier devient `scenes/levels/command_center/` (scène `command_center.tscn`).
 

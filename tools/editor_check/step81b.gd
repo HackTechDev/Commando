@@ -1,6 +1,6 @@
 @tool
 extends RefCounted
-## Scénario du point 8.1 b : pose sur les toits et les étages (Kasbah).
+## Scénario du point 8.1 b : pose sur les toits et les étages (Centre de commandement).
 
 static func run(tree: SceneTree, out: String) -> void:
 	var plugin = Engine.get_meta(&"mission_editor")
