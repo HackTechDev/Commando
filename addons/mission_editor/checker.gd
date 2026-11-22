@@ -7,11 +7,17 @@ extends RefCounted
 ## comme `build/shots/check_map.sh` le fait en jeu), avec les passages que
 ## le jeu crée au lancement : échelles, portes (même verrouillées : on les
 ## crochète ou on les fait sauter), murets, fenêtres (`link_ends`).
+## Contrôles de placement : opérateurs vus par un garde dès le départ,
+## unités dans un obstacle ou les unes dans les autres, caisses et cibles
+## qui se chevauchent, éléments hors du terrain ou loin des limites de la
+## caméra, points de ronde hors de la zone praticable ou inaccessibles.
 ##
 ## Chaque problème : {"level": "error" | "warning" | "ok", "text", "nodes"}.
 ## `check` est une coroutine (la navigation est prête après quelques images).
 
 const MissionTargets := preload("res://addons/mission_editor/mission_targets.gd")
+const Coverage := preload("res://addons/mission_editor/coverage.gd")
+const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
 
 ## Au-delà, la carte devient lente (72 gardes : 10 images/s).
 const MAX_ENEMIES := 40
@@ -21,6 +27,26 @@ const MAX_OPERATORS := 6
 const REACH := 2.0
 ## Images d'attente au plus pour que la carte de navigation soit prête.
 const SYNC_FRAMES := 120
+## Couches du sol et du décor (obstacles où une unité ne peut pas être).
+const MASK_SOLID := 0b11
+## Volume d'une unité pour le contrôle « dans un obstacle » : cylindre
+## au-dessus des pieds (le sol n'est pas touché).
+const UNIT_RADIUS := 0.25
+const UNIT_FOOT := 0.3
+const UNIT_HEIGHT := 1.2
+## Deux unités plus proches que cela (m, à plat) se chevauchent.
+const UNIT_SPACING := 0.6
+## Réduction des caisses et cibles avant de chercher un chevauchement
+## (des caisses qui se touchent ou s'empilent sont voulues).
+const SHRINK := 0.9
+## Hauteur visée sur un opérateur au départ (debout, comme le jeu).
+const STANDING_HEIGHT := 1.4
+## Marge (m) au-delà des limites de la caméra (`CameraRig.bounds`, centre
+## de la vue) : un élément plus loin ne peut pas être montré au centre ni
+## près du bord de l'écran.
+const CAMERA_MARGIN := 10.0
+## Un point de ronde plus loin que cela (m) de la zone praticable n'y est pas.
+const PATROL_REACH := 1.0
 
 
 static func check(root: Node) -> Array[Dictionary]:
@@ -35,6 +61,7 @@ static func check(root: Node) -> Array[Dictionary]:
 		report.append(_item("error", "%d opérateurs : six au plus." % operators.size(), operators))
 	_check_info(root, report)
 	_check_enemies(root, report)
+	_check_placement(root, operators, report)
 	if not operators.is_empty():
 		await _check_paths(root, operators[0] as Node3D, report)
 	if report.filter(func(item: Dictionary) -> bool: return item["level"] != "ok").is_empty():
@@ -161,7 +188,192 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 			report.append(_item("warning", "%s (%s) : pas de chemin à pied depuis %s (les cordes de grappin ne sont pas comptées)." % [node.name, ", ".join(goals[node]), start.name], [node]))
 	if blocked == 0 and not goals.is_empty():
 		report.append(_item("ok", "Chemins depuis %s : %d cibles atteignables (%d passages : échelles, portes, murets, fenêtres)." % [start.name, goals.size(), links.size()]))
+	_check_patrols(root, map, report)
 	_free(map, nav_region, links)
+
+
+## Points des rondes (gardes et pick-ups) : chacun sur la zone praticable et
+## rejoint depuis le précédent, de l'unité au premier point puis jusqu'au
+## retour au premier. Un seul avertissement par ronde.
+static func _check_patrols(root: Node, map: RID, report: Array[Dictionary]) -> void:
+	for node in root.find_children("*", "", true, true):
+		if not (node is Enemy or node is Technical):
+			continue
+		var path := Gizmos.patrol_of(node)
+		if path == null or path.curve == null or path.curve.point_count < 2:
+			continue
+		var points := PackedVector3Array()
+		for i in path.curve.point_count:
+			points.append(path.to_global(path.curve.get_point_position(i)))
+		var problem := ""
+		for i in points.size():
+			var near := NavigationServer3D.map_get_closest_point(map, points[i])
+			if Vector2(near.x - points[i].x, near.z - points[i].z).length() > PATROL_REACH or absf(near.y - points[i].y) > PATROL_REACH:
+				problem = "point %d hors de la zone praticable" % (i + 1)
+				break
+		if problem.is_empty():
+			var stops: Array = [(node as Node3D).global_position]
+			stops.append_array(Array(points))
+			if points.size() > 2:
+				stops.append(points[0])
+			for i in stops.size() - 1:
+				var a := NavigationServer3D.map_get_closest_point(map, stops[i])
+				var b := NavigationServer3D.map_get_closest_point(map, stops[i + 1])
+				var route := NavigationServer3D.map_get_path(map, a, b, true)
+				if route.is_empty() or route[route.size() - 1].distance_to(b) > 0.5:
+					problem = ("premier point inaccessible depuis sa place" if i == 0 else
+						"point %d inaccessible depuis le point %d" % [(i % points.size()) + 1, i])
+					break
+		if not problem.is_empty():
+			report.append(_item("warning", "%s : ronde %s, %s." % [node.name, path.name, problem], [node, path]))
+
+
+# --- Placement ----------------------------------------------------------------
+
+static func _check_placement(root: Node, operators: Array, report: Array[Dictionary]) -> void:
+	var space := (root as Node3D).get_world_3d().direct_space_state
+	# Carte UFO:AI : l'équipe est placée au lancement sur les départs de la
+	# carte (`UfoMapLevel`), pas où la scène la met.
+	var placed_later := not root.find_children("*", "UfoMapLevel", true, false).is_empty()
+	if not placed_later:
+		_check_sight(root, operators, space, report)
+	var units := root.find_children("*", "", true, true).filter(func(n: Node) -> bool:
+		return (n is Commando and not placed_later) or n is Vip or n is Enemy or n is Guest)
+	_check_units(units, space, report)
+	var props := root.find_children("*", "", true, true).filter(func(n: Node) -> bool: return n is Climbable or n is SabotageTarget)
+	_check_props(props, space, report)
+	_check_bounds(root, placed_later, report)
+
+
+## Opérateurs vus par un garde dès le départ (sauf insertion en vol :
+## l'équipe commence à bord).
+static func _check_sight(root: Node, operators: Array, space: PhysicsDirectSpaceState3D, report: Array[Dictionary]) -> void:
+	for aircraft in root.find_children("*", "", true, true):
+		if aircraft is Tiltrotor and aircraft.get("insertion"):
+			return
+	var night: bool = root.get("night")
+	for guard in root.find_children("*", "", true, true):
+		var config := Coverage.config_of(guard, night)
+		if config == null:
+			continue
+		for unit: Node3D in operators:
+			var level := Coverage.sees(space, (guard as Node3D).global_transform, config, unit.global_position, STANDING_HEIGHT)
+			if level > 0:
+				report.append(_item("warning", "%s est vu par %s dès le départ (zone %s)." % [unit.name, guard.name, "proche" if level == 2 else "lointaine"], [unit, guard]))
+
+
+## Unités dans un obstacle (mur, caisse, bâtiment…) ou les unes dans les
+## autres.
+static func _check_units(units: Array, space: PhysicsDirectSpaceState3D, report: Array[Dictionary]) -> void:
+	var shape := CylinderShape3D.new()
+	shape.radius = UNIT_RADIUS
+	shape.height = UNIT_HEIGHT
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	query.collision_mask = MASK_SOLID
+	for unit: Node3D in units:
+		query.transform = Transform3D(Basis.IDENTITY, unit.global_position + Vector3.UP * (UNIT_FOOT + UNIT_HEIGHT * 0.5))
+		query.exclude = _bodies(unit)
+		var hits := space.intersect_shape(query, 1)
+		if not hits.is_empty():
+			var other := hits[0]["collider"] as Node
+			report.append(_item("warning", "%s est dans un obstacle (%s)." % [unit.name, _label(other)], [unit, other] if other else [unit]))
+	for i in units.size():
+		for j in range(i + 1, units.size()):
+			var a := (units[i] as Node3D).global_position
+			var b := (units[j] as Node3D).global_position
+			if Vector2(a.x - b.x, a.z - b.z).length() < UNIT_SPACING and absf(a.y - b.y) < UNIT_HEIGHT:
+				report.append(_item("warning", "%s et %s se chevauchent." % [units[i].name, units[j].name], [units[i], units[j]]))
+
+
+## Caisses et cibles de sabotage qui en chevauchent d'autres ou un mur
+## (formes réduites : se toucher ou s'empiler est permis).
+static func _check_props(props: Array, space: PhysicsDirectSpaceState3D, report: Array[Dictionary]) -> void:
+	var seen := {}
+	for prop: Node3D in props:
+		for owner_shape in prop.find_children("*", "CollisionShape3D", true, false):
+			var box := (owner_shape as CollisionShape3D).shape as BoxShape3D
+			if box == null or (owner_shape as CollisionShape3D).disabled:
+				continue
+			var smaller := BoxShape3D.new()
+			smaller.size = box.size * SHRINK
+			var query := PhysicsShapeQueryParameters3D.new()
+			query.shape = smaller
+			query.collision_mask = MASK_SOLID
+			query.transform = (owner_shape as CollisionShape3D).global_transform.orthonormalized()
+			query.exclude = _bodies(prop)
+			var hits := space.intersect_shape(query, 1)
+			if hits.is_empty():
+				continue
+			var other := hits[0]["collider"] as Node
+			var key := [prop, other] if prop.get_instance_id() < (other.get_instance_id() if other else 0) else [other, prop]
+			if seen.has(key):
+				break
+			seen[key] = true
+			report.append(_item("warning", "%s chevauche %s." % [prop.name, _label(other)], [prop, other] if other else [prop]))
+			break
+
+
+## Éléments hors du terrain (sol `NavigationRegion3D/Ground`) ou loin des
+## limites de la caméra.
+static func _check_bounds(root: Node, placed_later: bool, report: Array[Dictionary]) -> void:
+	var ground := _ground_bounds(root)
+	var rig := root.get_node_or_null(^"CameraRig")
+	var camera: Variant = rig.get("bounds") if rig else null
+	var items := root.find_children("*", "", true, true).filter(func(n: Node) -> bool:
+		return (n is Commando and not placed_later) or n is Vip or n is Enemy or n is Technical or n is Guest or n is Climbable \
+			or n is SabotageTarget or n is Tiltrotor or n is Sabre or n is Landmine or n is ExtractionZone)
+	for node: Node3D in items:
+		var spots: Array = [node.global_position]
+		var path := Gizmos.patrol_of(node) if not node is EnemyAircraft else null
+		if path and path.curve:
+			for i in path.curve.point_count:
+				spots.append(path.to_global(path.curve.get_point_position(i)))
+		for spot: Vector3 in spots:
+			var where := "" if spot == node.global_position else " (ronde %s)" % path.name
+			if ground.size != Vector3.ZERO and not _inside(ground, spot, 0.0):
+				report.append(_item("warning", "%s%s est hors du terrain." % [node.name, where], [node]))
+				break
+			if camera is AABB and not _inside(camera, spot, CAMERA_MARGIN):
+				report.append(_item("warning", "%s%s est à plus de %d m des limites de la caméra (CameraRig.bounds) : on ne pourra pas le voir." % [node.name, where, int(CAMERA_MARGIN)], [node, rig]))
+				break
+
+
+static func _ground_bounds(root: Node) -> AABB:
+	var ground := root.get_node_or_null(^"NavigationRegion3D/Ground")
+	var bounds := AABB()
+	if ground == null:
+		return bounds
+	var found := false
+	for item in ground.find_children("*", "VisualInstance3D", true, false):
+		var box: AABB = (item as VisualInstance3D).global_transform * (item as VisualInstance3D).get_aabb()
+		bounds = box if not found else bounds.merge(box)
+		found = true
+	return bounds
+
+
+static func _inside(box: AABB, point: Vector3, margin: float) -> bool:
+	return point.x >= box.position.x - margin and point.x <= box.end.x + margin \
+		and point.z >= box.position.z - margin and point.z <= box.end.z + margin
+
+
+## Corps de collision de `node` et de ses enfants (à ne pas compter).
+static func _bodies(node: Node) -> Array[RID]:
+	var rids: Array[RID] = []
+	for item in [node] + node.find_children("*", "CollisionObject3D", true, false):
+		if item is CollisionObject3D:
+			rids.append((item as CollisionObject3D).get_rid())
+	return rids
+
+
+## Nom lisible d'un obstacle touché : le nœud de la carte qui le porte.
+static func _label(node: Node) -> String:
+	if node == null:
+		return "obstacle"
+	var owner_node := node
+	while owner_node.owner and owner_node.owner != owner_node.get_tree().edited_scene_root and owner_node.get_parent():
+		owner_node = owner_node.get_parent()
+	return String(owner_node.name)
 
 
 ## Distance horizontale (m) du point `point` à l'emprise au sol de `node`

@@ -33,15 +33,9 @@ static func compute(root: Node) -> Dictionary:
 	var space := (root as Node3D).get_world_3d().direct_space_state
 	var night: bool = root.get("night") if root is LevelRoot else false
 	for guard in root.find_children("*", "", true, true):
-		if not guard is Enemy or guard.get("blind"):
-			continue
-		var vision := guard.get_node_or_null(^"VisionComponent") as Node3D
-		var config := vision.get("config") as VisionConfig if vision else null
+		var config := config_of(guard, night)
 		if config == null:
 			continue
-		if night:
-			config = config.duplicate() as VisionConfig
-			config.far_range = maxf(config.near_range, config.far_range * LevelRoot.NIGHT_SIGHT)
 		var seen := {}
 		for view: Transform3D in viewpoints(guard as Node3D):
 			_look(space, view, config, seen)
@@ -51,6 +45,36 @@ static func compute(root: Node) -> Dictionary:
 			entry[1] += 1
 			cells[key] = entry
 	return cells
+
+
+## Vue d'un garde (`Enemy` qui voit), portée lointaine réduite la nuit
+## comme en jeu ; null pour tout autre nœud.
+static func config_of(guard: Node, night: bool) -> VisionConfig:
+	if not guard is Enemy or guard.get("blind"):
+		return null
+	var vision := guard.get_node_or_null(^"VisionComponent")
+	var config := vision.get("config") as VisionConfig if vision else null
+	if config == null or not night:
+		return config
+	config = config.duplicate() as VisionConfig
+	config.far_range = maxf(config.near_range, config.far_range * LevelRoot.NIGHT_SIGHT)
+	return config
+
+
+## Ce que voit, depuis `view`, d'un point au sol `ground` visé à `height` m :
+## 2 zone proche, 1 zone lointaine, 0 rien (hors du cône ou caché par la
+## couche 2).
+static func sees(space: PhysicsDirectSpaceState3D, view: Transform3D, config: VisionConfig, ground: Vector3, height: float) -> int:
+	var offset := view.affine_inverse() * ground
+	offset.y = 0.0
+	var zone := VisionComponent.zone_for(offset, SoldierModel.Posture.STANDING, config)
+	if zone == VisionComponent.Zone.NONE:
+		return 0
+	var eye := view.origin + Vector3.UP * config.eye_height
+	var query := PhysicsRayQueryParameters3D.create(eye, ground + Vector3.UP * height, VisionComponent.MASK_OCCLUDERS)
+	if not space.intersect_ray(query).is_empty():
+		return 0
+	return 2 if zone == VisionComponent.Zone.NEAR else 1
 
 
 ## Positions et orientations (vers -Z) d'où regarde `guard`.

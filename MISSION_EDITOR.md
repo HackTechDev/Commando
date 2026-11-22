@@ -171,6 +171,8 @@ Un clic sur une ligne sélectionne le nœud en cause. Le détail des contrôles 
 
 Les chemins passent, comme en jeu, par les échelles, les portes (même verrouillées : on les crochète ou on les fait sauter), les murets et les fenêtres. Une cible est atteinte quand le chemin arrive à 2 m du bord de son emprise au sol (un convertible ou un bâtiment n'a pas à être atteint en son centre). Un avertissement « pas de chemin à pied » n'est pas forcément une faute : les cordes de grappin, lancées en cours de partie, ne sont pas comptées, et une cible peut se rejoindre autrement qu'à pied (à Héliportage, le Sabre, au-delà du ravin, s'élingue sous le convertible).
 
+La vérification contrôle aussi le placement : opérateurs vus par un garde dès le départ, unités dans un mur ou les unes dans les autres, caisses qui se chevauchent, éléments hors du terrain ou trop loin des limites de la caméra, points de ronde hors de la zone praticable ou inaccessibles. Sur les cartes UFO:AI, l'équipe est placée au lancement sur les départs de la carte : sa place dans la scène n'est pas contrôlée.
+
 ### 10. Essayer
 
 Cliquez sur **Essayer**. La scène est enregistrée puis lancée seule, avec ses objectifs, l'équipe et son équipement, comme depuis le choix des missions. Arrêtez le jeu avec le bouton carré en haut à droite de l'éditeur (F8).
@@ -252,6 +254,11 @@ Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'
 | Identifiant d'objectif inconnu du jeu | Avertissement |
 | Plus de 40 gardes (la carte ralentit) | Avertissement |
 | Cible ou extraction sans chemin depuis le premier opérateur (échelles, portes, murets et fenêtres comptés ; cordes de grappin non comptées) | Avertissement |
+| Opérateur vu par un garde dès le départ, debout (sauf insertion en vol : l'équipe commence à bord) | Avertissement |
+| Unité (opérateur, VIP, garde, invité) dans un obstacle, ou deux unités à moins de 60 cm l'une de l'autre | Avertissement |
+| Caisse ou cible de sabotage qui en chevauche une autre ou un mur (se toucher ou s'empiler est permis) | Avertissement |
+| Élément ou point de ronde hors du terrain (`NavigationRegion3D/Ground`), ou à plus de 10 m des limites de la caméra (`CameraRig.bounds`) | Avertissement |
+| Point de ronde (garde, pick-up) à plus de 1 m de la zone praticable, ou inaccessible depuis le précédent (de l'unité au premier point, jusqu'au retour au premier) | Avertissement |
 
 ### Raccourcis
 

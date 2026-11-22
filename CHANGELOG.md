@@ -1363,3 +1363,9 @@
 - Les rondes des gardes, pick-ups armés et avions ennemis sont dessinées dans la vue 3D en vert, la couleur du greffon : bande au sol, chevrons dans le sens de marche, retour au premier point plus pâle, pointillé de l'unité à son premier point. Le dessin suit en direct les retouches faites avec les outils de chemin de Godot.
 - Carte de couverture : le retour du dernier point au premier est compté (le garde boucle).
 - Vérifié par capture dans l'éditeur (`tools/editor_check/step81c.gd`, Terrain d'essai) : ronde tracée, chemin retouché, garde écarté de son chemin. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : contrôles de placement (8.2 b)
+
+- « Vérifier » signale aussi : opérateur vu par un garde dès le départ ; unité dans un obstacle ou sur une autre ; caisse ou cible de sabotage qui en chevauche une autre ou un mur ; élément ou point de ronde hors du terrain ou à plus de 10 m des limites de la caméra ; point de ronde hors de la zone praticable ou inaccessible. Un clic sur l'avertissement sélectionne les nœuds en cause.
+- Sur les cartes UFO:AI, l'équipe (placée au lancement) n'est pas contrôlée.
+- Vérifié (`tools/editor_check/step82b.gd`, Terrain d'essai) : chaque faute posée est signalée, et seulement elle ; sur les 24 cartes, seul un vrai défaut apparaît (Héliportage : `BarrierGuard2` posé dans le muret de la barrière). La suite GUT n'a pas été lancée.
