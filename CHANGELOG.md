@@ -1174,3 +1174,12 @@
 - Kasbah demande la tenue décontractée, La Tour le costume-cravate (scènes, générateurs, fiches de mission). `MapBuilder` accepte `dress_code`.
 - Nouvel accessoire : lunettes de soleil Oakley (`sunglasses`), enveloppantes, verres miroir, 50 g.
 - Vérifié par rendus (les trois tenues, visages, écran « Opérateurs ») et par scénario sur Kasbah, garde à 8,5 m : décontractée, PM à la bretelle, la détection reste à 0,16 ; à 2 m, alerte en 4 s ; en costume, alerte en 2,5 s ; avec une carabine ou le PM en main, alerte en 1,3 s, comme en treillis. La suite GUT n'a pas été lancée.
+
+## Carte « Réception »
+
+- Nouvelle mission (`tools/gen_reception.py`, `scenes/levels/reception/`) : une garden-party de jour dans le parc d'une résidence gardée, tenue de rigueur costume-cravate. Prendre les documents de l'hôte dans son bureau, puis repartir par l'extraction, qui se pose derrière la grille de service au nord.
+- L'équipe arrive en costume, pistolet-mitrailleur sous la veste. C'est une tenue imposée par la mission (`Commando.mission_clothing`, `MapBuilder.team(clothing=…)`) ; le profil des opérateurs n'est pas modifié.
+- Invités (`Guest`, `MapBuilder.guests`) : civils en costume ou tailleur, apparence tirée d'une graine, par groupes qui bavardent. Ils barrent le passage (la navigation les contourne) sans cacher la vue ni arrêter les balles, et ne réagissent à rien.
+- Gardes : deux à la grille d'honneur, à l'écart de l'allée ; un sur le perron, un dans le bureau ; deux rondes dans le parc, une autour de la résidence ; un à la grille de service.
+- Objectif bonus `no_alert` (« Ne jamais donner l'alerte ») : il échoue à la première alerte générale sans empêcher la réussite. Il était déjà listé par « Entraînement B » mais n'était géré nulle part.
+- Vérifié par scénario. L'équipe, PM à la bretelle, passe la grille et traverse le parc au pas : détection plafonnée à 0,16, aucune méfiance. Dans le bureau, le garde devient méfiant. Chemins de navigation contrôlés (rue, perron, bureau, porte de service, extraction). La suite GUT n'a pas été lancée.

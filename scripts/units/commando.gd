@@ -135,6 +135,9 @@ var throwing_knives: int = 0
 ## La mission impose des jumelles de vision nocturne (et le casque qui les
 ## porte) : cartes de nuit.
 @export var mission_nvg: bool = false
+## Tenue imposée par la mission (`GearCatalog.CLOTHING`, vide : celle du
+## profil), par exemple le costume pour s'infiltrer dans une réception.
+@export var mission_clothing: StringName = &""
 ## Grenades, charges explosives et trousses de soins restantes.
 var grenades: int = 0
 var smoke_grenades: int = 0
@@ -371,9 +374,12 @@ func _mission_profile(operator: OperatorProfile) -> OperatorProfile:
 	if operator == null:
 		return operator
 	var weapon := mission_primary != &"" and GearCatalog.PRIMARY.has(mission_primary)
-	if not weapon and not (mission_nvg and not operator.wears_nvg()):
+	var dress := GearCatalog.CLOTHING.has(mission_clothing) and mission_clothing != operator.clothing
+	if not weapon and not dress and not (mission_nvg and not operator.wears_nvg()):
 		return operator
 	var armed := operator.duplicate() as OperatorProfile
+	if dress:
+		armed.set_clothing(mission_clothing)
 	if weapon:
 		armed.primary = mission_primary
 	if mission_nvg:

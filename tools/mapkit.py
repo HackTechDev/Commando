@@ -254,9 +254,9 @@ class MapBuilder:
 
     # --- Unités -------------------------------------------------------------
 
-    def team(self, members, nvg=None, explosives=(), primary=None):
+    def team(self, members, nvg=None, explosives=(), primary=None, clothing=""):
         """Opérateurs : (nom, x, z) ; `explosives` : noms qui reçoivent une
-        charge ; `primary` : {nom: arme imposée}."""
+        charge ; `primary` : {nom: arme imposée} ; `clothing` : tenue imposée."""
         scene = self.scene("res://scenes/units/commando.tscn")
         nvg = self.night if nvg is None else nvg
         primary = primary or {}
@@ -268,7 +268,17 @@ class MapBuilder:
                 text += "\nmission_explosives = 1"
             if name in primary:
                 text += f'\nmission_primary = &"{primary[name]}"'
+            if clothing:
+                text += f'\nmission_clothing = &"{clothing}"'
             self.units.append(text)
+
+    def guests(self, items, dress="suit"):
+        """Invités (décor, barrent le passage) : (x, z, cap)."""
+        script = self.script("res://scripts/props/guest.gd")
+        for x, z, facing in items:
+            name = self._name("Guest")
+            self.nav.append(f'[node name="{name}" type="StaticBody3D" parent="NavigationRegion3D"]\ntransform = {tf(x, z, facing)}\n'
+                            f'script = {script}\nlook_seed = {self._count["Guest"] * 7919 % 100003}\ndress = &"{dress}"')
 
     def vip(self, x, z, name="Vip", display="VIP"):
         scene = self.scene("res://scenes/units/vip.tscn")

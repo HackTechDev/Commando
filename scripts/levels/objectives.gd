@@ -5,7 +5,8 @@ extends Node
 ## - `vip_extracted` : signalé par la zone d'extraction ;
 ## - `all_enemies_down` : plus aucun ennemi debout (morts ou inconscients) ;
 ## - conditions `vip_alive`, `no_operator_lost` : remplies à la réussite,
-##   manquées à la mort d'un VIP ou d'un opérateur.
+##   manquées à la mort d'un VIP ou d'un opérateur ;
+## - condition bonus `no_alert` : manquée dès que l'alerte est donnée.
 ## Tous les objectifs remplis : réussite ; une condition manquée : échec
 ## (`EventBus.mission_ended`, sauf si une autre source l'a déjà émis).
 
@@ -13,10 +14,11 @@ enum Status { PENDING, DONE, FAILED }
 
 const GROUP := &"objectives"
 ## Objectifs qui ne se remplissent qu'à la réussite des autres.
-const CONDITIONS: Array[String] = ["vip_alive", "no_operator_lost"]
+const CONDITIONS: Array[String] = ["vip_alive", "no_operator_lost", "no_alert"]
 ## Objectifs bonus : leur échec s'affiche mais ne bloque ni l'extraction ni
-## la réussite (repartir avant l'arrivée des renforts, `Reinforcements`).
-const OPTIONAL: Array[String] = ["raid_in_time"]
+## la réussite (repartir avant l'arrivée des renforts, `Reinforcements` ;
+## ne jamais donner l'alerte).
+const OPTIONAL: Array[String] = ["raid_in_time", "no_alert"]
 ## Intervalle de vérification des ennemis restants.
 const CHECK_INTERVAL := 0.5
 
@@ -48,6 +50,9 @@ func _ready() -> void:
 	EventBus.objective_completed.connect(func(id: StringName) -> void: complete(String(id), ""))
 	EventBus.unit_died.connect(_on_unit_died)
 	EventBus.enemy_killed.connect(func(_enemy: Node3D) -> void: _enemies_seen = true)
+	GameState.alert_level_changed.connect(func(level: GameState.AlertLevel) -> void:
+		if level == GameState.AlertLevel.ALARM and not is_over:
+			fail("no_alert"))
 	for node in get_tree().get_nodes_in_group(&"vips"):
 		var vip := node as Vip
 		if vip:
