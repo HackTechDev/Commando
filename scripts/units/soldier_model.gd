@@ -2635,10 +2635,14 @@ func _build_suit() -> void:
 
 
 ## Profondeur (z) du devant du buste à la hauteur `y` et à l'écart `x` de
-## l'axe : la poitrine (cône du torse aplati), qui s'incurve vers les côtés
-## et remonte vers le cou au-dessus des épaules ; la poitrine d'une femme.
+## l'axe : la taille (y ≤ 0.3), la poitrine (cône du torse aplati), qui
+## s'incurve vers les côtés et remonte vers le cou au-dessus des épaules ; la
+## poitrine d'une femme.
 func _chest_front(y: float, x: float) -> float:
 	var z := -0.1 - (y - 0.28) * 0.0833 if y <= 0.52 else -0.12 + (y - 0.52)
+	if y <= 0.3:
+		var waist := -lerpf(0.165 * (0.85 if _female else 1.0), 0.172, clampf((y - 0.1) / 0.2, 0.0, 1.0)) * 0.62
+		z = minf(z, waist) if y >= 0.28 else waist
 	z += x * x * 1.6
 	if _female:
 		var bust := maxf(0.0, 1.0 - absf(y - 0.385) / 0.08) * clampf(absf(x) / 0.06, 0.0, 1.0)
@@ -2715,21 +2719,37 @@ func _tie_material() -> StandardMaterial3D:
 
 
 ## Tenue décontractée : blouson ouvert (couleur du haut) sur un t-shirt
-## chiné à col rond, fermeture éclair sur les bords, col et bas côtelés.
+## chiné à col rond. Les bords du blouson ont leur épaisseur et leur
+## fermeture éclair ; poches de poitrine à rabat, col montant et bas côtelés.
+## Les pièces épousent le buste (`_chest_panel`).
 func _build_casual() -> void:
 	var casual := _pivot(_torso, Vector3.ZERO, "Casual")
 	var tee := _mat(Color(0.7, 0.71, 0.7), 0.95)
+	var jacket := _m_top
 	var rib := _mat((_m_top.albedo_color as Color).darkened(0.3), 0.9)
-	var zip := _mat(Color(0.15, 0.15, 0.15), 0.4, 0.6)
-	_box(casual, Vector3(0.1, 0.27, 0.012), Vector3(0.0, 0.41, -0.11), tee).rotation.x = -0.06
-	# Col rond du t-shirt, col montant du blouson.
-	_tapered(casual, 0.07, 0.078, 0.025, Vector3(0.0, 0.552, 0.0), tee)
-	_tapered(casual, 0.085, 0.092, 0.045, Vector3(0.0, 0.55, 0.012), rib).scale.z = 0.9
+	var zip := _mat(Color(0.15, 0.15, 0.15), 0.35, 0.7)
+	# T-shirt, de l'encolure au bas du blouson ; col rond.
+	_chest_panel(casual, [[0.562, -0.044, 0.044], [0.52, -0.056, 0.056], [0.3, -0.056, 0.056], [0.13, -0.056, 0.056]], 0.002, 0.0, tee)
+	_tapered(casual, 0.068, 0.075, 0.016, Vector3(0.0, 0.566, 0.002), tee)
+	# Col montant du blouson, ouvert devant : en arrière du t-shirt.
+	var collar := _tapered(casual, 0.083, 0.094, 0.05, Vector3(0.0, 0.575, 0.032), rib)
+	collar.scale.z = 0.86
 	for side: float in [-1.0, 1.0]:
-		var edge := _box(casual, Vector3(0.012, 0.3, 0.012), Vector3(0.056 * side, 0.39, -0.12), zip)
-		edge.rotation = Vector3(-0.06, 0.0, 0.05 * side)
+		var edge := func(rows: Array) -> Array:
+			var out := []
+			for row: Array in rows:
+				out.append([row[0], row[1] * side if side > 0.0 else -row[2], row[2] * side if side > 0.0 else -row[1]])
+			return out
+		# Pan du blouson : bord ouvert, épaisseur visible, qui s'écarte vers le
+		# haut ; fermeture éclair sur la tranche.
+		_chest_panel(casual, edge.call([[0.562, 0.042, 0.1], [0.5, 0.036, 0.11], [0.3, 0.034, 0.11], [0.13, 0.036, 0.11]]), 0.007, 0.007, jacket)
+		_chest_panel(casual, edge.call([[0.56, 0.039, 0.045], [0.5, 0.033, 0.039], [0.3, 0.031, 0.037], [0.13, 0.033, 0.039]]), 0.0075, 0.0, zip)
+		# Poche de poitrine : rabat en relief et son bouton-pression.
+		_chest_panel(casual, edge.call([[0.455, 0.06, 0.11], [0.43, 0.062, 0.108]]), 0.012, 0.005, rib)
+		var snap_x := 0.085 * side
+		_sphere(casual, 0.006, Vector3(snap_x, 0.437, _chest_front(0.437, snap_x) - 0.014), zip)
 	# Bas côtelé du blouson, au-dessus de la ceinture.
-	_tapered(casual, 0.172, 0.174, 0.03, Vector3(0.0, 0.125, 0.0), rib).scale.z = 0.66
+	_tapered(casual, 0.176, 0.178, 0.035, Vector3(0.0, 0.125, 0.0), rib).scale.z = 0.67
 
 
 ## Lunettes de soleil enveloppantes : écran miroir en deux verres, monture

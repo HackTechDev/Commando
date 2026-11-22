@@ -1191,3 +1191,11 @@
 - Les revers se croisent au bas du V, comme une veste boutonnée, et cachent le bout de la cravate.
 - Toutes ces pièces épousent désormais le buste (`SoldierModel._chest_panel`, `_chest_front`, poitrine féminine comprise) : de profil, elles ne flottent plus en planche devant la poitrine.
 - Vérifié par rendus rapprochés (face, trois-quarts, profil ; homme et femme). La suite GUT n'a pas été lancée.
+
+## Blouson de la tenue décontractée refait
+
+- Le t-shirt chiné est plaqué sur le buste, de l'encolure au bas du blouson, avec son col rond.
+- Les pans du blouson ouvert ont une épaisseur visible et s'écartent vers le haut. La fermeture éclair court sur leur tranche.
+- Poches de poitrine à rabat en relief, avec bouton-pression ; col montant côtelé, ouvert devant ; bas côtelé.
+- Les pièces épousent le buste jusqu'à la taille (`_chest_front` étendu sous la poitrine) au lieu de flotter en planches.
+- Vérifié par rendus rapprochés (face, trois-quarts, profil ; homme et femme). La suite GUT n'a pas été lancée.
