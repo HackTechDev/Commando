@@ -37,8 +37,21 @@ func _ready() -> void:
 	shape.shape = cylinder
 	shape.position.y = 0.85
 	add_child(shape)
+	var look := random_look(look_seed, dress)
+	model = CrowdModel.new()
+	model.civilian = dress == &"suit"
+	model.silent = true
+	model.outfit = look
+	add_child(model)
+	model.set_armed(false)
+
+
+## Apparence d'un civil tirée de la graine `seed` (corps, visage, coupe,
+## couleurs de la tenue `dress`, parfois des lunettes de soleil), sans arme
+## ni équipement. Partagée avec les passants (`Passerby`).
+static func random_look(seed: int, dress: StringName) -> OperatorProfile:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = look_seed
+	rng.seed = seed
 	var look := OperatorProfile.new()
 	look.body = &"female" if rng.randf() < 0.45 else &"male"
 	look.set_clothing(dress)
@@ -57,9 +70,4 @@ func _ready() -> void:
 	look.secondary = &"none"
 	look.throwing_knives = 0
 	look.sunglasses = rng.randf() < 0.15
-	model = SoldierModel.new()
-	model.civilian = dress == &"suit"
-	model.silent = true
-	model.outfit = look
-	add_child(model)
-	model.set_armed(false)
+	return look

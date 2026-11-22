@@ -64,6 +64,19 @@ for cx, cz, n, turn in [(-2, 58, 3, 0.4), (3, 63, 2, 1.0), (-3, 64, 2, 0.0), (-7
                         (-46, -10, 2, 1.0), (46, 20, 3, 0.7), (-20, 89.5, 3, 0.0), (70, 89.5, 2, 1.1), (-60, -67, 2, 0.5)]:
     PEOPLE += group(cx, cz, n, turn=turn)
 m.guests(PEOPLE, dress="casual")
+# Passants qui marchent sur les trottoirs (au milieu du trottoir, à 4,75 m
+# de l'axe de la rue) : tour de l'îlot de la placette, allers-retours le
+# long des avenues et des rues.
+SW = 4.75
+m.passersby([(-52 + SW, 40 + SW), (52 - SW, 40 + SW), (52 - SW, 84 - SW), (-52 + SW, 84 - SW)], 6, loop=True)
+m.passersby([(-100, 40 - SW), (100, 40 - SW)], 5)
+m.passersby([(-100, 84 + SW), (100, 84 + SW)], 4)
+m.passersby([(-52 - SW, -100), (-52 - SW, 100)], 4)
+m.passersby([(-52 + SW, -56), (-52 + SW, 35)], 2)
+m.passersby([(52 + SW, -100), (52 + SW, 100)], 4)
+m.passersby([(52 - SW, -56), (52 - SW, 35)], 2)
+m.passersby([(-100, -62 + SW), (100, -62 + SW)], 3)
+m.passersby([(-100, -62 - SW), (100, -62 - SW)], 2)
 
 m.team([("Alpha", -96, 90), ("Bravo", -94, 90), ("Charlie", -92, 90)], nvg=False,
        primary={"Alpha": "smg", "Bravo": "smg", "Charlie": "smg"}, clothing="suit")

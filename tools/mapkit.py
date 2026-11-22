@@ -296,6 +296,22 @@ class MapBuilder:
             self.nav.append(f'[node name="{name}" type="StaticBody3D" parent="NavigationRegion3D"]\ntransform = {tf(x, z, facing)}\n'
                             f'script = {script}\nlook_seed = {self._count["Guest"] * 7919 % 100003}\ndress = &"{dress}"')
 
+    def passersby(self, points, count, loop=False, dress="casual", speed=1.3):
+        """Passants qui marchent le long du tracé (x, z), en aller-retour (ou
+        en boucle), répartis sur sa longueur, dans les deux sens."""
+        script = self.script("res://scripts/props/passerby.gd")
+        pts = ", ".join(f"{x:g}, 0, {z:g}" for x, z in points)
+        closed = list(points) + ([points[0]] if loop else [])
+        total = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(closed, closed[1:]))
+        for i in range(count):
+            name = self._name("Passerby")
+            seed = (self._count["Passerby"] * 4813 + 17) % 100003
+            pace = speed * (0.85 + 0.3 * ((seed % 7) / 6))
+            self.decor.append(f'[node name="{name}" type="Node3D" parent="Decor"]\nscript = {script}\n'
+                              f'points = PackedVector3Array({pts})\nloop = {"true" if loop else "false"}\n'
+                              f'start_at = {total * (i + 0.5) / count:.2f}\nbackward = {"true" if i % 2 else "false"}\n'
+                              f'speed = {pace:.2f}\nlook_seed = {seed}\ndress = &"{dress}"')
+
     def vip(self, x, z, name="Vip", display="VIP"):
         scene = self.scene("res://scenes/units/vip.tscn")
         self.units.append(f'[node name="{name}" parent="Units" instance={scene}]\ntransform = {tf(x, z)}\ndisplay_name = "{display}"')

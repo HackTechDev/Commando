@@ -1,16 +1,17 @@
-[gd_scene load_steps=37 format=3]
+[gd_scene load_steps=38 format=3]
 
 [ext_resource type="Script" path="res://scripts/props/building.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/props/guest.gd" id="4"]
-[ext_resource type="PackedScene" path="res://scenes/units/commando.tscn" id="5"]
-[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="6"]
-[ext_resource type="PackedScene" path="res://scenes/props/wall.tscn" id="7"]
-[ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="8"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="9"]
-[ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="10"]
-[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="11"]
+[ext_resource type="Script" path="res://scripts/props/passerby.gd" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/units/commando.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/wall.tscn" id="8"]
+[ext_resource type="Script" path="res://scripts/props/tiltrotor.gd" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="10"]
+[ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="12"]
 
 [sub_resource type="StandardMaterial3D" id="ground_mat"]
 albedo_color = Color(0.3, 0.36, 0.22, 1)
@@ -151,7 +152,7 @@ material = SubResource("ground_mat")
 size = Vector3(220, 1, 220)
 
 [node name="Reception" type="Node3D"]
-script = ExtResource("10")
+script = ExtResource("11")
 dress_code = &"suit"
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -759,130 +760,130 @@ script = ExtResource("4")
 look_seed = 82134
 dress = &"casual"
 
-[node name="Wall1" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall1" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -27.3, 0, 26)
 
-[node name="Wall2" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall2" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -21.9, 0, 26)
 
-[node name="Wall3" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall3" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -16.5, 0, 26)
 
-[node name="Wall4" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall4" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -11.1, 0, 26)
 
-[node name="Wall5" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall5" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -5.7, 0, 26)
 
-[node name="Wall6" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall6" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 5.7, 0, 26)
 
-[node name="Wall7" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall7" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 11.1, 0, 26)
 
-[node name="Wall8" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall8" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 16.5, 0, 26)
 
-[node name="Wall9" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall9" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 21.9, 0, 26)
 
-[node name="Wall10" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall10" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 27.3, 0, 26)
 
-[node name="Wall11" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall11" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, -33.1818)
 
-[node name="Wall12" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall12" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, -27.5455)
 
-[node name="Wall13" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall13" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, -21.9091)
 
-[node name="Wall14" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall14" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, -16.2727)
 
-[node name="Wall15" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall15" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, -10.6364)
 
-[node name="Wall16" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall16" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, -5)
 
-[node name="Wall17" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall17" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, 0.636364)
 
-[node name="Wall18" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall18" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, 6.27273)
 
-[node name="Wall19" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall19" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, 11.9091)
 
-[node name="Wall20" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall20" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, 17.5455)
 
-[node name="Wall21" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall21" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, -30, 0, 23.1818)
 
-[node name="Wall22" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall22" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, -33.1818)
 
-[node name="Wall23" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall23" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, -27.5455)
 
-[node name="Wall24" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall24" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, -21.9091)
 
-[node name="Wall25" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall25" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, -16.2727)
 
-[node name="Wall26" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall26" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, -10.6364)
 
-[node name="Wall27" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall27" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, -5)
 
-[node name="Wall28" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall28" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, 0.636364)
 
-[node name="Wall29" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall29" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, 6.27273)
 
-[node name="Wall30" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall30" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, 11.9091)
 
-[node name="Wall31" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall31" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, 17.5455)
 
-[node name="Wall32" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall32" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 30, 0, 23.1818)
 
-[node name="Wall33" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall33" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -27.1562, 0, -36)
 
-[node name="Wall34" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall34" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -21.4688, 0, -36)
 
-[node name="Wall35" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall35" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -15.7812, 0, -36)
 
-[node name="Wall36" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall36" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -10.0938, 0, -36)
 
-[node name="Wall37" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall37" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -4.40625, 0, -36)
 
-[node name="Wall38" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall38" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 1.28125, 0, -36)
 
-[node name="Wall39" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall39" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 6.96875, 0, -36)
 
-[node name="Wall40" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall40" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 12.6562, 0, -36)
 
-[node name="Wall41" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall41" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 22.875, 0, -36)
 
-[node name="Wall42" parent="NavigationRegion3D" instance=ExtResource("7")]
+[node name="Wall42" parent="NavigationRegion3D" instance=ExtResource("8")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 27.625, 0, -36)
 
 [node name="Residence" type="Node3D" parent="NavigationRegion3D"]
@@ -1091,7 +1092,7 @@ dress = &"suit"
 
 [node name="Extraction" type="StaticBody3D" parent="NavigationRegion3D"]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 18, 0, -43)
-script = ExtResource("8")
+script = ExtResource("9")
 livery = 1
 tail_number = "61"
 objective_id = &"extracted"
@@ -1237,6 +1238,326 @@ size = Vector2(3, 2.4)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -96)
 script = ExtResource("2")
 size = Vector2(3, 2.4)
+
+[node name="Passerby1" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, 44.75, 47.25, 0, 44.75, 47.25, 0, 79.25, -47.25, 0, 79.25)
+loop = true
+start_at = 21.50
+backward = false
+speed = 1.10
+look_seed = 4830
+dress = &"casual"
+
+[node name="Passerby2" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, 44.75, 47.25, 0, 44.75, 47.25, 0, 79.25, -47.25, 0, 79.25)
+loop = true
+start_at = 64.50
+backward = true
+speed = 1.37
+look_seed = 9643
+dress = &"casual"
+
+[node name="Passerby3" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, 44.75, 47.25, 0, 44.75, 47.25, 0, 79.25, -47.25, 0, 79.25)
+loop = true
+start_at = 107.50
+backward = false
+speed = 1.17
+look_seed = 14456
+dress = &"casual"
+
+[node name="Passerby4" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, 44.75, 47.25, 0, 44.75, 47.25, 0, 79.25, -47.25, 0, 79.25)
+loop = true
+start_at = 150.50
+backward = true
+speed = 1.43
+look_seed = 19269
+dress = &"casual"
+
+[node name="Passerby5" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, 44.75, 47.25, 0, 44.75, 47.25, 0, 79.25, -47.25, 0, 79.25)
+loop = true
+start_at = 193.50
+backward = false
+speed = 1.23
+look_seed = 24082
+dress = &"casual"
+
+[node name="Passerby6" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, 44.75, 47.25, 0, 44.75, 47.25, 0, 79.25, -47.25, 0, 79.25)
+loop = true
+start_at = 236.50
+backward = true
+speed = 1.49
+look_seed = 28895
+dress = &"casual"
+
+[node name="Passerby7" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 35.25, 100, 0, 35.25)
+loop = false
+start_at = 20.00
+backward = false
+speed = 1.30
+look_seed = 33708
+dress = &"casual"
+
+[node name="Passerby8" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 35.25, 100, 0, 35.25)
+loop = false
+start_at = 60.00
+backward = true
+speed = 1.10
+look_seed = 38521
+dress = &"casual"
+
+[node name="Passerby9" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 35.25, 100, 0, 35.25)
+loop = false
+start_at = 100.00
+backward = false
+speed = 1.37
+look_seed = 43334
+dress = &"casual"
+
+[node name="Passerby10" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 35.25, 100, 0, 35.25)
+loop = false
+start_at = 140.00
+backward = true
+speed = 1.17
+look_seed = 48147
+dress = &"casual"
+
+[node name="Passerby11" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 35.25, 100, 0, 35.25)
+loop = false
+start_at = 180.00
+backward = false
+speed = 1.43
+look_seed = 52960
+dress = &"casual"
+
+[node name="Passerby12" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 88.75, 100, 0, 88.75)
+loop = false
+start_at = 25.00
+backward = false
+speed = 1.23
+look_seed = 57773
+dress = &"casual"
+
+[node name="Passerby13" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 88.75, 100, 0, 88.75)
+loop = false
+start_at = 75.00
+backward = true
+speed = 1.49
+look_seed = 62586
+dress = &"casual"
+
+[node name="Passerby14" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 88.75, 100, 0, 88.75)
+loop = false
+start_at = 125.00
+backward = false
+speed = 1.30
+look_seed = 67399
+dress = &"casual"
+
+[node name="Passerby15" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, 88.75, 100, 0, 88.75)
+loop = false
+start_at = 175.00
+backward = true
+speed = 1.10
+look_seed = 72212
+dress = &"casual"
+
+[node name="Passerby16" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-56.75, 0, -100, -56.75, 0, 100)
+loop = false
+start_at = 25.00
+backward = false
+speed = 1.37
+look_seed = 77025
+dress = &"casual"
+
+[node name="Passerby17" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-56.75, 0, -100, -56.75, 0, 100)
+loop = false
+start_at = 75.00
+backward = true
+speed = 1.17
+look_seed = 81838
+dress = &"casual"
+
+[node name="Passerby18" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-56.75, 0, -100, -56.75, 0, 100)
+loop = false
+start_at = 125.00
+backward = false
+speed = 1.43
+look_seed = 86651
+dress = &"casual"
+
+[node name="Passerby19" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-56.75, 0, -100, -56.75, 0, 100)
+loop = false
+start_at = 175.00
+backward = true
+speed = 1.23
+look_seed = 91464
+dress = &"casual"
+
+[node name="Passerby20" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, -56, -47.25, 0, 35)
+loop = false
+start_at = 22.75
+backward = false
+speed = 1.49
+look_seed = 96277
+dress = &"casual"
+
+[node name="Passerby21" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-47.25, 0, -56, -47.25, 0, 35)
+loop = false
+start_at = 68.25
+backward = true
+speed = 1.23
+look_seed = 1087
+dress = &"casual"
+
+[node name="Passerby22" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(56.75, 0, -100, 56.75, 0, 100)
+loop = false
+start_at = 25.00
+backward = false
+speed = 1.49
+look_seed = 5900
+dress = &"casual"
+
+[node name="Passerby23" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(56.75, 0, -100, 56.75, 0, 100)
+loop = false
+start_at = 75.00
+backward = true
+speed = 1.30
+look_seed = 10713
+dress = &"casual"
+
+[node name="Passerby24" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(56.75, 0, -100, 56.75, 0, 100)
+loop = false
+start_at = 125.00
+backward = false
+speed = 1.10
+look_seed = 15526
+dress = &"casual"
+
+[node name="Passerby25" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(56.75, 0, -100, 56.75, 0, 100)
+loop = false
+start_at = 175.00
+backward = true
+speed = 1.37
+look_seed = 20339
+dress = &"casual"
+
+[node name="Passerby26" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(47.25, 0, -56, 47.25, 0, 35)
+loop = false
+start_at = 22.75
+backward = false
+speed = 1.17
+look_seed = 25152
+dress = &"casual"
+
+[node name="Passerby27" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(47.25, 0, -56, 47.25, 0, 35)
+loop = false
+start_at = 68.25
+backward = true
+speed = 1.43
+look_seed = 29965
+dress = &"casual"
+
+[node name="Passerby28" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, -57.25, 100, 0, -57.25)
+loop = false
+start_at = 33.33
+backward = false
+speed = 1.23
+look_seed = 34778
+dress = &"casual"
+
+[node name="Passerby29" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, -57.25, 100, 0, -57.25)
+loop = false
+start_at = 100.00
+backward = true
+speed = 1.49
+look_seed = 39591
+dress = &"casual"
+
+[node name="Passerby30" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, -57.25, 100, 0, -57.25)
+loop = false
+start_at = 166.67
+backward = false
+speed = 1.30
+look_seed = 44404
+dress = &"casual"
+
+[node name="Passerby31" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, -66.75, 100, 0, -66.75)
+loop = false
+start_at = 50.00
+backward = false
+speed = 1.10
+look_seed = 49217
+dress = &"casual"
+
+[node name="Passerby32" type="Node3D" parent="Decor"]
+script = ExtResource("5")
+points = PackedVector3Array(-100, 0, -66.75, 100, 0, -66.75)
+loop = false
+start_at = 150.00
+backward = true
+speed = 1.37
+look_seed = 54030
+dress = &"casual"
 
 [node name="Bush19" type="Node3D" parent="Decor"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 0, 18)
@@ -1435,28 +1756,28 @@ omni_attenuation = 1.4
 
 [node name="Units" type="Node3D" parent="."]
 
-[node name="Alpha" parent="Units" instance=ExtResource("5")]
+[node name="Alpha" parent="Units" instance=ExtResource("6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -96, 0, 90)
 unit_index = 1
 display_name = "Alpha"
 mission_primary = &"smg"
 mission_clothing = &"suit"
 
-[node name="Bravo" parent="Units" instance=ExtResource("5")]
+[node name="Bravo" parent="Units" instance=ExtResource("6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94, 0, 90)
 unit_index = 2
 display_name = "Bravo"
 mission_primary = &"smg"
 mission_clothing = &"suit"
 
-[node name="Charlie" parent="Units" instance=ExtResource("5")]
+[node name="Charlie" parent="Units" instance=ExtResource("6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92, 0, 90)
 unit_index = 3
 display_name = "Charlie"
 mission_primary = &"smg"
 mission_clothing = &"suit"
 
-[node name="CameraRig" parent="." instance=ExtResource("6")]
+[node name="CameraRig" parent="." instance=ExtResource("7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, 0, 80)
 bounds = AABB(-108, 0, -108, 216, 0, 216)
 
@@ -1482,57 +1803,57 @@ curve = SubResource("curve_EastStreet")
 
 [node name="Enemies" type="Node3D" parent="."]
 
-[node name="GateWest" parent="Enemies" instance=ExtResource("9")]
+[node name="GateWest" parent="Enemies" instance=ExtResource("10")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -7, 0, 29)
 stationary = true
 
-[node name="GateEast" parent="Enemies" instance=ExtResource("9")]
+[node name="GateEast" parent="Enemies" instance=ExtResource("10")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 7, 0, 29)
 stationary = true
 
-[node name="Steps" parent="Enemies" instance=ExtResource("9")]
+[node name="Steps" parent="Enemies" instance=ExtResource("10")]
 transform = Transform3D(-0.866, 0, 0.5, 0, 1, 0, -0.5, 0, -0.866, 6, 0, -15.5)
 stationary = true
 
-[node name="Host" parent="Enemies" instance=ExtResource("9")]
+[node name="Host" parent="Enemies" instance=ExtResource("10")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -7, 0, -25)
 documents = true
 stationary = true
 
-[node name="Office" parent="Enemies" instance=ExtResource("9")]
+[node name="Office" parent="Enemies" instance=ExtResource("10")]
 transform = Transform3D(-0.342, 0, 0.9397, 0, 1, 0, -0.9397, 0, -0.342, -2, 0, -21)
 stationary = true
 
-[node name="ParkWestGuard" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("9")]
+[node name="ParkWestGuard" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("10")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -24, 0, 20)
 patrol_path = NodePath("../../PatrolPaths/ParkWest")
 
-[node name="ParkEastGuard" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("9")]
+[node name="ParkEastGuard" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("10")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, 24, 0, 20)
 patrol_path = NodePath("../../PatrolPaths/ParkEast")
 
-[node name="HouseRound" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("9")]
+[node name="HouseRound" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("10")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -13, 0, -31)
 patrol_path = NodePath("../../PatrolPaths/AroundHouse")
 
-[node name="ServiceGate" parent="Enemies" instance=ExtResource("9")]
+[node name="ServiceGate" parent="Enemies" instance=ExtResource("10")]
 transform = Transform3D(-0, 0, 1, 0, 1, 0, -1, 0, -0, 22, 0, -39)
 stationary = true
 
-[node name="AvenuePatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("9")]
+[node name="AvenuePatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("10")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -46, 0, 45)
 patrol_path = NodePath("../../PatrolPaths/Avenue")
 
-[node name="WestPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("9")]
+[node name="WestPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("10")]
 transform = Transform3D(-1, 0, -0, 0, 1, 0, 0, 0, -1, -46, 0, -56)
 patrol_path = NodePath("../../PatrolPaths/WestStreet")
 
-[node name="EastPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("9")]
+[node name="EastPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("10")]
 transform = Transform3D(1, 0, -0, 0, 1, 0, 0, 0, 1, 46, 0, 34)
 patrol_path = NodePath("../../PatrolPaths/EastStreet")
 
-[node name="NorthLookout" parent="Enemies" instance=ExtResource("9")]
+[node name="NorthLookout" parent="Enemies" instance=ExtResource("10")]
 transform = Transform3D(-0.342, 0, 0.9397, 0, 1, 0, -0.9397, 0, -0.342, 40, 0, -57)
 stationary = true
 
-[node name="HUD" parent="." instance=ExtResource("11")]
+[node name="HUD" parent="." instance=ExtResource("12")]

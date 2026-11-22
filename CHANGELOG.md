@@ -1209,3 +1209,15 @@
 - Passants en tenue décontractée (`Guest`, couleurs variées de blouson et de jean) à la terrasse, à l'arrêt de bus et sur les trottoirs.
 - L'équipe part du coin sud-ouest. Quatre gardes s'ajoutent (13 en tout) : rondes sur l'avenue et dans les rues ouest et est, guetteur au nord de la pelouse d'atterrissage.
 - Vérifié par scénario : l'équipe, PM à la bretelle, va du départ au bureau en une minute environ, sans méfiance dans les rues ni dans le parc ; le garde du bureau devient méfiant de près. Chemins de navigation contrôlés (290 m d'un coin à l'autre). La suite GUT n'a pas été lancée.
+
+## Passants dans les rues
+
+- Nouveau décor `Passerby` (`MapBuilder.passersby`) : un civil qui marche le long d'un tracé, en aller-retour ou en boucle, à son propre pas (vitesses variées).
+  - Il tient sa droite pour croiser les autres et change de côté en douceur au demi-tour.
+  - Il s'arrête devant quelqu'un (opérateur, garde, VIP, autre passant), puis repart au bout de 2,5 s au plus.
+  - Comme les invités, il ne voit rien, ne réagit à rien et ne barre pas le passage. Apparence partagée avec les invités (`Guest.random_look`).
+- Réception : 32 passants sur les trottoirs. Une boucle fait le tour de l'îlot de la placette ; des allers-retours suivent les deux avenues et les rues ouest, est et nord.
+- Figurants allégés (`CrowdModel`) : hors de l'écran ils ne s'animent pas ; à l'écran, une image sur trois (immobiles) ou sur deux (en marche). Les passants avancent une fois par image et, hors de l'écran, ne sont replacés qu'une image sur dix.
+  - Les 54 figurants immobiles de Réception coûtaient environ 26 ms de script par image. La carte passe de 7 à 27 images/s, mesurées pendant qu'une autre partie tournait sur la machine.
+  - Avec les 32 passants en marche, elle reste autour de 22 à 29 images/s, autant qu'avec les passants immobiles.
+- Vérifié par scénario : cap dans le sens de la marche, demi-tour au bout du trottoir, arrêt devant Alpha puis reprise. La suite GUT n'a pas été lancée.
