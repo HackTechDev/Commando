@@ -248,9 +248,12 @@ func test_copy_look_and_weight_limit() -> void:
 	screen.undo()
 	assert_eq(roster.operators[1].camo, &"", "copie annulée d'un coup")
 	assert_true(roster.operators[2].backpack)
-	# Charge : au-delà du maximum, le changement est refusé.
+	# Charge : au-delà du maximum, le changement est refusé. Fusil de
+	# précision, grenades, charges, couteaux de lancer et hachette au plus
+	# (la trousse et le grappin, de trop, sont refusés) : 27,8 kg ; le
+	# pistolet-mitrailleur (0,6 kg de plus que le pistolet) passe la limite.
 	_choose(screen, "primary", &"dmr", GearCatalog.PRIMARY)
-	for key: String in ["grenades", "explosives", "medkit"]:
+	for key: String in ["grenades", "explosives", "throwing_knives", "hatchet", "medkit", "grapnel"]:
 		var spin := screen.find_child(key, true, false) as SpinBox
 		spin.value = spin.max_value
 	assert_lt(GearCatalog.load_of(roster.operators[0]), GearCatalog.MAX_LOAD + 0.01, "encore permis")
