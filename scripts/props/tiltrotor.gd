@@ -149,6 +149,10 @@ const WINCH_SPEED := 1.8
 ## Montée d'un opérateur à la corde, main après main, aidé par le treuil
 ## (m/s) : plus lente que le treuil seul, qui hisse un VIP à `WINCH_SPEED`.
 const CLIMB_SPEED := 1.2
+## Câble du treuil : hauteur du crochet au-dessus des pieds (ceinture), vitesse
+## (m/s) à laquelle le câble vide redescend au sol pour le suivant.
+const HOOK_HEIGHT := 1.0
+const CABLE_DROP_SPEED := 3.0
 const WINCH_REACH := 1.3
 const WINCH_HEIGHT := 1.2
 const RAPPEL_SPEED := 2.5
@@ -254,6 +258,16 @@ var hover_height: float = HOVER_HEIGHT
 ## Temps (s) avant que l'appareil, arrivé d'un mouvement, soit stabilisé.
 var _settle_left: float = 0.0
 var _rope: MeshInstance3D
+## Bout du câble (crochet), enfant de la corde ; hauteurs du haut de la corde
+## et du sol sous elle.
+var _rope_hook: Node3D
+var _rope_top_y: float = 0.0
+var _rope_ground_y: float = 0.0
+## Unités accrochées au câble du treuil, du pied de la corde jusqu'en haut.
+var _hoisted: Array[Node3D] = []
+## Vrai quand la corde sert de câble de treuil (crochet au bout), faux pour
+## une corde de rappel.
+var _rope_is_cable: bool = false
 var _rappelling: int = 0
 ## Unités en cours de treuillage, et opérateurs en route vers la corde
 ## (unité -> vrai).
@@ -868,6 +882,7 @@ func request_winch(unit: Commando, run: bool) -> bool:
 		return false
 	var foot := rope_foot()
 	_show_rope(ramp_tip(), foot)
+	_rope_is_cable = true
 	_winch_requests[unit] = true
 	var map := get_world_3d().navigation_map
 	unit.move_to(NavigationServer3D.map_get_closest_point(map, foot), run)
@@ -918,13 +933,16 @@ func _hoist(unit: CharacterBody3D) -> void:
 	# Un opérateur grimpe main après main (le treuil l'aide : même vitesse) ;
 	# un VIP pend au crochet. Puis hissé sur la rampe.
 	_grab_rope(unit, SoldierModel.RopeMove.CLIMB if unit is Commando else SoldierModel.RopeMove.HOIST, out)
+	_hoisted.append(unit)
 	var hooked := Vector3(foot.x, unit.global_position.y, foot.z) + out * SoldierModel.ROPE_GAP
 	var top := tip + out * SoldierModel.ROPE_GAP + Vector3.DOWN * (SoldierModel.ROPE_HAND_HEIGHT - 0.1)
 	var lift := create_tween()
 	lift.tween_property(unit, "global_position", hooked, 0.3)
 	var speed := CLIMB_SPEED if unit is Commando else WINCH_SPEED
 	lift.tween_property(unit, "global_position", top, maxf(top.y - hooked.y, 0.5) / speed)
-	lift.tween_callback(func() -> void: _grab_rope(unit, SoldierModel.RopeMove.NONE, out))
+	lift.tween_callback(func() -> void:
+		_hoisted.erase(unit)
+		_grab_rope(unit, SoldierModel.RopeMove.NONE, out))
 	lift.tween_property(unit, "global_position", tip + Vector3.UP * 0.05, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	lift.tween_property(unit, "global_position", seat, clampf(tip.distance_to(seat) / 3.0, 0.4, 2.5))
 	lift.tween_callback(func() -> void:
@@ -976,6 +994,67 @@ func _show_rope(tip: Vector3, foot: Vector3) -> void:
 	_rope.material_override = material
 	add_child(_rope)
 	_rope.global_position = (tip + foot) * 0.5
+	_rope_top_y = tip.y
+	_rope_ground_y = foot.y
+	_rope_is_cable = false
+	_rope_hook = _make_hook()
+	_rope.add_child(_rope_hook)
+	_rope_hook.position.y = -cylinder.height * 0.5
+	_rope_hook.visible = false
+
+
+## Crochet du câble : lest cylindrique et anneau d'acier.
+func _make_hook() -> Node3D:
+	var hook := Node3D.new()
+	hook.name = "Hook"
+	var steel := StandardMaterial3D.new()
+	steel.albedo_color = Color(0.18, 0.19, 0.2)
+	steel.metallic = 0.8
+	steel.roughness = 0.35
+	var weight := MeshInstance3D.new()
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = 0.045
+	cylinder.bottom_radius = 0.055
+	cylinder.height = 0.14
+	cylinder.radial_segments = 10
+	weight.mesh = cylinder
+	weight.material_override = steel
+	weight.position.y = 0.07
+	hook.add_child(weight)
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.035
+	torus.outer_radius = 0.06
+	torus.rings = 12
+	torus.ring_segments = 6
+	ring.mesh = torus
+	ring.material_override = steel
+	ring.rotation.x = PI * 0.5
+	ring.position.y = -0.05
+	hook.add_child(ring)
+	return hook
+
+
+## Treuil : le câble s'arrête au crochet de l'unité accrochée la plus basse
+## (à sa ceinture) ; personne au câble, il redescend au sol. Le crochet ne
+## se montre que sur un câble de treuil (pas sur une corde de rappel).
+func _update_rope(delta: float) -> void:
+	var lowest := INF
+	for unit in _hoisted:
+		if is_instance_valid(unit):
+			lowest = minf(lowest, unit.global_position.y + HOOK_HEIGHT)
+	var mesh := _rope.mesh as CylinderMesh
+	var bottom := _rope_top_y - mesh.height
+	if lowest < INF:
+		bottom = clampf(lowest, _rope_ground_y, _rope_top_y - 0.05)
+	else:
+		bottom = move_toward(bottom, _rope_ground_y, CABLE_DROP_SPEED * delta)
+	var length := maxf(_rope_top_y - bottom, 0.05)
+	if not is_equal_approx(length, mesh.height):
+		mesh.height = length
+		_rope.global_position.y = _rope_top_y - length * 0.5
+		_rope_hook.position.y = -length * 0.5
+	_rope_hook.visible = _rope_is_cable or lowest < INF
 
 
 ## Les passagers suivent l'appareil (leur physique est suspendue) ; en vol,
@@ -1852,6 +1931,8 @@ func _physics_process(delta: float) -> void:
 	_update_sling(delta)
 	if is_airborne:
 		_update_winch()
+	if _rope:
+		_update_rope(delta)
 	_revealed_left = maxf(_revealed_left - delta, 0.0)
 	_settle_left = maxf(_settle_left - delta, 0.0)
 	_update_strobe(delta)

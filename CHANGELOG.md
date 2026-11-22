@@ -1150,3 +1150,10 @@
 - Le geste est calé sur la hauteur réellement gagnée (`SoldierModel.ROPE_PULL_LOW`, `ROPE_GRIP_SHARE`) : la main serrée reste immobile sur la corde, à 3 cm près.
 - Aidé par le treuil, l'opérateur monte à 1,2 m/s (`Tiltrotor.CLIMB_SPEED`), soit environ trois prises par seconde. Le VIP reste hissé pendu au crochet, à 1,8 m/s.
 - Vérifié par scénario : hauteur des mains mesurée pendant la montée, et rendus successifs. La suite GUT n'a pas été lancée.
+
+## Câble du treuil arrêté au crochet
+
+- Pendant un treuillage, le câble ne pend plus jusqu'au sol : il s'arrête au crochet de l'unité accrochée la plus basse, à sa ceinture (`Tiltrotor.HOOK_HEIGHT`, 1 m), et raccourcit avec la montée.
+- Un crochet (lest et anneau d'acier) termine le câble du treuil. La corde de rappel n'en a pas.
+- Quand plus personne n'est accroché, le câble redescend au sol à 3 m/s (`CABLE_DROP_SPEED`) pour le suivant ; il retombe aussitôt si quelqu'un s'accroche entre-temps.
+- Vérifié par scénario : bas du câble à la hauteur de la ceinture pendant la montée (3,09 m pour 3,09 m), redescente en 3 s depuis 8,8 m ; rendu rapproché du crochet. La suite GUT n'a pas été lancée.
