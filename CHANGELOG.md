@@ -1496,8 +1496,3 @@
 - Menu de démarrage : bouton « Configuration », qui ouvre la page du même nom. Pour l'instant, une option : son activé ou coupé (enregistrée, appliquée aussitôt ; les volumes des options sont gardés).
 - Vérifié en jeu (rendu du menu et de la page ; son coupé puis rétabli ; Échap). Tests du menu au vert.
 
-
-## Tireur d'élite sans tapis de tir
-
-- Le tapis de tir roulé en travers du haut du dos du tireur d'élite est retiré du modèle (écran « Opérateurs » et jeu) : il ne servait à rien en jeu. Restent l'écharpe de camouflage et le télémètre.
-- Vérifié par un rendu du modèle de dos.
