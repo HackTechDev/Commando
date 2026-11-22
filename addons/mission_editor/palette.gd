@@ -11,7 +11,7 @@ extends RefCounted
 ## pour ce qui se pose toujours au sol (revêtements, bâtiments, civils…),
 ## les autres se posent aussi sur les toits et les étages.
 
-const CATEGORIES: Array[String] = ["Décor", "Obstacles", "Équipe", "Ennemis", "Civils", "Objectifs", "Extraction et véhicules"]
+const CATEGORIES: Array[String] = ["Décor", "Obstacles", "Équipe", "Ennemis", "Événements", "Civils", "Objectifs", "Extraction et véhicules"]
 
 ## Revêtements posés à la ligne : couleur, hauteur, largeur par défaut.
 const SURFACES := {
@@ -32,6 +32,10 @@ const CAR_TURN := 4.0
 ## Métadonnée provisoire : parent d'un nœud, quand ce n'est pas celui de
 ## l'entrée (retirée avant la pose).
 const PARENT_META := &"_mission_editor_parent"
+## Pick-up qui arrive : délai (s) entre l'entrée dans la zone et son arrivée.
+const ARRIVAL_DELAY := 8.0
+## Plus petit côté d'une zone de déclenchement (m).
+const ZONE_MIN := 2.0
 
 const ENEMY_SCENE := "res://scenes/enemies/enemy.tscn"
 const COMMANDO_SCENE := "res://scenes/units/commando.tscn"
@@ -62,7 +66,9 @@ static func entries() -> Array[Dictionary]:
 		{"id": "patrol", "label": "Garde en ronde", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "technical", "label": "Pick-up armé", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "aircraft", "label": "Avion ennemi", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
-		{"id": "reinforcements", "label": "Renforts", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
+		{"id": "reinforcements", "label": "Renforts", "category": "Événements", "parent": "Enemies", "tool": "point"},
+		{"id": "arrival", "label": "Pick-up qui arrive", "category": "Événements", "parent": "Enemies", "tool": "point"},
+		{"ground": true, "id": "trigger_zone", "label": "Zone de déclenchement", "category": "Événements", "parent": "Triggers", "tool": "line"},
 		{"ground": true, "id": "guest", "label": "Invité", "category": "Civils", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "passerby", "label": "Passant", "category": "Civils", "parent": "Decor", "tool": "route"},
 		{"ground": true, "id": "traffic", "label": "Boucle de voitures", "category": "Civils", "parent": "Decor", "tool": "line"},
@@ -198,6 +204,25 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			if target:
 				reinforcements.set("target", NodePath("../../NavigationRegion3D/%s" % target.name))
 			nodes.append(reinforcements)
+		"arrival":
+			# Pick-up seul, sans annonce, appelé par une zone de déclenchement
+			# (tracée ensuite) ; il fonce vers la zone.
+			var arrival := _scripted("Node3D", "res://scripts/levels/reinforcements.gd", "ArrivingTechnical")
+			arrival.set("start_objective", &"")
+			arrival.set("objective_id", &"")
+			arrival.set("delay", ARRIVAL_DELAY)
+			arrival.set("count", 0)
+			arrival.set("technical", true)
+			arrival.set("announce", false)
+			nodes.append(arrival)
+		"trigger_zone":
+			# Rectangle de coins `at` et `to` ; l'événement est relié par le
+			# greffon (`event`).
+			var zone := _scripted("Area3D", "res://scripts/levels/trigger_zone.gd", "TriggerZone")
+			zone.set("size", Vector2(maxf(absf(to.x - at.x), ZONE_MIN), maxf(absf(to.z - at.z), ZONE_MIN)))
+			zone.transform = Transform3D(Basis.IDENTITY, Vector3((at.x + to.x) * 0.5, minf(at.y, to.y), (at.z + to.z) * 0.5))
+			nodes.append(zone)
+			return nodes
 		"pad":
 			var pad := MeshInstance3D.new()
 			pad.name = "Pad"

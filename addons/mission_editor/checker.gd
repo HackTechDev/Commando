@@ -13,6 +13,8 @@ extends RefCounted
 ## unités dans un obstacle ou les unes dans les autres, caisses et cibles
 ## qui se chevauchent, éléments hors du terrain ou loin des limites de la
 ## caméra, points de ronde hors de la zone praticable ou inaccessibles.
+## Événements scriptés : chacun déclenché (objectif de la mission ou zone),
+## zones reliées à un événement et atteignables à pied.
 ##
 ## Chaque problème : {"level": "error" | "warning" | "ok", "text", "nodes"}.
 ## `check` est une coroutine (la navigation est prête après quelques images).
@@ -21,6 +23,7 @@ const MissionTargets := preload("res://addons/mission_editor/mission_targets.gd"
 const Coverage := preload("res://addons/mission_editor/coverage.gd")
 const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
 const Palette := preload("res://addons/mission_editor/palette.gd")
+const Events := preload("res://addons/mission_editor/events.gd")
 
 ## Au-delà, la carte devient lente (72 gardes : 10 images/s).
 const MAX_ENEMIES := 40
@@ -71,6 +74,7 @@ static func check(root: Node) -> Array[Dictionary]:
 		report.append(_item("error", "%d opérateurs : six au plus." % operators.size(), operators))
 	_check_info(root, report)
 	_check_enemies(root, report)
+	_check_events(root, report)
 	_check_placement(root, operators, report)
 	if not operators.is_empty():
 		await _check_paths(root, operators[0] as Node3D, report)
@@ -112,15 +116,47 @@ static func _check_info(root: Node, report: Array[Dictionary]) -> void:
 			report.append(_item("error", "Objectif « %s » (%s) : aucune cible sur la carte." % [objective.text, objective.id]))
 
 
+## Événements scriptés et zones de déclenchement.
+static func _check_events(root: Node, report: Array[Dictionary]) -> void:
+	var ids: Array[String] = []
+	var path := MissionInfo.path_for(root.scene_file_path)
+	if ResourceLoader.exists(path):
+		for objective in (load(path) as MissionInfo).objectives:
+			if objective:
+				ids.append(String(objective.id))
+	for event in Events.events(root):
+		var zones := Events.zones_of(root, event)
+		var start: StringName = event.get("start_objective")
+		if start == &"" and zones.is_empty():
+			report.append(_item("warning", "%s : rien ne le déclenche (ni objectif, ni zone de déclenchement)." % event.name, [event]))
+		elif start != &"" and not String(start) in ids:
+			report.append(_item("warning" if zones.is_empty() else "ok", "%s : l'objectif déclencheur « %s » n'est pas un objectif de la mission%s." % [event.name, start, "" if zones.is_empty() else " (ses zones le déclenchent)"], [event]))
+		var target: NodePath = event.get("target")
+		if not target.is_empty() and event.get_node_or_null(target) == null:
+			report.append(_item("error", "%s : sa cible %s n'existe pas." % [event.name, target], [event]))
+		elif target.is_empty() and zones.is_empty():
+			report.append(_item("error", "%s : pas de cible (target) vers laquelle foncer, ni de zone." % event.name, [event]))
+		if int(event.get("count")) <= 0 and not event.get("technical"):
+			report.append(_item("warning", "%s : personne n'arrive (aucun soldat, pas de pick-up)." % event.name, [event]))
+		# Arrivée sur le terrain : soldats côte à côte, pick-up devant.
+		var terrain := Palette.ground_bounds(root)
+		if terrain.size != Vector3.ZERO:
+			var outside := Reinforcements.spawn_spots(event.global_transform, event.get("count"), event.get("technical")).filter(func(spot: Vector3) -> bool:
+				return spot.x < terrain.position.x + 1.0 or spot.x > terrain.end.x - 1.0 or spot.z < terrain.position.z + 1.0 or spot.z > terrain.end.z - 1.0)
+			if not outside.is_empty():
+				report.append(_item("error", "%s : %d arrivant%s hors du terrain (ils tomberaient) ; rapprochez le point du centre ou tournez-le." % [event.name, outside.size(), "s" if outside.size() > 1 else ""], [event]))
+	for zone in Events.zones(root):
+		var linked: NodePath = zone.get("event")
+		if Events.event_of(zone) == null:
+			report.append(_item("error", "%s : %s." % [zone.name, "ne déclenche rien (event vide)" if linked.is_empty() else "son événement %s n'existe pas ou ne se déclenche pas" % linked], [zone]))
+
+
 static func _check_enemies(root: Node, report: Array[Dictionary]) -> void:
 	var enemies := root.find_children("*", "", true, true).filter(func(n: Node) -> bool: return n is Enemy)
 	if enemies.size() > MAX_ENEMIES:
 		report.append(_item("warning", "%d gardes : au-delà de %d, la carte risque d'être lente." % [enemies.size(), MAX_ENEMIES], enemies))
 	for node in root.find_children("*", "", true, true):
 		if node is Reinforcements:
-			var target: NodePath = node.get("target")
-			if target.is_empty() or node.get_node_or_null(target) == null:
-				report.append(_item("error", "%s : pas de cible (target) vers laquelle foncer." % node.name, [node]))
 			continue
 		if not (node is Enemy or node is Technical or node is EnemyAircraft):
 			continue
@@ -190,6 +226,8 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 	for zone in root.find_children("*", "", true, true):
 		if zone is ExtractionZone:
 			goals[zone] = goals.get(zone, []) + ["extraction"]
+		elif zone is TriggerZone and Events.event_of(zone):
+			goals[zone] = goals.get(zone, []) + ["déclenche %s" % Events.event_of(zone).name]
 	var blocked := 0
 	var roped := 0
 	for node: Node3D in goals:
@@ -199,7 +237,7 @@ static func _check_paths(root: Node, start: Node3D, report: Array[Dictionary]) -
 		var near := NavigationServer3D.map_get_closest_point(map, target)
 		var path := NavigationServer3D.map_get_path(map, from, near, true)
 		var reached := not path.is_empty() and path[path.size() - 1].distance_to(near) < 0.5
-		var flat := _distance_to_footprint(node, near)
+		var flat := 0.0 if node is TriggerZone and node.call(&"covers", near) else _distance_to_footprint(node, near)
 		if not reached or flat > REACH:
 			var rope := _rope_route(root, map, from, near)
 			if not rope.is_empty():

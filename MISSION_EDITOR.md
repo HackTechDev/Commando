@@ -140,6 +140,15 @@ Pour régler le rythme des rondes, utilisez la section **Animation** du dock. **
 
 Pour l'exemple : deux gardes postés à l'entrée de la cour, une ronde autour du bâtiment, un garde en ronde le long de la route.
 
+**Événements (facultatif) :**
+
+- **Renforts** : un clic au point d'où ils arrivent, R pour les tourner. Dans la vue, un losange rose marque ce point, un carré la place de chaque soldat (côte à côte) et du pick-up (devant eux), et une bande mène à leur cible.
+- **Pick-up qui arrive** : un pick-up armé seul, sans annonce, qui arrive 8 s après le déclenchement et fonce vers la zone qui l'a appelé.
+- **Zone de déclenchement** : deux clics, aux coins opposés. Elle appelle l'événement sélectionné quand un opérateur y entre, une seule fois ; un pointillé rose la relie à lui. Tirez les poignées des coins pour la retoucher.
+- La section **Événements** du dock montre une fiche par événement : ce qui le déclenche (objectif de la mission, zones), le délai, le nombre de soldats, le pick-up, l'annonce (compte à rebours affiché). **Tracer une zone** choisit l'outil de zone pour cet événement. Un événement peut avoir un objectif déclencheur et des zones : le premier qui se produit le lance.
+
+Pour l'exemple : un pick-up qui arrive par la route quand l'équipe franchit le portail de la cour.
+
 ### 7. Poser les objectifs et l'extraction
 
 - **Porteur des documents** : un garde posté qui porte les documents (objectif `documents`). Posez-le dans le bâtiment ou près de lui.
@@ -217,7 +226,9 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | Ennemis | Garde posté | 1 clic | `Enemies` | |
 | | Garde en ronde, Pick-up armé | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Chemin `RouteN` créé avec lui. |
 | | Avion ennemi | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Survole son chemin à `altitude` m (25 par défaut), montré au premier point. |
-| | Renforts | 1 clic | `Enemies` | Point d'arrivée ; cible (`target`) : le dépôt de la carte, sinon la première cible de sabotage. |
+| Événements | Renforts | 1 clic | `Enemies` | Point d'arrivée ; cible (`target`) : le dépôt de la carte, sinon la première cible de sabotage, sinon la zone qui les appelle. Réglages dans la section Événements. |
+| | Pick-up qui arrive | 1 clic | `Enemies` | Renforts réduits à un pick-up armé, sans annonce, 8 s après le déclenchement ; à relier à une zone. |
+| | Zone de déclenchement | 2 clics (coins) | `Triggers` | Appelle l'événement choisi quand un opérateur y entre (une fois). Coins à poignées. |
 | Civils | Invité | 1 clic | `NavigationRegion3D` | |
 | | Passant | Un clic par point, double-clic ou Entrée | `Decor` | Aller-retour (`loop` pour une boucle). |
 | | Boucle de voitures | 2 clics (coins) | `Decor` | |
@@ -255,7 +266,11 @@ Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'
 | Aucun opérateur sous `Units`, ou plus de six | Erreur |
 | Mission sans objectif, objectif sans identifiant ou sans cible sur la carte | Erreur |
 | Garde, pick-up ou avion dont le trajet n'existe pas ou a moins de deux points | Erreur |
-| Renforts sans cible valable (`target`) | Erreur |
+| Renforts sans cible valable (`target`) ni zone de déclenchement, ou dont la cible n'existe pas | Erreur |
+| Arrivants (soldats côte à côte, pick-up devant) hors du terrain | Erreur |
+| Zone de déclenchement qui ne désigne aucun événement valable | Erreur |
+| Événement que rien ne déclenche (ni objectif, ni zone), objectif déclencheur absent de la mission, personne qui arrive | Avertissement |
+| Zone de déclenchement sans chemin depuis le premier opérateur | Avertissement |
 | Pas de `NavigationRegion3D` avec un maillage, ou navigation vide | Erreur |
 | Pas de `mission.tres` (mission absente du choix des missions), pas de titre | Avertissement |
 | Identifiant d'objectif inconnu du jeu | Avertissement |
@@ -286,7 +301,7 @@ Les raccourcis du greffon se changent dans Éditeur > Paramètres de l'éditeur 
 
 - **Sol plat** : le terrain n'a pas de relief. Les toits et les étages se visent directement (case « Sur les toits et les étages »).
 - **Bâtiments** : seulement le bâtiment réglable et ce qui existe déjà ; pas de dessin libre de pièces ni d'étages.
-- **Événements scriptés** (renforts, pick-ups qui arrivent, ateliers du didacticiel) : ils se modifient dans l'inspecteur, pas par le greffon.
+- **Événements scriptés** : renforts et pick-ups qui arrivent se règlent dans la section Événements du dock ; les ateliers du didacticiel, dans l'inspecteur.
 - **Missions des joueurs** : le greffon ne sert que dans l'éditeur, pas dans le jeu exporté.
 - **Animation** : trajets en ligne droite entre les points (en jeu, la navigation contourne les obstacles), sans les arrêts imprévus (passant bloqué, voiture qui freine derrière une autre ou klaxonne, garde alerté) ; le pick-up armé, qui ralentit dans les virages en jeu, prend un peu d'avance (environ 5 % de la distance parcourue).
 - **Vue du jeu** : la carte telle qu'elle est posée, sans ce que le jeu change au lancement (convertible d'insertion en vol, toits ôtés quand une unité entre, interface) ; la largeur vue suit celle de la fenêtre (16:9 en jeu).

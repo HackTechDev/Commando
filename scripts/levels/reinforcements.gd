@@ -6,16 +6,27 @@ extends Node3D
 ## `technical`) arrivent au point du nœud et foncent vers la cible
 ## (`target`) ; l'objectif bonus `objective_id` (« repartir avant les
 ## renforts ») est manqué. Partir avant (mission réussie) arrête tout.
+##
+## Une zone de déclenchement (`TriggerZone`, dont `event` désigne ce nœud)
+## lance aussi le compte à rebours quand un opérateur y entre ;
+## `start_objective` vide : seules les zones le lancent. Sans `target`, les
+## renforts foncent vers la zone qui les a appelés. `count` à 0 avec
+## `technical` : un pick-up seul qui arrive. `announce` décoché : pas de
+## compte à rebours affiché (arrivée par surprise).
 
 const ENEMY_SCENE := "res://scenes/enemies/enemy.tscn"
 ## Écart entre deux soldats à l'arrivée (m).
 const SPREAD := 1.6
+## Le pick-up arrive à cette distance (m) devant les soldats.
+const TRUCK_AHEAD := 6.0
 
 @export var start_objective: StringName = &"depot"
 @export var objective_id: StringName = &"raid_in_time"
 @export var delay: float = 120.0
 @export var count: int = 4
 @export var technical: bool = true
+## Compte à rebours et arrivée affichés en haut de l'écran.
+@export var announce: bool = true
 ## Point vers lequel les renforts foncent (le dépôt).
 @export var target: NodePath
 
@@ -23,6 +34,9 @@ const SPREAD := 1.6
 var time_left: float = -1.0
 var arrived: bool = false
 var _over: bool = false
+## Point visé quand `target` est vide : centre de la zone déclenchée (INF :
+## le nœud lui-même).
+var _goal := Vector3.INF
 var _spawned: Array[Node3D] = []
 var _layer: CanvasLayer
 var _label: Label
@@ -55,7 +69,20 @@ func _ready() -> void:
 
 
 func _on_objective(id: StringName) -> void:
-	if id == start_objective and time_left < 0.0 and not arrived and not _over:
+	if id != &"" and id == start_objective:
+		_start()
+
+
+## Une zone de déclenchement (`TriggerZone`) : un opérateur y est entré.
+func trigger(zone: Node3D = null) -> void:
+	if zone and _goal == Vector3.INF:
+		_goal = zone.global_position
+	_start()
+
+
+## Lance le compte à rebours (une seule fois).
+func _start() -> void:
+	if time_left < 0.0 and not arrived and not _over:
 		time_left = delay
 		_update_label()
 
@@ -79,7 +106,7 @@ func _process(delta: float) -> void:
 func _update_label() -> void:
 	if _label == null:
 		return
-	if _over or (time_left < 0.0 and not arrived) or (arrived and _banner_left <= 0.0):
+	if not announce or _over or (time_left < 0.0 and not arrived) or (arrived and _banner_left <= 0.0):
 		_label.visible = false
 		return
 	_label.visible = true
@@ -100,35 +127,52 @@ func _arrive() -> void:
 	if objectives and objective_id != &"":
 		objectives.fail(String(objective_id))
 	_spawn()
-	Sfx.play_ui(&"alert")
+	if announce:
+		Sfx.play_ui(&"alert")
 
 
 func _spawn() -> void:
-	var goal := global_position
-	var aim := get_node_or_null(target) as Node3D
+	var goal := global_position if _goal == Vector3.INF else _goal
+	var aim := get_node_or_null(target) as Node3D if not target.is_empty() else null
 	if aim:
 		goal = aim.global_position
-	var side := global_basis.x
+	var spots := spawn_spots(global_transform, count, technical)
 	var scene := load(ENEMY_SCENE) as PackedScene
 	for i in count:
 		var enemy := scene.instantiate() as Enemy
 		get_parent().add_child(enemy)
-		enemy.global_position = global_position + side * (float(i) - (count - 1) * 0.5) * SPREAD
+		enemy.global_position = spots[i]
 		enemy.look_at(Vector3(goal.x, enemy.global_position.y, goal.z) + Vector3(0.001, 0, 0))
 		enemy.hear_alarm.call_deferred(goal)
 		_spawned.append(enemy)
 	if technical:
 		var truck := Technical.new()
 		get_parent().add_child(truck)
-		truck.global_position = global_position - global_basis.z * 6.0
+		truck.global_position = spots[count]
 		truck.global_rotation.y = global_rotation.y
 		truck.hunt.call_deferred(goal)
 		_spawned.append(truck)
 
 
+## Points d'arrivée (monde) pour un nœud placé en `frame` : les `count`
+## soldats côte à côte, puis le pick-up (`technical`) devant eux. Aussi pour
+## la vérification de l'éditeur de mission.
+static func spawn_spots(frame: Transform3D, count: int, technical: bool) -> Array[Vector3]:
+	var spots: Array[Vector3] = []
+	var side := frame.basis.x.normalized()
+	for i in count:
+		spots.append(frame.origin + side * (float(i) - (count - 1) * 0.5) * SPREAD)
+	if technical:
+		spots.append(frame.origin - frame.basis.z.normalized() * TRUCK_AHEAD)
+	return spots
+
+
 ## Sauvegarde rapide (`QuickSave`).
 func save_state() -> Dictionary:
-	return {"left": time_left, "arrived": arrived}
+	var data := {"left": time_left, "arrived": arrived}
+	if _goal != Vector3.INF:
+		data["goal"] = [_goal.x, _goal.y, _goal.z]
+	return data
 
 
 func load_state(data: Dictionary) -> void:
@@ -138,6 +182,8 @@ func load_state(data: Dictionary) -> void:
 	_spawned.clear()
 	time_left = data.get("left", -1.0)
 	arrived = data.get("arrived", false)
+	var goal: Array = data.get("goal", [])
+	_goal = Vector3(goal[0], goal[1], goal[2]) if goal.size() == 3 else Vector3.INF
 	_banner_left = 0.0
 	if arrived:
 		_spawn()

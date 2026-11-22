@@ -7,6 +7,7 @@ extends VBoxContainer
 
 const Palette := preload("res://addons/mission_editor/palette.gd")
 const MissionTargets := preload("res://addons/mission_editor/mission_targets.gd")
+const Events := preload("res://addons/mission_editor/events.gd")
 
 ## Outil choisi dans la palette (vide : aucun).
 signal tool_selected(id: String)
@@ -35,6 +36,10 @@ signal timeline_speed_changed(factor: float)
 signal timeline_reset
 ## Nouvelle mission dans `scenes/levels/<folder>/`.
 signal new_mission_requested(folder: String)
+## Réglage d'un événement scripté changé dans la section Événements.
+signal event_changed(event: Node3D, property: StringName, value: Variant)
+## « Tracer une zone » : outil de zone pour cet événement.
+signal event_zone_requested(event: Node3D)
 ## Boutons « Vérifier » et « Essayer ».
 signal check_requested
 signal play_requested
@@ -52,6 +57,12 @@ var _info_button: Button
 var _night: CheckBox
 var _dress: OptionButton
 var _route_box: VBoxContainer
+## Section Événements : une fiche par événement ; `_event_rows` : événement →
+## ses réglages (mis à jour sans refaire les fiches tant que la liste ne
+## change pas).
+var _events_box: VBoxContainer
+var _event_rows: Dictionary = {}
+var _events_signature: String = "-"
 var _route_label: Label
 ## Sols proposés pour une nouvelle mission (couleurs dans le greffon,
 ## `GROUNDS`, comme `tools/mapkit.py`).
@@ -263,6 +274,11 @@ func _init() -> void:
 			timeline_time_changed.emit(value))
 	_body.add_child(_time_slider)
 
+	_section("Événements")
+	_body.add_child(_label("Renforts et pick-ups qui arrivent (catégorie Événements de la palette) : ce qui les déclenche, quand et combien. Une zone de déclenchement les appelle quand un opérateur y entre.", DIM_COLOR))
+	_events_box = VBoxContainer.new()
+	_body.add_child(_events_box)
+
 	_route_box = VBoxContainer.new()
 	_route_box.visible = false
 	_body.add_child(_route_box)
@@ -338,6 +354,7 @@ func show_scene(root: Node, generator: String = "") -> void:
 	_dress.selected = maxi(DRESS_CODES.find(root.get("dress_code")), 0)
 	_updating = false
 	_show_info(root, info)
+	show_events(root, info)
 
 
 ## Informations de la mission `root` (null : pas encore de fichier).
@@ -384,6 +401,136 @@ func _show_info(root: Node, info: MissionInfo) -> void:
 			line.tooltip_text = "Cliquez pour sélectionner la cible."
 			line.pressed.connect(func() -> void: nodes_selected.emit(nodes))
 		_info_box.add_child(line)
+
+
+## Fiches des événements scriptés de `root` : déclenchement (objectif de la
+## mission, zones), délai, soldats, pick-up, annonce.
+func show_events(root: Node, info: MissionInfo) -> void:
+	var events := Events.events(root)
+	# Fiches refaites si la liste change (ajout, retrait, renommage).
+	var signature := ",".join(events.map(func(n: Node) -> String: return "%d:%s" % [n.get_instance_id(), n.name]))
+	if signature != _events_signature:
+		_events_signature = signature
+		for child in _events_box.get_children():
+			child.queue_free()
+		_event_rows.clear()
+		if events.is_empty():
+			_events_box.add_child(_label("Aucun événement sur la carte.", DIM_COLOR))
+		for event in events:
+			_event_rows[event] = _event_card(event)
+	var objectives: Array[StringName] = [&""]
+	if info:
+		for objective in info.objectives:
+			if objective and not objective.id.is_empty():
+				objectives.append(StringName(objective.id))
+	_updating = true
+	for event: Node3D in events:
+		var row: Dictionary = _event_rows[event]
+		var trigger := Events.trigger_text(root, event)
+		var summary: Label = row["summary"]
+		summary.text = "%s — après %s s : %s%s" % [("déclenché par " + trigger) if not trigger.is_empty() else "⚠ rien ne le déclenche", _number(event.get("delay")), Events.arrival_text(event), "" if event.get("announce") else ", sans annonce"]
+		summary.add_theme_color_override(&"font_color", DIM_COLOR if not trigger.is_empty() else WARN_COLOR)
+		var choice: OptionButton = row["objective"]
+		var current: StringName = event.get("start_objective")
+		var listed := objectives.duplicate()
+		if not current in listed:
+			listed.append(current)
+		choice.clear()
+		for id in listed:
+			choice.add_item("aucun (zones seules)" if id == &"" else String(id))
+			choice.set_item_metadata(choice.item_count - 1, id)
+		choice.select(listed.find(current))
+		(row["delay"] as SpinBox).value = event.get("delay")
+		(row["count"] as SpinBox).value = event.get("count")
+		(row["technical"] as CheckBox).button_pressed = event.get("technical")
+		(row["announce"] as CheckBox).button_pressed = event.get("announce")
+	_updating = false
+
+
+func _event_card(event: Node3D) -> Dictionary:
+	var card := VBoxContainer.new()
+	_events_box.add_child(card)
+	var head := HBoxContainer.new()
+	card.add_child(head)
+	var name_button := Button.new()
+	name_button.flat = true
+	name_button.text = "◆ %s" % event.name
+	name_button.add_theme_color_override(&"font_color", Color(1.0, 0.5, 0.85))
+	name_button.tooltip_text = "Sélectionner l'événement."
+	name_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name_button.pressed.connect(func() -> void: nodes_selected.emit([event]))
+	head.add_child(name_button)
+	var zone := Button.new()
+	zone.text = "Tracer une zone"
+	zone.tooltip_text = "Deux clics dans la vue 3D : coins opposés d'une zone qui déclenche cet événement quand un opérateur y entre."
+	zone.pressed.connect(func() -> void: event_zone_requested.emit(event))
+	head.add_child(zone)
+	var summary := _label("")
+	card.add_child(summary)
+	var start_row := HBoxContainer.new()
+	card.add_child(start_row)
+	start_row.add_child(_inline_label("Objectif déclencheur"))
+	var objective := OptionButton.new()
+	objective.tooltip_text = "Objectif de la mission dont la réussite lance le compte à rebours (start_objective)."
+	objective.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	objective.item_selected.connect(func(index: int) -> void:
+		if not _updating:
+			event_changed.emit(event, &"start_objective", objective.get_item_metadata(index)))
+	start_row.add_child(objective)
+	var numbers := HBoxContainer.new()
+	card.add_child(numbers)
+	numbers.add_child(_inline_label("Délai"))
+	var delay := _event_spin(event, &"delay", 0, 600, 1, "Secondes entre le déclenchement et l'arrivée.")
+	numbers.add_child(delay)
+	numbers.add_child(_inline_label("s  Soldats"))
+	var count := _event_spin(event, &"count", 0, 12, 1, "Soldats qui arrivent (0 : le pick-up seul).")
+	numbers.add_child(count)
+	var flags := HBoxContainer.new()
+	card.add_child(flags)
+	var technical := _event_check(event, &"technical", "Pick-up armé", "Un pick-up armé arrive avec eux.")
+	flags.add_child(technical)
+	var announce := _event_check(event, &"announce", "Annoncé", "Compte à rebours et arrivée affichés en haut de l'écran ; décoché : arrivée par surprise.")
+	flags.add_child(announce)
+	return {"summary": summary, "objective": objective, "delay": delay, "count": count, "technical": technical, "announce": announce}
+
+
+func _event_spin(event: Node3D, property: StringName, low: float, high: float, step: float, tip: String) -> SpinBox:
+	var box := SpinBox.new()
+	box.min_value = low
+	box.max_value = high
+	box.step = step
+	box.tooltip_text = tip
+	box.value_changed.connect(func(value: float) -> void:
+		if not _updating:
+			event_changed.emit(event, property, int(value) if property == &"count" else value))
+	return box
+
+
+func _event_check(event: Node3D, property: StringName, text: String, tip: String) -> CheckBox:
+	var check := CheckBox.new()
+	check.text = text
+	check.tooltip_text = tip
+	check.toggled.connect(func(on: bool) -> void:
+		if not _updating:
+			event_changed.emit(event, property, on))
+	return check
+
+
+static func _inline_label(text: String) -> Label:
+	var label := _label(text)
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	return label
+
+
+static func _number(value: float) -> String:
+	return str(int(value)) if is_equal_approx(value, roundf(value)) else ("%.1f" % value).replace(".", ",")
+
+
+## Appuie sur le bouton de la palette `id` (l'outil est choisi).
+func press_tool(id: String) -> void:
+	if _buttons.has(id):
+		(_buttons[id] as Button).button_pressed = true
 
 
 ## Résultat de « Vérifier » (`Checker.check`) ; vide : efface.
@@ -531,7 +678,11 @@ static func _tooltip(id: String, tool: String) -> String:
 		"aircraft":
 			return how + " L'avion survole ce trajet (PatrolPaths) à `altitude` m ; ajoutez des points en sélectionnant le chemin."
 		"reinforcements":
-			return how + " Point d'arrivée des renforts ; ils foncent vers le dépôt (`target`) quand `start_objective` est rempli."
+			return how + " Point d'arrivée des renforts ; ils foncent vers le dépôt (`target`) quand `start_objective` est rempli, ou quand un opérateur entre dans une de leurs zones de déclenchement. Réglages dans la section Événements."
+		"arrival":
+			return how + " Un pick-up armé arrive ici sans annonce, quelques secondes après l'entrée d'un opérateur dans sa zone de déclenchement (à tracer ensuite), et fonce vers la zone."
+		"trigger_zone":
+			return "Deux clics : coins opposés de la zone. Elle déclenche l'événement sélectionné (ou choisi par « Tracer une zone » dans la section Événements, sinon le dernier sans zone) quand un opérateur y entre. Coins à poignées pour la retoucher."
 		"ied":
 			return how + " Mine artisanale (engin explosif improvisé)."
 	return how

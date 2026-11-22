@@ -1407,3 +1407,12 @@
 
 - Bouton « Vue du jeu » (section Carte) : fenêtre qui montre la carte sous l'angle, l'orientation et le zoom de départ de la caméra du jeu, centrée sur `CameraRig`. Glisser pour la déplacer (dans les limites de la caméra), molette ou − / + pour zoomer (dans les bornes du jeu), ⟲ / ⟳ pour tourner de 45°, « Départ » pour revenir. La fenêtre suit la scène ouverte.
 - Vérifié (`tools/editor_check/step83c.gd`, Kasbah) : caméra à la même position et de la même taille qu'au lancement du jeu, même cadrage ; zoom borné, déplacement gardé dans les limites, retour au départ, changement de scène. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : événements et zones de déclenchement (8.4 d)
+
+- Jeu : zone de déclenchement (`TriggerZone`, invisible) : le premier opérateur qui y entre déclenche l'événement qu'elle désigne, une seule fois (sauvegarde rapide comprise). Les renforts (`Reinforcements`) se lancent par leur objectif, par une zone, ou les deux ; sans cible, ils foncent vers la zone qui les a appelés ; `announce` décoché, ils arrivent sans compte à rebours ni alerte ; `count` à 0 : un pick-up seul.
+- Palette, nouvelle catégorie « Événements » : Renforts, Pick-up qui arrive, Zone de déclenchement (deux clics, reliée à l'événement sélectionné ou choisi dans le dock).
+- Section « Événements » du dock : une fiche par événement (déclenchement, objectif déclencheur, délai, soldats, pick-up, annonce), « Tracer une zone ». Repères dans la vue : zones à poignées de coin, liens vers leur événement, point et places d'arrivée, trait vers la cible.
+- Vérification : événement que rien ne déclenche, objectif déclencheur absent de la mission, zone sans événement, zone sans chemin depuis l'équipe, arrivants hors du terrain.
+- Vérifié (`tools/editor_check/step84d.gd`, puis en jeu sur la carte enregistrée) : la zone lance le pick-up une seule fois, sans annonce ; l'autre lance les renforts annoncés (« Renforts dans 0:15 ») ; tous arrivent et foncent vers leur zone. La suite GUT n'a pas été lancée.
+

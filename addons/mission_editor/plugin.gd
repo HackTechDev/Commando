@@ -25,6 +25,7 @@ const Checker := preload("res://addons/mission_editor/checker.gd")
 const Coverage := preload("res://addons/mission_editor/coverage.gd")
 const Timeline := preload("res://addons/mission_editor/timeline.gd")
 const GameView := preload("res://addons/mission_editor/game_view.gd")
+const Events := preload("res://addons/mission_editor/events.gd")
 ## Gabarit d'une nouvelle mission (`tools/gen_mission_template.py`).
 const TEMPLATE := "res://addons/mission_editor/template.tscn"
 const LEVELS_DIR := "res://scenes/levels"
@@ -74,6 +75,8 @@ var _start: Vector3 = Vector3.INF
 ## Points du tracé d'une ronde en cours (outil « route ») ; le premier est
 ## aussi dans `_start`.
 var _trace := PackedVector3Array()
+## Événement que la prochaine zone de déclenchement tracée appellera.
+var _zone_event: Node3D
 var _camera: Camera3D
 var _gizmos: EditorNode3DGizmoPlugin
 ## Informations de la mission ouverte et leur état à l'ouverture (pour
@@ -132,6 +135,8 @@ func _enter_tree() -> void:
 	_dock.timeline_speed_changed.connect(func(factor: float) -> void: _time_speed = factor)
 	_dock.timeline_reset.connect(reset_timeline)
 	_dock.game_view_requested.connect(show_game_view)
+	_dock.event_changed.connect(set_event_property)
+	_dock.event_zone_requested.connect(draw_zone_for)
 	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
@@ -290,6 +295,12 @@ func _on_dress_code_selected(code: StringName) -> void:
 
 func _on_tool_selected(id: String) -> void:
 	_tool = id
+	if id == "trigger_zone":
+		var selected := EditorInterface.get_selection().get_selected_nodes()
+		if selected.size() == 1 and selected[0] is Reinforcements:
+			_zone_event = selected[0]
+	else:
+		_zone_event = null
 	_start = Vector3.INF
 	_trace.clear()
 	_update_status()
@@ -413,6 +424,10 @@ func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF, ro
 	var nodes := Palette.make(id, at, facing, to, root, route)
 	if nodes.is_empty():
 		return nodes
+	if id == "trigger_zone":
+		var event := zone_event(root)
+		if event:
+			nodes[0].set("event", Events.link_from(root, event))
 	var undo := get_undo_redo()
 	undo.create_action("Poser : %s" % entry["label"])
 	var created := {}
@@ -437,6 +452,41 @@ func place(id: String, at: Vector3, facing: float, to: Vector3 = Vector3.INF, ro
 	# Textures externes sur les nouveaux éléments aussi.
 	_refresh_textures.call_deferred()
 	return nodes
+
+
+## Événement relié à la prochaine zone tracée : celui choisi (dock, ou
+## sélectionné avec l'outil), sinon le dernier de la carte sans zone, sinon
+## le dernier ; null si la carte n'en a pas.
+func zone_event(root: Node) -> Node3D:
+	if is_instance_valid(_zone_event) and _zone_event.is_inside_tree() and root.is_ancestor_of(_zone_event):
+		return _zone_event
+	var events := Events.events(root)
+	for i in range(events.size() - 1, -1, -1):
+		if Events.zones_of(root, events[i]).is_empty():
+			return events[i]
+	return events[-1] if not events.is_empty() else null
+
+
+## Outil « zone de déclenchement » pour l'événement `event` (dock).
+func draw_zone_for(event: Node3D) -> void:
+	_select([event])
+	_dock.press_tool("trigger_zone")
+	_zone_event = event
+	_update_status()
+
+
+## Réglage `property` de l'événement `event` passé à `value` (dock), en une
+## action annulable.
+func set_event_property(event: Node3D, property: StringName, value: Variant) -> void:
+	if not is_instance_valid(event) or event.get(property) == value:
+		return
+	var undo := get_undo_redo()
+	undo.create_action("Événement %s : %s" % [event.name, property])
+	undo.add_do_property(event, property, value)
+	undo.add_undo_property(event, property, event.get(property))
+	undo.add_do_method(event, &"update_gizmos")
+	undo.add_undo_method(event, &"update_gizmos")
+	undo.commit_action()
 
 
 ## Parent `path` (relatif à la racine) ; créé dans l'action `undo` s'il
@@ -476,7 +526,12 @@ func _update_status() -> void:
 		return
 	var entry := Palette.find(_tool)
 	var text := "%s — cap %d°" % [entry.get("label", _tool), int(_facing)]
-	if entry.get("tool") == "line":
+	if _tool == "trigger_zone":
+		var root := EditorInterface.get_edited_scene_root()
+		var event := zone_event(root) if root else null
+		text += " — déclenche %s" % (event.name if event else "rien (posez d'abord des renforts)")
+		text += " — cliquez le coin opposé" if _start != Vector3.INF else " — cliquez un coin de la zone"
+	elif entry.get("tool") == "line":
 		text += " — cliquez la fin du tracé" if _start != Vector3.INF else " — cliquez le début du tracé"
 	elif entry.get("tool") == "route":
 		match _trace.size():
@@ -508,6 +563,16 @@ func _forward_3d_draw_over_viewport(overlay: Control) -> void:
 			overlay.draw_line(a, _camera.unproject_position(next), color, 2.0)
 			overlay.draw_circle(a, 4.0, color)
 		overlay.draw_string(overlay.get_theme_default_font(), at + Vector2(12, -12), "%d points, %.1f m" % [_trace.size() + 1, length],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
+	elif _start != Vector3.INF and _tool == "trigger_zone":
+		# Rectangle au sol de coins `_start` et `_point`.
+		var corners: Array[Vector3] = [_start, Vector3(_point.x, _start.y, _start.z), _point, Vector3(_start.x, _start.y, _point.z)]
+		for i in 4:
+			var a := corners[i]
+			var b := corners[(i + 1) % 4]
+			if not _camera.is_position_behind(a) and not _camera.is_position_behind(b):
+				overlay.draw_line(_camera.unproject_position(a), _camera.unproject_position(b), color, 2.0)
+		overlay.draw_string(overlay.get_theme_default_font(), at + Vector2(12, -12), "%.1f × %.1f m" % [absf(_point.x - _start.x), absf(_point.z - _start.z)],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
 	elif _start != Vector3.INF and not _camera.is_position_behind(_start):
 		var from := _camera.unproject_position(_start)
