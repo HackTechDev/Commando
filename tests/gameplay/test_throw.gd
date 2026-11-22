@@ -16,6 +16,9 @@ func test_throw_kills_from_seven_meters_then_knife_is_picked_up() -> void:
 	var alpha: Commando = node("Units/Alpha")
 	var dummy: Enemy = node("Enemies/TrainingDummy")
 	alpha.global_position = dummy.global_position + dummy.global_basis.z * 10.0
+	# Le lancer touche à coup sûr : on vérifie la mise à mort et le
+	# ramassage, pas la chance (qui dépend de l'ordre des tirages).
+	own_stats(alpha).throw_hit_chance_far = 1.0
 	await frames(3)
 	assert_true(alpha.throw_knife(dummy), "ordre accepté")
 	var throw_distance := [-1.0]

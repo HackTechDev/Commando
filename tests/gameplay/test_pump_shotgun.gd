@@ -28,6 +28,9 @@ func test_a_close_shot_hurts_more_than_a_far_one() -> void:
 	var alpha: Commando = node("Units/Alpha")
 	var dummy: Enemy = node("Enemies/TrainingDummy")
 	park(node("Enemies/Soldier1"))
+	# À découvert face au mannequin : aucune couverture ne s'en mêle (2.12).
+	alpha.global_position = dummy.global_position + Vector3(0, 0, 4)
+	await frames(2)
 	assert_eq(alpha.ammo_in_magazine, 5, "magasin tubulaire de 5")
 	var stats := own_stats(alpha)
 	stats.hit_chance_near = 1.0
