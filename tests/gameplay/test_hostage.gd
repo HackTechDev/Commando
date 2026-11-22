@@ -132,9 +132,10 @@ func test_the_hostage_cries_for_help_and_draws_the_others() -> void:
 	dummy.global_position = Vector3(-14, 0, -6)
 	dummy.rotation.y = 0.0
 	alpha.global_position = dummy.global_position + dummy.global_basis.z * 0.5
-	# Le soldat à 8 m, dos tourné : il ne voit rien, mais il entend.
-	soldier.global_position = dummy.global_position + Vector3(8, 0, 0)
-	soldier.look_at(soldier.global_position + Vector3(1, 0, 0), Vector3.UP)
+	# Le soldat à 8 m, dos tourné, sans mur entre eux (un mur étoufferait
+	# le cri) : il ne voit rien, mais il entend.
+	soldier.global_position = dummy.global_position + Vector3(-8, 0, 0)
+	soldier.look_at(soldier.global_position + Vector3(-1, 0, 0), Vector3.UP)
 	alpha.take_hostage(dummy)
 	assert_eq(dummy.cries, 0, "pas tout de suite")
 	assert_gt(await frames_until(func() -> bool: return dummy.cries > 0, int(Enemy.HELP_DELAY * 60) + 20), -1, "il appelle à l'aide")
@@ -153,8 +154,8 @@ func test_a_choked_victim_only_muffles_a_cry() -> void:
 	dummy.global_position = Vector3(-14, 0, -6)
 	dummy.rotation.y = 0.0
 	alpha.global_position = dummy.global_position + dummy.global_basis.z * 1.0
-	soldier.global_position = dummy.global_position + Vector3(8, 0, 0)
-	soldier.look_at(soldier.global_position + Vector3(1, 0, 0), Vector3.UP)
+	soldier.global_position = dummy.global_position + Vector3(-8, 0, 0)
+	soldier.look_at(soldier.global_position + Vector3(-1, 0, 0), Vector3.UP)
 	soldier.set_physics_process(false)
 	await frames(2)
 	assert_true(alpha.melee(dummy, Commando.MeleeKind.KNOCKOUT))
