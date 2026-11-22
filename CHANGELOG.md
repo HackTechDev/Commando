@@ -1316,3 +1316,11 @@
 - Dock : section « Informations » (objectifs et leur cible sur la carte, ⚠ si elle manque, clic pour la sélectionner ; ouverture de `mission.tres` dans l'inspecteur, création pour une nouvelle mission, enregistrement avec la scène) ; section « Trajet » pour le passant ou la voiture sélectionné (ajouter, retirer un point).
 - Passants et voitures : aperçu replacé au début du trajet quand on en déplace les points (`place_preview`).
 - Vérifié dans l'éditeur (`tools/editor_check/step4.gd`, Terrain d'essai) : poses, trajets, poignée, annulations, cibles des objectifs, repères ; la carte enregistrée se joue (ronde, voiture, passant et pick-up en route, porteur des documents, Delta dans l'équipe). La suite GUT n'a pas été lancée.
+
+## Éditeur de mission, étape 5 : vérification, essai, nouvelle mission
+
+- Bouton « Vérifier » (`addons/mission_editor/checker.gd`) : équipe (au moins un opérateur, six au plus), informations de la mission, cible de chaque objectif, trajets des rondes et des pick-ups, plus de 40 gardes, et chemins à pied depuis le premier opérateur vers chaque cible et vers l'extraction (navigation calculée dans l'éditeur). Chaque problème se clique pour sélectionner le nœud en cause.
+- Bouton « Essayer » : enregistre la scène et la lance seule ; objectifs, équipe et équipement comme depuis le choix des missions.
+- « Nouvelle mission » : nom de dossier, puis scène créée à partir du gabarit (`template.tscn`, écrit par `tools/gen_mission_template.py` : terrain d'herbe de 80 m, trois opérateurs, extraction) et son `mission.tres`, ouverte aussitôt et visible dans le choix des missions.
+- Première version de l'éditeur de mission terminée (étapes 1 à 5 de `MISSION_EDITOR.md`).
+- Vérifié dans l'éditeur (`tools/editor_check/step5.gd`) : rapport sans problème sur le Terrain d'essai, erreurs volontaires détectées, avertissements justes sur Kasbah (extraction sur le toit, officier à l'étage) et Réception ; nouvelle mission créée, vérifiée, essayée, puis jouée (ronde, porteur des documents, objectifs, titre au catalogue). Les 23 missions de série, ouvertes et enregistrées avec le greffon complet, restent identiques. La suite GUT n'a pas été lancée.

@@ -1,9 +1,9 @@
 @tool
 extends VBoxContainer
 ## Dock « Mission » du greffon : scène ouverte, avertissement sur les cartes
-## générées, informations de la mission (objectifs et leurs cibles),
-## réglages de la carte, trajet sélectionné, grille et palette des éléments
-## à poser.
+## générées, nouvelle mission, vérification et essai, informations de la
+## mission (objectifs et leurs cibles), réglages de la carte, trajet
+## sélectionné, grille et palette des éléments à poser.
 
 const Palette := preload("res://addons/mission_editor/palette.gd")
 const MissionTargets := preload("res://addons/mission_editor/mission_targets.gd")
@@ -21,6 +21,11 @@ signal nodes_selected(nodes: Array)
 ## Trajet sélectionné : ajouter ou retirer un point.
 signal route_point_added
 signal route_point_removed
+## Nouvelle mission dans `scenes/levels/<folder>/`.
+signal new_mission_requested(folder: String)
+## Boutons « Vérifier » et « Essayer ».
+signal check_requested
+signal play_requested
 
 ## Tenues de rigueur proposées (vide : aucune).
 const DRESS_CODES: Array[StringName] = [&"", &"suit", &"casual", &"uniform"]
@@ -36,6 +41,9 @@ var _night: CheckBox
 var _dress: OptionButton
 var _route_box: VBoxContainer
 var _route_label: Label
+var _new_folder: LineEdit
+var _new_status: Label
+var _report_box: VBoxContainer
 var _grid: CheckBox
 var _status: Label
 var _body: VBoxContainer
@@ -54,6 +62,21 @@ func _init() -> void:
 	_warning = _label("", WARN_COLOR)
 	_warning.visible = false
 	add_child(_warning)
+	var new_row := HBoxContainer.new()
+	_new_folder = LineEdit.new()
+	_new_folder.placeholder_text = "dossier (ex. raid_desert)"
+	_new_folder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_new_folder.text_submitted.connect(func(text: String) -> void: new_mission_requested.emit(text.strip_edges()))
+	new_row.add_child(_new_folder)
+	var create := Button.new()
+	create.text = "Nouvelle mission"
+	create.tooltip_text = "Crée scenes/levels/<dossier>/<dossier>.tscn (terrain, équipe, extraction) et son mission.tres, puis l'ouvre."
+	create.pressed.connect(func() -> void: new_mission_requested.emit(_new_folder.text.strip_edges()))
+	new_row.add_child(create)
+	add_child(new_row)
+	_new_status = _label("", WARN_COLOR)
+	_new_status.visible = false
+	add_child(_new_status)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -61,6 +84,22 @@ func _init() -> void:
 	_body = VBoxContainer.new()
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_body)
+
+	_section("Vérification")
+	var check_row := HBoxContainer.new()
+	var check := Button.new()
+	check.text = "Vérifier"
+	check.tooltip_text = "Équipe, objectifs et leurs cibles, rondes, nombre de gardes, chemins à pied depuis le départ."
+	check.pressed.connect(func() -> void: check_requested.emit())
+	check_row.add_child(check)
+	var play := Button.new()
+	play.text = "Essayer"
+	play.tooltip_text = "Enregistre la scène et la lance seule, comme depuis le choix des missions."
+	play.pressed.connect(func() -> void: play_requested.emit())
+	check_row.add_child(play)
+	_body.add_child(check_row)
+	_report_box = VBoxContainer.new()
+	_body.add_child(_report_box)
 
 	_section("Informations")
 	_info_box = VBoxContainer.new()
@@ -82,7 +121,10 @@ func _init() -> void:
 			night_toggled.emit(on))
 	_body.add_child(_night)
 	var dress_row := HBoxContainer.new()
-	dress_row.add_child(_label("Tenue de rigueur"))
+	var dress_label := _label("Tenue de rigueur")
+	# Dans une rangée, une étiquette à la ligne n'aurait pas de largeur.
+	dress_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	dress_row.add_child(dress_label)
 	_dress = OptionButton.new()
 	for code in DRESS_CODES:
 		_dress.add_item(_dress_name(code))
@@ -208,6 +250,32 @@ func _show_info(root: Node, info: MissionInfo) -> void:
 			line.tooltip_text = "Cliquez pour sélectionner la cible."
 			line.pressed.connect(func() -> void: nodes_selected.emit(nodes))
 		_info_box.add_child(line)
+
+
+## Résultat de « Vérifier » (`Checker.check`) ; vide : efface.
+func show_report(report: Array) -> void:
+	for child in _report_box.get_children():
+		child.queue_free()
+	for item: Dictionary in report:
+		var line := Button.new()
+		line.flat = true
+		line.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var mark: String = {"error": "✗", "warning": "⚠", "ok": "✓"}[item["level"]]
+		line.text = "%s %s" % [mark, item["text"]]
+		line.add_theme_color_override(&"font_color", {"error": Color(1.0, 0.45, 0.4), "warning": WARN_COLOR, "ok": OK_COLOR}[item["level"]])
+		var nodes: Array = item["nodes"]
+		if not nodes.is_empty():
+			line.tooltip_text = "Cliquez pour sélectionner."
+			line.pressed.connect(func() -> void: nodes_selected.emit(nodes))
+		_report_box.add_child(line)
+
+
+## Message sous « Nouvelle mission » (vide : aucun).
+func set_new_mission_status(text: String) -> void:
+	_new_status.text = text
+	_new_status.visible = not text.is_empty()
 
 
 ## Trajet de `node` (passant, voiture) à modifier ; null : aucun.

@@ -1,6 +1,6 @@
 # Éditeur de mission
 
-Plan de travail. Avancement : étapes 1 à 4 faites.
+Plan de travail. Avancement : première version terminée (étapes 1 à 5).
 
 ## Choix arrêtés
 
@@ -53,7 +53,8 @@ L'annulation et le rétablissement viennent de Godot (`EditorUndoRedoManager`), 
   - au-delà d'environ 40 gardes, un avertissement de performance (avec 72 gardes, on est tombé à 10 images/s).
 
   Chaque problème est listé ; un clic sélectionne le nœud en cause.
-- **Bouton « Essayer »** : lance la scène ouverte (`EditorInterface.play_custom_scene`). À vérifier : lancée seule, une scène de niveau doit monter les objectifs, l'équipe et son équipement comme depuis le menu.
+- **Bouton « Essayer »** : lance la scène ouverte (`EditorInterface.play_custom_scene`). Vérifié : lancée seule, une scène de niveau monte les objectifs (lus dans `mission.tres`), l'équipe et son équipement comme depuis le menu.
+- **Nouvelle mission** : bouton du dock, à partir du gabarit `addons/mission_editor/template.tscn` (écrit par `tools/gen_mission_template.py`).
 - **Catalogue** : une mission créée avec le greffon apparaît dans le choix des missions dès que sa `MissionInfo` existe (le catalogue lit les ressources du dossier `scenes/levels`).
 
 ## 4. Étapes, chacune avec son commit
@@ -62,7 +63,7 @@ L'annulation et le rétablissement viennent de Godot (`EditorUndoRedoManager`), 
 2. ✓ **Affichage dans l'éditeur** : décors et unités `@tool` (construction seule) ; aperçu des cartes UFO:AI et des textures externes, non enregistré. Vérifié en ouvrant chaque mission de série dans l'éditeur.
 3. ✓ **Base du greffon** : dock, palette de décor, pose au clic, grille, rotation, annulation ; réglages de la carte ; avertissement sur les cartes générées et protection contre l'écrasement (§ 6).
 4. ✓ **Unités, trajets et mission** : équipe, gardes et rondes, civils, voitures, avec leurs repères visuels et poignées de trajet ; panneau `MissionInfo` avec les objectifs et leurs cibles ; extraction.
-5. **Vérification et essai** : bouton « Vérifier », bouton « Essayer », nouvelle mission visible dans le catalogue.
+5. ✓ **Vérification et essai** : bouton « Vérifier », bouton « Essayer », nouvelle mission visible dans le catalogue.
 
 Après la première version : copier-coller entre missions, dessin des routes au pinceau, partir d'une carte UFO:AI comme fond.
 

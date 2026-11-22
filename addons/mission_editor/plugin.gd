@@ -11,11 +11,17 @@ extends EditorPlugin
 ##   portée des bruits.
 ## - Informations de la mission (`MissionInfo`) : objectifs et leurs cibles,
 ##   modifiées dans l'inspecteur, enregistrées avec la scène.
+## - Nouvelle mission (gabarit `template.tscn`), « Vérifier » (`checker.gd`)
+##   et « Essayer » (lance la scène seule).
 
 const TexturePreview := preload("res://addons/mission_editor/texture_preview.gd")
 const Dock := preload("res://addons/mission_editor/dock.gd")
 const Palette := preload("res://addons/mission_editor/palette.gd")
 const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
+const Checker := preload("res://addons/mission_editor/checker.gd")
+## Gabarit d'une nouvelle mission (`tools/gen_mission_template.py`).
+const TEMPLATE := "res://addons/mission_editor/template.tscn"
+const LEVELS_DIR := "res://scenes/levels"
 
 ## Pas de la grille magnétique (m) et de la rotation (degrés).
 const GRID_STEP := 0.5
@@ -71,6 +77,9 @@ func _enter_tree() -> void:
 	_dock.nodes_selected.connect(func(nodes: Array) -> void: _select(nodes))
 	_dock.route_point_added.connect(_on_route_point.bind(true))
 	_dock.route_point_removed.connect(_on_route_point.bind(false))
+	_dock.new_mission_requested.connect(new_mission)
+	_dock.check_requested.connect(check)
+	_dock.play_requested.connect(_on_play_requested)
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
 	_gizmos.plugin = self
@@ -135,6 +144,7 @@ func _on_scene_changed(root: Node) -> void:
 	_textures.revert()
 	_cancel_tool()
 	_load_info(root)
+	_dock.show_report([])
 	_dock.show_scene(root, generator_of(root))
 	if root is LevelRoot:
 		_textures.apply(root)
@@ -409,15 +419,7 @@ func _on_info_create_requested() -> void:
 	var root := EditorInterface.get_edited_scene_root()
 	if not root is LevelRoot or root.scene_file_path.is_empty():
 		return
-	var info := MissionInfo.new()
-	info.title = String(root.name).capitalize()
-	var last := 0
-	for entry: Dictionary in LevelCatalog.levels():
-		last = maxi(last, int(entry.get("order", 0)))
-	info.order = last + 10
-	info.objectives = [MissionObjective.make("extracted", "Ramener l'équipe à la zone d'extraction")] as Array[MissionObjective]
-	var path := MissionInfo.path_for(root.scene_file_path)
-	ResourceSaver.save(info, path)
+	var path := _write_info(root.scene_file_path, String(root.name).capitalize())
 	EditorInterface.get_resource_filesystem().update_file(path)
 	LevelCatalog.reload()
 	_load_info(root)
@@ -463,3 +465,77 @@ func _on_route_point(add: bool) -> void:
 		undo.add_undo_method(_route, method)
 	undo.commit_action()
 	_dock.show_route(_route)
+
+
+## Écrit `mission.tres` pour la scène `scene_path` : titre `title`, placée
+## après les missions existantes, objectif d'extraction. Renvoie son chemin.
+static func _write_info(scene_path: String, title: String) -> String:
+	var info := MissionInfo.new()
+	info.title = title
+	info.description = "À écrire."
+	var last := 0
+	for entry: Dictionary in LevelCatalog.levels():
+		var other := load(MissionInfo.path_for(entry["scene"])) as MissionInfo
+		last = maxi(last, other.order if other else 0)
+	info.order = last + 10
+	info.objectives = [MissionObjective.make("extracted", "Ramener l'équipe à la zone d'extraction")] as Array[MissionObjective]
+	var path := MissionInfo.path_for(scene_path)
+	ResourceSaver.save(info, path)
+	return path
+
+
+# --- Vérification, essai, nouvelle mission ---------------------------------
+
+## Vérifie la scène ouverte et affiche le résultat dans le dock (coroutine).
+func check() -> Array[Dictionary]:
+	_dock.show_report([{"level": "ok", "text": "Vérification en cours…", "nodes": []}])
+	var report: Array[Dictionary] = await Checker.check(EditorInterface.get_edited_scene_root())
+	_dock.show_report(report)
+	return report
+
+
+## Enregistre la scène ouverte et la lance seule. Comme depuis le choix des
+## missions, `LevelRoot` monte objectifs (lus dans `mission.tres` par
+## `LevelCatalog`), équipe et équipement des profils.
+func _on_play_requested() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if not root is LevelRoot or root.scene_file_path.is_empty():
+		return
+	_cancel_tool()
+	EditorInterface.save_scene()
+	EditorInterface.play_custom_scene(root.scene_file_path)
+
+
+## Crée `scenes/levels/<folder>/<folder>.tscn` à partir du gabarit, et son
+## `mission.tres`, puis l'ouvre. Renvoie le chemin de la scène, ou vide
+## (raison affichée dans le dock).
+func new_mission(folder: String) -> String:
+	var error := _new_mission_error(folder)
+	_dock.set_new_mission_status(error)
+	if not error.is_empty():
+		return ""
+	var scene_path := "%s/%s/%s.tscn" % [LEVELS_DIR, folder, folder]
+	var text := FileAccess.get_file_as_string(TEMPLATE)
+	# Plus un fichier généré : sans le nom du générateur ni son empreinte.
+	var lines := Array(text.split("\n")).filter(func(line: String) -> bool: return not line.begins_with("metadata/generat"))
+	text = "\n".join(lines).replace('[node name="Mission" type="Node3D"]', '[node name="%s" type="Node3D"]' % folder.to_pascal_case())
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(scene_path.get_base_dir()))
+	var file := FileAccess.open(scene_path, FileAccess.WRITE)
+	file.store_string(text)
+	file.close()
+	var info_path := _write_info(scene_path, folder.capitalize())
+	var files := EditorInterface.get_resource_filesystem()
+	files.update_file(scene_path)
+	files.update_file(info_path)
+	LevelCatalog.reload()
+	EditorInterface.open_scene_from_path(scene_path)
+	return scene_path
+
+
+static func _new_mission_error(folder: String) -> String:
+	var pattern := RegEx.create_from_string("^[a-z][a-z0-9_]*$")
+	if pattern.search(folder) == null:
+		return "Nom de dossier : lettres minuscules, chiffres et _, en commençant par une lettre."
+	if DirAccess.dir_exists_absolute("%s/%s" % [LEVELS_DIR, folder]):
+		return "Le dossier scenes/levels/%s existe déjà." % folder
+	return ""
