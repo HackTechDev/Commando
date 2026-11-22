@@ -32,6 +32,15 @@ const UNIT_GROUPS: Array[StringName] = [&"commandos", &"enemies", &"vips"]
 const HOLD_REACH := 3.5
 const HOLD_ARRIVAL := 12.0
 const HALF_WIDTH_BODY := 0.89
+## Arrêtée (`halted`) depuis `HONK_DELAY` s, elle klaxonne, puis toutes les
+## `HONK_INTERVAL` s : bruit qui attire les gardes à `HORN_NOISE` m, qui
+## viennent voir à la portière du conducteur (sans donner l'alerte).
+const HONK_DELAY := 5.0
+const HONK_INTERVAL := 7.0
+const HORN_NOISE := 22.0
+
+## Coup de klaxon en `at` (point où les gardes viennent voir).
+signal honked(at: Vector3)
 ## Demi-longueur de la voiture (m), du centre au pare-chocs.
 const HALF_LENGTH := 2.2
 
@@ -64,6 +73,8 @@ var halted: bool = false
 ## Empreinte de la boucle : deux voitures de la même boucle se suivent le
 ## long du tracé (y compris dans les virages).
 var _loop_key: int = 0
+## Temps passé arrêtée (`halted`) avant le prochain coup de klaxon.
+var _stopped_for: float = 0.0
 
 
 func _ready() -> void:
@@ -113,6 +124,28 @@ func _process(delta: float) -> void:
 	rotation.y = rotate_toward(rotation.y, _heading(_at + 1.5), TURN_SPEED * delta * maxf(speed / cruise, 0.3))
 	for wheel in _wheels:
 		wheel.rotation.x -= step / WHEEL_RADIUS
+	_update_horn(delta)
+
+
+## Klaxonne quand elle reste bloquée (`HONK_DELAY`, puis `HONK_INTERVAL`).
+func _update_horn(delta: float) -> void:
+	if not halted or speed > 0.2:
+		_stopped_for = 0.0
+		return
+	_stopped_for += delta
+	if _stopped_for >= HONK_DELAY:
+		_stopped_for = HONK_DELAY - HONK_INTERVAL
+		honk()
+
+
+## Coup de klaxon : les gardes à portée viennent voir à la portière du
+## conducteur (côté gauche), au bord de la caisse.
+func honk() -> void:
+	var at := global_position - global_basis.x * (HALF_WIDTH_BODY + 0.9) - global_basis.z * 0.4
+	at = NavigationServer3D.map_get_closest_point(get_world_3d().navigation_map, at)
+	Sfx.play_at(&"horn", global_position + Vector3.UP * 0.8)
+	EventBus.noise_emitted.emit(at, HORN_NOISE, &"distraction")
+	honked.emit(at)
 
 
 ## Vrai tant que des opérateurs s'abritent derrière la voiture : près

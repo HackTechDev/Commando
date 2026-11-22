@@ -106,6 +106,13 @@ func _build_library() -> void:
 		_noise(0.35, 0.001, 0.12, 0.8, 1.0),
 		_tone([140.0, 45.0], 0.25, 0.8, 0.001, 0.15),
 	]))
+	# Klaxon de voiture : deux notes tenues, un peu nasillardes.
+	_streams[&"horn"] = _wav(_mix([
+		_tone([415.0, 415.0], 0.7, 0.32, 0.015, 3.0),
+		_tone([523.0, 523.0], 0.7, 0.28, 0.015, 3.0),
+		_tone([830.0, 830.0], 0.7, 0.1, 0.015, 3.0),
+		_tone([1046.0, 1046.0], 0.7, 0.08, 0.015, 3.0),
+	]))
 	# Pas : petit frottement grave ; reptation : bruissement plus long.
 	_streams[&"step"] = _wav(_noise(0.06, 0.002, 0.03, 0.12, 0.7))
 	_streams[&"crawl"] = _wav(_noise(0.22, 0.05, 0.1, 0.18, 0.4))

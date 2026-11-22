@@ -1253,3 +1253,15 @@
   - la voiture suivante s'arrête 1,6 m derrière, au sortir d'un virage ;
   - après 13 s les deux voitures attendent toujours, et repartent quand les opérateurs s'éloignent.
 - La suite GUT n'a pas été lancée.
+
+## Les gardes viennent voir une voiture qui klaxonne
+
+- Une voiture arrêtée pour une unité, pour un abri ou derrière une voiture ainsi arrêtée klaxonne au bout de 5 s, puis toutes les 7 s tant qu'elle reste bloquée (nouveau son `horn`, deux notes tenues).
+- Chaque coup de klaxon est un bruit de diversion de 22 m (`TrafficCar.honked`). Les gardes à portée deviennent méfiants sans donner l'alerte, et ils viennent voir à la portière du conducteur ; un garde posté se tourne vers le bruit sans quitter son poste.
+- Un arrêt devant un passant ou une autre voiture qui roule ne fait pas klaxonner.
+- Vérifié par scénario avec Alpha abrité derrière une voiture :
+  - premier coup de klaxon à 6,3 s après l'ordre (le temps de piler, plus 5 s) ;
+  - un garde en ronde à 11 m devient méfiant, s'approche, contourne la caisse par l'avant et repère Alpha ;
+  - un garde à 40 m ne réagit pas ;
+  - un garde posté se tourne vers le bruit sans bouger.
+- La suite GUT n'a pas été lancée.
