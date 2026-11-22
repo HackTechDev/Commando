@@ -238,7 +238,7 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 		update_overlays()
 		return EditorPlugin.AFTER_GUI_INPUT_STOP
 	if event is InputEventMouseMotion:
-		_point = Palette.ground_point(camera, (event as InputEventMouseMotion).position, GRID_STEP if _dock.grid_enabled() else 0.0)
+		_point = _aim(camera, (event as InputEventMouseMotion).position)
 		update_overlays()
 		return EditorPlugin.AFTER_GUI_INPUT_PASS
 	if event is InputEventMouseButton and event.is_pressed():
@@ -248,7 +248,7 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		if button.button_index != MOUSE_BUTTON_LEFT:
 			return EditorPlugin.AFTER_GUI_INPUT_PASS
-		_point = Palette.ground_point(camera, button.position, GRID_STEP if _dock.grid_enabled() else 0.0)
+		_point = _aim(camera, button.position)
 		if _point == Vector3.INF:
 			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		var entry := Palette.find(_tool)
@@ -264,6 +264,24 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 		update_overlays()
 		return EditorPlugin.AFTER_GUI_INPUT_STOP
 	return EditorPlugin.AFTER_GUI_INPUT_PASS
+
+
+## Point visé pour l'outil en cours : sur les toits et les étages si
+## l'élément le permet et que la case du dock est cochée, sinon au sol.
+## Le second point d'un tracé reste à la hauteur du premier.
+func _aim(camera: Camera3D, screen: Vector2) -> Vector3:
+	var step := GRID_STEP if _dock.grid_enabled() else 0.0
+	var entry := Palette.find(_tool)
+	if entry.get("ground", false) or not _dock.surface_enabled():
+		return Palette.ground_point(camera, screen, step)
+	if _start != Vector3.INF:
+		var plane := Plane(Vector3.UP, _start.y)
+		var hit: Variant = plane.intersects_ray(camera.project_ray_origin(screen), camera.project_ray_normal(screen))
+		if hit == null:
+			return Vector3.INF
+		var level: Vector3 = hit
+		return Vector3(snappedf(level.x, step), level.y, snappedf(level.z, step)) if step > 0.0 else level
+	return Palette.surface_point(camera, screen, step, EditorInterface.get_edited_scene_root().get_world_3d())
 
 
 ## Pose l'élément `id` de la palette (voir `Palette.make`), en une action

@@ -86,7 +86,7 @@ Principe de la pose :
 
 Les éléments « tracés » (mur, route, trottoir, piste, ronde, passant, voiture) se posent en **deux clics** : le début, puis la fin. Entre les deux, la vue affiche le tracé et sa longueur.
 
-La case **Grille de 0,5 m** aimante les points posés. Chaque pose est une action annulable (Ctrl+Z) et l'élément posé est sélectionné : ses réglages fins sont dans l'inspecteur.
+La case **Grille de 0,5 m** aimante les points posés. La case **Sur les toits et les étages** pose sur la surface visée : toit d'un bâtiment, étage ou toit d'un immeuble, dessus d'un mur. Les murs eux-mêmes sont traversés. Décochée, tout se pose au sol. Revêtements, bâtiments, buissons, barrières, aire de poser et civils vont toujours au sol. Le second point d'un tracé reste à la hauteur du premier : une ronde commencée sur un toit y reste. Chaque pose est une action annulable (Ctrl+Z) et l'élément posé est sélectionné : ses réglages fins sont dans l'inspecteur.
 
 Pour l'exemple :
 
@@ -263,7 +263,7 @@ Les raccourcis du greffon se changent dans Éditeur > Paramètres de l'éditeur 
 
 ### Limites de la première version
 
-- **Sol plat** : la pose vise le plan y = 0. Pour un élément en hauteur (sur un toit), posez-le puis montez-le avec l'outil de déplacement.
+- **Sol plat** : le terrain n'a pas de relief. Les toits et les étages se visent directement (case « Sur les toits et les étages »).
 - **Bâtiments** : seulement le bâtiment réglable et ce qui existe déjà ; pas de dessin libre de pièces ni d'étages.
 - **Événements scriptés** (renforts, pick-ups qui arrivent, ateliers du didacticiel) : ils se modifient dans l'inspecteur, pas par le greffon.
 - **Missions des joueurs** : le greffon ne sert que dans l'éditeur, pas dans le jeu exporté.

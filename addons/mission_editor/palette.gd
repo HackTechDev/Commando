@@ -6,7 +6,9 @@ extends RefCounted
 ## pour le reste…) et réglages par défaut.
 ##
 ## Une entrée : {"id", "label", "category", "parent", "tool"} où `tool` vaut
-## "point" (un clic) ou "line" (deux clics : début et fin).
+## "point" (un clic) ou "line" (deux clics : début et fin) ; "ground": true
+## pour ce qui se pose toujours au sol (revêtements, bâtiments, civils…),
+## les autres se posent aussi sur les toits et les étages.
 
 const CATEGORIES: Array[String] = ["Décor", "Obstacles", "Équipe", "Ennemis", "Civils", "Objectifs", "Extraction et véhicules"]
 
@@ -38,21 +40,21 @@ const VIP_SCENE := "res://scenes/units/vip.tscn"
 ## Toutes les entrées, dans l'ordre d'affichage.
 static func entries() -> Array[Dictionary]:
 	return [
-		{"id": "building", "label": "Bâtiment", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "building", "label": "Bâtiment", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "wall_line", "label": "Mur (tracé)", "category": "Décor", "parent": "NavigationRegion3D", "tool": "line"},
 		{"id": "wall", "label": "Mur de 6 m", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "low_wall", "label": "Muret", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "crate", "label": "Caisse", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
-		{"id": "bush", "label": "Haie / buisson", "category": "Décor", "parent": "Decor", "tool": "point"},
+		{"ground": true, "id": "bush", "label": "Haie / buisson", "category": "Décor", "parent": "Decor", "tool": "point"},
 		{"id": "lamp", "label": "Lampadaire", "category": "Décor", "parent": "Lamps", "tool": "point"},
 		{"id": "ladder", "label": "Échelle", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
-		{"id": "tower", "label": "Immeuble à étages", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
-		{"id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
-		{"id": "sidewalk", "label": "Trottoir", "category": "Décor", "parent": "Decor", "tool": "line"},
-		{"id": "track", "label": "Piste", "category": "Décor", "parent": "Decor", "tool": "line"},
+		{"ground": true, "id": "tower", "label": "Immeuble à étages", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
+		{"ground": true, "id": "sidewalk", "label": "Trottoir", "category": "Décor", "parent": "Decor", "tool": "line"},
+		{"ground": true, "id": "track", "label": "Piste", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"id": "mine", "label": "Mine", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "ied", "label": "Engin improvisé", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
-		{"id": "barrier", "label": "Barrière", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "barrier", "label": "Barrière", "category": "Obstacles", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "operator", "label": "Opérateur", "category": "Équipe", "parent": "Units", "tool": "point"},
 		{"id": "vip", "label": "VIP", "category": "Équipe", "parent": "Units", "tool": "point"},
 		{"id": "guard", "label": "Garde posté", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
@@ -60,16 +62,16 @@ static func entries() -> Array[Dictionary]:
 		{"id": "technical", "label": "Pick-up armé", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
 		{"id": "aircraft", "label": "Avion ennemi", "category": "Ennemis", "parent": "Enemies", "tool": "line"},
 		{"id": "reinforcements", "label": "Renforts", "category": "Ennemis", "parent": "Enemies", "tool": "point"},
-		{"id": "guest", "label": "Invité", "category": "Civils", "parent": "NavigationRegion3D", "tool": "point"},
-		{"id": "passerby", "label": "Passant", "category": "Civils", "parent": "Decor", "tool": "line"},
-		{"id": "traffic", "label": "Boucle de voitures", "category": "Civils", "parent": "Decor", "tool": "line"},
+		{"ground": true, "id": "guest", "label": "Invité", "category": "Civils", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "passerby", "label": "Passant", "category": "Civils", "parent": "Decor", "tool": "line"},
+		{"ground": true, "id": "traffic", "label": "Boucle de voitures", "category": "Civils", "parent": "Decor", "tool": "line"},
 		{"id": "documents", "label": "Porteur des documents", "category": "Objectifs", "parent": "Enemies", "tool": "point"},
 		{"id": "generator", "label": "Groupe électrogène", "category": "Objectifs", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "fuel_depot", "label": "Dépôt de carburant", "category": "Objectifs", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "extraction", "label": "Zone d'extraction", "category": "Extraction et véhicules", "parent": ".", "tool": "point"},
 		{"id": "tiltrotor", "label": "Convertible d'extraction", "category": "Extraction et véhicules", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "sabre", "label": "Sabre", "category": "Extraction et véhicules", "parent": "NavigationRegion3D", "tool": "point"},
-		{"id": "pad", "label": "Aire de poser", "category": "Extraction et véhicules", "parent": "Decor", "tool": "point"},
+		{"ground": true, "id": "pad", "label": "Aire de poser", "category": "Extraction et véhicules", "parent": "Decor", "tool": "point"},
 	]
 
 
@@ -78,6 +80,38 @@ static func find(id: String) -> Dictionary:
 		if entry["id"] == id:
 			return entry
 	return {}
+
+
+## Couches visées pour poser en hauteur : sol et décor (toits, planchers,
+## dessus des murs).
+const SURFACE_MASK := 0b11
+## Surface assez horizontale pour y poser (normale vers le haut).
+const FLAT := 0.7
+
+
+## Point de pose sous la position `screen` : la première surface
+## horizontale du décor touchée par le rayon de la vue (toit, plancher,
+## dessus d'un mur), les faces verticales étant traversées ; à défaut, le
+## sol (`ground_point`). x et z aimantés à la grille de pas `step`.
+static func surface_point(camera: Camera3D, screen: Vector2, step: float, world: World3D) -> Vector3:
+	var origin := camera.project_ray_origin(screen)
+	var direction := camera.project_ray_normal(screen)
+	var space := world.direct_space_state if world else null
+	if space:
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * 2000.0, SURFACE_MASK)
+		var skipped: Array[RID] = []
+		for attempt in 8:
+			query.exclude = skipped
+			var hit := space.intersect_ray(query)
+			if hit.is_empty():
+				break
+			if (hit["normal"] as Vector3).y >= FLAT:
+				var point: Vector3 = hit["position"]
+				if step > 0.0:
+					point = Vector3(snappedf(point.x, step), point.y, snappedf(point.z, step))
+				return point
+			skipped.append(hit["rid"])
+	return ground_point(camera, screen, step)
 
 
 ## Point du sol (plan y = 0) sous la position `screen` de la vue `camera`,

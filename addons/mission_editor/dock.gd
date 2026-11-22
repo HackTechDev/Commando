@@ -45,6 +45,7 @@ var _new_folder: LineEdit
 var _new_status: Label
 var _report_box: VBoxContainer
 var _grid: CheckBox
+var _surface: CheckBox
 var _status: Label
 var _body: VBoxContainer
 var _buttons: Dictionary = {}
@@ -158,6 +159,11 @@ func _init() -> void:
 	_grid.button_pressed = true
 	_grid.toggled.connect(func(on: bool) -> void: grid_toggled.emit(on))
 	_body.add_child(_grid)
+	_surface = CheckBox.new()
+	_surface.text = "Sur les toits et les étages"
+	_surface.tooltip_text = "Pose sur la surface visée (toit, plancher, dessus d'un mur) ; décochée : toujours au sol. Revêtements, bâtiments et civils vont toujours au sol."
+	_surface.button_pressed = true
+	_body.add_child(_surface)
 	_body.add_child(_label("Choisissez un élément, puis cliquez dans la vue 3D (deux clics pour un tracé). R / Maj+R : tourner de 15°. Clic droit ou Échap : arrêter.", DIM_COLOR))
 	_status = _label("")
 	_body.add_child(_status)
@@ -298,6 +304,10 @@ func set_status(text: String) -> void:
 
 func grid_enabled() -> bool:
 	return _grid.button_pressed
+
+
+func surface_enabled() -> bool:
+	return _surface.button_pressed
 
 
 func _section(text: String) -> void:

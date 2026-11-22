@@ -1331,3 +1331,9 @@
 - L'avion ennemi s'affiche dans l'éditeur au début de son trajet, à son altitude.
 - « Vérifier » signale des renforts sans cible valable.
 - Vérifié dans l'éditeur (`tools/editor_check/step81a.gd`, Convoi de nuit) puis en jeu : mines actives, barrière, immeuble construit, avion en vol à 25 m, renforts reliés au dépôt. La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : pose sur les toits et les étages (8.1 b)
+
+- Les éléments se posent sur la surface visée : toit d'un bâtiment, étage ou toit d'un immeuble, dessus d'un mur, décor des cartes UFO:AI ; les murs sont traversés. Case « Sur les toits et les étages » dans le dock (cochée par défaut).
+- Revêtements, bâtiments, immeubles, buissons, barrières, aire de poser et civils restent au sol ; le second point d'un tracé reste à la hauteur du premier.
+- Vérifié dans l'éditeur (`tools/editor_check/step81b.gd`, Kasbah) : garde sur le toit d'une maison (3,4 m) et d'un immeuble (9,6 m), route et case décochée au sol, ronde tracée sur un toit ; en jeu, les gardes y tiennent et la ronde parcourt le toit. La suite GUT n'a pas été lancée.
