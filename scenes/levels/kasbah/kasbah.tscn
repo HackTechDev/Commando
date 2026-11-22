@@ -122,6 +122,7 @@ size = Vector3(90, 1, 90)
 
 [node name="Kasbah" type="Node3D"]
 script = ExtResource("10")
+dress_code = &"casual"
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("env")

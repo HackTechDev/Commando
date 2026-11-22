@@ -19,6 +19,10 @@ const MAP_SYNC_RETRY_FRAMES := 20
 ## Carte de nuit : les ennemis voient moins loin (`NIGHT_SIGHT`), et les
 ## opérateurs qui portent des JVN voient en vision nocturne (`NightVision`).
 @export var night: bool = false
+## Tenue de rigueur (`GearCatalog.CLOTHING`, vide : aucune) : l'occasion de la
+## mission (réception, rue animée…). Un opérateur en tenue civile s'y fond
+## dans la foule (`Commando.blend_factor`).
+@export var dress_code: StringName = &""
 ## Part de la portée de vue lointaine des ennemis qui reste la nuit.
 const NIGHT_SIGHT := 0.55
 
@@ -65,6 +69,15 @@ func _ready() -> void:
 
 
 ## Vrai si `node` est dans une carte de nuit.
+static func dress_code_of(node: Node) -> StringName:
+	var parent := node.get_parent()
+	while parent:
+		if parent is LevelRoot:
+			return (parent as LevelRoot).dress_code
+		parent = parent.get_parent()
+	return &""
+
+
 static func is_night(node: Node) -> bool:
 	var parent := node.get_parent()
 	while parent:

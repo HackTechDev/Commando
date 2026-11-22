@@ -64,7 +64,7 @@ const HISTORY_SIZE := 50
 ## Accessoires : partie du corps cadrée quand on les change.
 const ACCESSORY_PARTS: Dictionary = {
 	&"balaclava": &"head", &"nvg": &"head", &"headset": &"head", &"vest": &"torso",
-	&"backpack": &"torso", &"radio": &"torso", &"knee_pads": &"legs",
+	&"backpack": &"torso", &"radio": &"torso", &"knee_pads": &"legs", &"sunglasses": &"head",
 }
 ## Caractéristiques comparées des armes principales : nom affiché.
 const COMPARED: Array[String] = ["Portée", "Dégâts", "Cadence", "Chargeur", "Discrétion"]
@@ -121,6 +121,9 @@ var _checks: Dictionary = {}
 var _spins: Dictionary = {}
 var _swatches: Dictionary = {}
 var _camo_buttons: Dictionary = {}
+## Boutons de tenue (`GearCatalog.CLOTHING`) et description de la tenue choisie.
+var _clothing_buttons: Dictionary = {}
+var _clothing_info: Label
 var _weapon_info: Label
 var _secondary_info: Label
 var _specialty_info: Label
@@ -561,6 +564,26 @@ func _build_identity() -> Control:
 
 func _build_outfit() -> Control:
 	var box := _section_box()
+	_heading(box, "Tenue")
+	var dresses := HFlowContainer.new()
+	var dress_group := ButtonGroup.new()
+	for id: StringName in GearCatalog.CLOTHING:
+		var button := Button.new()
+		button.text = GearCatalog.CLOTHING[id]["name"]
+		button.toggle_mode = true
+		button.button_group = dress_group
+		button.pressed.connect(func() -> void:
+			profile().set_clothing(id)
+			_refresh_controls()
+			_changed(true, "", &"full"))
+		dresses.add_child(button)
+		_clothing_buttons[id] = button
+	box.add_child(dresses)
+	_clothing_info = Label.new()
+	_clothing_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_clothing_info.add_theme_font_size_override("font_size", 13)
+	box.add_child(_clothing_info)
+	_note(box, "En tenue civile, sans équipement militaire en vue ni arme en main, on se fond dans la foule : repéré bien plus lentement si la mission s'y prête, surtout dans la tenue de l'occasion. Seul le pistolet-mitrailleur se cache sous la veste.")
 	_heading(box, "Camouflage (haut et pantalon)")
 	var camos := HFlowContainer.new()
 	var group := ButtonGroup.new()
@@ -999,6 +1022,9 @@ func _refresh_controls() -> void:
 			buttons[i].text = "✓" if chosen else ""
 	for id: StringName in _camo_buttons:
 		(_camo_buttons[id] as Button).set_pressed_no_signal(id == operator.camo)
+	for id: StringName in _clothing_buttons:
+		(_clothing_buttons[id] as Button).set_pressed_no_signal(id == operator.clothing)
+	_clothing_info.text = GearCatalog.CLOTHING[operator.clothing]["description"]
 	_weapon_info.text = GearCatalog.PRIMARY[operator.primary]["description"]
 	_secondary_info.text = GearCatalog.SECONDARY[operator.secondary]["description"]
 	var chosen := GearCatalog.PRIMARY.keys().find(operator.primary)

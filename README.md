@@ -95,6 +95,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Grappin (équipement) | W, puis clic gauche sur un point en hauteur : l'opérateur lance le grappin et monte à la corde |
 | Échelle, muret | Clic droit sur le toit ou de l'autre côté : le chemin passe par l'échelle ou enjambe le muret |
 | Arme à la bretelle / en main | G (bascule) |
+| Se fondre dans la foule (missions à tenue de rigueur, comme Kasbah ou La Tour) : tenue civile choisie dans l'écran « Opérateurs » (onglet Tenue), sans équipement militaire, pistolet-mitrailleur à la bretelle, debout et au pas | G pour libérer les mains, puis marcher |
 | Arme secondaire / principale | Y |
 | Recharger | R |
 | Annuler l'ordre en cours | F (clic droit pour annuler une action V / B / T / P armée) |

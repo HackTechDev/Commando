@@ -40,6 +40,33 @@ const CAMOS: Dictionary = {
 	},
 }
 
+## Tenues : treillis (militaire) ou civiles, faites pour se fondre dans la
+## foule selon l'occasion (`LevelRoot.dress_code`). Une tenue civile choisie
+## habille l'opérateur (`look` : propriétés du profil) et retire l'équipement
+## militaire voyant.
+const CLOTHING: Dictionary = {
+	&"uniform": {
+		"name": "Treillis",
+		"description": "Tenue de combat. Ne trompe personne.",
+		"look": {},
+	},
+	&"suit": {
+		"name": "Costume-cravate",
+		"description": "Pour une réception, un gala, un quartier d'affaires.",
+		"look": {"camo": &"", "top_color": Color(0.12, 0.15, 0.24), "pants_color": Color(0.12, 0.15, 0.24), "headwear": &"none"},
+	},
+	&"casual": {
+		"name": "Décontractée",
+		"description": "Blouson, t-shirt et jean : pour une rue, un marché, un port.",
+		"look": {"camo": &"", "top_color": Color(0.36, 0.28, 0.2), "pants_color": Color(0.2, 0.27, 0.38), "headwear": &"none"},
+	},
+}
+## Équipement militaire qui trahit un opérateur en tenue civile (retiré quand
+## on la choisit).
+const MILITARY_GEAR: Array[StringName] = [&"balaclava", &"nvg", &"headset", &"vest", &"backpack", &"radio", &"knee_pads"]
+## Armes principales assez compactes pour se cacher sous une veste.
+const CONCEALABLE: Array[StringName] = [&"smg"]
+
 ## Couleurs unies proposées pour les vêtements.
 const PALETTE: Array[Color] = [
 	Color(0.3, 0.33, 0.24), Color(0.24, 0.27, 0.18), Color(0.4, 0.42, 0.3), Color(0.55, 0.52, 0.38),
@@ -96,6 +123,7 @@ const ACCESSORIES: Dictionary = {
 	&"backpack": "Sac à dos",
 	&"radio": "Radio",
 	&"knee_pads": "Genouillères",
+	&"sunglasses": "Lunettes de soleil Oakley",
 }
 
 ## Armes principales : nom, description et réglages de tir (`UnitStats`).
@@ -258,7 +286,7 @@ const WEIGHTS: Dictionary = {
 	&"famas": 3.8, &"scar_l": 3.6, &"scar_h": 4.3, &"hk417": 5.0, &"m249": 8.0, &"hecate": 13.8,
 	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
 	&"helmet": 1.4, &"nvg": 0.6, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
-	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0,
+	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0, &"sunglasses": 0.05,
 	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"explosives": 2.0, &"medkit": 1.5,
 	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9,
 }
@@ -349,7 +377,7 @@ static func load_of(profile: OperatorProfile) -> float:
 		total += WEIGHTS[&"helmet"]
 	if profile.wears_nvg():
 		total += WEIGHTS[&"nvg"]
-	for key: StringName in [&"headset", &"vest", &"backpack", &"radio", &"knee_pads", &"balaclava"]:
+	for key: StringName in [&"headset", &"vest", &"backpack", &"radio", &"knee_pads", &"balaclava", &"sunglasses"]:
 		if profile.get(key):
 			total += WEIGHTS[key]
 	for key: StringName in EQUIPMENT:

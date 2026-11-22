@@ -40,6 +40,10 @@ const DEFAULTS: Array[Dictionary] = [
 @export var backpack: bool = true
 @export var radio: bool = true
 @export var knee_pads: bool = true
+## Lunettes de soleil (enveloppantes, verres miroir).
+@export var sunglasses: bool = false
+## Tenue (`GearCatalog.CLOTHING`) : treillis ou tenue civile.
+@export var clothing: StringName = &"uniform"
 
 # Armement.
 @export var primary: StringName = &"carbine"
@@ -66,20 +70,20 @@ const DEFAULTS: Array[Dictionary] = [
 const MAX_SAVED_OUTFITS := 6
 ## Propriétés d'une tenue : apparence (hors visage) et armement.
 const OUTFIT_KEYS: Array[String] = [
-	"camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
+	"clothing", "sunglasses", "camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
 	"primary", "secondary", "throwing_knives", "grenades", "smoke_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
 ]
 ## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
 ## couleurs, couvre-chef et accessoires, sans l'armement.
 const LOOK_KEYS: Array[String] = [
-	"camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
+	"clothing", "sunglasses", "camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
 ]
 
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
-const _NAME_KEYS: Array[String] = ["body", "camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
-const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads"]
+const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
+const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads", "sunglasses"]
 const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet"]
 
 
@@ -108,6 +112,23 @@ func set_camo(id: StringName) -> void:
 	pants_color = entry["colors"][0]
 	vest_color = entry["vest"]
 	headwear_color = entry["headwear"]
+
+
+## Revêt la tenue `id` (`GearCatalog.CLOTHING`) : une tenue civile donne ses
+## couleurs, tête nue, et retire l'équipement militaire voyant.
+func set_clothing(id: StringName) -> void:
+	clothing = id
+	var look: Dictionary = GearCatalog.CLOTHING[id]["look"]
+	for key: String in look:
+		set(key, look[key])
+	if is_civilian():
+		for key: StringName in GearCatalog.MILITARY_GEAR:
+			set(key, false)
+
+
+## Vrai en tenue civile (costume ou décontractée).
+func is_civilian() -> bool:
+	return clothing != &"uniform"
 
 
 ## Copie conforme du profil.
@@ -193,7 +214,7 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 	var choices := {
 		"camo": GearCatalog.CAMOS, "hair_style": GearCatalog.HAIR_STYLES, "beard": GearCatalog.BEARDS,
 		"body": GearCatalog.BODIES, "headwear": GearCatalog.HEADWEAR, "primary": GearCatalog.PRIMARY, "secondary": GearCatalog.SECONDARY,
-		"specialty": GearCatalog.SPECIALTIES,
+		"specialty": GearCatalog.SPECIALTIES, "clothing": GearCatalog.CLOTHING,
 	}
 	for key in _NAME_KEYS:
 		var value := StringName(str(data.get(key, "")))

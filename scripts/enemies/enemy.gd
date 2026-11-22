@@ -823,13 +823,24 @@ func _update_detection(delta: float) -> void:
 	if _target:
 		_last_seen = _target.global_position
 		_memory_left = stats.alert_memory
-		if best_zone == VisionComponent.Zone.NEAR:
+		# Opérateur fondu dans la foule (tenue civile) : repéré plus lentement,
+		# même de près ; dans la tenue de l'occasion et à distance, il
+		# n'attire pas l'attention (pas même la méfiance). Une fois l'alerte
+		# donnée, plus de faux-semblant.
+		var blend := 1.0
+		if state != State.ALERT and _target.has_method(&"blend_factor"):
+			blend = _target.blend_factor()
+		if best_zone == VisionComponent.Zone.NEAR and blend >= 1.0:
 			detection = 1.0
 		else:
 			var config := _vision.config
 			# Au-delà de la portée (phares d'un véhicule, la nuit) : au plus lent.
-			var closeness := clampf(1.0 - inverse_lerp(config.near_range, config.far_range, best_distance), 0.0, 1.0)
-			detection += delta / stats.detection_time * lerpf(0.6, 1.6, closeness)
+			var closeness := 1.0 if best_zone == VisionComponent.Zone.NEAR else clampf(1.0 - inverse_lerp(config.near_range, config.far_range, best_distance), 0.0, 1.0)
+			var gain := delta / stats.detection_time * lerpf(0.6, 1.6, closeness) * blend
+			if blend <= Commando.BLEND_MATCH and best_zone != VisionComponent.Zone.NEAR:
+				detection = maxf(detection, minf(detection + gain, stats.suspicion_threshold * 0.8))
+			else:
+				detection += gain
 	elif state == State.ALERT:
 		# Le compte à rebours ne démarre qu'une fois le dernier point connu atteint.
 		if _chase_arrived:

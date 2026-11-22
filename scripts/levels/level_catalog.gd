@@ -122,7 +122,7 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "La Tour",
 		"scene": "res://scenes/levels/tower/tower.tscn",
-		"description": "Un immeuble de cinq étages et son toit-terrasse, gardé à chaque niveau. Un officier, au dernier étage (4e), porte des documents : abattez-le ou assommez-le, puis prenez sa sacoche. L'escalier monte le long du mur nord, en volées alternées. Quand un opérateur est dans l'immeuble, les étages au-dessus de lui s'effacent ; Page suiv. / Page préc. choisissent l'étage affiché. Porte principale au sud ; porte de service verrouillée à l'est. Pour repartir, montez sur le toit et appelez l'extraction par radio : elle attend 90 s en vol stationnaire au-dessus de la terrasse ; treuillez toute l'équipe (clic droit sur l'appareil), documents compris.",
+		"description": "Un immeuble de cinq étages et son toit-terrasse, gardé à chaque niveau. Un officier, au dernier étage (4e), porte des documents : abattez-le ou assommez-le, puis prenez sa sacoche. L'escalier monte le long du mur nord, en volées alternées. Quand un opérateur est dans l'immeuble, les étages au-dessus de lui s'effacent ; Page suiv. / Page préc. choisissent l'étage affiché. Porte principale au sud ; porte de service verrouillée à l'est. Tenue de rigueur : costume-cravate (un opérateur ainsi vêtu, sans arme en vue, se fond parmi les employés). Pour repartir, montez sur le toit et appelez l'extraction par radio : elle attend 90 s en vol stationnaire au-dessus de la terrasse ; treuillez toute l'équipe (clic droit sur l'appareil), documents compris.",
 		"camo": "urban",
 		"objectives": [
 			{"id": "documents", "text": "Rapporter à bord les documents de l'officier (4e étage)"},
@@ -145,7 +145,7 @@ const LEVELS: Array[Dictionary] = [
 	{
 		"title": "Kasbah",
 		"scene": "res://scenes/levels/kasbah/kasbah.tscn",
-		"description": "De jour, en ville. L'équipe commence à bord d'un convertible en vol stationnaire à 30 m au-dessus de la place sud-ouest. Menu de bord : « Déplacer » pour le mener où vous voulez, « Perdre de l'altitude » pour un rappel plus court (mais des rotors qui s'entendent plus loin), puis rappel dans une rue ou sur un toit plat. Renvoyez ensuite l'appareil (menu radio). Un officier, au 2e étage de l'immeuble de bureaux, porte des documents : prenez-les sur son corps. L'immeuble a une terrasse ; pour repartir, appelez l'extraction : elle ne reste que 75 s au-dessus de la terrasse, où l'on se fait treuiller (clic droit sur l'appareil).",
+		"description": "De jour, en ville. L'équipe commence à bord d'un convertible en vol stationnaire à 30 m au-dessus de la place sud-ouest. Menu de bord : « Déplacer » pour le mener où vous voulez, « Perdre de l'altitude » pour un rappel plus court (mais des rotors qui s'entendent plus loin), puis rappel dans une rue ou sur un toit plat. Renvoyez ensuite l'appareil (menu radio). Un officier, au 2e étage de l'immeuble de bureaux, porte des documents : prenez-les sur son corps. En tenue décontractée, sans arme en vue, on se fond dans la foule des rues. L'immeuble a une terrasse ; pour repartir, appelez l'extraction : elle ne reste que 75 s au-dessus de la terrasse, où l'on se fait treuiller (clic droit sur l'appareil).",
 		"camo": "urban",
 		"objectives": [
 			{"id": "documents", "text": "Rapporter à bord les documents de l'officier (immeuble, 2e étage)"},

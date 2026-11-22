@@ -1163,3 +1163,14 @@
 - Au treuil, le VIP grimpe désormais main après main, comme les opérateurs, accroché au câble par la ceinture, à la même vitesse (1,2 m/s, `Tiltrotor.CLIMB_SPEED`).
 - La pose « pendu au crochet » (`RopeMove.HOIST`) et la vitesse du treuil seul (`WINCH_SPEED`, 1,8 m/s) n'ont plus d'usage et sont retirées.
 - Vérifié par scénario : un VIP au pied du câble, sous Alpha qui monte déjà ; sa main serrée reste fixe sur la corde ; il arrive à bord. La suite GUT n'a pas été lancée.
+
+## Tenues civiles et lunettes de soleil
+
+- Deux tenues s'ajoutent au treillis, onglet « Tenue » de l'écran « Opérateurs » (`GearCatalog.CLOTHING`, `OperatorProfile.clothing`) :
+  - costume-cravate : veste et pantalon bleu nuit, chemise, cravate, revers, chaussures de ville ;
+  - décontractée : blouson ouvert sur un t-shirt chiné, jean, ceinture de cuir, baskets à semelle blanche.
+- Les choisir retire l'équipement militaire voyant et met tête nue. En tenue civile, l'étui de cuisse et les couteaux de poitrine disparaissent (portés sous la veste), et le pistolet-mitrailleur se cache une fois à la bretelle.
+- Se fondre dans la foule : une mission peut déclarer une tenue de rigueur (`LevelRoot.dress_code`). Un opérateur qui en a l'air (`Commando.looks_civilian` : tenue civile sans rien de militaire, debout, au pas, mains libres, arme compacte cachée) est repéré bien moins vite (`Commando.blend_factor`). Dans la tenue de l'occasion, à distance, la détection plafonne sous le seuil de méfiance ; de près, ×0,25. Une autre tenue civile : ×0,6. Une fois l'alerte donnée, plus d'effet.
+- Kasbah demande la tenue décontractée, La Tour le costume-cravate (scènes, générateurs, fiches de mission). `MapBuilder` accepte `dress_code`.
+- Nouvel accessoire : lunettes de soleil Oakley (`sunglasses`), enveloppantes, verres miroir, 50 g.
+- Vérifié par rendus (les trois tenues, visages, écran « Opérateurs ») et par scénario sur Kasbah, garde à 8,5 m : décontractée, PM à la bretelle, la détection reste à 0,16 ; à 2 m, alerte en 4 s ; en costume, alerte en 2,5 s ; avec une carabine ou le PM en main, alerte en 1,3 s, comme en treillis. La suite GUT n'a pas été lancée.

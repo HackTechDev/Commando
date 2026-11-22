@@ -5,7 +5,7 @@ l'appareil et rappel sur les toits, documents d'un officier au 2e étage
 d'un immeuble, extraction au treuil depuis sa terrasse, en temps limité."""
 from mapkit import MapBuilder, add_tower
 
-m = MapBuilder("kasbah", "Kasbah", night=False, size=(90, 90), ground="urban")
+m = MapBuilder("kasbah", "Kasbah", night=False, size=(90, 90), ground="urban", dress_code="casual")
 TX, TZ = 12, -12
 roof = add_tower(m, "Office", TX, TZ, storeys=3, size=(14, 10), doors="Vector3(0, 2, 0), Vector3(3, 2, 1)",
                  windows="Vector2(0, -4), Vector2(0, 5), Vector2(1, -2), Vector2(1, 2), Vector2(2, -4), Vector2(3, -2)")

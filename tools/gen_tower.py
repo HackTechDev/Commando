@@ -95,7 +95,7 @@ size = Vector3(0.2, 0.02, 2.5)
 """)
 
 nodes = []
-nodes.append('[node name="Tower" type="Node3D"]\nscript = ExtResource("1")')
+nodes.append('[node name="Tower" type="Node3D"]\nscript = ExtResource("1")\ndress_code = &"suit"')
 nodes.append('[node name="WorldEnvironment" type="WorldEnvironment" parent="."]\nenvironment = SubResource("env")')
 nodes.append('[node name="Sun" type="DirectionalLight3D" parent="."]\n'
              'transform = Transform3D(0.866, 0.383, -0.3214, 0, 0.6428, 0.766, 0.5, -0.6634, 0.5567, 0, 10, 0)\n'

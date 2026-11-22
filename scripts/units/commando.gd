@@ -183,6 +183,11 @@ var _documents_check_left: float = 0.0
 var hostage: Enemy
 
 var _running: bool = false
+## Se fondre dans la foule (`blend_factor`) : facteur appliqué à la vitesse à
+## laquelle un ennemi le repère, en tenue de rigueur ou en une autre tenue
+## civile.
+const BLEND_MATCH := 0.25
+const BLEND_MISMATCH := 0.6
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
 ## Ordre en cours et geste en cours (null : aucun).
@@ -327,6 +332,36 @@ func _apply_profile(operator: OperatorProfile) -> void:
 	var sidearm := GearCatalog.secondary_stats(base, operator.secondary)
 	_secondary_stats = _equip(sidearm, operator) if sidearm else null
 	_model.outfit = operator
+
+
+## Facteur (1 : aucun effet) appliqué à la vitesse à laquelle un ennemi le
+## repère : en tenue civile, sur une mission qui a une tenue de rigueur
+## (`LevelRoot.dress_code`), il se fond dans la foule tant qu'il en a l'air
+## (`looks_civilian`) ; mieux encore dans la tenue de l'occasion.
+func blend_factor() -> float:
+	var code := LevelRoot.dress_code_of(self)
+	if code.is_empty() or not looks_civilian():
+		return 1.0
+	return BLEND_MATCH if code == _model.outfit.clothing else BLEND_MISMATCH
+
+
+## Vrai s'il passe pour un civil : tenue civile sans rien de militaire en vue,
+## mains libres (arme principale cachée sous la veste, pistolet à l'étui),
+## debout, au pas, sans corps ni otage, à pied.
+func looks_civilian() -> bool:
+	var look := _model.outfit
+	if look == null or not look.is_civilian() or is_dead:
+		return false
+	if look.headwear == &"helmet" or look.camo != &"":
+		return false
+	for key: StringName in GearCatalog.MILITARY_GEAR:
+		if look.get(key):
+			return false
+	if posture != SoldierModel.Posture.STANDING or _running:
+		return false
+	if carried_body or hostage or riding or airborne_in or using_secondary:
+		return false
+	return _model.conceals_primary() and _model.is_weapon_slung()
 
 
 ## Copie de `operator` armée de `mission_primary` et équipée de JVN

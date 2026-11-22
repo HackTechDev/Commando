@@ -67,10 +67,11 @@ TRACK_COLORS = {
 class MapBuilder:
     """Scène de carte : `ext`, sous-ressources et nœuds rangés par parent."""
 
-    def __init__(self, folder, root_name, night=False, size=(100, 100), ground="desert"):
+    def __init__(self, folder, root_name, night=False, size=(100, 100), ground="desert", dress_code=""):
         self.out = os.path.join(ROOT, "scenes", "levels", folder, folder + ".tscn")
         self.root_name = root_name
         self.night = night
+        self.dress_code = dress_code
         self.size = size
         self.ground = ground
         self._ext = []
@@ -333,7 +334,7 @@ class MapBuilder:
                     'geometry_collision_mask = 3\nagent_height = 1.75\nagent_radius = 0.5\n')
         subs.append(f'[sub_resource type="BoxShape3D" id="ground_shape"]\nsize = Vector3({sx}, 1, {sz})\n')
         subs.append(f'[sub_resource type="BoxMesh" id="ground_mesh"]\nmaterial = SubResource("ground_mat")\nsize = Vector3({sx}, 1, {sz})\n')
-        nodes = [f'[node name="{self.root_name}" type="Node3D"]\nscript = {root_script}' + ("\nnight = true" if self.night else "")]
+        nodes = [f'[node name="{self.root_name}" type="Node3D"]\nscript = {root_script}' + ("\nnight = true" if self.night else "") + (f'\ndress_code = &"{self.dress_code}"' if self.dress_code else "")]
         nodes.append('[node name="WorldEnvironment" type="WorldEnvironment" parent="."]\nenvironment = SubResource("env")')
         if self.night:
             nodes.append(f'[node name="Moon" type="DirectionalLight3D" parent="."]\ntransform = Transform3D({SUN_BASIS}, 0, 10, 0)\n'

@@ -821,6 +821,10 @@ var _m_lens: StandardMaterial3D
 var _m_steel: StandardMaterial3D
 var _m_helmet: StandardMaterial3D
 var _m_top: StandardMaterial3D
+## Tenue construite : `&"uniform"`, `&"suit"` (costume du civil, ou opérateur
+## en costume-cravate) ou `&"casual"` ; `_civil` : l'une des deux dernières.
+var _dress: StringName = &"uniform"
+var _civil: bool = false
 var _m_pants: StandardMaterial3D
 var _m_hair: StandardMaterial3D
 var _m_dark: StandardMaterial3D
@@ -881,9 +885,15 @@ func _build() -> void:
 		_m_helmet = _mat(outfit.headwear_color, 0.75)
 		_m_skin = _mat(GearCatalog.SKINS[outfit.skin], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[outfit.hair_color], 0.9)
-	if civilian:
+	_dress = &"suit" if civilian else (outfit.clothing if outfit else &"uniform")
+	_civil = _dress != &"uniform"
+	if _dress == &"suit":
 		_m_gear = _mat(Color(0.09, 0.06, 0.04), 0.45)
 		_m_boot = _mat(Color(0.05, 0.04, 0.035), 0.35)
+	elif _dress == &"casual":
+		# Ceinture de cuir fauve, baskets de toile claire.
+		_m_gear = _mat(Color(0.32, 0.2, 0.11), 0.6)
+		_m_boot = _mat(Color(0.78, 0.78, 0.76), 0.85)
 	_guard_look = _pick_guard_look() if outfit == null and not operator_helmet and not civilian else {}
 	_female = outfit != null and outfit.body == &"female"
 	if not _guard_look.is_empty():
@@ -891,8 +901,8 @@ func _build() -> void:
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[_guard_look["hair_color"]], 0.9)
 		_m_helmet = _cloth((uniform_color as Color).darkened(0.1)) if _guard_look["headwear"] == &"helmet" else _mat(_guard_look["headwear_color"], 0.85)
 	_m_dark = _mat(Color(0.05, 0.05, 0.05), 0.4)
-	_m_glove = _m_skin if civilian else _mat(Color(0.13, 0.13, 0.12), 0.8)
-	_m_sole = _mat(Color(0.06, 0.06, 0.06), 0.9)
+	_m_glove = _m_skin if _civil else _mat(Color(0.13, 0.13, 0.12), 0.8)
+	_m_sole = _mat(Color(0.93, 0.93, 0.9) if _dress == &"casual" else Color(0.06, 0.06, 0.06), 0.9)
 	_m_eye = _mat(Color(0.9, 0.9, 0.86), 0.3)
 	_m_iris = _mat(Color(0.12, 0.08, 0.05), 0.2)
 	_m_lip = _mat((_m_skin.albedo_color as Color).darkened(0.25).lerp(Color(0.6, 0.25, 0.22), 0.45 if _female else 0.25), 0.6)
@@ -911,7 +921,7 @@ func _build() -> void:
 	_m_team.emission_enabled = true
 	_m_team.emission = team_color
 	_m_team.emission_energy_multiplier = 0.4
-	if civilian:
+	if _civil:
 		# Pas d'écusson : il se fond dans l'étoffe.
 		_m_team = _m_top
 	_m_lens = _mat(Color(0.1, 0.5, 0.3), 0.15, 0.8)
@@ -938,6 +948,7 @@ func _process(delta: float) -> void:
 	_aim_hold = maxf(_aim_hold - delta, 0.0)
 	_animate_face(delta)
 	_flash.visible = _shot_time < FLASH_DURATION and is_armed and not is_dead
+	_conceal_primary()
 	if climb_progress >= 0.0 and not is_dead:
 		_animate_climb(delta)
 		return
@@ -1010,6 +1021,25 @@ func _update_weapon_switch(delta: float) -> void:
 	_sling = 1.0
 	_rifle_base = _rifle_slung
 	_rifle.transform = _rifle_slung
+
+
+## Vrai si l'arme principale se cache sous la veste : tenue civile et arme
+## compacte (`GearCatalog.CONCEALABLE`).
+func conceals_primary() -> bool:
+	return _civil and outfit != null and GearCatalog.CONCEALABLE.has(outfit.primary)
+
+
+## Arme principale compacte, en tenue civile : invisible une fois à la
+## bretelle (sous la veste), ou pendue pendant que le pistolet est en main.
+func _conceal_primary() -> void:
+	if not conceals_primary():
+		return
+	if _sidearm_built:
+		var slung := _torso.get_node_or_null(^"SlungPrimary") as Node3D
+		if slung:
+			slung.visible = false
+	else:
+		_rifle.visible = is_armed and _sling < 0.98
 
 
 ## Vrai si les mains sont libres (arme à la bretelle, ou pas d'arme).
@@ -2327,7 +2357,7 @@ func _build_legs() -> void:
 		# Haut de cuisse (fessier) et cuisse effilée vers le genou.
 		_ellipsoid(leg, 0.094 if _female else 0.088, Vector3(1.0, 0.9, 1.08), Vector3(0.012 * side if _female else 0.0, -0.03, 0.005), _m_pants)
 		_tapered(leg, 0.084, 0.063, THIGH_LENGTH, Vector3(0.0, -0.22, 0.0), _m_pants).scale.z = 1.08
-		if not civilian:
+		if not _civil:
 			# Poche cargo et son rabat.
 			_box(leg, Vector3(0.035, 0.13, 0.115), Vector3(0.078 * side, -0.25, 0.0), _m_pants)
 			_box(leg, Vector3(0.042, 0.03, 0.122), Vector3(0.08 * side, -0.175, 0.0), _m_pants)
@@ -2359,7 +2389,7 @@ func _build_legs() -> void:
 ## cou-de-pied incliné, bout renforcé, semelle crantée au bout arrondi.
 func _build_boot(knee: Node3D, ankle: Node3D) -> void:
 	var top := -SHIN_LENGTH + BOOT_SHAFT
-	if civilian:
+	if _civil:
 		# Bas de pantalon droit sur une chaussure de ville.
 		_tapered(knee, 0.052, 0.06, 0.07, Vector3(0.0, -SHIN_LENGTH + 0.07, 0.0), _m_pants)
 	else:
@@ -2384,7 +2414,7 @@ func _build_boot(knee: Node3D, ankle: Node3D) -> void:
 	instep.rotation.x = PI / 2.0 - 0.32
 	instep.scale = Vector3(1.0, 1.0, 0.85)
 	_ellipsoid(ankle, 0.051, Vector3(1.0, 0.72, 1.25), Vector3(0.0, -0.045, -0.128), _m_boot)
-	if not civilian:
+	if not _civil:
 		# Bout renforcé (pare-pierres) et laçage du cou-de-pied.
 		_ellipsoid(ankle, 0.052, Vector3(1.02, 0.42, 1.18), Vector3(0.0, -0.058, -0.134), _m_sole)
 		for i in 2:
@@ -2392,14 +2422,14 @@ func _build_boot(knee: Node3D, ankle: Node3D) -> void:
 			var lace := _box(ankle, Vector3(0.042, 0.005, 0.006), Vector3(0.0, 0.006 - i * 0.012, z - 0.012), _m_weapon)
 			lace.rotation = Vector3(-0.32, 0.5 if i % 2 == 0 else -0.5, 0.0)
 	# Semelle : plus large au talon, bout arrondi, crans dessous.
-	var sole := 0.024 if civilian else 0.03
+	var sole := (0.03 if _dress == &"casual" else 0.024) if _civil else 0.03
 	var sole_y := BOOT_SOLE + sole * 0.5
 	_box(ankle, Vector3(0.106, sole, 0.17), Vector3(0.0, sole_y, -0.045), _m_sole)
 	_cylinder(ankle, 0.053, sole, Vector3(0.0, sole_y, -0.13), _m_sole)
 	# Talon : arrondi derrière, un peu plus épais.
 	var heel := sole + 0.008
 	_cylinder(ankle, 0.05, heel, Vector3(0.0, BOOT_SOLE + heel * 0.5, 0.04), _m_sole)
-	if not civilian:
+	if not _civil:
 		# Crans sous la semelle (visibles quand le pied se dresse).
 		for i in 6:
 			_box(ankle, Vector3(0.096, 0.006, 0.012), Vector3(0.0, BOOT_SOLE - 0.002, -0.15 + i * 0.036), _m_weapon)
@@ -2411,7 +2441,7 @@ func _build_torso() -> void:
 	_ellipsoid(_torso, 0.19, Vector3(1.08 if _female else 1.0, 0.58 if _female else 0.55, 0.68 if _female else 0.66), Vector3(0.0, 0.03, 0.0), _m_pants)
 	_tapered(_torso, 0.2, 0.2, 0.055, Vector3(0.0, 0.085, 0.0), _m_gear).scale.z = 0.68
 	_box(_torso, Vector3(0.06, 0.045, 0.02), Vector3(0.0, 0.085, -0.137), _m_weapon)
-	if not civilian:
+	if not _civil:
 		_box(_torso, Vector3(0.07, 0.09, 0.06), Vector3(-0.2, 0.05, 0.0), _m_gear)
 	# Buste : taille, poitrine plus large, épaules arrondies, col.
 	# Silhouette féminine : taille plus marquée, buste et épaules plus étroits.
@@ -2448,8 +2478,10 @@ func _build_torso() -> void:
 		# Poche utilitaire et écusson de poitrine.
 		_box(vest, Vector3(0.14, 0.07, 0.03), Vector3(0.0, 0.46, -0.168), _m_gear)
 		_box(vest, Vector3(0.08, 0.035, 0.01), Vector3(0.0, 0.465, -0.186), _m_team)
-	elif civilian:
+	elif _dress == &"suit":
 		_build_suit()
+	elif _dress == &"casual":
+		_build_casual()
 	else:
 		# Sans gilet : poche de poitrine et écusson sur la veste, chargeurs au
 		# ceinturon.
@@ -2585,6 +2617,41 @@ func _build_suit() -> void:
 	_box(suit, Vector3(0.05, 0.018, 0.008), Vector3(-0.1, 0.43, -0.11), _m_white)
 
 
+## Tenue décontractée : blouson ouvert (couleur du haut) sur un t-shirt
+## chiné à col rond, fermeture éclair sur les bords, col et bas côtelés.
+func _build_casual() -> void:
+	var casual := _pivot(_torso, Vector3.ZERO, "Casual")
+	var tee := _mat(Color(0.7, 0.71, 0.7), 0.95)
+	var rib := _mat((_m_top.albedo_color as Color).darkened(0.3), 0.9)
+	var zip := _mat(Color(0.15, 0.15, 0.15), 0.4, 0.6)
+	_box(casual, Vector3(0.1, 0.27, 0.012), Vector3(0.0, 0.41, -0.11), tee).rotation.x = -0.06
+	# Col rond du t-shirt, col montant du blouson.
+	_tapered(casual, 0.07, 0.078, 0.025, Vector3(0.0, 0.552, 0.0), tee)
+	_tapered(casual, 0.085, 0.092, 0.045, Vector3(0.0, 0.55, 0.012), rib).scale.z = 0.9
+	for side: float in [-1.0, 1.0]:
+		var edge := _box(casual, Vector3(0.012, 0.3, 0.012), Vector3(0.056 * side, 0.39, -0.12), zip)
+		edge.rotation = Vector3(-0.06, 0.0, 0.05 * side)
+	# Bas côtelé du blouson, au-dessus de la ceinture.
+	_tapered(casual, 0.172, 0.174, 0.03, Vector3(0.0, 0.125, 0.0), rib).scale.z = 0.66
+
+
+## Lunettes de soleil enveloppantes : écran miroir en deux verres, monture
+## noire mate, branches jusqu'aux oreilles.
+func _build_sunglasses() -> void:
+	var glasses := _pivot(_head, Vector3.ZERO, "Sunglasses")
+	var lens := _mat(Color(0.06, 0.05, 0.04), 0.08, 0.9)
+	lens.emission_enabled = true
+	lens.emission = Color(0.45, 0.22, 0.05)
+	lens.emission_energy_multiplier = 0.15
+	var frame := _mat(Color(0.04, 0.04, 0.045), 0.6)
+	for side: float in [-1.0, 1.0]:
+		var piece := _ellipsoid(glasses, 0.024, Vector3(1.25, 0.62, 0.4), Vector3(0.036 * side, 0.191, -0.104), lens)
+		piece.rotation.y = 0.28 * side
+		_strap(Vector3(0.062 * side, 0.2, -0.094), Vector3(0.079 * side, 0.197, 0.0), 0.006, 0.012, frame, glasses)
+	_box(glasses, Vector3(0.11, 0.007, 0.01), Vector3(0.0, 0.2, -0.109), frame)
+	_box(glasses, Vector3(0.014, 0.01, 0.008), Vector3(0.0, 0.194, -0.112), frame)
+
+
 ## Apparence d'un soldat ennemi : visage, cheveux, barbe et couvre-chef,
 ## toujours la même pour un même nœud.
 func _pick_guard_look() -> Dictionary:
@@ -2689,7 +2756,8 @@ func _build_equipment(front: float) -> void:
 		kit.name = "Medkit"
 		_box(kit, Vector3(0.05, 0.014, 0.004), Vector3(0.0, 0.0, 0.026), _m_red)
 		_box(kit, Vector3(0.014, 0.05, 0.004), Vector3(0.0, 0.0, 0.026), _m_red)
-	for i in outfit.throwing_knives:
+	# En tenue civile, les couteaux se portent sous la veste.
+	for i in 0 if _civil else outfit.throwing_knives:
 		var sheath := _pivot(_torso, Vector3(-0.115 - 0.035 * i, 0.36, front - 0.02), "ThrowingKnife%d" % (i + 1))
 		_box(sheath, Vector3(0.026, 0.13, 0.016), Vector3.ZERO, _m_gear)
 		_box(sheath, Vector3(0.02, 0.05, 0.014), Vector3(0.0, 0.09, 0.0), _m_weapon)
@@ -2701,6 +2769,9 @@ func _build_sidearm(leg: Node3D) -> void:
 	if kind == &"none":
 		return
 	var holster := _pivot(leg, Vector3.ZERO, "Sidearm")
+	if _civil:
+		# Tenue civile : arme sous la veste, rien à la cuisse.
+		return
 	if _sidearm_built:
 		# Arme en main : holster vide.
 		_box(holster, Vector3(0.05, 0.20, 0.12), Vector3(0.115, -0.20, 0.0), _m_gear)
@@ -2796,6 +2867,8 @@ func _build_head() -> void:
 		_build_eyes()
 	else:
 		_build_face()
+	if outfit and outfit.sunglasses:
+		_build_sunglasses()
 	if outfit:
 		match outfit.headwear:
 			&"helmet":
