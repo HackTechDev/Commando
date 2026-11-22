@@ -1344,3 +1344,10 @@
 - Une cible est atteinte à 2 m du bord de son emprise au sol, et non plus à 4 m de son centre (convertible posé sur un toit).
 - Fausses alertes levées : hôte de Réception, officier, extraction de Kasbah et de La Tour. Reste, à juste titre, le Sabre d'Héliportage, au-delà du ravin.
 - Vérifié en jeu : les passages créés sont identiques avant et après (nombre et positions, Kasbah, Réception, La Tour). La suite GUT n'a pas été lancée.
+
+## Éditeur de mission : carte de couverture des gardes (8.3 a)
+
+- Case « Couverture des gardes » dans la section Carte du dock : le sol se colore par cases de 1 m selon ce que voient les gardes, en rouge la zone proche (vu même accroupi), en jaune la zone lointaine (vu debout), plus soutenu quand plusieurs gardes voient la case. Gardes postés à leur place, gardes en ronde sur tout leur chemin ; de nuit, zone lointaine réduite.
+- Recalculée à chaque action (pose, déplacement, Nuit, annulation), jamais enregistrée dans la scène (`addons/mission_editor/coverage.gd`).
+- Le dock suit aussi les annulations faites directement sur l'historique de la scène.
+- Vérifié (`tools/editor_check/step83a.gd`, Kasbah, Réception, bac à sable) : pour chaque garde posté, cases identiques à celles calculées dans le jeu lancé ; de nuit, 2 483 cases vues à Kasbah tombent à 1 003 ; rien dans la scène enregistrée. La suite GUT n'a pas été lancée.

@@ -11,6 +11,8 @@ extends EditorPlugin
 ##   portée des bruits.
 ## - Informations de la mission (`MissionInfo`) : objectifs et leurs cibles,
 ##   modifiées dans l'inspecteur, enregistrées avec la scène.
+## - Carte de couverture des gardes (`coverage.gd`), dessinée sans être
+##   enregistrée.
 ## - Nouvelle mission (gabarit `template.tscn`), « Vérifier » (`checker.gd`)
 ##   et « Essayer » (lance la scène seule).
 
@@ -19,6 +21,7 @@ const Dock := preload("res://addons/mission_editor/dock.gd")
 const Palette := preload("res://addons/mission_editor/palette.gd")
 const Gizmos := preload("res://addons/mission_editor/gizmos.gd")
 const Checker := preload("res://addons/mission_editor/checker.gd")
+const Coverage := preload("res://addons/mission_editor/coverage.gd")
 ## Gabarit d'une nouvelle mission (`tools/gen_mission_template.py`).
 const TEMPLATE := "res://addons/mission_editor/template.tscn"
 const LEVELS_DIR := "res://scenes/levels"
@@ -57,6 +60,13 @@ var _info: MissionInfo
 var _info_state: String = ""
 ## Passant ou voiture sélectionné, dont le dock montre le trajet.
 var _route: Node3D
+## Dessin de la couverture des gardes (sans propriétaire : jamais
+## enregistré) ; recalcul déjà demandé pour cette image.
+var _coverage: MeshInstance3D
+var _coverage_pending: bool = false
+## Historique de la scène ouverte, suivi en plus du gestionnaire : une
+## annulation qui passe directement par lui n'émet que `version_changed`.
+var _history: UndoRedo
 
 
 ## Nom de la métadonnée du moteur qui désigne le greffon (scénarios de
@@ -80,14 +90,17 @@ func _enter_tree() -> void:
 	_dock.new_mission_requested.connect(new_mission)
 	_dock.check_requested.connect(check)
 	_dock.play_requested.connect(_on_play_requested)
+	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
 	_gizmos.plugin = self
 	add_node_3d_gizmo_plugin(_gizmos)
 	scene_changed.connect(_on_scene_changed)
 	scene_saved.connect(_on_scene_saved)
-	# Annulation d'un réglage de la carte : le dock suit.
-	get_undo_redo().version_changed.connect(_refresh_dock)
+	# Action faite, annulée ou rétablie : le dock suit (`version_changed`
+	# n'est pas émis par l'historique de l'éditeur, `history_changed` l'est).
+	get_undo_redo().history_changed.connect(_refresh_dock)
+	get_undo_redo().history_changed.connect(_request_coverage)
 	set_input_event_forwarding_always_enabled()
 	set_force_draw_over_forwarding_enabled()
 	_on_scene_changed.call_deferred(EditorInterface.get_edited_scene_root())
@@ -97,7 +110,10 @@ func _exit_tree() -> void:
 	Engine.remove_meta(META)
 	scene_changed.disconnect(_on_scene_changed)
 	scene_saved.disconnect(_on_scene_saved)
-	get_undo_redo().version_changed.disconnect(_refresh_dock)
+	get_undo_redo().history_changed.disconnect(_refresh_dock)
+	get_undo_redo().history_changed.disconnect(_request_coverage)
+	_follow_history(null)
+	_clear_coverage()
 	EditorInterface.get_selection().selection_changed.disconnect(_on_selection_changed)
 	remove_node_3d_gizmo_plugin(_gizmos)
 	_save_info()
@@ -145,6 +161,8 @@ func _on_scene_changed(root: Node) -> void:
 	_cancel_tool()
 	_load_info(root)
 	_dock.show_report([])
+	_follow_history(root)
+	refresh_coverage()
 	_dock.show_scene(root, generator_of(root))
 	if root is LevelRoot:
 		_textures.apply(root)
@@ -557,3 +575,54 @@ static func _new_mission_error(folder: String) -> String:
 	if DirAccess.dir_exists_absolute("%s/%s" % [LEVELS_DIR, folder]):
 		return "Le dossier scenes/levels/%s existe déjà." % folder
 	return ""
+
+
+# --- Couverture des gardes -------------------------------------------------
+
+## Recalcul au plus une fois par image, après une action de l'historique.
+func _request_coverage() -> void:
+	if _coverage_pending or not _dock.coverage_enabled():
+		return
+	_coverage_pending = true
+	refresh_coverage.call_deferred()
+
+
+## Dessine (ou retire) la couverture des gardes sur la scène ouverte.
+## Renvoie les cases calculées.
+func refresh_coverage() -> Dictionary:
+	_coverage_pending = false
+	_clear_coverage()
+	var root := EditorInterface.get_edited_scene_root()
+	if not _dock.coverage_enabled() or not root is LevelRoot:
+		return {}
+	var cells := Coverage.compute(root)
+	_coverage = MeshInstance3D.new()
+	_coverage.name = "MissionEditorCoverage"
+	_coverage.mesh = Coverage.build_mesh(cells)
+	_coverage.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_coverage.top_level = true
+	root.add_child(_coverage)
+	return cells
+
+
+func _clear_coverage() -> void:
+	if is_instance_valid(_coverage):
+		_coverage.get_parent().remove_child(_coverage)
+		_coverage.queue_free()
+	_coverage = null
+
+
+func _follow_history(root: Node) -> void:
+	if _history and _history.version_changed.is_connected(_on_history_version):
+		_history.version_changed.disconnect(_on_history_version)
+	_history = null
+	if root == null:
+		return
+	var manager := get_undo_redo()
+	_history = manager.get_history_undo_redo(manager.get_object_history_id(root))
+	_history.version_changed.connect(_on_history_version)
+
+
+func _on_history_version() -> void:
+	_refresh_dock.call_deferred()
+	_request_coverage()

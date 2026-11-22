@@ -129,6 +129,8 @@ Les éléments qui bloquent le passage (murs, caisses, bâtiments) vont sous `Na
 
 Le **cône de vue** de chaque garde s'affiche au sol en jaune : la zone proche, plus soutenue, où il voit tout de suite, puis la zone lointaine. Cochez Nuit : la zone lointaine se réduit, comme en jeu. Placez les gardes pour que leurs cônes laissent un passage, sans en laisser un trop facile.
 
+Pour voir l'ensemble, cochez **Couverture des gardes** dans la section Carte. Le sol se colore case par case (1 m) selon ce que voient les gardes, avec les règles du jeu : murs et toits arrêtent la vue, la nuit réduit la zone lointaine. En **rouge**, la zone proche : on y est vu même accroupi. En **jaune**, la zone lointaine : on y est vu debout, pas accroupi. Plus la couleur est soutenue, plus il y a de gardes. Un garde en ronde compte sur tout son chemin, dans les deux sens de marche. La carte se recalcule à chaque changement (pose, déplacement, Nuit) et n'est jamais enregistrée dans la scène. Les cases sans couleur sont les passages.
+
 Pour l'exemple : deux gardes postés à l'entrée de la cour, une ronde autour du bâtiment, un garde en ronde le long de la route.
 
 ### 7. Poser les objectifs et l'extraction
@@ -267,6 +269,7 @@ Les raccourcis du greffon se changent dans Éditeur > Paramètres de l'éditeur 
 - **Bâtiments** : seulement le bâtiment réglable et ce qui existe déjà ; pas de dessin libre de pièces ni d'étages.
 - **Événements scriptés** (renforts, pick-ups qui arrivent, ateliers du didacticiel) : ils se modifient dans l'inspecteur, pas par le greffon.
 - **Missions des joueurs** : le greffon ne sert que dans l'éditeur, pas dans le jeu exporté.
+- **Couverture des gardes** : calculée au sol (y = 0), sans la fumée ni les gardes qui se retournent au bruit ; un garde en ronde est regardé à chaque point et au milieu de chaque segment, ce qui peut omettre un angle au passage d'un virage.
 
 ### Pour vérifier le greffon lui-même
 

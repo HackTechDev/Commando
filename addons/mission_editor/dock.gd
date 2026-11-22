@@ -21,6 +21,8 @@ signal nodes_selected(nodes: Array)
 ## Trajet sélectionné : ajouter ou retirer un point.
 signal route_point_added
 signal route_point_removed
+## Carte de couverture des gardes affichée ou non.
+signal coverage_toggled(on: bool)
 ## Nouvelle mission dans `scenes/levels/<folder>/`.
 signal new_mission_requested(folder: String)
 ## Boutons « Vérifier » et « Essayer ».
@@ -46,6 +48,8 @@ var _new_status: Label
 var _report_box: VBoxContainer
 var _grid: CheckBox
 var _surface: CheckBox
+var _coverage: CheckBox
+var _coverage_legend: Label
 var _status: Label
 var _body: VBoxContainer
 var _buttons: Dictionary = {}
@@ -134,6 +138,16 @@ func _init() -> void:
 			dress_code_selected.emit(DRESS_CODES[index]))
 	dress_row.add_child(_dress)
 	_body.add_child(dress_row)
+	_coverage = CheckBox.new()
+	_coverage.text = "Couverture des gardes"
+	_coverage.tooltip_text = "Colore le sol selon ce que voient les gardes (postés, et sur toute leur ronde), avec les règles du jeu et la nuit."
+	_coverage.toggled.connect(func(on: bool) -> void:
+		_coverage_legend.visible = on
+		coverage_toggled.emit(on))
+	_body.add_child(_coverage)
+	_coverage_legend = _label("Rouge : vu même accroupi (zone proche). Jaune : vu debout (zone lointaine). Plus soutenu : plusieurs gardes. Recalculée à chaque changement.", DIM_COLOR)
+	_coverage_legend.visible = false
+	_body.add_child(_coverage_legend)
 
 	_route_box = VBoxContainer.new()
 	_route_box.visible = false
@@ -304,6 +318,10 @@ func set_status(text: String) -> void:
 
 func grid_enabled() -> bool:
 	return _grid.button_pressed
+
+
+func coverage_enabled() -> bool:
+	return _coverage.button_pressed
 
 
 func surface_enabled() -> bool:

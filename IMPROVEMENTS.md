@@ -122,11 +122,10 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **e)** taille du terrain, type de sol et jour ou nuit choisis à la création d'une mission (aujourd'hui : herbe, 80 × 80 m, de jour) ;
   - **f)** limites de la caméra (`bounds` de `CameraRig`) affichées, réglables par poignées et calées sur le terrain.
 - **8.2 Vérification plus juste** :
-  - **d)** compter aussi les cordes de grappin dans les chemins (lancées en cours de partie, sans nœud sur la carte) ;
   - **b)** contrôles de placement : opérateurs vus par un garde dès le départ, éléments dans un mur ou qui se chevauchent, éléments hors du terrain ou des limites de la caméra, points de ronde inaccessibles ;
-  - **c)** vérification à chaque enregistrement, résumée dans le dock.
+  - **c)** vérification à chaque enregistrement, résumée dans le dock ;
+  - **d)** compter aussi les cordes de grappin dans les chemins (lancées en cours de partie, sans nœud sur la carte).
 - **8.3 Aides à la conception d'infiltration** :
-  - **a)** carte de couverture : sol coloré selon le nombre de gardes qui le voient, de jour et de nuit ;
   - **b)** rondes et voitures animées dans l'éditeur (bouton lecture et barre de temps), pour régler leur rythme sans lancer le jeu ;
   - **c)** aperçu de la carte sous l'angle et le zoom de la caméra du jeu.
 - **8.4 Confort d'édition** :
