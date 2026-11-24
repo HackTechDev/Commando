@@ -24,8 +24,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **f)** réaction des ennemis à un décor qui a bougé.
 - **2.9 Végétation** (couche 6) : buissons où se cacher, qui masquent partiellement la vue.
 - **2.15 Météo en jeu** : la pluie (« Quartier sous la pluie ») et la neige (« Station polaire ») sont aujourd'hui de simples effets visuels et sonores. Pistes :
-  - **a)** la pluie couvre les bruits de pas (portée d'ouïe des gardes réduite) ;
-  - **b)** la pluie ou une neige dense réduisent la portée de vue ;
   - **c)** traces de pas dans la neige, que les gardes peuvent suivre ;
   - **d)** opérateurs et gardes mouillés ou enneigés (teinte, reflets).
 

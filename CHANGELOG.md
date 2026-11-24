@@ -1592,3 +1592,8 @@
 
 - Les nuages de fumigène dérivent avec le vent de la carte (`LevelRoot.wind`, réglable dans l'inspecteur de la racine ; 0,5 m/s par défaut), d'autant plus qu'ils sont formés ; les bouffées sont poussées dans le même sens.
 - Un opérateur qui tire à travers un nuage épais tire au jugé : sa précision tombe à 30 %.
+
+## Météo en jeu : vue et ouïe des gardes (2.15 a, b)
+
+- Sous la pluie, les gardes entendent les bruits discrets (pas, course, chutes, appâts, impacts…) à 60 % de leur portée, et voient à 80 % de leur zone lointaine. Sous la neige : 85 % et 75 %. Les coups de feu, explosions et cris portent toujours. Réglable par carte (`sight_factor`, `hearing_factor` des nœuds « Pluie » et « Chute de neige »).
+- Les effets se cumulent avec la nuit. L'éditeur de mission en tient compte (cône des gardes, carte de couverture).

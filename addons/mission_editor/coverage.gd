@@ -47,17 +47,18 @@ static func compute(root: Node) -> Dictionary:
 	return cells
 
 
-## Vue d'un garde (`Enemy` qui voit), portée lointaine réduite la nuit
-## comme en jeu ; null pour tout autre nœud.
+## Vue d'un garde (`Enemy` qui voit), portée lointaine réduite la nuit, la
+## pluie ou la neige comme en jeu ; null pour tout autre nœud.
 static func config_of(guard: Node, night: bool) -> VisionConfig:
 	if not guard is Enemy or guard.get("blind"):
 		return null
 	var vision := guard.get_node_or_null(^"VisionComponent")
 	var config := vision.get("config") as VisionConfig if vision else null
-	if config == null or not night:
+	var sight := (LevelRoot.NIGHT_SIGHT if night else 1.0) * WeatherParticles.sight_factor_under(guard.owner if guard.owner else guard)
+	if config == null or sight >= 1.0:
 		return config
 	config = config.duplicate() as VisionConfig
-	config.far_range = maxf(config.near_range, config.far_range * LevelRoot.NIGHT_SIGHT)
+	config.far_range = maxf(config.near_range, config.far_range * sight)
 	return config
 
 

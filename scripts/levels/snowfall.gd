@@ -9,11 +9,23 @@ extends WeatherParticles
 	set(value):
 		flakes = value
 		_reconfigure()
+## Vue lointaine des gardes (part qui reste) et ouïe des bruits discrets :
+## la neige qui tombe cache et étouffe.
+@export_range(0.2, 1.0) var sight_factor: float = 0.75
+@export_range(0.2, 1.0) var hearing_factor: float = 0.85
 ## Vent (m/s) : dérive des flocons.
 @export var wind := Vector3(0.8, 0.0, 0.35):
 	set(value):
 		wind = value
 		_reconfigure()
+
+
+func sight() -> float:
+	return sight_factor
+
+
+func hearing() -> float:
+	return hearing_factor
 
 
 func _configure(particles: GPUParticles3D) -> void:

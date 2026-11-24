@@ -77,6 +77,9 @@ func _on_noise(at: Vector3, radius: float, type: StringName) -> void:
 	var reaction := reaction_to(type)
 	if reaction == Reaction.IGNORE:
 		return
+	# Pluie, neige : les bruits discrets portent moins loin (pas les alarmes).
+	if reaction == Reaction.INVESTIGATE:
+		radius *= WeatherParticles.hearing_factor_of(get_tree())
 	var force := loudness(at, radius)
 	if force <= 0.0:
 		return

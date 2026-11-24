@@ -15,6 +15,10 @@ const LOOP_FADE := 0.25
 	set(value):
 		drops = value
 		_reconfigure()
+## Vue lointaine des gardes (part qui reste) et ouïe des bruits discrets :
+## l'averse brouille la vue et couvre les pas.
+@export_range(0.2, 1.0) var sight_factor: float = 0.8
+@export_range(0.2, 1.0) var hearing_factor: float = 0.6
 ## Vent (m/s) : inclinaison des gouttes.
 @export var wind := Vector3(1.2, 0.0, 0.5):
 	set(value):
@@ -24,6 +28,14 @@ const LOOP_FADE := 0.25
 @export var volume_db: float = -14.0
 
 var _sound: AudioStreamPlayer
+
+
+func sight() -> float:
+	return sight_factor
+
+
+func hearing() -> float:
+	return hearing_factor
 
 
 func _configure(particles: GPUParticles3D) -> void:

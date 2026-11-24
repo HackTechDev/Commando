@@ -4,8 +4,12 @@ extends Node3D
 ## Précipitations (neige, pluie) : particules émises dans un volume centré
 ## sur le point du sol que vise la caméra, qu'il suit. Les particules
 ## restent dans le monde (`local_coords` faux) quand le volume se déplace :
-## le coût est fixe, quelle que soit la taille de la carte. Effet visuel
-## seul, sans effet sur la vue ni l'ouïe des gardes.
+## le coût est fixe, quelle que soit la taille de la carte.
+##
+## Effets de jeu (réglés par type, voir `sight_factor` et `hearing_factor`
+## des sous-classes) : les gardes voient moins loin (zone lointaine), et
+## entendent moins loin les bruits discrets (pas, chutes, appâts…) ; les
+## coups de feu, explosions et cris portent toujours.
 ##
 ## Les particules sont celles d'un enfant interne (`Fall`, sans
 ## propriétaire, jamais enregistré), placé hors du repère du nœud
@@ -24,6 +28,45 @@ static var editor_hidden: bool = false
 
 ## Particules affichées (enfant interne).
 var fall: GPUParticles3D
+
+
+## Part de la portée de vue lointaine des gardes qui reste (1 : aucun effet).
+func sight() -> float:
+	return 1.0
+
+
+## Part de la portée d'ouïe des bruits discrets qui reste (1 : aucun effet).
+func hearing() -> float:
+	return 1.0
+
+
+## Météo de la scène en cours, ou null.
+static func of(tree: SceneTree) -> WeatherParticles:
+	return tree.get_first_node_in_group(GROUP) as WeatherParticles if tree else null
+
+
+## Part de la portée de vue lointaine qui reste avec la météo de la scène
+## `root` (éditeur de mission : la scène éditée).
+static func sight_factor_under(root: Node) -> float:
+	if root == null or not root.is_inside_tree():
+		return 1.0
+	for node in root.get_tree().get_nodes_in_group(GROUP):
+		if root.is_ancestor_of(node):
+			return (node as WeatherParticles).sight()
+	return 1.0
+
+
+## Part de la portée de vue lointaine qui reste avec la météo de `tree`.
+static func sight_factor_of(tree: SceneTree) -> float:
+	var weather := of(tree)
+	return weather.sight() if weather else 1.0
+
+
+## Part de la portée d'ouïe (bruits discrets) qui reste avec la météo de
+## `tree`.
+static func hearing_factor_of(tree: SceneTree) -> float:
+	var weather := of(tree)
+	return weather.hearing() if weather else 1.0
 
 
 func _ready() -> void:

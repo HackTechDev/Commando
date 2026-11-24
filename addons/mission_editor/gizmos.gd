@@ -103,6 +103,7 @@ func _draw_cone(gizmo: EditorNode3DGizmo, enemy: Node3D) -> void:
 	var root := enemy.owner
 	if root is LevelRoot and root.get("night"):
 		far = maxf(near, far * LevelRoot.NIGHT_SIGHT)
+	far = maxf(near, far * WeatherParticles.sight_factor_under(root))
 	var half := deg_to_rad(config.fov_degrees) * 0.5
 	var steps := 24
 	var arc_near := PackedVector3Array()
