@@ -91,6 +91,8 @@ const ALL_GROUP := &"all_enemies"
 const DOCUMENTS_GROUP := &"documents"
 ## Intervalle (s) entre deux recherches de corps dans le champ de vision.
 const BODY_CHECK_INTERVAL := 0.3
+## Intervalle (s) entre deux regards sur les traces dans la neige.
+const TRACK_CHECK_INTERVAL := 0.5
 ## Rayon (m) du cri d'un ennemi qui découvre un corps.
 const BODY_ALARM_RADIUS := 12.0
 const GAUGE_HEIGHT := 2.3
@@ -163,6 +165,10 @@ var discovered: bool = false
 var carried_hips := Vector3.ZERO
 var carried_axis := Vector3.BACK
 var _body_check_left: float = 0.0
+var _track_check_left: float = 0.0
+## Heure (`SnowTracks.now`) de la dernière empreinte suivie : il ne réagit
+## qu'aux plus récentes.
+var _followed_track: float = -1.0
 ## Tirs retenus parce qu'un otage couvrait la cible.
 var hesitations: int = 0
 ## Cartouches restantes (négatif : sans limite).
@@ -650,6 +656,26 @@ func _look_for_bodies(delta: float) -> void:
 			return
 
 
+## Traces de pas fraîches dans la neige (`SnowTracks`) : au calme ou
+## méfiant, il va voir la plus récente qu'il voit, et suit ainsi la piste.
+func _look_for_tracks(delta: float) -> void:
+	if blind or state == State.ALERT:
+		return
+	_track_check_left -= delta
+	if _track_check_left > 0.0:
+		return
+	_track_check_left = TRACK_CHECK_INTERVAL
+	var tracks := SnowTracks.of(get_tree())
+	if tracks == null:
+		return
+	var found := tracks.freshest_seen_by(self, _followed_track)
+	if found.is_empty():
+		return
+	_followed_track = found["time"]
+	last_heard = &"tracks"
+	investigate(found["at"])
+
+
 ## Corps découvert : il crie (les ennemis proches accourent) et va voir.
 func discover_body(body: Enemy) -> void:
 	body.discovered = true
@@ -792,6 +818,7 @@ func _physics_process(delta: float) -> void:
 	wary_left = maxf(wary_left - delta, 0.0)
 	_update_detection(delta)
 	_look_for_bodies(delta)
+	_look_for_tracks(delta)
 	_update_state()
 	if _traversal.update(delta):
 		_model.aiming = false

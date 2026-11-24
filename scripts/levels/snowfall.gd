@@ -13,11 +13,21 @@ extends WeatherParticles
 ## la neige qui tombe cache et étouffe.
 @export_range(0.2, 1.0) var sight_factor: float = 0.75
 @export_range(0.2, 1.0) var hearing_factor: float = 0.85
+## Traces de pas des opérateurs dans la neige, que les gardes suivent
+## (`SnowTracks`).
+@export var tracks: bool = true
 ## Vent (m/s) : dérive des flocons.
 @export var wind := Vector3(0.8, 0.0, 0.35):
 	set(value):
 		wind = value
 		_reconfigure()
+
+
+func _start_game() -> void:
+	if tracks:
+		var prints := SnowTracks.new()
+		prints.name = "Tracks"
+		add_child(prints, false, Node.INTERNAL_MODE_BACK)
 
 
 func sight() -> float:

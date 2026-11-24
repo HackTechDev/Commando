@@ -233,7 +233,7 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Haie / buisson | 1 clic | `Decor` | Cachette pour les corps ; `kind` : buisson, eau, abri. |
 | | Lampadaire | 1 clic | `Lamps` | |
 | | Sapin enneigé | 1 clic | `NavigationRegion3D` | Tronc solide (vue, balles), feuillage poudré de neige ; `height`, `variant`. |
-| | Chute de neige | 1 clic | `Decor` | Flocons autour de ce que regarde la caméra ; `flakes`, `wind`. Une seule par carte ; visible aussi dans l'éditeur. |
+| | Chute de neige | 1 clic | `Decor` | Flocons autour de ce que regarde la caméra ; `flakes`, `wind` ; `tracks` : traces de pas que les gardes suivent ; `sight_factor`, `hearing_factor`. Une seule par carte ; visible aussi dans l'éditeur. |
 | | Pluie | 1 clic | `Decor` | Gouttes autour de ce que regarde la caméra, bruit de l'averse ; `drops`, `wind`, `volume_db`. Une seule par carte. |
 | | Immeuble à étages | 1 clic | `NavigationRegion3D` | 3 étages, 14 × 10 m ; `storeys`, `size`, `doors`, `windows` dans l'inspecteur. |
 | | Route, Trottoir, Piste | 2 clics | `Decor` | 9 m, 2,5 m, 4,5 m de large. |

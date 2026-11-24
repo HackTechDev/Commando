@@ -1597,3 +1597,9 @@
 
 - Sous la pluie, les gardes entendent les bruits discrets (pas, course, chutes, appâts, impacts…) à 60 % de leur portée, et voient à 80 % de leur zone lointaine. Sous la neige : 85 % et 75 %. Les coups de feu, explosions et cris portent toujours. Réglable par carte (`sight_factor`, `hearing_factor` des nœuds « Pluie » et « Chute de neige »).
 - Les effets se cumulent avec la nuit. L'éditeur de mission en tient compte (cône des gardes, carte de couverture).
+
+## Traces de pas dans la neige (2.15 c)
+
+- Sur une carte enneigée (nœud « Chute de neige », `tracks`), un opérateur qui marche, court ou rampe dehors, au sol, laisse des empreintes (pied gauche, pied droit ; une trace large en rampant). La neige les recouvre en 2 min 30 ; elles pâlissent avec l'âge.
+- Un garde au calme ou méfiant qui voit des empreintes de moins de 75 s va voir la plus récente, puis suit la piste vers les plus fraîches : marcher dans la neige devant une ronde trahit le passage de l'équipe.
+- Sauvegarde rapide à jour (empreintes gardées).

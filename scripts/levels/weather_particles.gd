@@ -78,6 +78,13 @@ func _ready() -> void:
 	_configure(fall)
 	refresh_visibility()
 	_follow_camera()
+	if not Engine.is_editor_hint():
+		_start_game()
+
+
+## En jeu seulement : ce qui accompagne la météo (traces, son…).
+func _start_game() -> void:
+	pass
 
 
 ## Réglages propres au type (neige, pluie) de `particles`.
