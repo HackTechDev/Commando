@@ -9,8 +9,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** les lancer automatiquement avant chaque commit (crochet Git) ou en intégration continue ;
   - **c)** couvrir ce qui manque encore : HUD et contrôles à la souris, sélection, caméra, transitions de posture debout/accroupi, patrouille et poursuite des ennemis, réveil puis lutte, chargement d'autres cartes UFO:AI ;
   - **d)** tester `SoldierModel.sample_keys` et les poses clés.
-
-  Il deviendra ingérable avec les états `Investigate`, `Search` et `Return`.
 - **1.5 Factoriser le code commun à `Commando` et `Enemy`** : déplacement par navigation, évitement, pas de côté, orientation et tir sont dupliqués. Extraire des composants (`MovementComponent`, `WeaponComponent`), comme le prévoit le §3.
 
 ## 2. Gameplay d'infiltration
@@ -32,13 +30,18 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **b)** charge à retardement, en plus de la mise à feu à distance ;
   - **c)** grenades assourdissantes pour l'infiltration (les fumigènes existent) ;
   - **d)** fumée qui dérive avec le vent, et qui gêne aussi la visée des opérateurs.
+- **2.15 Météo en jeu** : la pluie (« Quartier sous la pluie ») et la neige (« Station polaire ») sont aujourd'hui de simples effets visuels et sonores. Pistes :
+  - **a)** la pluie couvre les bruits de pas (portée d'ouïe des gardes réduite) ;
+  - **b)** la pluie ou une neige dense réduisent la portée de vue ;
+  - **c)** traces de pas dans la neige, que les gardes peuvent suivre ;
+  - **d)** opérateurs et gardes mouillés ou enneigés (teinte, reflets).
 
 ## 4. Contrôles et lisibilité
 
 - **4.2 Prévisualisation du chemin** (§5.1) : tracer l'itinéraire avant et pendant le déplacement.
 - **4.3 Cône à la demande** (§5.2) : n'afficher le cône qu'au survol ou avec Maj + clic, et montrer aussi la portée de tir des opérateurs.
 - **4.5 Annulation propre pendant l'escalade** : l'opérateur n'accepte aucun ordre pendant 1 à 1,4 s. Il faudrait mettre l'ordre en file d'attente plutôt que de l'ignorer.
-- **4.6 Groupes de contrôle** (Ctrl + chiffre), et double appui sur un chiffre pour centrer la caméra.
+- **4.6 Groupes de contrôle** : enregistrer une sélection de plusieurs opérateurs sous un chiffre, et la rappeler. Ctrl + chiffre sélectionne déjà un opérateur et centre la caméra sur lui ; reste aussi le double appui sur un chiffre pour centrer la caméra.
 - **4.9 Portée des lancers** : quand T ou N est armé, afficher au sol autour de l'opérateur concerné :
   - **a)** pour le couteau, les cercles de 7 m et de 4 m (où le lancer porte toujours), et la trajectoire au survol d'un ennemi ;
   - **b)** pour la grenade, le cercle de 12 m, et la zone de l'explosion au survol du sol.
@@ -92,7 +95,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** remplacer les sons synthétisés par de vrais sons CC0 (M10) ;
   - **b)** musique dynamique selon le niveau d'alerte (le bus « Musique » est prêt) ;
   - **c)** répliques des opérateurs à la sélection et aux ordres (bus « Voix ») ;
-  - **e)** sons d'ambiance ;
+  - **e)** sons d'ambiance (vent, circulation, oiseaux ; la pluie a déjà le sien, synthétisé) ;
   - **f)** sous-titres des sons importants, pour l'accessibilité (le signal `Sfx.played` existe).
 
 
@@ -105,3 +108,4 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **b)** routes au pinceau, avec carrefours, et trottoirs posés le long des routes.
 - **8.5 Fiabilité et ménage** :
   - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification.
+- **8.6 Météo dans l'éditeur** : la neige et la pluie (`Snowfall`, `Rainfall`) ne s'affichent qu'en jeu. Les montrer dans la vue de l'éditeur (sans le bruit de la pluie), avec une case pour les masquer.
