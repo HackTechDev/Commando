@@ -71,6 +71,9 @@ func update(delta: float) -> Vector3:
 			crate.global_position += step
 			unit.global_position += step
 			_moving = true
+			# Poussée au-delà d'un rebord : elle tombe (l'ordre est annulé).
+			if crate.check_support():
+				return Vector3.ZERO
 			unit._model.move_ratio = speed / unit.stats.walk_speed
 			_noise_left -= delta
 			if _noise_left <= 0.0:
@@ -85,4 +88,5 @@ func update(delta: float) -> Vector3:
 	if _moving:
 		_moving = false
 		EventBus.navigation_obstacle_moved.emit()
+		Climbable.settle_all(unit.get_tree())
 	return Vector3.ZERO

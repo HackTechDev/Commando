@@ -1621,3 +1621,9 @@
 - Une caisse poussée ou tirée passe par-dessus un ennemi assommé, au lieu de s'arrêter contre lui.
 - Posée sur son bassin, elle le coince : il ne se réveille pas tant qu'elle y est (marque « coincé »).
 - Si elle couvre le corps entier (bassin et tête), il échappe aux regards : les gardes ne le découvrent pas. Un corps derrière une caisse était déjà caché par elle, qui arrête la vue.
+
+## Caisses qui tombent d'un rebord et écrasent (2.8 b, c)
+
+- Une caisse poussée (ou soufflée par une explosion) au-delà d'un rebord, son centre dans le vide, tombe : l'opérateur la lâche.
+- À l'arrivée : un fracas qui porte à 16 m. Un ennemi dessous est tué si elle tombe de 1,5 m ou plus, assommé sinon. Un opérateur dessous perd 60 PV.
+- Une caisse posée sur une autre tombe quand celle du dessous est déplacée ou détruite.

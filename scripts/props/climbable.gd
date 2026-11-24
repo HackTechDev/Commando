@@ -49,6 +49,18 @@ var damage_taken: float = 0.0
 const BLAST_DESTROY_RATIO := 0.45
 const BLAST_PUSH := 2.5
 const BLAST_SLIDE_TIME := 0.3
+## Chute d'un rebord : au-delà de ce vide sous son centre, la caisse tombe.
+## Hauteur de chute à partir de laquelle elle tue l'ennemi qu'elle écrase
+## (en deçà, il est assommé) ; dégâts à un opérateur écrasé ; portée du
+## fracas.
+const FALL_MIN := 0.3
+const CRUSH_KILL_HEIGHT := 1.5
+const CRUSH_OPERATOR_DAMAGE := 60.0
+const FALL_NOISE_RADIUS := 16.0
+const MASK_SUPPORT := 0b11
+
+## En train de tomber d'un rebord.
+var falling: bool = false
 
 
 func _enter_tree() -> void:
@@ -251,7 +263,78 @@ func blast(from: Vector3, radius: float) -> bool:
 	var tween := create_tween()
 	tween.tween_property(self, "global_position", goal, BLAST_SLIDE_TIME).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_callback(EventBus.navigation_obstacle_moved.emit)
+	tween.tween_callback(check_support)
 	return true
+
+
+## Hauteur du premier appui (sol, mur, autre caisse) sous le centre de
+## l'objet ; sa propre base s'il n'y a rien dessous.
+func support_height() -> float:
+	var from := global_position + Vector3.UP * 0.05
+	var query := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 40.0, MASK_SUPPORT)
+	query.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	return (hit["position"] as Vector3).y if not hit.is_empty() else global_position.y
+
+
+## Poussée au-delà d'un rebord (centre dans le vide) : elle tombe, écrase ce
+## qui est dessous (`_land`). Renvoie vrai si elle tombe. Un objet occupé ne
+## tombe pas.
+func check_support() -> bool:
+	if not movable or is_broken or falling or occupant != null:
+		return false
+	var below := support_height()
+	var drop := global_position.y - below
+	if drop < FALL_MIN:
+		return false
+	falling = true
+	if handler:
+		handler.release_crate()
+	var tween := create_tween()
+	tween.tween_property(self, "global_position:y", below, sqrt(2.0 * drop / 9.8)).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.tween_callback(_land.bind(drop))
+	return true
+
+
+## Les objets restés en l'air (posés sur une caisse déplacée ou détruite)
+## tombent.
+static func settle_all(tree: SceneTree) -> void:
+	for node in tree.get_nodes_in_group(&"climbables"):
+		var crate := node as Climbable
+		if crate and crate.movable and crate.handler == null:
+			crate.check_support()
+
+
+## Fin de chute de `drop` m : fracas, ennemis écrasés dessous (tués de
+## haut, assommés sinon), opérateurs blessés.
+func _land(drop: float) -> void:
+	falling = false
+	Sfx.play_at(&"fall", global_position + Vector3.UP * 0.4, 2.0)
+	EventBus.noise_emitted.emit(global_position, FALL_NOISE_RADIUS, &"crate")
+	for node in get_tree().get_nodes_in_group(Enemy.ALL_GROUP):
+		var enemy := node as Enemy
+		if enemy and not enemy.is_dead and _under(enemy.global_position):
+			if drop >= CRUSH_KILL_HEIGHT:
+				enemy.health.take_damage(enemy.health.health + 1.0)
+			elif not enemy.is_stunned():
+				enemy.knock_out()
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and _under(unit.global_position):
+			unit.health.take_damage(CRUSH_OPERATOR_DAMAGE)
+	EventBus.navigation_obstacle_moved.emit()
+	# Sur un autre rebord ? Elle continue. Ce qui était posé dessus suit.
+	check_support()
+	settle_all.call_deferred(get_tree())
+
+
+## Vrai si une unité aux pieds `at` (rayon d'environ 0,35 m) est sous
+## l'emprise de l'objet posé.
+func _under(at: Vector3) -> bool:
+	if absf(at.y - global_position.y) > 0.6:
+		return false
+	var local := global_transform.affine_inverse() * at
+	return absf(local.x) <= half_extent + 0.35 and absf(local.z) <= half_extent + 0.35
 
 
 ## Points de résistance aux balles : une caisse tient plus qu'un bidon.
@@ -297,6 +380,8 @@ func _set_broken(broken: bool) -> void:
 	else:
 		add_to_group(&"climbables")
 	EventBus.navigation_obstacle_moved.emit()
+	if broken and is_inside_tree():
+		settle_all.call_deferred(get_tree())
 
 
 ## Sauvegarde rapide (`QuickSave`) : place et orientation (caisses
