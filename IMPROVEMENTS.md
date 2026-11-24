@@ -15,7 +15,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 - **2.5 Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
 - **2.8 Caisses, suite** :
-  - **d)** tourner une caisse ;
   - **e)** caisses trop lourdes pour un seul opérateur (pousser à deux) ;
   - **f)** réaction des ennemis à un décor qui a bougé.
 - **2.9 Végétation** (couche 6) : buissons où se cacher, qui masquent partiellement la vue.

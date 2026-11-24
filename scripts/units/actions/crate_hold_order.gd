@@ -5,12 +5,18 @@ extends CommandoAction
 ## Le déplacement est scripté : la physique de l'unité ne s'en mêle pas.
 
 const NOISE_INTERVAL := 0.5
+## Rotation : pas d'un ordre (45°) et vitesse (rad/s).
+const TURN_STEP := PI / 4.0
+const TURN_SPEED := 1.2
 
 var crate: Climbable
 var side: Vector3
 var goal: Vector3
 var _moving: bool = false
 var _noise_left: float = 0.0
+## Angle (rad) qui reste à faire tourner la caisse autour de son axe
+## vertical (positif : sens trigonométrique vu de dessus).
+var _turn_left: float = 0.0
 
 
 func _init(owner: Commando, target: Climbable, toward: Vector3) -> void:
@@ -37,6 +43,14 @@ func hands_free() -> bool:
 	return true
 
 
+## Fait pivoter la caisse d'un huitième de tour (`TURN_STEP`) : l'opérateur
+## tourne autour avec elle, mains posées sur le même côté. Elle se pousse
+## ensuite dans le nouvel axe (en diagonale, par exemple).
+func turn(clockwise: bool = true) -> void:
+	goal = crate.global_position
+	_turn_left += -TURN_STEP if clockwise else TURN_STEP
+
+
 ## Destination de la caisse : projection de `target` sur l'axe du côté tenu.
 func set_goal(target: Vector3) -> void:
 	var axis := -side
@@ -60,6 +74,9 @@ func update(delta: float) -> Vector3:
 		return Vector3.ZERO
 	unit.velocity = Vector3.ZERO
 	unit._model.posture = unit.posture
+	if absf(_turn_left) > 0.001:
+		_update_turn(delta)
+		return Vector3.ZERO
 	var axis := -side
 	unit._face(axis, delta)
 	var remaining := (goal - crate.global_position).dot(axis)
@@ -83,10 +100,46 @@ func update(delta: float) -> Vector3:
 			return Vector3.ZERO
 		# Bloqué : la caisse reste où elle est.
 		goal = crate.global_position
+	_stop()
+	return Vector3.ZERO
+
+
+## Rotation en cours : un pas, si la caisse et l'opérateur ont la place.
+func _update_turn(delta: float) -> void:
+	var angle := signf(_turn_left) * minf(absf(_turn_left), TURN_SPEED * delta)
+	var basis := crate.global_basis.rotated(Vector3.UP, angle)
+	var center := crate.global_position
+	var new_side := side.rotated(Vector3.UP, angle)
+	var grip := grip_point(crate, new_side, unit.global_position.y)
+	var step := grip - unit.global_position
+	step.y = 0.0
+	if not crate.is_free_at(center, [unit.get_rid()], basis) or unit.test_move(unit.global_transform, step):
+		# Bloquée : elle reste où elle est.
+		_turn_left = 0.0
+		_stop()
+		return
+	crate.global_basis = basis
+	side = new_side
+	unit.global_position += step
+	unit._face(-side, delta * 4.0)
+	_turn_left -= angle
+	_moving = true
+	unit._model.move_ratio = 0.4
+	_noise_left -= delta
+	if _noise_left <= 0.0:
+		_noise_left = NOISE_INTERVAL
+		EventBus.noise_emitted.emit(center, unit.stats.crate_noise_radius, &"crate")
+		Sfx.play_at(&"scrape", center, -6.0, 0.15)
+	if absf(_turn_left) <= 0.001:
+		_turn_left = 0.0
+		_stop()
+
+
+## Plus rien ne bouge : la navigation et les piles se mettent à jour.
+func _stop() -> void:
 	unit._model.move_ratio = 0.0
 	_noise_left = 0.0
 	if _moving:
 		_moving = false
 		EventBus.navigation_obstacle_moved.emit()
 		Climbable.settle_all(unit.get_tree())
-	return Vector3.ZERO

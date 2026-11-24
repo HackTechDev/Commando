@@ -232,7 +232,7 @@ text = "Porter"
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 0
-tooltip_text = "Caisse : puis clic gauche sur le côté d'une caisse. L'opérateur le plus proche s'y place, passe son arme à la bretelle et pose les mains dessus. Clic droit au sol : il pousse ou tire la caisse dans l'axe, jusqu'au point visé ou au premier obstacle. Tout autre ordre, F ou P lui fait lâcher la caisse. La caisse frotte au sol (bruit de 3 m)."
+tooltip_text = "Caisse : puis clic gauche sur le côté d'une caisse. L'opérateur le plus proche s'y place, passe son arme à la bretelle et pose les mains dessus. Clic droit au sol : il pousse ou tire la caisse dans l'axe, jusqu'au point visé ou au premier obstacle. Maj + P la fait pivoter de 45°. Tout autre ordre, F ou P lui fait lâcher la caisse. La caisse frotte au sol (bruit de 3 m)."
 toggle_mode = true
 text = "Caisse  [P]"
 

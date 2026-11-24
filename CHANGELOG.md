@@ -1627,3 +1627,7 @@
 - Une caisse poussée (ou soufflée par une explosion) au-delà d'un rebord, son centre dans le vide, tombe : l'opérateur la lâche.
 - À l'arrivée : un fracas qui porte à 16 m. Un ennemi dessous est tué si elle tombe de 1,5 m ou plus, assommé sinon. Un opérateur dessous perd 60 PV.
 - Une caisse posée sur une autre tombe quand celle du dessous est déplacée ou détruite.
+
+## Faire pivoter une caisse (2.8 d)
+
+- Maj + P fait pivoter d'un huitième de tour la caisse tenue : l'opérateur tourne autour avec elle, mains sur le même côté. Elle se pousse ensuite dans le nouvel axe (en diagonale). La rotation s'arrête contre un obstacle et frotte au sol comme une poussée.

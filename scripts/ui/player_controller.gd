@@ -503,8 +503,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"action_knockout"):
 		toggle_pending_action(ACTION_KNOCKOUT)
 	elif event.is_action_pressed(&"action_crate"):
-		# P lâche la caisse tenue ; sinon, arme l'action.
-		if not SelectionManager.release_crates():
+		# Maj + P fait pivoter la caisse tenue (45°) ; P la lâche ; sinon,
+		# arme l'action.
+		if Input.is_action_pressed(&"action_variant"):
+			SelectionManager.turn_crates()
+		elif not SelectionManager.release_crates():
 			toggle_pending_action(ACTION_CRATE)
 	elif event.is_action_pressed(&"action_throw"):
 		toggle_pending_action(ACTION_THROW)

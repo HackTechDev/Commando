@@ -188,12 +188,13 @@ func get_side_toward(near: Vector3) -> Vector3:
 ## Vrai si la caisse tiendrait à `at` sans heurter d'obstacle ni d'unité
 ## (hormis celles de `exclude`). Un ennemi assommé, au sol, ne l'arrête pas :
 ## elle passe par-dessus et le coince (`covering`).
-func is_free_at(at: Vector3, exclude: Array[RID]) -> bool:
+## `basis` : orientation à essayer (la sienne par défaut).
+func is_free_at(at: Vector3, exclude: Array[RID], basis: Variant = null) -> bool:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(half_extent * 2.0 - 0.01, top_height - 0.04, half_extent * 2.0 - 0.01)
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = shape
-	query.transform = Transform3D(global_basis, at + Vector3.UP * (top_height * 0.5 + 0.02))
+	query.transform = Transform3D(basis as Basis if basis != null else global_basis, at + Vector3.UP * (top_height * 0.5 + 0.02))
 	query.collision_mask = MASK_BLOCKERS
 	var excluded: Array[RID] = [get_rid()]
 	excluded.append_array(exclude)

@@ -232,6 +232,17 @@ func release_crates() -> bool:
 	return released
 
 
+## Fait pivoter d'un huitième de tour les caisses tenues par la sélection.
+## Renvoie faux si personne n'en tient.
+func turn_crates() -> bool:
+	var turned := false
+	for unit in selected:
+		if unit.is_handling_crate():
+			(unit._order as CrateHoldOrder).turn()
+			turned = true
+	return turned
+
+
 ## Confie la caisse `crate` à l'unité sélectionnée la plus proche, qui se
 ## place du côté le plus proche de `near`. Renvoie faux si aucune ne le peut.
 func order_crate(crate: Climbable, near: Vector3) -> bool:

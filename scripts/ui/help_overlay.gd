@@ -53,6 +53,7 @@ const SECTIONS: Array = [
 		[[&"action_detonate"], "Mise à feu des charges"],
 		[[&"action_medkit"], "Soigner"],
 		[[&"action_crate"], "Pousser / tirer une caisse"],
+		[[[&"action_variant", &"action_crate"]], "Faire pivoter la caisse tenue (45°)"],
 		[[&"action_grapple"], "Grappin, puis clic sur un point en hauteur"],
 		[["Clic milieu sur le VIP"], "Ordres au VIP"],
 	]],
