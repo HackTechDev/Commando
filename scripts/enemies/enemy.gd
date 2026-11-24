@@ -116,6 +116,7 @@ var chase_behavior := EnemyChase.new(self)
 var stunned_behavior := EnemyStunned.new(self)
 var grabbed_behavior := EnemyGrabbed.new(self)
 var disarmed_behavior := EnemyDisarmed.new(self)
+var dazed_behavior := EnemyDazed.new(self)
 var behavior: EnemyBehavior = patrol_behavior
 ## Composants : tir, corps à corps, regard.
 var gunner := EnemyGunner.new(self)
@@ -170,6 +171,8 @@ var ammo: int = -1
 var disarmed: bool = false
 ## Ligoté (assommé, poignets et chevilles liés) : il ne se réveille plus.
 var tied: bool = false
+## Assourdi (grenade assourdissante) : temps restant (s), voir `EnemyDazed`.
+var dazed_left: float = 0.0
 ## Temps (s) écoulé depuis son passage en alerte.
 var alert_age: float = 0.0
 ## Arme qu'on lui a arrachée, au sol.
@@ -349,7 +352,7 @@ func is_guarding() -> bool:
 ## Vrai s'il repousse un assaillant venant de `from` : en alerte, il le voit
 ## arriver de face et le coup échoue.
 func resists(from: Vector3) -> bool:
-	if is_dead or disarmed or state != State.ALERT or brawler.off_balance_left > 0.0:
+	if is_dead or disarmed or state != State.ALERT or brawler.off_balance_left > 0.0 or is_dazed():
 		return false
 	var to := from - global_position
 	to.y = 0.0
@@ -375,7 +378,40 @@ static func hostage_in_the_way(tree: SceneTree, from: Vector3, to: Vector3) -> E
 ## Vrai s'il est pris de court : pas encore en alerte, en alerte depuis
 ## moins de `SURPRISE_TIME`, ou déséquilibré.
 func is_surprised() -> bool:
-	return state != State.ALERT or alert_age < SURPRISE_TIME or brawler.off_balance_left > 0.0
+	return state != State.ALERT or alert_age < SURPRISE_TIME or brawler.off_balance_left > 0.0 or is_dazed()
+
+
+## Vrai s'il est assourdi (grenade assourdissante).
+func is_dazed() -> bool:
+	return dazed_left > 0.0 and not is_dead
+
+
+## Assourdi `seconds` secondes par une grenade assourdissante qui a détonné
+## en `at` : aveugle, sans tir ni défense (`EnemyDazed`) ; ensuite en alerte
+## vers `at`. Sans effet sur un ennemi au sol ou saisi.
+func daze(seconds: float, at: Vector3) -> void:
+	if is_dead or state == State.STUNNED or state == State.GRABBED:
+		return
+	_traversal.cancel()
+	brawler.cancel()
+	gunner.cancel_reload()
+	dazed_left = maxf(dazed_left, seconds)
+	_last_seen = at
+	_target = null
+	velocity = Vector3.ZERO
+	_sync_behavior()
+	_update_feedback()
+
+
+## Fin de l'assourdissement : en alerte vers la détonation.
+func _recover_from_daze() -> void:
+	dazed_left = 0.0
+	detection = 1.0
+	_memory_left = stats.alert_memory
+	chase_behavior.arrived = false
+	_update_state()
+	_sync_behavior()
+	_update_feedback()
 
 
 ## Vrai s'il porte une arme qu'on peut lui arracher.
@@ -683,6 +719,14 @@ func _update_feedback() -> void:
 		_mark.text = "ligoté" if tied else "z z"
 		_mark.modulate = Color(0.85, 0.7, 0.45) if tied else Color(0.6, 0.8, 1.0)
 		return
+	if is_dazed():
+		_gauge.visible = true
+		_gauge.position.y = GAUGE_HEIGHT
+		_gauge_back.visible = false
+		_gauge_fill.visible = false
+		_mark.text = "sonné"
+		_mark.modulate = Color(1.0, 1.0, 0.7)
+		return
 	_gauge.position.y = GAUGE_HEIGHT
 	_gauge_back.visible = true
 	_gauge_fill.visible = true
@@ -811,6 +855,8 @@ func _base_behavior() -> EnemyBehavior:
 			return stunned_behavior
 		State.GRABBED:
 			return grabbed_behavior
+	if dazed_left > 0.0:
+		return dazed_behavior
 	if disarmed:
 		return disarmed_behavior
 	match state:
@@ -1091,7 +1137,7 @@ func save_state() -> Dictionary:
 		"position": global_position, "rotation": rotation.y, "state": state,
 		"detection": detection, "waypoint": _waypoint_index, "stun_left": stunned_behavior.left, "ammo": ammo,
 		"magazine": gunner.magazine, "reload_left": gunner.reload_left,
-		"disarmed": disarmed, "tied": tied,
+		"disarmed": disarmed, "tied": tied, "dazed_left": dazed_left,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
 		"rockets": rockets, "documents": documents,
@@ -1137,6 +1183,7 @@ func load_state(data: Dictionary) -> void:
 		_update_feedback()
 		return
 	tied = false
+	dazed_left = data.get("dazed_left", 0.0)
 	if saved == State.GRABBED:
 		saved = State.ALERT
 	if state == State.STUNNED:

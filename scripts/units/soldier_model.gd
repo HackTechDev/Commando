@@ -19,7 +19,7 @@ enum DefendMove { PARRY, DODGE }
 ## lancer du poignet (caillou).
 enum ThrowStyle { KNIFE, OVERHAND, LOB, FLICK }
 ## Objet tenu pendant un lancer.
-enum ThrowObject { KNIFE, GRENADE, SMOKE, PEBBLE, NONE }
+enum ThrowObject { KNIFE, GRENADE, SMOKE, PEBBLE, NONE, STUN }
 enum StrikeMove { UPPERCUT, FRONT_KICK, ROUNDHOUSE, SIDE_KICK, BUTT_STRIKE, CHOKE, THROAT_CUT, ELBOW, KNEE, JAB_HOOK, SWEEP, HIP_THROW, GROUND_PUNCH, DISARM, HATCHET_CHOP }
 enum ArmPose { RIFLE, REACH, PUSH, STRIKE, LIMP, LIMP_PRONE, FREE }
 ## Corde verticale sous un appareil en vol : glissade vers le sol
@@ -1735,7 +1735,7 @@ func _animate_alive(delta: float) -> void:
 		_arm_joints[i].quaternion = _arm_joints[i].quaternion.slerp(goal, arm_blend)
 	var held_object := throw_object if throwing and not released else ThrowObject.NONE
 	_hand_grenade.visible = held_object == ThrowObject.GRENADE
-	_hand_smoke.visible = held_object == ThrowObject.SMOKE
+	_hand_smoke.visible = held_object == ThrowObject.SMOKE or held_object == ThrowObject.STUN
 	_hand_pebble.visible = held_object == ThrowObject.PEBBLE
 	_hatchet.visible = strike_progress >= 0.0 and strike_move == StrikeMove.HATCHET_CHOP and not is_dead
 	_knife.visible = (strike > 0.0 and strike_with_knife) or held_object == ThrowObject.KNIFE or (grapple and strike_move == StrikeMove.THROAT_CUT and punch_t > 0.1 and punch_t < 0.9)

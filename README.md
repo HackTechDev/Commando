@@ -59,6 +59,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Ramasser du ravitaillement (chargeurs, grenades, fumigènes, trousse de soins ; un ennemi abattu laisse un chargeur) : l'opérateur prend ce qui lui manque, le reste demeure | Passer dessus à pied (clic droit à côté) |
 | Caillou de diversion (jusqu'à 14 m) | T, puis clic gauche au sol : les ennemis à moins de 7 m vont voir |
 | Grenade explosive (équipement, jusqu'à 12 m) | N, puis clic gauche au sol |
+| Grenade assourdissante (équipement, jusqu'à 12 m) : les ennemis à moins de 8 m qui la voient sont sonnés 3 à 7 s (ni vue, ni tir, ni défense : à désarmer, assommer ou saisir), puis en alerte | Maj + N, puis clic gauche au sol |
 | Poser une charge explosive / la faire sauter à distance | K / L |
 | Poser une charge à retardement (saute seule au bout de 10 s, compte à rebours affiché ; L la fait sauter plus tôt) | Maj + K |
 | Grenade fumigène (équipement, jusqu'à 12 m) | ; (touche à droite de « , » en AZERTY), puis clic gauche au sol : le nuage cache les opérateurs aux ennemis |

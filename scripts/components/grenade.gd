@@ -2,7 +2,9 @@ class_name Grenade
 extends Node3D
 ## Grenade lancée par un opérateur : vole en cloche jusqu'au point visé,
 ## roule un instant, puis explose (`Explosion`) ; fumigène (`smoke`), elle
-## libère à la place un nuage (`SmokeCloud`) qui coupe la vue des ennemis.
+## libère à la place un nuage (`SmokeCloud`) qui coupe la vue des ennemis ;
+## assourdissante (`stun`), un éclair et une détonation qui sonnent les
+## ennemis proches (`StunBurst`).
 
 ## Vitesse horizontale (m/s) et flèche de la cloche par mètre parcouru.
 const SPEED := 10.0
@@ -19,13 +21,15 @@ var _damage: float = 150.0
 var _noise: float = 30.0
 var _landed: bool = false
 var smoke: bool = false
+var stun: bool = false
 var _ball: MeshInstance3D
 
 
 ## Lance une grenade de `from` vers `to`, avec les réglages de `stats`.
-static func spawn(parent: Node, from: Vector3, to: Vector3, stats: UnitStats, is_smoke: bool = false) -> Grenade:
+static func spawn(parent: Node, from: Vector3, to: Vector3, stats: UnitStats, is_smoke: bool = false, is_stun: bool = false) -> Grenade:
 	var grenade := Grenade.new()
 	grenade.smoke = is_smoke
+	grenade.stun = is_stun
 	grenade._from = from
 	grenade._to = to
 	var flat := Vector2(to.x - from.x, to.z - from.z).length()
@@ -47,13 +51,13 @@ func has_landed() -> bool:
 func _ready() -> void:
 	_ball = MeshInstance3D.new()
 	var material := StandardMaterial3D.new()
-	if smoke:
+	if smoke or stun:
 		var can := CylinderMesh.new()
 		can.top_radius = 0.035
 		can.bottom_radius = 0.035
 		can.height = 0.14
 		_ball.mesh = can
-		material.albedo_color = Color(0.42, 0.45, 0.4)
+		material.albedo_color = Color(0.2, 0.22, 0.24) if stun else Color(0.42, 0.45, 0.4)
 	else:
 		var sphere := SphereMesh.new()
 		sphere.radius = 0.045
@@ -80,6 +84,8 @@ func _physics_process(delta: float) -> void:
 	if _time >= _fuse:
 		if smoke:
 			SmokeCloud.spawn(get_parent(), global_position)
+		elif stun:
+			StunBurst.detonate(get_parent(), global_position, _noise)
 		else:
 			Explosion.detonate(get_parent(), global_position, _radius, _damage, _noise)
 		queue_free()

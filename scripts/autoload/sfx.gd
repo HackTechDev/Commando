@@ -169,6 +169,12 @@ func _build_library() -> void:
 		_noise(1.3, 0.002, 0.45, 0.45, 1.0),
 		_tone([95.0, 28.0], 1.0, 1.0, 0.002, 0.4),
 	]))
+	# Grenade assourdissante : détonation sèche, très claire, et sifflement.
+	_streams[&"bang"] = _wav(_mix([
+		_noise(0.5, 0.001, 0.08, 0.95, 1.0),
+		_tone([2600.0, 2400.0], 0.6, 0.18, 0.002, 0.4),
+		_tone([160.0, 60.0], 0.3, 0.7, 0.001, 0.1),
+	]))
 	# Trousse de soins : bande qu'on déchire.
 	_streams[&"bandage"] = _wav(_sweep_noise(0.35, 0.3, 0.8, 0.35))
 	# Caisse qui frotte au sol.

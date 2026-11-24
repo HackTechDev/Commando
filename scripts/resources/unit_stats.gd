@@ -77,6 +77,7 @@ extends Resource
 ## Grenades, charges explosives et trousses de soins emportées.
 @export var grenades: int = 0
 @export var smoke_grenades: int = 0
+@export var stun_grenades: int = 0
 @export var hatchets: int = 0
 @export var explosives: int = 0
 @export var medkits: int = 0

@@ -39,6 +39,7 @@ const SECTIONS: Array = [
 		[[&"parry"], "Parer : au moment où l'ennemi frappe"],
 		[[&"action_grenade"], "Grenade, puis clic au sol"],
 		[[&"action_smoke"], "Fumigène, puis clic au sol"],
+		[[[&"action_variant", &"action_grenade"]], "Grenade assourdissante, puis clic au sol"],
 		[[&"action_fire_at"], "Tir libre, puis clic sur un mur ou un objet"],
 		[[&"action_carry"], "Porter un corps (clic dessus) / le déposer"],
 		[[&"reload"], "Recharger"],
@@ -48,7 +49,7 @@ const SECTIONS: Array = [
 	]],
 	["Équipement et objets", [
 		[[&"action_plant"], "Poser une charge"],
-		[[[&"timed_fuse", &"action_plant"]], "Poser une charge à retardement (10 s)"],
+		[[[&"action_variant", &"action_plant"]], "Poser une charge à retardement (10 s)"],
 		[[&"action_detonate"], "Mise à feu des charges"],
 		[[&"action_medkit"], "Soigner"],
 		[[&"action_crate"], "Pousser / tirer une caisse"],

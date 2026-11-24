@@ -1580,4 +1580,10 @@
 ## Charge à retardement (2.14 b)
 
 - Maj + K : l'opérateur pose une charge qui saute d'elle-même 10 s après avoir été armée. Compte à rebours au-dessus de la charge, voyant qui clignote de plus en plus vite, bips des trois dernières secondes. L la fait sauter plus tôt, comme une charge ordinaire.
-- Action `timed_fuse` (Maj, par position physique) dans l'InputMap ; l'aide en jeu affiche les combinaisons (« Maj + K »).
+- Action `action_variant` (Maj, par position physique : variante d'une action) dans l'InputMap ; l'aide en jeu affiche les combinaisons (« Maj + K »).
+
+## Grenade assourdissante (2.14 c)
+
+- Nouvel équipement « Grenades assourdissantes » (3 au plus, 0,4 kg), dans l'écran Opérateurs. Maj + N (ou le bouton « Assourdissante ») puis clic au sol : l'opérateur la lance à 12 m au plus.
+- Éclair et détonation : les ennemis debout à moins de 8 m qui ont la détonation en vue directe (les murs protègent) sont sonnés 7 s au plus près, 3 s au bord. Sonné (`EnemyDazed`, marque « sonné ») : aveugle, il ne tire pas, ne se défend pas (désarmer, assommer, saisir passent de face), bras devant le visage ; remis, il est en alerte vers la détonation. La détonation donne l'alerte comme une explosion. Les opérateurs ne sont pas touchés.
+- Ravitaillement à bord, sauvegarde rapide et portrait du HUD à jour. L'action Maj (`timed_fuse`) devient `action_variant` : variante d'une action (charge à retardement, grenade assourdissante).

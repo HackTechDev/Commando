@@ -38,7 +38,7 @@ const CALLSIGN_HEIGHTS: Array[float] = [2.05, 1.55, 0.85]
 ## Raison pour laquelle l'opérateur ne tire pas ou ne lance pas, affichée
 ## sous son indicatif (`report_hint` pendant un ordre, `flash_hint` pour un
 ## ordre refusé).
-enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE, NO_SMOKE, NO_GRAPNEL, MESSAGE }
+enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE, NO_SMOKE, NO_GRAPNEL, MESSAGE, NO_STUN }
 const HINT_TEXTS: Dictionary = {
 	Hint.OUT_OF_RANGE: "Hors de portée",
 	Hint.OBSTACLE: "Obstacle : pas de ligne de tir",
@@ -46,6 +46,7 @@ const HINT_TEXTS: Dictionary = {
 	Hint.NO_KNIFE: "Plus de couteau",
 	Hint.NO_GRENADE: "Plus de grenade",
 	Hint.NO_SMOKE: "Plus de fumigène",
+	Hint.NO_STUN: "Plus de grenade assourdissante",
 	Hint.NO_GRAPNEL: "Pas de grappin (à équiper : écran Opérateurs)",
 	# Texte libre (`flash_message`).
 	Hint.MESSAGE: "",
@@ -143,6 +144,7 @@ var throwing_knives: int = 0
 ## Grenades, charges explosives et trousses de soins restantes.
 var grenades: int = 0
 var smoke_grenades: int = 0
+var stun_grenades: int = 0
 var hatchets: int = 0
 ## Corps porté sur les épaules (`carry_body`), ou null.
 var carried_body: Enemy
@@ -249,6 +251,7 @@ func _ready() -> void:
 	throwing_knives = stats.throwing_knives
 	grenades = stats.grenades
 	smoke_grenades = stats.smoke_grenades
+	stun_grenades = stats.stun_grenades
 	hatchets = stats.hatchets
 	# Charges fournies par la mission, en plus de l'équipement choisi.
 	explosives = stats.explosives + mission_explosives
@@ -397,6 +400,7 @@ func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.throwing_knives = operator.throwing_knives
 	weapon.grenades = operator.grenades
 	weapon.smoke_grenades = operator.smoke_grenades
+	weapon.stun_grenades = operator.stun_grenades
 	weapon.hatchets = operator.hatchet
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
@@ -854,6 +858,22 @@ func throw_smoke(target: Vector3, run: bool = false) -> bool:
 	return true
 
 
+## Ordonne de lancer une grenade assourdissante vers `target` : éclair et
+## détonation qui sonnent les ennemis proches (`StunBurst`). Renvoie faux
+## sans grenade assourdissante.
+func throw_stun(target: Vector3, run: bool = false) -> bool:
+	if _hostage_busy():
+		return false
+	if not is_dead and stun_grenades <= 0:
+		flash_hint(Hint.NO_STUN)
+	if is_dead or _hopping or stun_grenades <= 0:
+		return false
+	if perched_on and not _in_grenade_range(target):
+		return _descend(target, throw_stun.bind(target, run))
+	_set_order(GrenadeOrder.new(self, target, run, SoldierModel.ThrowObject.STUN))
+	return true
+
+
 ## Nombre d'objets `object` qu'il peut encore lancer (cailloux sans limite).
 func throwables(object: SoldierModel.ThrowObject) -> int:
 	match object:
@@ -861,6 +881,8 @@ func throwables(object: SoldierModel.ThrowObject) -> int:
 			return grenades
 		SoldierModel.ThrowObject.SMOKE:
 			return smoke_grenades
+		SoldierModel.ThrowObject.STUN:
+			return stun_grenades
 	return 1
 
 
@@ -871,6 +893,8 @@ func _release_throwable(object: SoldierModel.ThrowObject, target: Vector3) -> vo
 			_release_grenade(target)
 		SoldierModel.ThrowObject.SMOKE:
 			_release_grenade(target, true)
+		SoldierModel.ThrowObject.STUN:
+			_release_grenade(target, false, true)
 		SoldierModel.ThrowObject.PEBBLE:
 			_release_pebble(target)
 
@@ -925,16 +949,18 @@ func _release_grapnel(route: Dictionary) -> void:
 
 
 ## Lâche une grenade vers `target` (instant du lancer de `ThrowGesture`).
-func _release_grenade(target: Vector3, smoke: bool = false) -> void:
-	if (smoke_grenades if smoke else grenades) <= 0:
+func _release_grenade(target: Vector3, smoke: bool = false, stun: bool = false) -> void:
+	if (stun_grenades if stun else smoke_grenades if smoke else grenades) <= 0:
 		return
-	if smoke:
+	if stun:
+		stun_grenades -= 1
+	elif smoke:
 		smoke_grenades -= 1
 	else:
 		grenades -= 1
 	EventBus.unit_ammo_changed.emit(self)
 	var hand := global_position + Vector3.UP * (_weapon_height() + 0.3) + global_basis.x * 0.15
-	Grenade.spawn(get_tree().current_scene, hand, target + Vector3.UP * 0.05, stats, smoke)
+	Grenade.spawn(get_tree().current_scene, hand, target + Vector3.UP * 0.05, stats, smoke, stun)
 	Sfx.play_at(&"whoosh", hand, -8.0)
 
 
@@ -1754,7 +1780,7 @@ func missing_supplies() -> Dictionary:
 		reserve += maxi(holstered.reserve_ammo - _holstered_ammo.y, 0)
 	if reserve > 0:
 		missing["munitions"] = reserve
-	for entry: Array in [["grenades", gear.grenades - grenades], ["fumigènes", gear.smoke_grenades - smoke_grenades],
+	for entry: Array in [["grenades", gear.grenades - grenades], ["fumigènes", gear.smoke_grenades - smoke_grenades], ["assourdissantes", gear.stun_grenades - stun_grenades],
 			["trousses", gear.medkits - medkits], ["charges", gear.explosives + mission_explosives - explosives]]:
 		if int(entry[1]) > 0:
 			missing[entry[0]] = int(entry[1])
@@ -1774,6 +1800,7 @@ func resupply() -> Dictionary:
 		_holstered_ammo.y = maxi(_holstered_ammo.y, holstered.reserve_ammo)
 	grenades = maxi(grenades, gear.grenades)
 	smoke_grenades = maxi(smoke_grenades, gear.smoke_grenades)
+	stun_grenades = maxi(stun_grenades, gear.stun_grenades)
 	medkits = maxi(medkits, gear.medkits)
 	explosives = maxi(explosives, gear.explosives + mission_explosives)
 	EventBus.unit_ammo_changed.emit(self)
@@ -1987,7 +2014,7 @@ func save_state() -> Dictionary:
 		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
 		"evacuated": is_evacuated, "documents": has_documents,
-		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "hatchets": hatchets, "explosives": explosives,
+		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "stun_grenades": stun_grenades, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
 	})
@@ -2023,6 +2050,7 @@ func load_state(data: Dictionary) -> void:
 	throwing_knives = data.get("throwing_knives", throwing_knives)
 	grenades = data.get("grenades", grenades)
 	smoke_grenades = data.get("smoke_grenades", smoke_grenades)
+	stun_grenades = data.get("stun_grenades", stun_grenades)
 	hatchets = data.get("hatchets", hatchets)
 	explosives = data.get("explosives", explosives)
 	medkits = data.get("medkits", medkits)

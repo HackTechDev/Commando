@@ -34,6 +34,8 @@ const ACTION_CRATE := &"crate"
 const ACTION_GRENADE := &"grenade"
 ## Fumigène : puis clic gauche au sol.
 const ACTION_SMOKE := &"smoke"
+## Grenade assourdissante (Maj + touche de la grenade).
+const ACTION_STUN := &"stun"
 ## Tir libre : puis clic gauche sur un mur, un objet ou le sol.
 const ACTION_FIRE_AT := &"fire_at"
 ## Porter un corps : puis clic gauche sur le corps.
@@ -341,7 +343,7 @@ func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
 ## Curseur d'une action armée : sa cible, ou interdit hors d'une cible valable.
 func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 	match pending_action:
-		ACTION_GRENADE, ACTION_SMOKE:
+		ACTION_GRENADE, ACTION_SMOKE, ACTION_STUN:
 			return GameCursor.Kind.GRENADE
 		ACTION_FIRE_AT:
 			return GameCursor.Kind.ATTACK
@@ -507,7 +509,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"action_throw"):
 		toggle_pending_action(ACTION_THROW)
 	elif event.is_action_pressed(&"action_grenade"):
-		toggle_pending_action(ACTION_GRENADE)
+		# Maj : grenade assourdissante.
+		toggle_pending_action(ACTION_STUN if Input.is_action_pressed(&"action_variant") else ACTION_GRENADE)
 	elif event.is_action_pressed(&"action_smoke"):
 		toggle_pending_action(ACTION_SMOKE)
 	elif event.is_action_pressed(&"action_fire_at"):
@@ -524,7 +527,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_feedback(false)
 	elif event.is_action_pressed(&"action_plant"):
 		# Maj : charge à retardement.
-		_feedback(SelectionManager.plant_explosive(Input.is_action_pressed(&"timed_fuse")))
+		_feedback(SelectionManager.plant_explosive(Input.is_action_pressed(&"action_variant")))
 	elif event.is_action_pressed(&"action_detonate"):
 		_feedback(SelectionManager.detonate_explosives() > 0)
 	elif event.is_action_pressed(&"action_medkit"):
@@ -1394,11 +1397,18 @@ func _use_pending_action(screen_position: Vector2) -> void:
 				Sfx.play_ui(&"denied")
 		cancel_pending_action()
 		return
-	if pending_action == ACTION_GRENADE or pending_action == ACTION_SMOKE:
+	if pending_action == ACTION_GRENADE or pending_action == ACTION_SMOKE or pending_action == ACTION_STUN:
 		var ground := _raycast(screen_position, MASK_GROUND)
 		if not ground.is_empty():
 			var point: Vector3 = ground["position"]
-			var ordered := SelectionManager.order_smoke(point) if pending_action == ACTION_SMOKE else SelectionManager.order_grenade(point)
+			var ordered := false
+			match pending_action:
+				ACTION_SMOKE:
+					ordered = SelectionManager.order_smoke(point)
+				ACTION_STUN:
+					ordered = SelectionManager.order_stun(point)
+				_:
+					ordered = SelectionManager.order_grenade(point)
 			if ordered:
 				_spawn_marker(point, marker_attack_color)
 			else:

@@ -271,6 +271,7 @@ const EQUIPMENT: Dictionary = {
 	&"throwing_knives": {"name": "Couteaux de lancer", "max": 2},
 	&"grenades": {"name": "Grenades", "max": 4},
 	&"smoke_grenades": {"name": "Grenades fumigènes", "max": 3},
+	&"stun_grenades": {"name": "Grenades assourdissantes", "max": 3},
 	&"explosives": {"name": "Charges explosives", "max": 2},
 	&"medkit": {"name": "Trousse de soins", "max": 1},
 	&"shield": {"name": "Bouclier balistique", "max": 1},
@@ -287,7 +288,7 @@ const WEIGHTS: Dictionary = {
 	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
 	&"helmet": 1.4, &"nvg": 0.75, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0, &"sunglasses": 0.05,
-	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"explosives": 2.0, &"medkit": 1.5,
+	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"stun_grenades": 0.4, &"explosives": 2.0, &"medkit": 1.5,
 	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9,
 }
 ## Paliers de charge : jusqu'à `limit` kg, vitesses multipliées par `speed` ;
