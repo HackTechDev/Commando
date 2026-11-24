@@ -395,34 +395,9 @@ func _build_selectors() -> Control:
 
 ## Petite vue 3D du visage de l'opérateur `index`, pour son sélecteur.
 func _build_portrait(index: int) -> Texture2D:
-	var viewport := SubViewport.new()
-	viewport.name = "Portrait%d" % (index + 1)
-	viewport.size = Vector2i(64, 64)
-	viewport.own_world_3d = true
-	viewport.transparent_bg = true
-	viewport.msaa_3d = Viewport.MSAA_4X
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	add_child(viewport)
-	var environment := Environment.new()
-	environment.background_mode = Environment.BG_CLEAR_COLOR
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.6, 0.62, 0.6)
-	var world_environment := WorldEnvironment.new()
-	world_environment.environment = environment
-	viewport.add_child(world_environment)
-	var light := DirectionalLight3D.new()
-	light.rotation = Vector3(-0.5, 0.4, 0.0)
-	viewport.add_child(light)
-	var face := SoldierModel.new()
-	face.silent = true
-	face.rotation.y = PI + 0.35
-	viewport.add_child(face)
-	portraits.append(face)
-	var camera := Camera3D.new()
-	camera.fov = 30.0
-	camera.transform = Transform3D(Basis(), Vector3(0.0, 1.62, 0.78)).looking_at(Vector3(0.0, 1.57, 0.0))
-	viewport.add_child(camera)
-	return viewport.get_texture()
+	var face := FacePortrait.build(self, 64, null, "Portrait%d" % (index + 1))
+	portraits.append(face["model"])
+	return face["texture"]
 
 
 func _build_preview() -> Control:

@@ -27,6 +27,11 @@ var _fill: StyleBoxFlat
 @onready var _no_knife: Label = %NoKnife
 ## Équipement restant (grenades, charges, trousses), sous la vie.
 var _gear: Label
+## Visage 3D de l'opérateur (à gauche de l'en-tête), sa vue et son modèle.
+var _face: TextureRect
+var _face_view: SubViewport
+var _face_model: SoldierModel
+const FACE_SIZE := 62
 
 
 ## Associe le portrait à une unité.
@@ -42,6 +47,7 @@ func setup(unit: Commando) -> void:
 	_gear.modulate = Color(1, 1, 1, 0.75)
 	_gear.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$Rows.add_child(_gear)
+	_build_face(unit)
 	_number.text = str(unit.unit_index)
 	_name.text = unit.display_name
 	if unit.profile and not unit.profile.name.is_empty():
@@ -53,6 +59,32 @@ func setup(unit: Commando) -> void:
 	EventBus.unit_ammo_changed.connect(_on_unit_event)
 	EventBus.unit_died.connect(_on_unit_event)
 	_refresh()
+
+
+## Visage 3D, à la tenue de l'opérateur, sur toute la hauteur de la carte. Grimace
+## quand il est blessé ; figé (plus rendu) quand il est mort ou évacué.
+func _build_face(unit: Commando) -> void:
+	var face := FacePortrait.build(self, FACE_SIZE * 2, unit.profile, "Face", 0.55, 0.6)
+	_face_view = face["viewport"]
+	_face_model = face["model"]
+	_face = TextureRect.new()
+	_face.name = "Face"
+	_face.texture = face["texture"]
+	_face.custom_minimum_size = Vector2(FACE_SIZE, FACE_SIZE)
+	_face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_face.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var rows := $Rows as Control
+	var line := HBoxContainer.new()
+	line.name = "Line"
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_theme_constant_override(&"separation", 8)
+	add_child(line)
+	rows.reparent(line)
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.add_child(_face)
+	line.move_child(_face, 0)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -80,6 +112,12 @@ func _refresh() -> void:
 	_health_text.text = "%d PV" % roundi(_unit.health.health)
 	_fill.bg_color = wounded_color.lerp(healthy_color, ratio)
 	_style.border_color = selected_border if _unit.is_selected else normal_border
+	if _face:
+		# Blessé : visage rougi ; mort : gris, plus rendu.
+		_face.modulate = Color(1.0, 0.55 + 0.45 * ratio, 0.55 + 0.45 * ratio)
+		_face_view.render_target_update_mode = SubViewport.UPDATE_DISABLED if _unit.is_dead or _unit.is_evacuated else SubViewport.UPDATE_WHEN_VISIBLE
+		if _unit.is_dead:
+			_face.modulate = Color(0.5, 0.5, 0.5)
 	if _unit.is_dead or _unit.is_evacuated:
 		_status.text = "Évacué" if _unit.is_evacuated else "Mort"
 		_ammo.text = ""

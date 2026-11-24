@@ -29,7 +29,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 ## 5. Interface
 
-- **5.1 Portrait 3D dans le HUD de mission** : l'écran « Opérateurs » montre déjà le visage en 3D de chaque opérateur, mais les portraits du HUD n'ont que du texte.
 - **5.2 Opérateurs, suite** :
   - **a)** plus de traits de visage au choix (nez, mâchoire, yeux), plus de coupes, cicatrices et peintures de camouflage ;
   - **b)** couleurs libres (sélecteur) en plus de la palette ;

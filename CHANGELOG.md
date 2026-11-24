@@ -1640,3 +1640,8 @@
 ## Gardes qui remarquent une caisse déplacée (2.8 f)
 
 - Une caisse déplacée de plus d'un mètre, ou tournée, n'est plus « à sa place » : un garde au calme ou méfiant qui la voit va voir. Les gardes la savent ensuite à sa nouvelle place (on ne la remarque qu'une fois). Ils remarquent le résultat, pas le geste : une caisse tenue n'attire pas encore leur attention. Le point 2.8 est terminé.
+
+## Visage 3D dans les portraits du HUD (5.1)
+
+- Chaque portrait du HUD de mission montre, à gauche, le visage 3D de l'opérateur dans sa tenue (casque, cagoule, jumelles), comme l'écran « Opérateurs ». Il rougit avec les blessures, devient gris à la mort, et n'est plus rendu une fois l'opérateur mort ou évacué.
+- Code commun aux deux écrans : `FacePortrait.build`.
