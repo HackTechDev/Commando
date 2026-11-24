@@ -25,6 +25,11 @@ const DEFAULTS: Array[Dictionary] = [
 
 # Tenue : camouflage du haut et du pantalon (`GearCatalog.CAMOS`, vide : uni).
 @export var camo: StringName = &""
+## Camouflage propre au pantalon (`SAME_CAMO` : celui du haut ; vide : uni),
+## au gilet et au couvre-chef (vide : uni).
+@export var pants_camo: StringName = &"="
+@export var vest_camo: StringName = &""
+@export var headwear_camo: StringName = &""
 @export var top_color := Color(0.3, 0.33, 0.24)
 @export var pants_color := Color(0.3, 0.33, 0.24)
 ## Gilet et équipement (poches, ceinturon, sac).
@@ -71,21 +76,25 @@ const DEFAULTS: Array[Dictionary] = [
 @export var saved_outfits: Array[Dictionary] = []
 
 const MAX_SAVED_OUTFITS := 6
+## Pantalon assorti au haut (`pants_camo`).
+const SAME_CAMO := &"="
+## Camouflages par vêtement.
+const PART_CAMO_KEYS: Array[String] = ["pants_camo", "vest_camo", "headwear_camo"]
 ## Propriétés d'une tenue : apparence (hors visage) et armement.
 const OUTFIT_KEYS: Array[String] = [
-	"clothing", "sunglasses", "camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
+	"clothing", "sunglasses", "camo", "pants_camo", "vest_camo", "headwear_camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
 	"primary", "secondary", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
 ]
 ## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
 ## couleurs, couvre-chef et accessoires, sans l'armement.
 const LOOK_KEYS: Array[String] = [
-	"clothing", "sunglasses", "camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
+	"clothing", "sunglasses", "camo", "pants_camo", "vest_camo", "headwear_camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
 ]
 
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
-const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
+const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "pants_camo", "vest_camo", "headwear_camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads", "sunglasses"]
 const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet"]
 
@@ -106,8 +115,22 @@ func wears_nvg() -> bool:
 
 ## Choisit le camouflage `id` (vide : uni) : haut et pantalon prennent sa
 ## couleur dominante, gilet et couvre-chef ses couleurs conseillées.
+## Camouflage du vêtement `part` (`top`, `pants`, `vest`, `headwear`) ;
+## vide s'il est uni.
+func camo_of(part: StringName) -> StringName:
+	match part:
+		&"pants":
+			return camo if pants_camo == SAME_CAMO else pants_camo
+		&"vest":
+			return vest_camo
+		&"headwear":
+			return headwear_camo
+	return camo
+
+
 func set_camo(id: StringName) -> void:
 	camo = id
+	pants_camo = SAME_CAMO
 	if id.is_empty():
 		return
 	var entry: Dictionary = GearCatalog.CAMOS[id]
@@ -215,13 +238,15 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 		if data.get(key) is String and Color.html_is_valid(data[key]):
 			profile.set(key, Color.html(data[key]))
 	var choices := {
-		"camo": GearCatalog.CAMOS, "hair_style": GearCatalog.HAIR_STYLES, "beard": GearCatalog.BEARDS,
+		"camo": GearCatalog.CAMOS, "pants_camo": GearCatalog.CAMOS, "vest_camo": GearCatalog.CAMOS, "headwear_camo": GearCatalog.CAMOS, "hair_style": GearCatalog.HAIR_STYLES, "beard": GearCatalog.BEARDS,
 		"body": GearCatalog.BODIES, "headwear": GearCatalog.HEADWEAR, "primary": GearCatalog.PRIMARY, "secondary": GearCatalog.SECONDARY,
 		"specialty": GearCatalog.SPECIALTIES, "clothing": GearCatalog.CLOTHING,
 	}
 	for key in _NAME_KEYS:
 		var value := StringName(str(data.get(key, "")))
-		if (key == "camo" and value.is_empty()) or (choices[key] as Dictionary).has(value):
+		var plain := (key == "camo" or key in PART_CAMO_KEYS) and value.is_empty()
+		var same := key == "pants_camo" and value == SAME_CAMO
+		if plain or same or (choices[key] as Dictionary).has(value):
 			profile.set(key, value)
 	for key in _BOOL_KEYS:
 		if data.get(key) is bool:

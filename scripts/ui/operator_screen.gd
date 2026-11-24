@@ -120,6 +120,8 @@ var _option_buttons: Dictionary = {}
 var _checks: Dictionary = {}
 var _spins: Dictionary = {}
 var _swatches: Dictionary = {}
+## Motifs par vêtement : {clé du profil: {camouflage: bouton}}.
+var _part_camo_buttons: Dictionary = {}
 var _camo_buttons: Dictionary = {}
 ## Boutons de tenue (`GearCatalog.CLOTHING`) et description de la tenue choisie.
 var _clothing_buttons: Dictionary = {}
@@ -559,7 +561,7 @@ func _build_outfit() -> Control:
 	_clothing_info.add_theme_font_size_override("font_size", 13)
 	box.add_child(_clothing_info)
 	_note(box, "En tenue civile, sans équipement militaire en vue ni arme en main, on se fond dans la foule : repéré bien plus lentement si la mission s'y prête, surtout dans la tenue de l'occasion. Seul le pistolet-mitrailleur se cache sous la veste.")
-	_heading(box, "Camouflage (haut et pantalon)")
+	_heading(box, "Camouflage (haut, et pantalon assorti)")
 	var camos := HFlowContainer.new()
 	var group := ButtonGroup.new()
 	var ids: Array[StringName] = [&""]
@@ -583,15 +585,55 @@ func _build_outfit() -> Control:
 		_heading(box, entry[0])
 		var key := StringName(entry[1])
 		var plain: bool = entry[2]
+		# Motif propre au vêtement (le haut prend celui choisi plus haut).
+		if key != &"top_color":
+			_part_camo_row(box, StringName(String(key).replace("_color", "_camo")), entry[3])
 		_swatch_row(box, key, GearCatalog.PALETTE, func(i: int) -> void:
 			profile().set(key, GearCatalog.PALETTE[i])
 			# Une couleur unie choisie pour le haut ou le pantalon remplace le camouflage.
 			if plain:
-				profile().camo = &"", entry[3], func(color: Color) -> void:
+				_clear_camo(key), entry[3], func(color: Color) -> void:
 			profile().set(key, color)
 			if plain:
-				profile().camo = &"")
+				_clear_camo(key))
 	return box
+
+
+## Couleur unie choisie pour `key` : le haut perd son camouflage (et le
+## pantalon assorti avec lui), le pantalon le sien seulement.
+func _clear_camo(key: StringName) -> void:
+	if key == &"pants_color":
+		profile().pants_camo = &""
+	else:
+		profile().camo = &""
+
+
+## Rangée de motifs pour un vêtement (`key` : `pants_camo`, `vest_camo`,
+## `headwear_camo`) : uni, un camouflage, ou (pantalon) comme le haut.
+func _part_camo_row(box: Container, key: StringName, part: StringName) -> void:
+	var row := HFlowContainer.new()
+	row.name = String(key)
+	var group := ButtonGroup.new()
+	var ids: Array[StringName] = []
+	if key == &"pants_camo":
+		ids.append(OperatorProfile.SAME_CAMO)
+	ids.append(&"")
+	ids.append_array(GearCatalog.CAMOS.keys())
+	var buttons := {}
+	for id in ids:
+		var button := Button.new()
+		button.text = "Comme le haut" if id == OperatorProfile.SAME_CAMO else ("Uni" if id.is_empty() else GearCatalog.CAMOS[id]["name"])
+		button.toggle_mode = true
+		button.button_group = group
+		button.add_theme_font_size_override(&"font_size", 12)
+		button.pressed.connect(func() -> void:
+			profile().set(key, id)
+			_refresh_controls()
+			_changed(true, "", part))
+		row.add_child(button)
+		buttons[id] = button
+	box.add_child(row)
+	_part_camo_buttons[key] = buttons
 
 
 func _build_accessories() -> Control:
@@ -1022,6 +1064,10 @@ func _refresh_controls() -> void:
 			picker.text = "" if not in_palette else "…"
 	for id: StringName in _camo_buttons:
 		(_camo_buttons[id] as Button).set_pressed_no_signal(id == operator.camo)
+	for key: StringName in _part_camo_buttons:
+		var buttons: Dictionary = _part_camo_buttons[key]
+		for id: StringName in buttons:
+			(buttons[id] as Button).set_pressed_no_signal(id == operator.get(key))
 	for id: StringName in _clothing_buttons:
 		(_clothing_buttons[id] as Button).set_pressed_no_signal(id == operator.clothing)
 	_clothing_info.text = GearCatalog.CLOTHING[operator.clothing]["description"]

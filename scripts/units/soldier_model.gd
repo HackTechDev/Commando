@@ -881,11 +881,16 @@ func _build() -> void:
 	_m_pants = _m_uniform
 	_m_hair = _mat(GearCatalog.HAIR_COLORS[0], 0.9)
 	if outfit:
-		_m_top = _cloth(outfit.top_color)
-		_m_pants = _cloth(outfit.pants_color)
+		_m_top = _cloth(outfit.top_color, outfit.camo_of(&"top"))
+		_m_pants = _cloth(outfit.pants_color, outfit.camo_of(&"pants"))
 		_m_uniform = _m_top
-		_m_gear = _webbing(outfit.vest_color)
+		_m_gear = _webbing(outfit.vest_color, outfit.camo_of(&"vest"))
 		_m_helmet = _mat(outfit.headwear_color, 0.75)
+		if not outfit.camo_of(&"headwear").is_empty():
+			_m_helmet.albedo_color = Color.WHITE
+			_m_helmet.albedo_texture = GearCatalog.camo_texture(outfit.camo_of(&"headwear"))
+			_m_helmet.uv1_triplanar = true
+			_m_helmet.uv1_scale = Vector3.ONE * 2.5
 		_m_skin = _mat(GearCatalog.SKINS[outfit.skin], 0.8)
 		_m_hair = _mat(GearCatalog.HAIR_COLORS[outfit.hair_color], 0.9)
 	_dress = &"suit" if civilian else (outfit.clothing if outfit else &"uniform")
@@ -913,7 +918,7 @@ func _build() -> void:
 	_m_red = _mat(Color(0.75, 0.1, 0.08), 0.6)
 	_m_white = _mat(Color(0.88, 0.88, 0.85), 0.8)
 	# Toile de camouflage du tireur d'élite (filet, écharpe).
-	_m_scrim = _cloth((_m_top.albedo_color as Color).lerp(Color(0.45, 0.42, 0.3), 0.5))
+	_m_scrim = _cloth((_m_top.albedo_color as Color).lerp(Color(0.45, 0.42, 0.3), 0.5), outfit.camo if outfit else &"")
 	_m_grenade = _mat(Color(0.2, 0.24, 0.16), 0.6, 0.2)
 	_m_smoke = _mat(Color(0.42, 0.45, 0.4), 0.55, 0.3)
 	_m_smoke_band = _mat(Color(0.9, 0.9, 0.85), 0.6, 0.0)
@@ -2918,27 +2923,31 @@ func _wears(accessory: StringName) -> bool:
 	return outfit == null or bool(outfit.get(accessory))
 
 
-## Tissu de couleur `color`, ou du camouflage de `outfit` s'il y en a un
+## Tissu de couleur `color`, ou du camouflage `camo` s'il y en a un
 ## (texture plaquée en triplanaire dans le repère de chaque pièce), avec
 ## plis et coutures en relief (`fabric_normal_map`).
-func _cloth(color: Color) -> StandardMaterial3D:
+func _cloth(color: Color, camo: StringName = &"") -> StandardMaterial3D:
 	var material := _mat(color, 0.95)
 	material.uv1_triplanar = true
 	material.uv1_scale = Vector3.ONE * 2.5
 	material.normal_enabled = true
 	material.normal_texture = fabric_normal_map()
 	material.normal_scale = 0.8
-	if outfit and not outfit.camo.is_empty():
+	if not camo.is_empty():
 		material.albedo_color = Color.WHITE
-		material.albedo_texture = GearCatalog.camo_texture(outfit.camo)
+		material.albedo_texture = GearCatalog.camo_texture(camo)
 	return material
 
 
 ## Toile du gilet et des poches : même relief, plus serré et plus discret.
-func _webbing(color: Color) -> StandardMaterial3D:
+func _webbing(color: Color, camo: StringName = &"") -> StandardMaterial3D:
 	var material := _mat(color, 0.85)
 	material.uv1_triplanar = true
 	material.uv1_scale = Vector3.ONE * 6.0
+	if not camo.is_empty():
+		material.albedo_color = Color.WHITE
+		material.albedo_texture = GearCatalog.camo_texture(camo)
+		material.uv1_scale = Vector3.ONE * 3.0
 	material.normal_enabled = true
 	material.normal_texture = fabric_normal_map()
 	material.normal_scale = 0.35

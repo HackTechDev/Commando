@@ -1649,3 +1649,8 @@
 ## Couleurs libres des vêtements (5.2 b)
 
 - Écran « Opérateurs » : au bout de chaque palette (haut, pantalon, gilet, couvre-chef), un sélecteur de couleur libre. La couleur choisie s'y affiche quand elle n'est pas dans la palette ; une couleur libre pour le haut ou le pantalon retire le camouflage, comme une couleur de la palette. Les retouches successives au sélecteur ne font qu'une annulation.
+
+## Camouflage par vêtement (5.2 c)
+
+- Écran « Opérateurs », onglet Tenue : le camouflage choisi habille le haut (et le pantalon, s'il reste « comme le haut ») ; le pantalon, le gilet (et les pièces de toile qui en ont la couleur) et le couvre-chef ont chacun leur rangée de motifs : uni ou un camouflage. Une couleur unie choisie pour le pantalon ne retire plus que son propre motif.
+- Profils, tenues enregistrées et « même tenue pour l'équipe » à jour (`pants_camo`, `vest_camo`, `headwear_camo`) ; les anciens profils gardent un pantalon assorti au haut.
