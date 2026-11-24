@@ -30,13 +30,12 @@ const WALK_TURN := 0.9
 ## Au-delà de cet écart de cap (rad), il pivote sur place avant d'avancer.
 const PIVOT_ANGLE := 0.55
 ## Marche arrière : vitesse (m/s) ; il recule droit vers un point derrière
-## lui (écart de cap au-delà de `REVERSE_ANGLE`) s'il reste moins de
-## `REVERSE_RANGE` m à faire ; coincé (pas la place de pivoter), il recule
-## au moins `REVERSE_HOLD` s pour se dégager.
-const REVERSE_SPEED := 1.3
-const REVERSE_ANGLE := 2.0
-const REVERSE_RANGE := 10.0
-const REVERSE_HOLD := 1.0
+## lui (écart de cap au-delà de `Sabre.REVERSE_ANGLE`) s'il reste moins de
+## `WALK_BACK_RANGE` m à faire ; coincé (pas la place de pivoter), il recule
+## au moins `WALK_BACK_HOLD` s pour se dégager.
+const WALK_BACK_SPEED := 1.3
+const WALK_BACK_RANGE := 10.0
+const WALK_BACK_HOLD := 1.0
 const LEG_SHARE := 0.55
 const ARMOR := 0.35
 const LEG_CHANCE := 0.2
@@ -62,8 +61,6 @@ const REAR_EXIT := Vector3(0.0, 0.0, 2.9)
 const HALF := 0.9
 
 var _radar_left: float = 0.0
-## Recul en cours pour se dégager (s).
-var _reverse_left: float = 0.0
 var _step_sound_left: float = 0.0
 
 
@@ -226,7 +223,7 @@ func _drive(delta: float) -> void:
 		# À reculons : c'est l'arrière qu'il oriente vers le point.
 		var back_turn := (-forward).signed_angle_to(to_next.normalized(), Vector3.UP)
 		step = clampf(back_turn, -WALK_TURN * delta, WALK_TURN * delta)
-		speed = -REVERSE_SPEED * (1.0 - clampf(absf(back_turn) / PI, 0.0, 0.6))
+		speed = -WALK_BACK_SPEED * (1.0 - clampf(absf(back_turn) / PI, 0.0, 0.6))
 	if _night and not headlights:
 		speed *= NIGHT_DARK_SHARE
 	if tire_flat:
@@ -260,34 +257,11 @@ func _should_reverse(turn: float, step: float, delta: float) -> bool:
 	if _reverse_left > 0.0:
 		_reverse_left -= delta
 		return absf(turn) > PIVOT_ANGLE
-	if absf(turn) > REVERSE_ANGLE and _remaining() <= REVERSE_RANGE:
+	if absf(turn) > REVERSE_ANGLE and _remaining() <= WALK_BACK_RANGE:
 		return true
 	if absf(turn) > PIVOT_ANGLE and VehicleClearance.step(self, footprint(), body_rids(), step, 0.0, 0.0) == null:
-		_reverse_left = REVERSE_HOLD
+		_reverse_left = WALK_BACK_HOLD
 		return true
-	return false
-
-
-## Distance qui reste à parcourir sur le chemin (m).
-func _remaining() -> float:
-	var total := 0.0
-	var from := global_position
-	for i in range(_path_index, _path.size()):
-		total += Vector2(_path[i].x - from.x, _path[i].z - from.z).length()
-		from = _path[i]
-	return total
-
-
-## Vrai si une unité debout (pas à bord) est juste derrière lui.
-func _unit_behind() -> bool:
-	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips"]:
-		for node in get_tree().get_nodes_in_group(group):
-			var unit := node as Node3D
-			if unit == null or unit.get(&"is_dead") == true or (unit is Commando and (unit as Commando).riding == self):
-				continue
-			var local := to_local(unit.global_position)
-			if local.z > 2.0 and local.z < 2.0 + BLOCK_DEPTH and absf(local.x) < HALF + 1.4 and absf(local.y) < 1.5:
-				return true
 	return false
 
 

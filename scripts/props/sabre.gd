@@ -140,6 +140,17 @@ const BLOCK_HALF_WIDTH := 1.4
 const BLOCK_GIVE_UP := 3.0
 ## Contre un mur ou un véhicule, sans avancer : abandon au bout de (s).
 const STUCK_GIVE_UP := 2.5
+## Marche arrière : vitesse (m/s) ; il recule droit vers un point derrière
+## lui (écart de cap au-delà de `REVERSE_ANGLE`) s'il reste moins de
+## `REVERSE_RANGE` m à faire ; bloqué de face depuis `REVERSE_AFTER` s, il
+## manœuvre : recule `REVERSE_HOLD` s en braquant vers son but, puis
+## repart en avant (`MAX_MANEUVERS` fois au plus par trajet).
+const REVERSE_SPEED := 3.0
+const REVERSE_ANGLE := 2.0
+const REVERSE_RANGE := 12.0
+const REVERSE_AFTER := 0.4
+const REVERSE_HOLD := 1.5
+const MAX_MANEUVERS := 4
 ## Distance (m) à la portière à laquelle un opérateur qui le rejoint monte.
 const BOARD_REACH := 1.3
 ## Ordre dans lequel les places sont prises (indices de `SabreModel.SEATS`).
@@ -225,6 +236,9 @@ var _path := PackedVector3Array()
 var _path_index: int = 0
 var _blocked_left: float = 0.0
 var _stuck_left: float = 0.0
+## Manœuvre en marche arrière en cours (s) ; manœuvres faites ce trajet.
+var _reverse_left: float = 0.0
+var _maneuvers: int = 0
 var _noise_left: float = 0.0
 var _steer: float = 0.0
 ## Opérateurs en route pour monter : unité -> vrai.
@@ -925,6 +939,8 @@ func _set_path(target: Vector3) -> String:
 	_path_index = 1
 	_blocked_left = BLOCK_GIVE_UP
 	_stuck_left = STUCK_GIVE_UP
+	_reverse_left = 0.0
+	_maneuvers = 0
 	return ""
 
 
@@ -1159,16 +1175,32 @@ func _drive(delta: float) -> void:
 	if is_maneuvering() or _path_index >= _path.size():
 		_carry_crew()
 		return
-	if _is_blocked():
+	var next := _path[_path_index]
+	var to_next := next - global_position
+	to_next.y = 0.0
+	var forward := -global_basis.z
+	var turn := forward.signed_angle_to(to_next.normalized(), Vector3.UP)
+	# Marche arrière : vers un point tout proche derrière, ou manœuvre quand
+	# il est bloqué de face (pas en roue libre : moteur coupé).
+	var backing := 0
+	if not coasting and to_next.length() > WAYPOINT_REACH:
+		if _reverse_left > 0.0:
+			_reverse_left -= delta
+			backing = 2
+		elif absf(turn) > REVERSE_ANGLE and _remaining() <= REVERSE_RANGE:
+			backing = 1
+		elif _stuck_left <= STUCK_GIVE_UP - REVERSE_AFTER and _maneuvers < MAX_MANEUVERS:
+			_maneuvers += 1
+			_reverse_left = REVERSE_HOLD
+			_stuck_left = STUCK_GIVE_UP
+			backing = 2
+	if (_unit_behind() if backing > 0 else _is_blocked()):
 		_blocked_left -= delta
 		if _blocked_left <= 0.0:
 			driver().flash_message("Route bloquée")
 			stop_driving()
 		return
 	_blocked_left = BLOCK_GIVE_UP
-	var next := _path[_path_index]
-	var to_next := next - global_position
-	to_next.y = 0.0
 	if to_next.length() <= WAYPOINT_REACH:
 		_path_index += 1
 		if _path_index >= _path.size():
@@ -1183,9 +1215,12 @@ func _drive(delta: float) -> void:
 		return
 	# Cap vers le point suivant : on braque, et on ralentit d'autant plus que
 	# le virage est serré (presque sur place au pied d'un point de côté).
-	var forward := -global_basis.z
-	var turn := forward.signed_angle_to(to_next.normalized(), Vector3.UP)
 	var step := clampf(turn, -TURN_RATE * delta, TURN_RATE * delta)
+	if backing == 1:
+		# À reculons vers le point : c'est l'arrière qu'on y oriente.
+		var back_turn := (-forward).signed_angle_to(to_next.normalized(), Vector3.UP)
+		step = clampf(back_turn, -TURN_RATE * delta, TURN_RATE * delta)
+		turn = -back_turn
 	var sharpness := clampf(absf(turn) / 1.2, 0.0, 1.0)
 	var speed := SPEED * lerpf(1.0, SLOW_SHARE, sharpness)
 	if _night and not headlights:
@@ -1196,15 +1231,24 @@ func _drive(delta: float) -> void:
 		speed = minf(speed, COAST_SPEED)
 	if _path_index == _path.size() - 1:
 		speed = minf(speed, maxf(to_next.length() * 1.5, 1.5))
+	if backing > 0:
+		speed = REVERSE_SPEED
+		if _night and not headlights:
+			speed *= NIGHT_DARK_SHARE
+		if tire_flat:
+			speed *= FLAT_SHARE
+		if backing == 1:
+			speed = minf(speed, maxf(to_next.length() * 1.5, 1.0))
+		speed = -speed
 	var distance := speed * delta
 	# Barrière fermée devant le pare-chocs : on la force.
-	var barrier := RoadBarrier.ahead(self)
+	var barrier := RoadBarrier.ahead(self) if backing == 0 else null
 	if barrier:
 		barrier.smash(self, speed)
 		if is_wrecked or not is_driving:
 			return
 	# Mine balisée sur la trajectoire : on s'arrête devant.
-	if Landmine.under(self, MINE_LOOKAHEAD, true):
+	if backing == 0 and Landmine.under(self, MINE_LOOKAHEAD, true):
 		driver().flash_message("Mine devant : la contourner ou la désamorcer")
 		stop_driving()
 		return
@@ -1214,9 +1258,10 @@ func _drive(delta: float) -> void:
 			driver().flash_message("Plus d'élan : relancer le moteur")
 			stop_driving()
 			return
-	distance = _advance(step, TURN_RATE * delta, distance, delta)
-	if distance < 0.0:
+	var moved := _advance(step, TURN_RATE * delta, distance, delta)
+	if moved < 0.0:
 		return
+	distance = moved * signf(distance)
 	global_position.y = lerpf(global_position.y, _ground_height(), minf(1.0, delta * 4.0))
 	# Mine cachée sous les roues : le véhicule saute.
 	var mine := Landmine.under(self)
@@ -1224,10 +1269,38 @@ func _drive(delta: float) -> void:
 		mine.detonate(self)
 		if is_wrecked or not is_driving:
 			return
-	_steer = lerpf(_steer, clampf(turn, -0.5, 0.5), minf(1.0, delta * 6.0))
+	# En marche arrière, on braque à l'envers pour tourner du même côté.
+	var wheel_angle := turn if backing == 0 else -turn
+	_steer = lerpf(_steer, clampf(wheel_angle, -0.5, 0.5), minf(1.0, delta * 6.0))
 	model.steer(_steer)
 	model.roll(distance)
 	_carry_crew()
+
+
+## Distance qui reste à parcourir sur le chemin (m).
+func _remaining() -> float:
+	var total := 0.0
+	var from := global_position
+	for i in range(_path_index, _path.size()):
+		total += Vector2(_path[i].x - from.x, _path[i].z - from.z).length()
+		from = _path[i]
+	return total
+
+
+## Vrai si une unité debout (pas à bord) est juste derrière le véhicule.
+func _unit_behind() -> bool:
+	var box := footprint()
+	var rear := box.end.z
+	var half := box.size.x * 0.5 + 0.4
+	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips"]:
+		for node in get_tree().get_nodes_in_group(group):
+			var unit := node as Node3D
+			if unit == null or unit.get(&"is_dead") == true or (unit is Commando and (unit as Commando).riding == self):
+				continue
+			var local := to_local(unit.global_position)
+			if local.z > rear - 0.3 and local.z < rear + BLOCK_DEPTH and absf(local.x) < half and absf(local.y) < 1.5:
+				return true
+	return false
 
 
 ## Emprise du véhicule pour les collisions (repère du véhicule) : la caisse

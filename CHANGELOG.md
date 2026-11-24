@@ -1680,3 +1680,7 @@
 ## Marche arrière de l'hexapode
 
 - Un clic au sol derrière l'hexapode, à moins de 10 m de trajet : il y recule (1,3 m/s), en orientant son arrière vers le point. Plus loin, il pivote sur place ; s'il n'en a pas la place (coincé entre un véhicule et un bloc), il recule d'abord pour se dégager, puis pivote. À reculons, il s'arrête devant une unité derrière lui et ne force pas de barrière.
+
+## Marche arrière du Sabre
+
+- Un clic au sol derrière le Sabre, à moins de 12 m de trajet : il y recule (3 m/s, moins vite tous feux éteints ou pneu crevé), roues braquées à l'envers. Bloqué de face (mur, bloc, véhicule), il manœuvre : il recule 1,5 s en braquant vers son but, puis repart en avant ; quatre manœuvres au plus par trajet, puis « Passage bloqué ». À reculons, il s'arrête devant une unité derrière lui, ne force pas de barrière et ne recule pas en roue libre.
