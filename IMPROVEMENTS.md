@@ -15,6 +15,20 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 - **2.5 Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
 - **2.9 Végétation** (couche 6) : buissons où se cacher, qui masquent partiellement la vue.
+- **2.16 Véhicules terrestres** (en plus du convertiroptère, de la voiture civile, du Sabre et du pick-up armé) :
+  - **a)** camion bâché : ronde avec haltes ; on monte dans la benne pour voyager caché ; il amène des renforts qui en descendent à l'alerte (lié au 2.5) ;
+  - **b)** moto avec side-car : rapide et bruyante, deux opérateurs, le passager tire en roulant ;
+  - **c)** blindé léger : les balles ne le traversent pas ; on l'arrête d'une charge posée dessus ou d'une roquette ; projecteur qui balaie le terrain la nuit ;
+  - **d)** jeep d'officier : traverse la carte ; une embuscade fait de l'officier et de ses documents un objectif ;
+  - **e)** chariot élévateur ou engin de chantier : soulève les caisses lourdes (2.8 e) et ouvre un passage ;
+  - **f)** ambulance ou camion de pompiers : véhicule civil, sortie discrète d'une évasion avec la bonne tenue ;
+  - **g)** bateau pneumatique : infiltration par l'eau (carte côtière ou rivière) ; moteur audible, pagaies silencieuses.
+- **2.17 Véhicules aériens** :
+  - **a)** hélicoptère de patrouille ennemi : survol et vol stationnaire, cône de projecteur au sol la nuit, appelé par une alerte ;
+  - **b)** drone de surveillance : ronde aérienne, vue de dessus que les toits n'arrêtent pas ; abattu au silencieux ou brouillé ;
+  - **c)** avion de transport au sol (base aérienne) : cachette dans la soute, sabotage, ou moyen d'extraction ;
+  - **d)** parachutage d'ouverture : zone d'atterrissage choisie en début de mission, dispersion selon le vent (`LevelRoot.wind`) ;
+  - **e)** ballon captif d'observation : poste de guet très haut, qu'on fait tomber en coupant son câble.
 
 ## 4. Contrôles et lisibilité
 
