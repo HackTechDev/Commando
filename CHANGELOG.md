@@ -1660,3 +1660,12 @@
 - Écran « Opérateurs », Identité : nez (droit, petit, large, aquilin), mâchoire (moyenne, fine, carrée), yeux (moyens, plissés, ronds, rapprochés), cicatrice (joue, sourcil, lèvre) et peinture de camouflage (bandes, ou visage couvert du motif woodland).
 - Deux coupes de plus : afro et undercut (côtés rasés).
 - La barbe, les lèvres et le nez épousent la mâchoire choisie. Une peinture de camouflage trahit un opérateur en tenue civile. Le point 5.2 est terminé.
+
+## Hexapode : marcheur blindé, gatling et radar
+
+- Nouveau véhicule `Hexapod` (dérivé du `Sabre` : embarquement, conduite par clic droit et points de passage, tourelle, leurre au ralenti, réparation, abri, sauvegarde) et son modèle procédural `HexapodModel` : caisse blindée sur six pattes articulées (hanche, cuisse à vérin, jambe, patin), cabine de pilotage vitrée à l'avant, gatling à six canons sur le toit de la cabine, radar tournant derrière elle, feux et bandes de signalisation.
+- Marche réaliste : tripode alterné (avant et arrière d'un côté, milieu de l'autre), pieds plantés fixes au sol pendant que les trois autres se lèvent en arc et se reposent en anticipant le mouvement ; pattes en cinématique inverse (genoux au-dessus des hanches) ; pieds posés sur le relief (rayon vers le sol) ; la caisse suit les pieds (hauteur, tangage, roulis), rebondit à chaque foulée, se balance vers le tripode porteur et se penche en marche. Il pivote sur place dans les virages serrés ; à l'arrêt, les pieds restés en arrière se recalent. Chaque foulée sonne (nouveau son `stomp`) et s'entend à 14 m.
+- Équipage enfermé dans la caisse : invisible et protégé (les balles qui le visent frappent le blindage) ; les gardes voient le marcheur lui-même, de plus loin qu'un homme. Blindage : une balle ne fait que 35 % de ses dégâts ; une patte touchée ralentit la marche ; moteur à l'arrière.
+- Gatling : rafales de 18 coups, 42 m, canons qui tournent au tir, très bruyante. Radar : avec un équipage, un balayage toutes les 2 s signale les gardes debout à 40 m par un écho rouge au sol, visible à travers les murs.
+- Menus adaptés (« Prendre les commandes », « Tourelle Gatling », ni plateau, ni ravitaillement, ni missile, ni roue libre) ; clic milieu sur la caisse : menu de bord de l'opérateur sélectionné à bord.
+- Nouvelle carte « Vallée des marcheurs » (`walker_valley`) : l'hexapode au sud, un camp gardé au nord (sentinelle, officier, chien, rondes, pick-up armé). Hexapode dans la palette de l'éditeur de mission.

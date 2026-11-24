@@ -265,6 +265,7 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | Extraction et véhicules | Zone d'extraction | 1 clic | racine | `extracted`. |
 | | Convertible d'extraction | 1 clic | `NavigationRegion3D` | `extracted`, insertion. |
 | | Sabre | 1 clic | `NavigationRegion3D` | |
+| | Hexapode | 1 clic | `NavigationRegion3D` | Marcheur ; `arrival_objective` comme le Sabre. |
 | | Aire de poser | 1 clic | `Decor` | Disque de 14 m. |
 
 Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'eau…), copiez un nœud d'une mission de série (Ctrl+C, Ctrl+V) ou ajoutez-le par « Instancier une scène enfant » ou par un nœud avec le bon script.
@@ -280,7 +281,7 @@ Pour les éléments absents de la palette (ateliers du didacticiel, cachettes d'
 | `sabotage`, `depot` | Cible de sabotage avec cet `objective_id`. |
 | `aircraft_destroyed` | Convertible ennemi à détruire (`objective_id`). |
 | `raid_in_time` | Renforts (`Reinforcements`) avec cet `objective_id`. |
-| `sabre_rally`, `sabre_extracted` | Sabre : `arrival_objective`, `stow_objective`. |
+| `sabre_rally`, `sabre_extracted` | Sabre : `arrival_objective`, `stow_objective` ; hexapode : `arrival_objective`. |
 | `heli_hover`, `heli_rappel` | Convertible : `hover_objective`, `rappel_objective`. |
 | `all_enemies_down` | Les gardes de la carte (tous hors de combat). |
 | `no_operator_lost`, `no_alert` | Suivis par le jeu, sans cible. |
@@ -375,7 +376,7 @@ L'annulation et le rétablissement viennent de Godot (`EditorUndoRedoManager`), 
 ### 2. Le greffon
 
 - **Dock « Mission »**, quand la scène ouverte est un `LevelRoot` :
-  - **palette par catégories** : décor (bâtiment, mur, muret, caisse, haie, lampadaire, échelle, route, trottoir), équipe, ennemis (garde posté, ronde, pick-up armé), civils (invité, passant, boucle de voitures), objectifs (documents, groupe électrogène…), extraction et véhicules (convertible, Sabre) ;
+  - **palette par catégories** : décor (bâtiment, mur, muret, caisse, haie, lampadaire, échelle, route, trottoir), équipe, ennemis (garde posté, ronde, pick-up armé), civils (invité, passant, boucle de voitures), objectifs (documents, groupe électrogène…), extraction et véhicules (convertible, Sabre, hexapode) ;
   - **réglages de la carte** : nuit ou jour, tenue de rigueur ;
   - **informations de la mission** (`MissionInfo`) : titre, description, camouflage conseillé, objectifs.
 - **Pose dans la vue 3D** : le greffon capte les clics (`_forward_3d_gui_input`), vise le sol (couche 1) et pose l'élément sous le bon nœud parent (`Decor`, `Units`, `Enemies`…, comme `MapBuilder`).

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2"]
+
+[sub_resource type="Resource" id="rally"]
+script = ExtResource("1")
+id = "sabre_rally"
+text = "Mener l'hexapode jusqu'au cœur du camp"
+
+[sub_resource type="Resource" id="down"]
+script = ExtResource("1")
+id = "all_enemies_down"
+text = "Neutraliser tous les gardes et le pick-up armé"
+
+[sub_resource type="Resource" id="lost"]
+script = ExtResource("1")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2")
+title = "Vallée des marcheurs"
+description = "Un marcheur hexapode blindé attend l'équipe au sud de la vallée. Pilote, servant de la gatling et passagers montent à bord ; le radar signale les gardes à travers les murs. Le camp ennemi, au nord, est gardé par des sentinelles, un officier, un chien et un pick-up armé."
+order = 207
+objectives = Array[ExtResource("1")]([SubResource("rally"), SubResource("down"), SubResource("lost")])

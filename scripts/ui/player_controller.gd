@@ -803,6 +803,15 @@ func _selected_vehicle() -> Sabre:
 func open_sabre_menu(screen_position: Vector2) -> bool:
 	var hit := _raycast(screen_position, MASK_COMMANDOS)
 	var unit := hit.get("collider") as Commando
+	if unit == null:
+		# Équipage enfermé (hexapode) : clic sur la caisse, menu de
+		# l'opérateur sélectionné à bord.
+		var walker := _raycast(screen_position, MASK_GROUND).get("collider") as Hexapod
+		if walker:
+			for selected: Commando in SelectionManager.selected:
+				if is_instance_valid(selected) and selected.riding == walker:
+					unit = selected
+					break
 	if unit == null or unit.is_dead or unit.riding == null:
 		return false
 	cancel_pending_action()
@@ -823,7 +832,7 @@ func open_vehicle_menu(screen_position: Vector2) -> bool:
 	cancel_pending_action()
 	_menu_vehicle = sabre
 	_menu_walkers = walkers()
-	_radial.open(screen_position, vehicle_options(sabre, _menu_walkers), "Sabre")
+	_radial.open(screen_position, vehicle_options(sabre, _menu_walkers), "Hexapode" if sabre is Hexapod else "Sabre")
 	Sfx.play_ui(&"select")
 	return true
 
@@ -867,25 +876,32 @@ static func vehicle_options(sabre: Sabre, units: Array[Commando]) -> Array[Dicti
 	var idle := nobody if nobody != "" else ("trop loin : approchez un opérateur" if not near else ("" if sabre.idling else sabre.idle_problem()))
 	options.append({"id": &"idle", "label": "Couper le ralenti" if sabre.idling else "Moteur au ralenti",
 		"detail": ("le leurre se tait" if sabre.idling else "leurre : le bruit attire les gardes") if idle == "" else idle, "enabled": idle == ""})
+	var walker := sabre is Hexapod
 	var supply := nobody
-	if supply == "":
+	if walker:
+		pass
+	elif supply == "":
 		var needy := units.filter(func(unit: Commando) -> bool: return sabre.resupply_problem(unit) == "")
 		supply = "" if not needy.is_empty() else sabre.resupply_problem(units[0])
-	options.append({"id": &"resupply", "label": "Se ravitailler (%d)" % sabre.supplies,
-		"detail": "au hayon : dotation de départ" if supply == "" else supply, "enabled": supply == ""})
+	if not walker:
+		options.append({"id": &"resupply", "label": "Se ravitailler (%d)" % sabre.supplies,
+			"detail": "au hayon : dotation de départ" if supply == "" else supply, "enabled": supply == ""})
 	var bed := nobody
-	if bed == "":
+	if walker:
+		pass
+	elif bed == "":
 		var holders := units.filter(func(unit: Commando) -> bool: return sabre.bed_problem(unit) == "")
 		bed = "" if not holders.is_empty() else sabre.bed_problem(units[0])
-	options.append({"id": &"bed", "label": "Coucher sur le plateau",
-		"detail": "corps ou otage ligoté, depuis le hayon (%d place%s)" % [sabre.bed.count(null), "s" if sabre.bed.count(null) > 1 else ""] if bed == "" else bed,
-		"enabled": bed == ""})
-	var unload := sabre.unload_problem()
-	options.append({"id": &"unload", "label": "Décharger le plateau",
-		"detail": "derrière le hayon" if unload == "" else unload, "enabled": unload == ""})
+	if not walker:
+		options.append({"id": &"bed", "label": "Coucher sur le plateau",
+			"detail": "corps ou otage ligoté, depuis le hayon (%d place%s)" % [sabre.bed.count(null), "s" if sabre.bed.count(null) > 1 else ""] if bed == "" else bed,
+			"enabled": bed == ""})
+		var unload := sabre.unload_problem()
+		options.append({"id": &"unload", "label": "Décharger le plateau",
+			"detail": "derrière le hayon" if unload == "" else unload, "enabled": unload == ""})
 	var repair := nobody if nobody != "" else sabre.repair_problem()
 	options.append({"id": &"repair", "label": "Réparer",
-		"detail": "pneus et moteur, %d s à l'avant" % int(Sabre.REPAIR_TIME) if repair == "" else repair, "enabled": repair == ""})
+		"detail": ("pattes et moteur" if walker else "pneus et moteur") + ", %d s à l'avant" % int(Sabre.REPAIR_TIME) if repair == "" else repair, "enabled": repair == ""})
 	return options
 
 
@@ -942,10 +958,12 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 			"enabled": moving == ""},
 	]
 	var index := sabre.seat_of(rider)
+	var walker := sabre is Hexapod
+	var gun_name := "Gatling" if walker else "12,7"
 	if index != Sabre.DRIVER_SEAT:
 		var free := sabre.driver() == null
-		options.append({"id": &"drive", "label": "Prendre le volant",
-			"detail": "le véhicule roule au clic droit" if free and moving == "" else (moving if moving != "" else "%s conduit" % sabre.driver().display_name),
+		options.append({"id": &"drive", "label": "Prendre les commandes" if walker else "Prendre le volant",
+			"detail": ("il marche au clic droit" if walker else "le véhicule roule au clic droit") if free and moving == "" else (moving if moving != "" else "%s conduit" % sabre.driver().display_name),
 			"enabled": free and moving == ""})
 	if index == Sabre.DRIVER_SEAT and LevelRoot.is_night(sabre):
 		options.append({"id": &"lights", "label": "Éteindre les phares" if sabre.headlights else "Allumer les phares",
@@ -957,7 +975,7 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 			"enabled": sabre.idling or idle == ""})
 	options.append({"id": &"assault", "label": "Rester à bord à l'arrivée" if sabre.dismount_on_arrival else "Débarquer à l'arrivée",
 		"detail": "les passagers restent assis" if sabre.dismount_on_arrival else "passagers à terre et à couvert dès l'arrêt (%d)" % sabre.assault_party().size()})
-	if index == Sabre.DRIVER_SEAT:
+	if index == Sabre.DRIVER_SEAT and not walker:
 		options.append({"id": &"coast", "label": "Relancer le moteur" if sabre.coasting else "Couper le moteur",
 			"detail": ("le moteur s'entend de nouveau" if sabre.coasting else "roue libre silencieuse, %d m/s, %d m" % [int(Sabre.COAST_SPEED), int(Sabre.COAST_RANGE)]) if moving == "" else moving,
 			"enabled": moving == "" and sabre.stowed_in == null})
@@ -967,21 +985,22 @@ static func sabre_options(sabre: Sabre, rider: Commando) -> Array[Dictionary]:
 		options.append({"id": &"side_gun", "label": "7,62 : cesser le feu" if firing else "7,62 : feu à volonté",
 			"detail": "la mitrailleuse se tait" if firing else ("à l'avant et à droite" if side == 0 else "à l'arrière et à gauche") + ", %d m" % int(Sabre.SIDE_RANGE)})
 	var supply := sabre.resupply_problem(rider)
-	options.append({"id": &"resupply", "label": "Se ravitailler (%d)" % sabre.supplies,
-		"detail": "dotation de départ, sur le plateau" if supply == "" else supply, "enabled": supply == ""})
-	if index != Sabre.DRIVER_SEAT:
+	if not walker:
+		options.append({"id": &"resupply", "label": "Se ravitailler (%d)" % sabre.supplies,
+			"detail": "dotation de départ, sur le plateau" if supply == "" else supply, "enabled": supply == ""})
+	if index != Sabre.DRIVER_SEAT and not walker:
 		var missile := sabre.missile_problem(rider)
 		options.append({"id": &"missile", "label": "Missile antichar (%d)" % sabre.missiles,
 			"detail": "puis clic sur la cible : %.1f s de visée, à l'arrêt" % Sabre.MISSILE_AIM if missile == "" else missile,
 			"enabled": missile == ""})
 	if index == Sabre.GUNNER_SEAT:
-		options.append({"id": &"gun", "label": "12,7 : cesser le feu" if sabre.gun_firing or sabre.designated_target() else "12,7 : feu à volonté",
+		options.append({"id": &"gun", "label": gun_name + (" : cesser le feu" if sabre.gun_firing or sabre.designated_target() else " : feu à volonté"),
 			"detail": "la mitrailleuse se tait" if sabre.gun_firing or sabre.designated_target() else "tir automatique tout autour (bruyant)"})
-		options.append({"id": &"designate", "label": "12,7 : tir désigné",
+		options.append({"id": &"designate", "label": gun_name + " : tir désigné",
 			"detail": "puis clic sur un ennemi ou un objet : feu concentré", "enabled": not sabre.model.is_folded})
 	else:
 		var free_turret := sabre.gunner() == null
-		options.append({"id": &"turret", "label": "Tourelle 12,7",
+		options.append({"id": &"turret", "label": "Tourelle " + gun_name,
 			"detail": "passer à la mitrailleuse" if free_turret and moving == "" else (moving if moving != "" else "%s y est" % sabre.gunner().display_name),
 			"enabled": free_turret and moving == ""})
 	return options

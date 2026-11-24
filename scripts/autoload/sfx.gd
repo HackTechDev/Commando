@@ -196,6 +196,14 @@ func _build_library() -> void:
 		_noise(0.16, 0.003, 0.08, 0.45, 0.35),
 	])
 	_streams[&"bark"] = _wav(_concat([woof, _silence(0.12), woof]))
+	# Pied de l'hexapode qui se pose : choc sourd et métallique, puis
+	# sifflement bref du vérin.
+	_streams[&"stomp"] = _wav(_mix([
+		_tone([62.0, 38.0], 0.32, 0.9, 0.002, 0.14),
+		_noise(0.18, 0.001, 0.06, 0.2, 0.6),
+		_tone([620.0, 540.0], 0.12, 0.08, 0.002, 0.05),
+		_concat([_silence(0.08), _sweep_noise(0.16, 0.7, 0.4, 0.12)]),
+	]))
 	# Interface : sélection, ordre, action armée.
 	_streams[&"select"] = _wav(_tone([1000.0, 1000.0], 0.05, 0.3, 0.003, 0.02))
 	_streams[&"order"] = _wav(_concat([

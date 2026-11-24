@@ -94,6 +94,7 @@ static func entries() -> Array[Dictionary]:
 		{"id": "extraction", "label": "Zone d'extraction", "category": "Extraction et véhicules", "parent": ".", "tool": "point"},
 		{"id": "tiltrotor", "label": "Convertible d'extraction", "category": "Extraction et véhicules", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "sabre", "label": "Sabre", "category": "Extraction et véhicules", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "hexapod", "label": "Hexapode", "category": "Extraction et véhicules", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "pad", "label": "Aire de poser", "category": "Extraction et véhicules", "parent": "Decor", "tool": "point"},
 	]
 
@@ -357,6 +358,8 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			nodes.append(aircraft)
 		"sabre":
 			nodes.append(_scripted("StaticBody3D", "res://scripts/props/sabre.gd", "Sabre"))
+		"hexapod":
+			nodes.append(_scripted("StaticBody3D", "res://scripts/props/hexapod.gd", "Hexapod"))
 	for node in nodes:
 		node.transform = Transform3D(Basis(Vector3.UP, -deg_to_rad(facing)), at)
 	return nodes
