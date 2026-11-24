@@ -30,6 +30,11 @@ func _start_game() -> void:
 		add_child(prints, false, Node.INTERNAL_MODE_BACK)
 
 
+## Poudré de neige : teintes un peu blanchies.
+func weather_material(material: StandardMaterial3D) -> void:
+	material.albedo_color = material.albedo_color.lerp(Color(0.95, 0.97, 1.0), 0.14)
+
+
 func sight() -> float:
 	return sight_factor
 

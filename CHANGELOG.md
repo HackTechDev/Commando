@@ -1603,3 +1603,7 @@
 - Sur une carte enneigée (nœud « Chute de neige », `tracks`), un opérateur qui marche, court ou rampe dehors, au sol, laisse des empreintes (pied gauche, pied droit ; une trace large en rampant). La neige les recouvre en 2 min 30 ; elles pâlissent avec l'âge.
 - Un garde au calme ou méfiant qui voit des empreintes de moins de 75 s va voir la plus récente, puis suit la piste vers les plus fraîches : marcher dans la neige devant une ronde trahit le passage de l'équipe.
 - Sauvegarde rapide à jour (empreintes gardées).
+
+## Unités mouillées ou enneigées (2.15 d)
+
+- Sous la pluie, opérateurs, ennemis et VIP ont des tenues plus sombres et plus brillantes (trempées) ; sous la neige, des teintes un peu blanchies. Les unités qui arrivent en cours de mission (renforts) aussi. Le point 2.15 est terminé.

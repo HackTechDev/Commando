@@ -30,6 +30,12 @@ const LOOP_FADE := 0.25
 var _sound: AudioStreamPlayer
 
 
+## Trempé : tissus plus sombres et plus brillants.
+func weather_material(material: StandardMaterial3D) -> void:
+	material.albedo_color = material.albedo_color.darkened(0.18)
+	material.roughness = material.roughness * 0.55
+
+
 func sight() -> float:
 	return sight_factor
 

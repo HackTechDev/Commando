@@ -80,10 +80,41 @@ func _ready() -> void:
 	_follow_camera()
 	if not Engine.is_editor_hint():
 		_start_game()
+		_weather_units.call_deferred()
 
 
 ## En jeu seulement : ce qui accompagne la météo (traces, son…).
 func _start_game() -> void:
+	pass
+
+
+## En jeu : les unités (opérateurs, ennemis, VIP), présentes et à venir,
+## prennent la marque du temps (`weather_material`).
+func _weather_units() -> void:
+	for model in get_tree().current_scene.find_children("*", "SoldierModel", true, false):
+		weather_model(model as Node3D)
+	get_tree().node_added.connect(func(node: Node) -> void:
+		if node is SoldierModel:
+			weather_model.call_deferred(node))
+
+
+## Matériaux de `model` changés par la météo (`weather_material`), une fois.
+func weather_model(model: Node3D) -> void:
+	if not is_instance_valid(model) or model.has_meta(&"weathered"):
+		return
+	model.set_meta(&"weathered", true)
+	var done := {}
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		var instance := node as MeshInstance3D
+		var material := instance.material_override as StandardMaterial3D
+		if material == null or done.has(material):
+			continue
+		done[material] = true
+		weather_material(material)
+
+
+## Marque du temps sur un matériau d'unité (rien par défaut).
+func weather_material(_material: StandardMaterial3D) -> void:
 	pass
 
 
