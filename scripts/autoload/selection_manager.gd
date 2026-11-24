@@ -351,12 +351,12 @@ func order_grapple(target: Vector3, run: bool = false) -> bool:
 
 
 ## Fait poser une charge explosive à la première unité sélectionnée qui en a.
-func plant_explosive() -> bool:
+func plant_explosive(timed: bool = false) -> bool:
 	for unit in _by_index():
 		if planning:
 			if not unit.is_dead and unit.explosives > 0:
-				return _issue(unit, unit.plant_explosive, unit.global_position, &"plant")
-		elif unit.plant_explosive():
+				return _issue(unit, unit.plant_explosive.bind(timed), unit.global_position, &"plant")
+		elif unit.plant_explosive(timed):
 			return true
 	return false
 

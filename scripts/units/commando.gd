@@ -945,14 +945,15 @@ func _release_pebble(target: Vector3) -> void:
 
 
 ## Pose une charge explosive aux pieds de l'unité (elle s'accroupit le temps
-## de l'armer). Renvoie faux s'il ne lui en reste pas ou qu'elle est occupée.
-func plant_explosive() -> bool:
+## de l'armer) ; à retardement si `timed` (`ExplosiveCharge.TIMED_FUSE`).
+## Renvoie faux s'il ne lui en reste pas ou qu'elle est occupée.
+func plant_explosive(timed: bool = false) -> bool:
 	if _hostage_busy():
 		return false
 	if is_dead or _hopping or explosives <= 0 or _gesture != null or is_handling_crate():
 		return false
 	stop()
-	_start(PlantGesture.new(self))
+	_start(PlantGesture.new(self, ExplosiveCharge.TIMED_FUSE if timed else -1.0))
 	return true
 
 

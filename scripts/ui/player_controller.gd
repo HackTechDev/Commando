@@ -523,7 +523,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				unit.flash_hint(Commando.Hint.NO_GRAPNEL)
 			_feedback(false)
 	elif event.is_action_pressed(&"action_plant"):
-		_feedback(SelectionManager.plant_explosive())
+		# Maj : charge à retardement.
+		_feedback(SelectionManager.plant_explosive(Input.is_action_pressed(&"timed_fuse")))
 	elif event.is_action_pressed(&"action_detonate"):
 		_feedback(SelectionManager.detonate_explosives() > 0)
 	elif event.is_action_pressed(&"action_medkit"):

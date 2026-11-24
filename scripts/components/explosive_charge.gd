@@ -1,9 +1,15 @@
 class_name ExplosiveCharge
 extends Node3D
 ## Charge explosive posée au sol par un opérateur (K), qui la fait sauter à
-## distance (L). Un voyant rouge clignote tant qu'elle est armée.
+## distance (L). Un voyant rouge clignote tant qu'elle est armée. Posée à
+## retardement (Maj + K), elle saute d'elle-même au bout de `TIMED_FUSE`
+## secondes : compte à rebours affiché, voyant qui clignote de plus en plus
+## vite, bips des dernières secondes ; la mise à feu à distance reste
+## possible.
 
 const BLINK_PERIOD := 0.8
+## Retard d'une charge à retardement (s).
+const TIMED_FUSE := 10.0
 
 ## Opérateur qui l'a posée (il est seul à pouvoir la déclencher).
 var planter: Commando
@@ -12,12 +18,17 @@ var _damage: float = 300.0
 var _noise: float = 30.0
 var _light: MeshInstance3D
 var _time: float = 0.0
+## Retard restant (s), ou négatif : mise à feu à distance seulement.
+var fuse: float = -1.0
+var _countdown: Label3D
+var _last_beep: int = -1
 
 
-## Pose une charge de `planter` à `at`.
-static func plant(parent: Node, at: Vector3, by: Commando) -> ExplosiveCharge:
+## Pose une charge de `planter` à `at` ; à retardement si `delay` > 0.
+static func plant(parent: Node, at: Vector3, by: Commando, delay: float = -1.0) -> ExplosiveCharge:
 	var charge := ExplosiveCharge.new()
 	charge.planter = by
+	charge.fuse = delay
 	charge._radius = by.stats.explosive_radius
 	charge._damage = by.stats.explosive_damage
 	charge._noise = by.stats.explosion_noise_radius
@@ -61,11 +72,40 @@ func _ready() -> void:
 	_light.material_override = glow
 	_light.position = Vector3(0.06, 0.11, 0.0)
 	add_child(_light)
+	if fuse > 0.0:
+		_countdown = Label3D.new()
+		_countdown.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_countdown.no_depth_test = true
+		_countdown.fixed_size = true
+		_countdown.pixel_size = 0.0018
+		_countdown.font_size = 26
+		_countdown.outline_size = 8
+		_countdown.modulate = Color(1.0, 0.45, 0.35)
+		_countdown.position = Vector3(0, 0.6, 0)
+		add_child(_countdown)
+
+
+## Vrai pour une charge à retardement.
+func is_timed() -> bool:
+	return fuse > 0.0
 
 
 func _process(delta: float) -> void:
 	_time += delta
-	_light.visible = fmod(_time, BLINK_PERIOD) < BLINK_PERIOD * 0.4
+	var period := BLINK_PERIOD
+	if is_timed():
+		fuse -= delta
+		if fuse <= 0.0:
+			detonate()
+			return
+		# Plus vite à l'approche de l'explosion.
+		period = lerpf(0.15, BLINK_PERIOD, clampf(fuse / TIMED_FUSE, 0.0, 1.0))
+		_countdown.text = "%d" % ceili(fuse)
+		var second := ceili(fuse)
+		if second <= 3 and second != _last_beep:
+			_last_beep = second
+			Sfx.play_at(&"arm", global_position + Vector3.UP * 0.2, -10.0)
+	_light.visible = fmod(_time, period) < period * 0.4
 
 
 ## Fait sauter la charge.

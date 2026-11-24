@@ -1576,3 +1576,8 @@
 - La neige et la pluie tombent aussi dans la vue 3D de l'éditeur, autour de ce que regarde sa caméra, sans le bruit de la pluie ; nombre de particules et vent se règlent dans l'inspecteur, avec un aperçu immédiat.
 - Case « Météo (neige, pluie) » dans la section Carte du dock pour les masquer.
 - `WeatherParticles` devient un `Node3D` dont les particules sont un enfant interne, jamais enregistré, placé hors de son repère : la scène reste identique après enregistrement (vérifié par `tools/editor_check/check_all.sh`).
+
+## Charge à retardement (2.14 b)
+
+- Maj + K : l'opérateur pose une charge qui saute d'elle-même 10 s après avoir été armée. Compte à rebours au-dessus de la charge, voyant qui clignote de plus en plus vite, bips des trois dernières secondes. L la fait sauter plus tôt, comme une charge ordinaire.
+- Action `timed_fuse` (Maj, par position physique) dans l'InputMap ; l'aide en jeu affiche les combinaisons (« Maj + K »).

@@ -48,6 +48,7 @@ const SECTIONS: Array = [
 	]],
 	["Équipement et objets", [
 		[[&"action_plant"], "Poser une charge"],
+		[[[&"timed_fuse", &"action_plant"]], "Poser une charge à retardement (10 s)"],
 		[[&"action_detonate"], "Mise à feu des charges"],
 		[[&"action_medkit"], "Soigner"],
 		[[&"action_crate"], "Pousser / tirer une caisse"],
@@ -132,10 +133,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Touches d'une ligne : actions (`StringName`) ou textes séparés par « / » ;
+## un tableau d'actions est une combinaison (« Maj + K »).
 static func _keys_text(keys: Array) -> String:
 	var parts: PackedStringArray = []
 	for key: Variant in keys:
-		parts.append(KeyNames.label(key) if key is StringName else String(key))
+		if key is Array:
+			var combo: PackedStringArray = []
+			for action: StringName in key:
+				combo.append(KeyNames.label(action))
+			parts.append(" + ".join(combo))
+		else:
+			parts.append(KeyNames.label(key) if key is StringName else String(key))
 	return " / ".join(parts)
 
 
