@@ -142,6 +142,16 @@ func _build_library() -> void:
 		_tone([1900.0, 1500.0], 0.22, 0.3, 0.001, 0.08),
 		_tone([3100.0, 2800.0], 0.15, 0.18, 0.001, 0.05),
 	]))
+	# Balle qui frappe un mur, le sol : claquement sec et poussière ;
+	# du bois : choc plus sourd.
+	_streams[&"impact"] = _wav(_mix([
+		_noise(0.12, 0.001, 0.04, 0.55, 0.9),
+		_tone([420.0, 180.0], 0.06, 0.35, 0.001, 0.03),
+	]))
+	_streams[&"impact_wood"] = _wav(_mix([
+		_noise(0.1, 0.001, 0.035, 0.3, 0.8),
+		_tone([260.0, 150.0], 0.09, 0.55, 0.001, 0.04),
+	]))
 	_streams[&"whoosh"] = _wav(_sweep_noise(0.22, 0.1, 0.5, 0.5))
 	# Couteau qui tombe au sol : tintement métallique.
 	_streams[&"clink"] = _wav(_mix([

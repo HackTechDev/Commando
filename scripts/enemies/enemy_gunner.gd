@@ -149,10 +149,11 @@ func try_fire(delta: float, to_target: Vector3) -> void:
 	var hit := GameRng.chance(enemy, chance)
 	var scene := tree.current_scene as Node3D
 	if not hit and cover.miss_hits_cover(GameRng.of(enemy)):
-		aim = ShotImpact.land(scene, muzzle, cover.hidden_point, ignored)
+		aim = ShotImpact.stray(scene, muzzle, cover.hidden_point, ignored, stats.fire_damage, enemy.global_position)
 	elif not hit:
 		var side := enemy.global_basis.x * (0.5 + GameRng.of(enemy).randf() * 0.5) * GameRng.side(enemy)
-		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)
+		# Balle perdue : elle peut toucher quelqu'un d'autre plus loin.
+		aim = ShotImpact.stray(scene, muzzle, aim + side, ignored, stats.fire_damage, enemy.global_position)
 	# Un bouclier levé sur la trajectoire arrête la balle.
 	var stop := Commando.shield_in_the_way(tree, muzzle, aim)
 	Tracer.spawn(scene, muzzle, aim if stop == Vector3.INF else stop)

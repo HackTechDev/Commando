@@ -1563,3 +1563,10 @@
 - Les ennemis armés tirent par chargeurs (`EnemyStats.magazine_size`, 10 cartouches) : chargeur vide, ils rechargent `reload_time` (2,6 s) sans tirer, avec le geste et le bruit du rechargement, et la marque « recharge » au-dessus d'eux en alerte. Une fenêtre pour se mettre à couvert ou foncer.
 - Au calme, un garde complète de lui-même un chargeur entamé. Assommé ou saisi, il perd le rechargement en cours. Chargeur et rechargement sont gardés par la sauvegarde rapide.
 - La réserve (`ammo`, 30 cartouches) reste comptée comme avant : à sec, il charge au corps à corps.
+
+## Balles perdues et impacts (2.13)
+
+- Une balle manquée (opérateur ou ennemi) file jusqu'au premier obstacle, ou jusqu'à la première unité sur sa trajectoire : un ennemi derrière la cible, ou un opérateur (tir ami), encaisse les dégâts.
+- Chaque impact sur un obstacle se voit et s'entend : étincelles et tintement sur le métal (voitures, convertible, Sabre, technical), échardes et choc sourd sur le bois (caisses, portes), poussière et claquement sur les murs et le sol. Une trace reste à l'endroit touché (trou sombre, éraflure claire sur le métal et les vitres), accrochée à l'objet : elle suit une voiture qui roule. Les 150 plus récentes sont gardées.
+- Le bruit d'impact (7 m) intrigue les gardes proches, qui viennent voir : même un tir au silencieux trahit l'endroit où la balle a frappé.
+- Valable pour le tir libre (mur, caisse, voiture, convertible…), les balles manquées et la mitrailleuse de bord.

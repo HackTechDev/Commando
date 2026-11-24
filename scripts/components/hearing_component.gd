@@ -18,7 +18,7 @@ const EAR_HEIGHT := 1.6
 const ALARM_TYPES: Array[StringName] = [&"help", &"scream", &"gunshot", &"explosion"]
 ## Bruits qui intriguent : on va voir. Les autres types sont ignorés.
 const INVESTIGATE_TYPES: Array[StringName] = [
-	&"distraction", &"knife", &"melee", &"jump", &"run", &"gear", &"crate", &"smoke",
+	&"distraction", &"knife", &"melee", &"jump", &"run", &"gear", &"crate", &"smoke", &"impact",
 ]
 
 ## Bruit entendu en `at` : type, réaction, et force (1 à la source, 0 en

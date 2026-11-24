@@ -1836,11 +1836,12 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	var hit := GameRng.chance(self, chance)
 	var scene := get_tree().current_scene as Node3D
 	if not hit and last_cover.miss_hits_cover(GameRng.of(self)):
-		aim = ShotImpact.land(scene, muzzle, last_cover.hidden_point, ignored)
+		aim = ShotImpact.stray(scene, muzzle, last_cover.hidden_point, ignored, stats.damage_at(distance), global_position)
 	elif not hit:
 		var side := global_basis.x * (0.5 + GameRng.of(self).randf() * 0.5) * GameRng.side(self)
-		# La balle manquée file jusqu'au premier obstacle derrière la cible.
-		aim = ShotImpact.land(scene, muzzle, aim + side, ignored)
+		# La balle manquée file jusqu'au premier obstacle, ou à la première
+		# unité, derrière la cible.
+		aim = ShotImpact.stray(scene, muzzle, aim + side, ignored, stats.damage_at(distance), global_position)
 	else:
 		ShotImpact.hit(scene, enemy, aim, muzzle, stats.damage_at(distance), false)
 	Tracer.spawn(scene, muzzle, aim, Color(0.6, 0.9, 1.0))
@@ -1917,7 +1918,9 @@ func _fire_at_point(point: Vector3) -> void:
 			ShotImpact.hit(scene, target as Node3D, end, muzzle, damage, false)
 			(target as Enemy).take_hit(damage, global_position)
 		else:
-			ShotImpact.burst(scene, end, hit["normal"], ShotImpact.DUST, 10, 2.2)
+			# Impact visible (éclats, trace) et audible, même au silencieux.
+			ShotImpact.impact(scene, end, hit["normal"], target)
+			EventBus.noise_emitted.emit(end, ShotImpact.IMPACT_NOISE_RADIUS, &"impact")
 			if target and target.has_method(&"take_shot"):
 				target.call(&"take_shot", damage, end, muzzle)
 	Tracer.spawn(scene, muzzle, end, Color(0.6, 0.9, 1.0))

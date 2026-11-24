@@ -23,7 +23,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **e)** caisses trop lourdes pour un seul opérateur (pousser à deux) ;
   - **f)** réaction des ennemis à un décor qui a bougé.
 - **2.9 Végétation** (couche 6) : buissons où se cacher, qui masquent partiellement la vue.
-- **2.13 Tirs ratés** : une balle manquée s'arrête déjà sur le premier obstacle (gerbe de poussière). Reste à lui faire toucher une autre unité sur sa trajectoire, et faire du bruit à l'impact.
 - **2.14 Explosifs, suite** :
   - **b)** charge à retardement, en plus de la mise à feu à distance ;
   - **c)** grenades assourdissantes pour l'infiltration (les fumigènes existent) ;

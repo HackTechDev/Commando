@@ -219,7 +219,7 @@ func _fire_round(aim: Vector3) -> void:
 			ShotImpact.hit(scene, struck as Node3D, end, from, damage, false)
 			(struck as Enemy).take_hit(damage, from)
 		else:
-			ShotImpact.burst(scene, end, hit["normal"], ShotImpact.DUST, 10, 2.2)
+			ShotImpact.impact(scene, end, hit["normal"], struck)
 			if struck and struck.has_method(&"take_shot"):
 				struck.call(&"take_shot", damage, end, from)
 	Tracer.spawn(scene, from, end, tracer_color)
