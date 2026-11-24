@@ -587,7 +587,10 @@ func _build_outfit() -> Control:
 			profile().set(key, GearCatalog.PALETTE[i])
 			# Une couleur unie choisie pour le haut ou le pantalon remplace le camouflage.
 			if plain:
-				profile().camo = &"", entry[3])
+				profile().camo = &"", entry[3], func(color: Color) -> void:
+			profile().set(key, color)
+			if plain:
+				profile().camo = &"")
 	return box
 
 
@@ -851,7 +854,9 @@ func _option(box: Container, title: String, key: StringName, choices: Dictionary
 
 
 ## Rangée de pastilles de couleur ; `on_pick` reçoit l'indice choisi.
-func _swatch_row(box: Container, key: StringName, colors: Array[Color], on_pick: Callable, part: StringName) -> void:
+## `on_free` (facultatif) : couleur libre choisie au sélecteur placé en fin
+## de rangée (`ColorPickerButton`), en plus de la palette.
+func _swatch_row(box: Container, key: StringName, colors: Array[Color], on_pick: Callable, part: StringName, on_free: Callable = Callable()) -> void:
 	var row := HFlowContainer.new()
 	row.name = String(key)
 	row.add_theme_constant_override(&"h_separation", 4)
@@ -874,8 +879,22 @@ func _swatch_row(box: Container, key: StringName, colors: Array[Color], on_pick:
 			_changed(true, "", part))
 		row.add_child(button)
 		buttons.append(button)
+	var picker: ColorPickerButton = null
+	if on_free.is_valid():
+		picker = ColorPickerButton.new()
+		picker.name = "Free"
+		picker.custom_minimum_size = Vector2(44, 28)
+		picker.text = "…"
+		picker.tooltip_text = "Couleur libre"
+		picker.edit_alpha = false
+		picker.color_changed.connect(func(color: Color) -> void:
+			on_free.call(color)
+			_refresh_controls()
+			# Les retouches successives au sélecteur ne font qu'une annulation.
+			_changed(true, String(key), part))
+		row.add_child(picker)
 	box.add_child(row)
-	_swatches[key] = [buttons, colors]
+	_swatches[key] = [buttons, colors, picker]
 
 
 func _names(entries: Dictionary) -> Dictionary:
@@ -991,10 +1010,16 @@ func _refresh_controls() -> void:
 		var buttons: Array[Button] = _swatches[key][0]
 		var colors: Array[Color] = _swatches[key][1]
 		var value: Variant = operator.get(key)
+		var in_palette := false
 		for i in buttons.size():
 			var chosen: bool = (value == i) if value is int else (value as Color).is_equal_approx(colors[i])
+			in_palette = in_palette or chosen
 			buttons[i].modulate = Color.WHITE if chosen else Color(1, 1, 1, 0.75)
 			buttons[i].text = "✓" if chosen else ""
+		var picker: ColorPickerButton = _swatches[key][2]
+		if picker and value is Color:
+			picker.color = value
+			picker.text = "" if not in_palette else "…"
 	for id: StringName in _camo_buttons:
 		(_camo_buttons[id] as Button).set_pressed_no_signal(id == operator.camo)
 	for id: StringName in _clothing_buttons:

@@ -31,7 +31,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 - **5.2 Opérateurs, suite** :
   - **a)** plus de traits de visage au choix (nez, mâchoire, yeux), plus de coupes, cicatrices et peintures de camouflage ;
-  - **b)** couleurs libres (sélecteur) en plus de la palette ;
   - **c)** motifs de camouflage propres à chaque vêtement.
 - **5.3 Équipement, suite** :
   - **a)** gestes propres à la pose d'une charge et aux soins (aujourd'hui, l'opérateur reste simplement accroupi ou debout) ;

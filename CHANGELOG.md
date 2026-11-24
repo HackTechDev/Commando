@@ -1645,3 +1645,7 @@
 
 - Chaque portrait du HUD de mission montre, à gauche, le visage 3D de l'opérateur dans sa tenue (casque, cagoule, jumelles), comme l'écran « Opérateurs ». Il rougit avec les blessures, devient gris à la mort, et n'est plus rendu une fois l'opérateur mort ou évacué.
 - Code commun aux deux écrans : `FacePortrait.build`.
+
+## Couleurs libres des vêtements (5.2 b)
+
+- Écran « Opérateurs » : au bout de chaque palette (haut, pantalon, gilet, couvre-chef), un sélecteur de couleur libre. La couleur choisie s'y affiche quand elle n'est pas dans la palette ; une couleur libre pour le haut ou le pantalon retire le camouflage, comme une couleur de la palette. Les retouches successives au sélecteur ne font qu'une annulation.
