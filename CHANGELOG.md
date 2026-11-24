@@ -1654,3 +1654,9 @@
 
 - Écran « Opérateurs », onglet Tenue : le camouflage choisi habille le haut (et le pantalon, s'il reste « comme le haut ») ; le pantalon, le gilet (et les pièces de toile qui en ont la couleur) et le couvre-chef ont chacun leur rangée de motifs : uni ou un camouflage. Une couleur unie choisie pour le pantalon ne retire plus que son propre motif.
 - Profils, tenues enregistrées et « même tenue pour l'équipe » à jour (`pants_camo`, `vest_camo`, `headwear_camo`) ; les anciens profils gardent un pantalon assorti au haut.
+
+## Traits du visage, coupes, cicatrices, peintures (5.2 a)
+
+- Écran « Opérateurs », Identité : nez (droit, petit, large, aquilin), mâchoire (moyenne, fine, carrée), yeux (moyens, plissés, ronds, rapprochés), cicatrice (joue, sourcil, lèvre) et peinture de camouflage (bandes, ou visage couvert du motif woodland).
+- Deux coupes de plus : afro et undercut (côtés rasés).
+- La barbe, les lèvres et le nez épousent la mâchoire choisie. Une peinture de camouflage trahit un opérateur en tenue civile. Le point 5.2 est terminé.

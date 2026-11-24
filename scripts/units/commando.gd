@@ -363,7 +363,7 @@ func looks_civilian() -> bool:
 	var look := _model.outfit
 	if look == null or not look.is_civilian() or is_dead:
 		return false
-	if look.headwear == &"helmet" or look.camo != &"":
+	if look.headwear == &"helmet" or look.camo != &"" or look.face_paint != &"none":
 		return false
 	for key: StringName in GearCatalog.MILITARY_GEAR:
 		if look.get(key):

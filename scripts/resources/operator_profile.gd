@@ -22,6 +22,13 @@ const DEFAULTS: Array[Dictionary] = [
 @export var hair_style: StringName = &"short"
 @export var hair_color: int = 1
 @export var beard: StringName = &"none"
+## Traits du visage (`GearCatalog.NOSES`, `JAWS`, `EYES`, `SCARS`,
+## `FACE_PAINTS`).
+@export var nose: StringName = &"straight"
+@export var jaw: StringName = &"normal"
+@export var eyes: StringName = &"normal"
+@export var scar: StringName = &"none"
+@export var face_paint: StringName = &"none"
 
 # Tenue : camouflage du haut et du pantalon (`GearCatalog.CAMOS`, vide : uni).
 @export var camo: StringName = &""
@@ -94,7 +101,7 @@ const LOOK_KEYS: Array[String] = [
 ]
 
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
-const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "pants_camo", "vest_camo", "headwear_camo", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
+const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "pants_camo", "vest_camo", "headwear_camo", "nose", "jaw", "eyes", "scar", "face_paint", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads", "sunglasses"]
 const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet"]
 
@@ -241,6 +248,7 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 		"camo": GearCatalog.CAMOS, "pants_camo": GearCatalog.CAMOS, "vest_camo": GearCatalog.CAMOS, "headwear_camo": GearCatalog.CAMOS, "hair_style": GearCatalog.HAIR_STYLES, "beard": GearCatalog.BEARDS,
 		"body": GearCatalog.BODIES, "headwear": GearCatalog.HEADWEAR, "primary": GearCatalog.PRIMARY, "secondary": GearCatalog.SECONDARY,
 		"specialty": GearCatalog.SPECIALTIES, "clothing": GearCatalog.CLOTHING,
+		"nose": GearCatalog.NOSES, "jaw": GearCatalog.JAWS, "eyes": GearCatalog.EYES, "scar": GearCatalog.SCARS, "face_paint": GearCatalog.FACE_PAINTS,
 	}
 	for key in _NAME_KEYS:
 		var value := StringName(str(data.get(key, "")))

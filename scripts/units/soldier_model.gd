@@ -512,6 +512,12 @@ const KNEEL_REAR_FOOT := -1.22
 const IRIS_REST := Vector3(0.036, 0.192, -0.098)
 ## Échelle verticale de la paupière, œil ouvert (1 : fermé).
 const LID_OPEN := 0.08
+## Paupière ouverte selon la forme des yeux (`GearCatalog.EYES`).
+var _lid_open: float = LID_OPEN
+## Forme de la mâchoire (`GearCatalog.JAWS`) et matériau du visage (peau,
+## ou peau peinte : `face_paint`).
+var _jaw: StringName = &"normal"
+var _m_face: StandardMaterial3D
 const BLINK_DURATION := 0.16
 const MOUTH_REST := Vector3(1.5, 0.32, 0.5)
 ## Durée du geste de ramassage (voir `play_pickup`).
@@ -2992,12 +2998,14 @@ static func fabric_normal_map() -> Texture2D:
 func _build_head() -> void:
 	_head = _pivot(_torso, Vector3(0.0, 0.57, 0.0), "Head")
 	var masked := _wears(&"balaclava")
+	_jaw = outfit.jaw if outfit else &"normal"
+	_m_face = _face_material()
 	var neck := 0.86 if _female else 1.0
 	_tapered(_head, 0.05 * neck, 0.057 * neck, 0.12, Vector3(0.0, 0.035, 0.008), _m_gear if masked else _m_skin)
 	if masked:
 		# Tête sous cagoule : seuls les yeux et l'arête du nez se voient.
 		_head_shape(_m_gear).name = "Balaclava"
-		var opening := _ellipsoid(_head, 0.06, Vector3(1.05, 0.36, 0.5), Vector3(0.0, 0.192, -0.078), _m_skin)
+		var opening := _ellipsoid(_head, 0.06, Vector3(1.05, 0.36, 0.5), Vector3(0.0, 0.192, -0.078), _m_face)
 		opening.name = "EyeOpening"
 		_build_eyes()
 	else:
@@ -3048,25 +3056,26 @@ func _build_guard_helmet() -> void:
 
 ## Visage découvert : tête, yeux, sourcils, nez, cheveux et barbe d'`outfit`.
 func _build_face() -> void:
-	_head_shape(_m_skin).name = "Face"
+	_head_shape(_m_face).name = "Face"
 	for side: float in [-1.0, 1.0]:
 		# Oreille.
-		_ellipsoid(_head, 0.024, Vector3(0.45, 1.0, 0.75), Vector3(0.1 * side, 0.18, 0.014), _m_skin)
+		_ellipsoid(_head, 0.024, Vector3(0.45, 1.0, 0.75), Vector3(0.1 * side, 0.18, 0.014), _m_face)
 	_build_eyes()
+	_build_marks()
 	var nose := MeshInstance3D.new()
 	nose.name = "Nose"
-	nose.mesh = _nose_mesh(_female)
-	nose.material_override = _m_skin
+	nose.mesh = _nose_mesh(_female, outfit.nose if outfit else &"straight", _jaw)
+	nose.material_override = _m_face
 	_head.add_child(nose)
 	var beard: StringName = _guard_look.get("beard", &"none") if outfit == null else outfit.beard
 	if _female:
 		beard = &"none"
 	# Lèvres posées sur la peau, ou sur la barbe qui la recouvre ; à moitié
 	# enfoncées pour rester collées au visage malgré sa courbure.
-	var lips_depth := face_depth(0.0, MOUTH_HEIGHT, _female)
+	var lips_depth := face_depth(0.0, MOUTH_HEIGHT, _female, _jaw)
 	match beard:
 		&"stubble", &"full":
-			lips_depth = _beard_point(MOUTH_HEIGHT, 0.0, beard == &"full").z
+			lips_depth = _beard_point(MOUTH_HEIGHT, 0.0, beard == &"full", jaw_squeeze(false, _jaw)).z
 	lips_depth += 0.003
 	_mouth = _ellipsoid(_head, 0.023 if _female else 0.02, MOUTH_REST, Vector3(0.0, MOUTH_HEIGHT, lips_depth), _m_lip)
 	_mouth.name = "Mouth"
@@ -3077,9 +3086,15 @@ func _build_face() -> void:
 	# Sous un couvre-chef, seuls l'arrière du crâne et la queue de cheval
 	# dépassent.
 	var covered := (outfit != null and outfit.headwear != &"none") or not _guard_look.is_empty()
-	if style != &"shaved":
+	if style != &"shaved" and style != &"undercut":
 		# Arrière et côtés du crâne.
 		_ellipsoid(_head, 0.1, Vector3(0.96, 0.72, 0.92), Vector3(0.0, 0.2, 0.042), _m_hair)
+	if style == &"undercut" and not covered:
+		# Côtés rasés, dessus long rabattu en arrière.
+		var top := _ellipsoid(_head, 0.1, Vector3(0.72, 0.42, 1.0), Vector3(0.0, 0.29, 0.012), _m_hair)
+		top.name = "Hair"
+		top.rotation.x = 0.15
+	if style != &"shaved" and style != &"undercut":
 		if not covered:
 			var cap := SphereMesh.new()
 			cap.radius = 0.11
@@ -3101,13 +3116,68 @@ func _build_face() -> void:
 		&"mohawk":
 			if not covered:
 				_box(_head, Vector3(0.032, 0.05, 0.22), Vector3(0.0, 0.31, 0.005), _m_hair)
+		&"afro":
+			# Volume de boucles autour du crâne ; sous un couvre-chef, il
+			# déborde sur la nuque et les tempes.
+			if covered:
+				_ellipsoid(_head, 0.12, Vector3(1.05, 0.55, 0.85), Vector3(0.0, 0.17, 0.05), _m_hair)
+			else:
+				var curls := _ellipsoid(_head, 0.15, Vector3(1.0, 0.85, 0.95), Vector3(0.0, 0.27, 0.03), _m_hair)
+				curls.name = "Hair"
 	match beard:
 		&"stubble":
-			_mesh(_head, _beard_mesh(false), Vector3.ZERO, _m_stubble).name = "Beard"
+			_mesh(_head, _beard_mesh(false, _jaw), Vector3.ZERO, _m_stubble).name = "Beard"
 		&"full":
-			_mesh(_head, _beard_mesh(true), Vector3.ZERO, _m_hair).name = "Beard"
+			_mesh(_head, _beard_mesh(true, _jaw), Vector3.ZERO, _m_hair).name = "Beard"
 			# Moustache, entre le nez et la lèvre.
-			_ellipsoid(_head, 0.022, Vector3(1.7, 0.4, 0.55), Vector3(0.0, 0.131, face_depth(0.0, 0.131) - 0.004), _m_hair)
+			_ellipsoid(_head, 0.022, Vector3(1.7, 0.4, 0.55), Vector3(0.0, 0.131, face_depth(0.0, 0.131, false, _jaw) - 0.004), _m_hair)
+
+
+## Matériau du visage : la peau, ou la peau couverte de peinture de
+## camouflage (`face_paint` « full » : motif woodland plaqué).
+func _face_material() -> StandardMaterial3D:
+	var paint: StringName = outfit.face_paint if outfit else &"none"
+	if paint != &"full":
+		return _m_skin
+	var painted := _m_skin.duplicate() as StandardMaterial3D
+	painted.albedo_color = Color(0.85, 0.85, 0.8)
+	painted.albedo_texture = GearCatalog.camo_texture(&"woodland")
+	painted.uv1_triplanar = true
+	painted.uv1_scale = Vector3.ONE * 6.0
+	painted.roughness = 0.7
+	return painted
+
+
+## Cicatrice (`scar`) et bandes de peinture (`face_paint` « stripes »),
+## posées à la surface du visage.
+func _build_marks() -> void:
+	if outfit == null:
+		return
+	var scar_skin := _mat((_m_skin.albedo_color as Color).lightened(0.2).lerp(Color(0.75, 0.45, 0.45), 0.35), 0.5)
+	match outfit.scar:
+		&"cheek":
+			_face_mark(Vector3(-0.052, 0.15, 0.0), Vector3(0.006, 0.05, 0.004), -0.5, scar_skin)
+		&"brow":
+			_face_mark(Vector3(0.042, 0.21, 0.0), Vector3(0.005, 0.04, 0.004), 0.15, scar_skin)
+		&"lip":
+			_face_mark(Vector3(0.012, MOUTH_HEIGHT + 0.004, 0.0), Vector3(0.004, 0.03, 0.004), 0.1, scar_skin)
+	if outfit.face_paint == &"stripes":
+		var dark := _mat(Color(0.12, 0.16, 0.08), 0.8)
+		var green := _mat(Color(0.27, 0.33, 0.16), 0.8)
+		for side: float in [-1.0, 1.0]:
+			_face_mark(Vector3(0.05 * side, 0.165, 0.0), Vector3(0.05, 0.011, 0.005), -0.25 * side, dark)
+			_face_mark(Vector3(0.048 * side, 0.145, 0.0), Vector3(0.046, 0.009, 0.005), -0.25 * side, green)
+		_face_mark(Vector3(0.0, 0.245, 0.0), Vector3(0.08, 0.012, 0.005), 0.0, dark)
+
+
+## Marque plate (`size`) au point `at` du visage (x, y ; posée sur la
+## surface, `face_depth`), tournée de `roll` dans le plan du visage.
+func _face_mark(at: Vector3, size: Vector3, roll: float, material: Material) -> void:
+	var depth := face_depth(at.x, at.y, _female, _jaw)
+	var mark := _box(_head, size, Vector3(at.x, at.y, depth - 0.0015), material)
+	mark.name = "FaceMark"
+	# Suit la courbure : tournée vers l'extérieur sur les côtés.
+	mark.rotation = Vector3(0.0, -atan2(at.x, absf(depth - HEAD_CENTER.z)) , roll)
 
 
 ## Chignon : boule
@@ -3161,7 +3231,7 @@ func _build_long_hair(covered: bool) -> void:
 ## plus étroite jusqu'au menton (partagé par tous les modèles).
 func _head_shape(material: Material) -> MeshInstance3D:
 	var head := MeshInstance3D.new()
-	head.mesh = _head_mesh(_female)
+	head.mesh = _head_mesh(_female, _jaw)
 	head.material_override = material
 	_head.add_child(head)
 	return head
@@ -3177,17 +3247,17 @@ const BEARD_SPREAD := 1.75
 const STUBBLE_THICKNESS := Vector2(0.0025, 0.004)
 const FULL_BEARD_THICKNESS := Vector2(0.007, 0.024)
 
-static var _beard_cache: Array[ArrayMesh] = [null, null]
+static var _beard_cache: Dictionary = {}
 
 
 ## Point de la barbe à la hauteur `y` et à l'angle `phi` (0 : devant) autour
 ## de la tête masculine.
-static func _beard_point(y: float, phi: float, full: bool) -> Vector3:
+static func _beard_point(y: float, phi: float, full: bool, jaw: float = 0.2) -> Vector3:
 	var dy := clampf((y - HEAD_CENTER.y) / HEAD_RADII.z, -1.0, 0.0)
 	var ring := sqrt(1.0 - dy * dy)
 	var t := -dy
 	var skin := Vector3(
-		ring * sin(phi) * HEAD_RADII.x * (1.0 - 0.2 * t * t),
+		ring * sin(phi) * HEAD_RADII.x * (1.0 - jaw * t * t),
 		dy * HEAD_RADII.z,
 		-ring * cos(phi) * HEAD_RADII.w * (1.0 - 0.12 * t * t))
 	if skin.z < 0.0:
@@ -3197,10 +3267,11 @@ static func _beard_point(y: float, phi: float, full: bool) -> Vector3:
 	return HEAD_CENTER + skin * (1.0 + depth / maxf(skin.length(), 0.001))
 
 
-static func _beard_mesh(full: bool) -> ArrayMesh:
-	var variant := 1 if full else 0
-	if _beard_cache[variant]:
+static func _beard_mesh(full: bool, jaw_shape: StringName = &"normal") -> ArrayMesh:
+	var variant := "%s/%s" % [full, jaw_shape]
+	if _beard_cache.has(variant):
 		return _beard_cache[variant]
+	var jaw := jaw_squeeze(false, jaw_shape)
 	var rows := 12
 	var columns := 20
 	var bottom := HEAD_CENTER.y - HEAD_RADII.z
@@ -3210,7 +3281,7 @@ static func _beard_mesh(full: bool) -> ArrayMesh:
 		for j in columns + 1:
 			var phi := lerpf(-BEARD_SPREAD, BEARD_SPREAD, float(j) / columns)
 			var top := BEARD_TOP + BEARD_SIDEBURN * absf(sin(phi))
-			tool.add_vertex(_beard_point(lerpf(top, bottom, float(i) / rows), phi, full))
+			tool.add_vertex(_beard_point(lerpf(top, bottom, float(i) / rows), phi, full, jaw))
 	for i in rows:
 		for j in columns:
 			var a := i * (columns + 1) + j
@@ -3228,9 +3299,15 @@ const HEAD_RADII := Vector4(0.0998, 0.1134, 0.141, 0.11)
 
 ## Profondeur (z, vers l'avant négatif) de la surface du visage au point
 ## (`x`, `y`) du repère de la tête : même calcul que `_head_mesh`.
-static func face_depth(x: float, y: float, female: bool = false) -> float:
+## Resserrement de la mâchoire (0 : aucun) selon la morphologie et la forme
+## choisie (`GearCatalog.JAWS`).
+static func jaw_squeeze(female: bool, shape: StringName = &"normal") -> float:
+	return (0.3 if female else 0.2) + float(GearCatalog.JAWS.get(shape, GearCatalog.JAWS[&"normal"])["squeeze"])
+
+
+static func face_depth(x: float, y: float, female: bool = false, jaw_shape: StringName = &"normal") -> float:
 	var size := 0.96 if female else 1.0
-	var jaw := 0.3 if female else 0.2
+	var jaw := jaw_squeeze(female, jaw_shape)
 	var chin := 0.04 if female else 0.08
 	var dy := (y - HEAD_CENTER.y) / (size * (HEAD_RADII.y if y > HEAD_CENTER.y else HEAD_RADII.z))
 	dy = clampf(dy, -1.0, 1.0)
@@ -3244,14 +3321,21 @@ static func face_depth(x: float, y: float, female: bool = false) -> float:
 
 ## Nez : arête qui part d'entre les yeux, bout arrondi, ailes et narines,
 ## ancré dans la surface du visage (`face_depth`).
-static var _nose_cache: Array[ArrayMesh] = [null, null]
+static var _nose_cache: Dictionary = {}
 
 
-static func _nose_mesh(female: bool) -> ArrayMesh:
-	var variant := 1 if female else 0
-	if _nose_cache[variant]:
+## `shape` : forme choisie (`GearCatalog.NOSES` : largeur, avancée, bosse de
+## l'arête, bout tombant).
+static func _nose_mesh(female: bool, shape: StringName = &"straight", jaw_shape: StringName = &"normal") -> ArrayMesh:
+	var variant := "%s/%s/%s" % [female, shape, jaw_shape]
+	if _nose_cache.has(variant):
 		return _nose_cache[variant]
 	var k := 0.85 if female else 1.0
+	var form: Dictionary = GearCatalog.NOSES.get(shape, GearCatalog.NOSES[&"straight"])
+	var wide: float = form["width"]
+	var out: float = form["projection"]
+	var hump: float = form["hump"]
+	var droop: float = form["droop"]
 	# Points : x, y, avancée devant la surface du visage (négatif : enfoncé).
 	var spec := {
 		"root": Vector3(0.0, 0.19, 0.002),
@@ -3271,9 +3355,15 @@ static func _nose_mesh(female: bool) -> ArrayMesh:
 	var points := {}
 	for key: String in spec:
 		var p: Vector3 = spec[key]
+		if not key.begins_with("in_"):
+			p = Vector3(p.x * wide, p.y, p.z * out)
+			if key == "ridge":
+				p.z += hump
+			if key.begins_with("tip"):
+				p.y -= droop
 		var x := p.x * k
 		var y := 0.142 + (p.y - 0.142) * k
-		points[key] = Vector3(x, y, face_depth(x, y, female) - p.z * k)
+		points[key] = Vector3(x, y, face_depth(x, y, female, jaw_shape) - p.z * k)
 	var triangles := [
 		["in_root", "root", "bridge_l"], ["in_root", "bridge_r", "root"],
 		["root", "ridge", "bridge_l"], ["root", "bridge_r", "ridge"],
@@ -3318,16 +3408,16 @@ static func _nose_mesh(female: bool) -> ArrayMesh:
 
 
 ## Têtes générées : [masculine, féminine].
-static var _head_cache: Array[ArrayMesh] = [null, null]
+static var _head_cache: Dictionary = {}
 
 
 ## Volume de la tête ; `female` : un peu plus petite, mâchoire plus fine et
 ## menton moins avancé.
-static func _head_mesh(female: bool = false) -> ArrayMesh:
-	var variant := 1 if female else 0
-	if _head_cache[variant]:
+static func _head_mesh(female: bool = false, jaw_shape: StringName = &"normal") -> ArrayMesh:
+	var variant := "%s/%s" % [female, jaw_shape]
+	if _head_cache.has(variant):
 		return _head_cache[variant]
-	var jaw := 0.3 if female else 0.2
+	var jaw := jaw_squeeze(female, jaw_shape)
 	var chin := 0.04 if female else 0.08
 	var size := 0.96 if female else 1.0
 	var rings := 18
@@ -3363,16 +3453,19 @@ static func _head_mesh(female: bool = false) -> ArrayMesh:
 ## Yeux (blanc et iris) et sourcils.
 ## Les iris et les paupières sont animés par `_animate_face`.
 func _build_eyes() -> void:
+	var form: Dictionary = GearCatalog.EYES.get(outfit.eyes if outfit else &"normal", GearCatalog.EYES[&"normal"])
+	_lid_open = form["lid"]
+	var spacing: float = form["spacing"]
 	for side: float in [-1.0, 1.0]:
-		_ellipsoid(_head, 0.013, Vector3(1.1, 0.6, 0.5), Vector3(0.037 * side, 0.192, -0.094), _m_eye)
+		_ellipsoid(_head, 0.013, Vector3(1.1, form["height"], 0.5), Vector3(spacing * side, 0.192, -0.094), _m_eye)
 		var iris := _pivot(_head, IRIS_REST * Vector3(side, 1.0, 1.0), "Iris")
 		_sphere(iris, 0.0062, Vector3.ZERO, _m_iris)
 		_irises.append(iris)
 		# Paupière : pivot au bord supérieur de l'œil, aplati quand l'œil est
 		# ouvert, étiré vers le bas pour le fermer.
-		var lid := _pivot(_head, Vector3(0.037 * side, 0.2, -0.094), "Eyelid")
-		_ellipsoid(lid, 0.0145, Vector3(1.15, 0.7, 0.75), Vector3(0.0, -0.008, -0.001), _m_skin)
-		lid.scale.y = LID_OPEN
+		var lid := _pivot(_head, Vector3(spacing * side, 0.2, -0.094), "Eyelid")
+		_ellipsoid(lid, 0.0145, Vector3(1.15, 0.7, 0.75), Vector3(0.0, -0.008, -0.001), _m_face)
+		lid.scale.y = _lid_open
 		_lids.append(lid)
 		var brow := _box(_head, Vector3(0.034, 0.005, 0.01) if _female else Vector3(0.036, 0.008, 0.012), Vector3(0.038 * side, 0.211, -0.097), _m_hair)
 		brow.rotation.z = -0.12 * side
@@ -3398,7 +3491,7 @@ func _animate_face(delta: float) -> void:
 	if is_dead:
 		closed = 1.0
 	for lid in _lids:
-		lid.scale.y = lerpf(LID_OPEN, 1.0, closed)
+		lid.scale.y = lerpf(_lid_open, 1.0, closed)
 	# Regard : vers la cible, ou petits mouvements au hasard.
 	_gaze_wait -= delta
 	if _gaze_wait <= 0.0:

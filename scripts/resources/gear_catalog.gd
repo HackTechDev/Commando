@@ -102,11 +102,52 @@ const HAIR_STYLES: Dictionary = {
 	&"bun": "Chignon",
 	&"long": "Cheveux longs",
 	&"mohawk": "Crête",
+	&"afro": "Afro",
+	&"undercut": "Undercut (côtés rasés)",
 }
 
 const HAIR_COLORS: Array[Color] = [
 	Color(0.06, 0.05, 0.05), Color(0.22, 0.14, 0.08), Color(0.42, 0.26, 0.13), Color(0.78, 0.64, 0.38), Color(0.52, 0.5, 0.48),
 ]
+
+## Nez : nom, largeur et avancée (facteurs), bosse de l'arête et bout
+## tombant (m).
+const NOSES: Dictionary = {
+	&"straight": {"name": "Droit", "width": 1.0, "projection": 1.0, "hump": 0.0, "droop": 0.0},
+	&"small": {"name": "Petit", "width": 0.85, "projection": 0.7, "hump": 0.0, "droop": -0.002},
+	&"broad": {"name": "Large", "width": 1.4, "projection": 0.9, "hump": 0.0, "droop": 0.002},
+	&"aquiline": {"name": "Aquilin", "width": 0.95, "projection": 1.15, "hump": 0.007, "droop": 0.005},
+}
+
+## Mâchoires : nom et resserrement ajouté vers le menton (négatif : carrée).
+const JAWS: Dictionary = {
+	&"normal": {"name": "Moyenne", "squeeze": 0.0},
+	&"narrow": {"name": "Fine", "squeeze": 0.1},
+	&"square": {"name": "Carrée", "squeeze": -0.1},
+}
+
+## Yeux : nom, hauteur du globe (facteur), écartement (m), paupière au
+## repos (part de l'œil couverte).
+const EYES: Dictionary = {
+	&"normal": {"name": "Moyens", "height": 0.6, "spacing": 0.037, "lid": 0.08},
+	&"narrow": {"name": "Plissés", "height": 0.45, "spacing": 0.037, "lid": 0.35},
+	&"round": {"name": "Ronds", "height": 0.75, "spacing": 0.038, "lid": 0.04},
+	&"close": {"name": "Rapprochés", "height": 0.6, "spacing": 0.033, "lid": 0.12},
+}
+
+const SCARS: Dictionary = {
+	&"none": "Aucune",
+	&"cheek": "Joue",
+	&"brow": "Sourcil",
+	&"lip": "Lèvre",
+}
+
+## Peinture de camouflage du visage (trahit un opérateur en tenue civile).
+const FACE_PAINTS: Dictionary = {
+	&"none": "Aucune",
+	&"stripes": "Bandes",
+	&"full": "Visage couvert",
+}
 
 const BEARDS: Dictionary = {
 	&"none": "Rasé de près",
