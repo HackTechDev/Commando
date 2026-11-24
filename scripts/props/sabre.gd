@@ -1355,6 +1355,11 @@ func _ground_height() -> float:
 
 ## Vrai si une unité debout (pas à bord) est devant le véhicule.
 func _is_blocked() -> bool:
+	# Devant le pare-chocs, sur toute la largeur (pattes de l'hexapode
+	# comprises).
+	var box := footprint()
+	var front := box.position.z + 0.4
+	var half := maxf(BLOCK_HALF_WIDTH, box.size.x * 0.5 + 0.3)
 	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips"]:
 		for node in get_tree().get_nodes_in_group(group):
 			var unit := node as Node3D
@@ -1363,7 +1368,7 @@ func _is_blocked() -> bool:
 			if unit.get(&"is_dead") == true:
 				continue
 			var local := to_local(unit.global_position)
-			if local.z < -2.2 and local.z > -2.2 - BLOCK_DEPTH and absf(local.x) < BLOCK_HALF_WIDTH and absf(local.y) < 1.5:
+			if local.z < front and local.z > front - BLOCK_DEPTH and absf(local.x) < half and absf(local.y) < 1.5:
 				return true
 	return false
 

@@ -1684,3 +1684,10 @@
 ## Marche arrière du Sabre
 
 - Un clic au sol derrière le Sabre, à moins de 12 m de trajet : il y recule (3 m/s, moins vite tous feux éteints ou pneu crevé), roues braquées à l'envers. Bloqué de face (mur, bloc, véhicule), il manœuvre : il recule 1,5 s en braquant vers son but, puis repart en avant ; quatre manœuvres au plus par trajet, puis « Passage bloqué ». À reculons, il s'arrête devant une unité derrière lui, ne force pas de barrière et ne recule pas en roue libre.
+
+## Collisions des pattes de l'hexapode
+
+- Chaque patte a sa collision, de la hanche au pied : les véhicules, les hommes et les balles l'arrêtent (une balle basse peut l'abîmer).
+- En marche, l'emprise testée couvre toute l'envergure des pattes, pieds compris (5,5 × 4,6 m), et non plus la seule caisse ; ses chemins gardent 2,8 m des obstacles.
+- Un pied ne se pose jamais dans un mur, un rocher, une caisse ou un véhicule : il raccourcit son pas, ou reste planté.
+- Une unité devant lui est repérée sur toute la largeur des pattes (le Sabre garde sa largeur).

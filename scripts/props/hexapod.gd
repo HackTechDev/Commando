@@ -59,6 +59,10 @@ const ECHO_TIME := 1.8
 ## Descente et montée : par l'arrière, entre les pattes.
 const REAR_EXIT := Vector3(0.0, 0.0, 2.9)
 const HALF := 0.9
+## Pattes (collision) : demi-épaisseur autour de la ligne hanche-pied (m),
+## bas de la boîte (au-dessus du sol).
+const LEG_HALF := 0.3
+const LEG_FLOOR := 0.1
 
 var _radar_left: float = 0.0
 var _step_sound_left: float = 0.0
@@ -78,10 +82,14 @@ func _ready() -> void:
 	# Caisse et cabine (les pattes, mobiles, ne bloquent rien).
 	_add_box(AABB(Vector3(-0.85, y - 0.4, -1.3), Vector3(1.7, 0.85, 2.8)))
 	_add_box(AABB(Vector3(-0.65, y + 0.4, -1.3), Vector3(1.3, 0.7, 1.25)))
-	# Pattes : un pilier fin à chaque pied (les autres véhicules ne passent
-	# pas entre elles ; le regard, si).
-	for foot in HexapodModel.REST_FEET:
-		_add_box(AABB(foot + Vector3(-0.25, 0.0, -0.25), Vector3(0.5, 1.4, 0.5)))
+	# Pattes : de la hanche au pied, chacune arrête les véhicules, les
+	# hommes et les balles (une balle qui la touche peut l'abîmer).
+	for i in HexapodModel.HIPS.size():
+		var hip := HexapodModel.HIPS[i] + Vector3.UP * y
+		var foot := HexapodModel.REST_FEET[i]
+		var low := Vector3(minf(hip.x, foot.x), LEG_FLOOR, minf(hip.z, foot.z) - LEG_HALF)
+		var high := Vector3(maxf(hip.x, foot.x), y + 0.1, maxf(hip.z, foot.z) + LEG_HALF)
+		_add_box(AABB(low, high - low))
 	var hexa := model as HexapodModel
 	_gun = MountedGun.new(self, hexa.gun_pivot, HexapodModel.GATLING_MUZZLE)
 	_gun.reach = GATLING_RANGE
@@ -416,9 +424,10 @@ func _wreck() -> void:
 
 # --- Collisions -----------------------------------------------------------------
 
-## Emprise : la caisse et l'envergure des pattes (genoux), au-dessus du sol.
+## Emprise : la caisse et toute l'envergure des pattes, pieds compris
+## (avec la marge d'une foulée), presque au ras du sol.
 func footprint() -> AABB:
-	return AABB(Vector3(-2.0, 0.3, -2.0), Vector3(4.0, 2.4, 4.1))
+	return AABB(Vector3(-2.75, 0.15, -2.25), Vector3(5.5, 2.6, 4.55))
 
 
 ## Un marcheur se décale franchement en crabe pour longer un obstacle.
@@ -428,7 +437,7 @@ func _can_crab() -> float:
 
 ## Rayon pour ses chemins : l'envergure des pattes.
 func nav_radius() -> float:
-	return 2.2
+	return 2.8
 
 
 # --- Ce que le marcheur ne fait pas ----------------------------------------------

@@ -12,7 +12,8 @@ extends SabreModel
 ##   reposent plus loin, en anticipant le déplacement ; à l'arrêt, les pieds
 ##   restés en arrière se recalent ;
 ## - chaque pied posé reste fixe au sol (il ne glisse pas) ; la pose cherche
-##   le sol (rayon vers le bas) ;
+##   le sol (rayon vers le bas), jamais dans un obstacle (pas raccourci, ou
+##   pied laissé en place) ;
 ## - les pattes sont résolues en cinématique inverse (deux segments, genou
 ##   en l'air, comme un insecte) ;
 ## - la caisse suit les pieds : hauteur et assiette (tangage, roulis) selon
@@ -68,6 +69,9 @@ const CREW_SEATS: Array[Vector3] = [
 	Vector3(0.4, 1.15, 0.4), Vector3(0.0, 1.15, 0.9),
 ]
 const MASK_GROUND := 1
+const MASK_OBSTACLES := 0b10
+## Patin du pied (rayon, m), pour ne pas le poser dans un obstacle.
+const FOOT_RADIUS := 0.2
 
 ## Caisse (elle porte la cabine, la gatling et le radar).
 var body: Node3D
@@ -96,6 +100,7 @@ var _turn_rate: float = 0.0
 var _still_time: float = 0.0
 var _started: bool = false
 var _drop: float = 0.0
+var _foot_shape: SphereShape3D
 
 
 func _ready() -> void:
@@ -365,9 +370,32 @@ func _measure(delta: float) -> void:
 
 ## Où poser le pied `index` : sa place de repos, là où sera le véhicule un
 ## peu plus tard (`LEAD`), au sol.
+## Jamais dans un obstacle (mur, rocher, caisse, véhicule) : il raccourcit
+## le pas, ou laisse le pied où il est.
 func _target(index: int, lead: float) -> Vector3:
 	var future := Transform3D(global_basis.rotated(Vector3.UP, _turn_rate * lead), global_position + _velocity * lead)
-	return _ground(future * REST_FEET[index])
+	var spot := _ground(future * REST_FEET[index])
+	if lead > 0.0 and _obstructed(spot):
+		spot = _ground(global_transform * REST_FEET[index])
+	if _obstructed(spot):
+		return _feet[index]
+	return spot
+
+
+## Vrai si un pied posé en `spot` serait dans un obstacle (couche des
+## obstacles, le marcheur lui-même excepté).
+func _obstructed(spot: Vector3) -> bool:
+	if _foot_shape == null:
+		_foot_shape = SphereShape3D.new()
+		_foot_shape.radius = FOOT_RADIUS
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _foot_shape
+	query.transform = Transform3D(Basis(), spot + Vector3.UP * (FOOT_RADIUS + 0.1))
+	query.collision_mask = MASK_OBSTACLES
+	var carrier := get_parent() as CollisionObject3D
+	if carrier:
+		query.exclude = [carrier.get_rid()]
+	return not get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 
 ## Point du sol à la verticale de `point` (le point lui-même s'il n'y en a
