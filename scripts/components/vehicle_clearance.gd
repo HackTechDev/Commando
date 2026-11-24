@@ -46,7 +46,8 @@ static func touching(vehicle: Node3D, frame: Transform3D, box: AABB, exclude: Ar
 
 
 ## Pas suivant du véhicule : rotation voulue `turn` (rad, déjà bornée au
-## braquage de l'image), avance `distance` (m) ; `max_turn` : braquage
+## braquage de l'image), avance `distance` (m, négative en marche
+## arrière) ; `max_turn` : braquage
 ## maximal de l'image, pour longer un obstacle ; `crab` : décalage latéral
 ## permis (rad, de la direction d'avance ; 0 : aucun). Renvoie la nouvelle
 ## transformation, ou `null` s'il ne peut ni avancer ni tourner.
@@ -56,7 +57,7 @@ static func step(vehicle: Node3D, box: AABB, exclude: Array[RID], turn: float, m
 	ignored.append_array(touching(vehicle, start, box, exclude))
 	var wanted_turn := turn
 	var tries: Array[Array] = [[turn, 0.0]]
-	if distance > 0.001:
+	if absf(distance) > 0.001:
 		for steer: float in [max_turn, -max_turn]:
 			if not is_equal_approx(steer, turn):
 				tries.append([steer, 0.0])

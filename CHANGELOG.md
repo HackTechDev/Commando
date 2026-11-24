@@ -1676,3 +1676,7 @@
 - Chemins à la mesure des véhicules (`VehicleNavigation`) : chaque véhicule a sa carte de navigation, générée avec son rayon (1,3 m pour le Sabre et le pick-up, 2,2 m pour l'hexapode) et sans son propre corps, préparée au chargement et régénérée quand une caisse ou un véhicule change de place. Ils ne coupent plus les virages au ras des murs et ne s'engagent plus là où ils ne passent pas.
 - La voiture civile s'arrête derrière un Sabre, un hexapode ou un pick-up armé dans sa voie, et l'attend (en klaxonnant), comme devant un piéton.
 - L'hexapode a une collision à chaque pied : les autres véhicules ne passent pas entre ses pattes.
+
+## Marche arrière de l'hexapode
+
+- Un clic au sol derrière l'hexapode, à moins de 10 m de trajet : il y recule (1,3 m/s), en orientant son arrière vers le point. Plus loin, il pivote sur place ; s'il n'en a pas la place (coincé entre un véhicule et un bloc), il recule d'abord pour se dégager, puis pivote. À reculons, il s'arrête devant une unité derrière lui et ne force pas de barrière.

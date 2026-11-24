@@ -1247,7 +1247,7 @@ func _can_crab() -> float:
 	return 0.25
 
 
-## Un pas : tourne de `turn` et avance de `distance`, sans traverser
+## Un pas : tourne de `turn` et avance de `distance` (négative : recule), sans traverser
 ## d'obstacle (`VehicleClearance` : il longe un mur, contourne un véhicule).
 ## Renvoie la distance parcourue ; s'il n'avance plus depuis
 ## `STUCK_GIVE_UP` s, il s'arrête (« Passage bloqué ») et renvoie -1.
@@ -1259,7 +1259,7 @@ func _advance(turn: float, max_turn: float, distance: float, delta: float) -> fl
 		var next_frame: Transform3D = frame
 		global_transform = next_frame
 		moved = Vector2(next_frame.origin.x - before.x, next_frame.origin.z - before.z).length()
-	if frame == null or (distance > 0.001 and moved < distance * 0.3):
+	if frame == null or (absf(distance) > 0.001 and moved < absf(distance) * 0.3):
 		_stuck_left -= delta
 		if _stuck_left <= 0.0:
 			if driver():
