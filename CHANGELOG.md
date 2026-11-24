@@ -1557,3 +1557,9 @@
 
 - Menu de corps à corps (clic du milieu) : « Ligoter », sur un ennemi assommé. L'opérateur s'en approche, s'accroupit 3 s et lui lie poignets et chevilles : il ne se réveille plus de la mission (marque « ligoté » au-dessus de lui). Un nouvel ordre ou un corps emporté interrompt le geste.
 - On peut toujours le porter, le cacher ou l'achever. L'état est gardé par la sauvegarde rapide.
+
+## Chargeurs et rechargement des ennemis (2.11)
+
+- Les ennemis armés tirent par chargeurs (`EnemyStats.magazine_size`, 10 cartouches) : chargeur vide, ils rechargent `reload_time` (2,6 s) sans tirer, avec le geste et le bruit du rechargement, et la marque « recharge » au-dessus d'eux en alerte. Une fenêtre pour se mettre à couvert ou foncer.
+- Au calme, un garde complète de lui-même un chargeur entamé. Assommé ou saisi, il perd le rechargement en cours. Chargeur et rechargement sont gardés par la sauvegarde rapide.
+- La réserve (`ammo`, 30 cartouches) reste comptée comme avant : à sec, il charge au corps à corps.

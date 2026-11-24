@@ -21,6 +21,9 @@ const LAUNCHER_SPREAD := 3.0
 var enemy: Enemy
 ## Délai (s) avant le prochain tir (visée, puis cadence).
 var cooldown: float = 0.0
+## Cartouches dans le chargeur engagé, et rechargement restant (s).
+var magazine: int = 0
+var reload_left: float = 0.0
 ## Convertible en l'air pris pour cible (aucun opérateur en vue), ou null.
 var aircraft: Tiltrotor
 var _aircraft_check_left: float = 0.0
@@ -33,6 +36,63 @@ func _init(owner: Enemy) -> void:
 	enemy = owner
 
 
+## Chargeur plein au départ.
+func setup() -> void:
+	magazine = _full_magazine()
+	reload_left = 0.0
+
+
+## Vrai pendant un rechargement : il ne tire pas.
+func is_reloading() -> bool:
+	return reload_left > 0.0
+
+
+## Rechargement en cours (avancé de `delta`) ; au calme, il complète de
+## lui-même un chargeur entamé.
+func update_reload(delta: float) -> void:
+	if not enemy.armed or enemy.disarmed:
+		return
+	if reload_left <= 0.0:
+		if enemy.state == Enemy.State.PATROL and magazine < enemy.stats.magazine_size and enemy.ammo != 0 and magazine < enemy.ammo:
+			start_reload()
+		return
+	reload_left -= delta
+	enemy._model.reload_progress = clampf(1.0 - reload_left / enemy.stats.reload_time, 0.0, 1.0)
+	if reload_left <= 0.0:
+		reload_left = 0.0
+		enemy._model.reload_progress = -1.0
+		magazine = _full_magazine()
+
+
+## Commence un rechargement (s'il reste des cartouches).
+func start_reload() -> void:
+	if is_reloading() or enemy.ammo == 0:
+		return
+	reload_left = enemy.stats.reload_time
+	enemy._model.reload_progress = 0.0
+	Sfx.play_at(&"reload", enemy.global_position + Vector3.UP, -6.0)
+
+
+## Rechargement interrompu (assommé, saisi…) : il le reprendra.
+func cancel_reload() -> void:
+	reload_left = 0.0
+	enemy._model.reload_progress = -1.0
+
+
+## Une cartouche tirée : chargeur vide, il recharge.
+func _spend() -> void:
+	magazine -= 1
+	if enemy.ammo > 0:
+		enemy.ammo -= 1
+	if magazine <= 0 and enemy.ammo != 0:
+		start_reload()
+
+
+func _full_magazine() -> int:
+	var size := enemy.stats.magazine_size
+	return size if enemy.ammo < 0 else mini(size, enemy.ammo)
+
+
 ## Tire sur sa cible (`to_target` : vers elle, à plat) si le délai est
 ## passé, qu'elle est à portée et à peu près dans l'axe.
 func try_fire(delta: float, to_target: Vector3) -> void:
@@ -40,6 +100,12 @@ func try_fire(delta: float, to_target: Vector3) -> void:
 		return
 	var stats := enemy.stats
 	cooldown -= delta
+	if is_reloading():
+		cooldown = maxf(cooldown, stats.aim_time * 0.5)
+		return
+	if magazine <= 0:
+		start_reload()
+		return
 	var distance := to_target.length()
 	if cooldown > 0.0 or distance > stats.fire_range:
 		return
@@ -48,8 +114,8 @@ func try_fire(delta: float, to_target: Vector3) -> void:
 	if distance > 0.01 and forward.angle_to(to_target) > 0.3:
 		return
 	cooldown = stats.fire_interval
-	if enemy.ammo > 0:
-		enemy.ammo -= 1
+	if enemy.ammo > 0 or magazine > 0:
+		_spend()
 		if enemy.ammo == 0:
 			# À sec : déclic à vide, puis il charge au corps à corps.
 			var shooter := enemy
@@ -151,14 +217,16 @@ func engage_aircraft(delta: float) -> void:
 		return
 	var stats := enemy.stats
 	cooldown -= delta
-	if cooldown > 0.0 or not enemy.can_fire():
+	if cooldown > 0.0 or not enemy.can_fire() or is_reloading():
+		return
+	if magazine <= 0:
+		start_reload()
 		return
 	var forward := -enemy.global_basis.z
 	if to_target.length() > 0.5 and forward.angle_to(to_target) > 0.3:
 		return
 	cooldown = stats.fire_interval
-	if enemy.ammo > 0:
-		enemy.ammo -= 1
+	_spend()
 	var muzzle := enemy.global_position + Vector3.UP * 1.3 + forward * 0.7
 	var reach := stats.fire_range * AIR_RANGE_SHARE
 	var chance := lerpf(stats.hit_chance_near, stats.hit_chance_far, clampf(muzzle.distance_to(target) / reach, 0.0, 1.0)) + AIR_HIT_BONUS

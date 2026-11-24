@@ -28,6 +28,10 @@ extends Resource
 ## Cartouches emportées (négatif : sans limite). À sec, il charge et frappe
 ## au corps à corps.
 @export var ammo: int = 30
+## Chargeur : cartouches par chargeur, et durée du rechargement (s). Pendant
+## le rechargement, il ne tire pas : une fenêtre pour agir.
+@export var magazine_size: int = 10
+@export var reload_time: float = 2.6
 ## Probabilité de toucher à bout portant et à portée maximale.
 @export_range(0.0, 1.0) var hit_chance_near: float = 0.85
 @export_range(0.0, 1.0) var hit_chance_far: float = 0.35

@@ -215,6 +215,7 @@ func _ready() -> void:
 	add_to_group(ALL_GROUP)
 	health.reset(stats.max_health)
 	ammo = stats.ammo
+	gunner.setup()
 	health.died.connect(_on_died)
 	if _hearing == null:
 		_hearing = HearingComponent.new()
@@ -697,6 +698,10 @@ func _update_feedback() -> void:
 	material.albedo_color = _vision.suspicious_color.lerp(_vision.alert_color, detection)
 	_mark.text = "!" if state == State.ALERT else "?"
 	_mark.modulate = color
+	if state == State.ALERT and gunner.is_reloading():
+		# Fenêtre d'action : il recharge, il ne tire pas.
+		_mark.text = "recharge"
+		_mark.modulate = Color(1.0, 0.85, 0.4)
 
 
 ## Mort, armé et avec des cartouches : il laisse un chargeur à ramasser
@@ -732,8 +737,11 @@ func _physics_process(delta: float) -> void:
 		return
 	# Neutralisé (assommé, saisi, désarmé) : l'état prend toute l'image.
 	if behavior.takes_over():
+		if gunner.is_reloading():
+			gunner.cancel_reload()
 		behavior.update(delta)
 		return
+	gunner.update_reload(delta)
 	alert_age += delta
 	wary_left = maxf(wary_left - delta, 0.0)
 	_update_detection(delta)
@@ -1082,6 +1090,7 @@ func save_state() -> Dictionary:
 	return {
 		"position": global_position, "rotation": rotation.y, "state": state,
 		"detection": detection, "waypoint": _waypoint_index, "stun_left": stunned_behavior.left, "ammo": ammo,
+		"magazine": gunner.magazine, "reload_left": gunner.reload_left,
 		"disarmed": disarmed, "tied": tied,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
@@ -1115,6 +1124,9 @@ func load_state(data: Dictionary) -> void:
 		return
 	_waypoint_index = clampi(data.get("waypoint", _waypoint_index), 0, maxi(_waypoints.size() - 1, 0))
 	ammo = data.get("ammo", ammo)
+	gunner.setup()
+	gunner.magazine = data.get("magazine", gunner.magazine)
+	gunner.reload_left = data.get("reload_left", 0.0)
 	_load_disarmed(data.get("disarmed", false))
 	captor = null
 	var saved: State = data.get("state", state)
