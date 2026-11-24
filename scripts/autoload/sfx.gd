@@ -175,6 +175,11 @@ func _build_library() -> void:
 		_tone([2600.0, 2400.0], 0.6, 0.18, 0.002, 0.4),
 		_tone([160.0, 60.0], 0.3, 0.7, 0.001, 0.1),
 	]))
+	# Départ d'un obus de 40 mm (M320) : « pop » sourd et creux.
+	_streams[&"thump"] = _wav(_mix([
+		_tone([140.0, 70.0], 0.18, 0.9, 0.001, 0.06),
+		_noise(0.12, 0.001, 0.04, 0.25, 0.55),
+	]))
 	# Trousse de soins : bande qu'on déchire.
 	_streams[&"bandage"] = _wav(_sweep_noise(0.35, 0.3, 0.8, 0.35))
 	# Caisse qui frotte au sol.

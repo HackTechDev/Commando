@@ -349,6 +349,18 @@ func order_stun(target: Vector3, run: bool = false) -> bool:
 	return false
 
 
+## Confie un tir au lance-grenades M320 vers `target` à l'unité sélectionnée
+## la plus proche qui a encore des obus de 40 mm.
+func order_launcher(target: Vector3, run: bool = false) -> bool:
+	for unit in _nearest_first(target):
+		if planning:
+			if not unit.is_dead and unit.launcher_grenades > 0:
+				return _issue(unit, unit.fire_launcher.bind(target, run), target, &"attack")
+		elif unit.fire_launcher(target, run):
+			return true
+	return false
+
+
 ## Confie le lancer d'un caillou de diversion vers `target` à l'unité
 ## sélectionnée la plus proche.
 func order_pebble(target: Vector3, run: bool = false) -> bool:

@@ -65,6 +65,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Poser une charge explosive / la faire sauter à distance | K / L |
 | Poser une charge à retardement (saute seule au bout de 10 s, compte à rebours affiché ; L la fait sauter plus tôt) | Maj + K |
 | Grenade fumigène (équipement, jusqu'à 12 m) | ; (touche à droite de « , » en AZERTY), puis clic gauche au sol : le nuage cache les opérateurs aux ennemis |
+| Lance-grenades M320 sous le canon (équipement « Grenades de 40 mm ») : l'opérateur s'approche à 35 m, épaule et tire ; l'obus vole presque droit et éclate à l'impact, au sol ou contre un mur (3,5 m). Pas à moins de 6 m. Possible à bord d'un véhicule ou en vol | ù (touche à droite de M en AZERTY), puis clic gauche au sol |
 | Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |
 | Faire pivoter la caisse tenue d'un huitième de tour (pour la pousser en diagonale) | Maj + P |
 | Caisse lourde (cerclée de fer) : un second opérateur la saisit par un autre côté, puis l'un des deux reçoit l'ordre de la déplacer | P, puis clic gauche sur la caisse, pour chacun |

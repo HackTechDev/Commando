@@ -123,6 +123,14 @@ tooltip_text = "Grenade assourdissante : puis clic gauche au sol. L'opérateur l
 toggle_mode = true
 text = "Assourdissante"
 
+[node name="Launcher" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Lance-grenades M320 (sous le canon) : puis clic gauche au sol. L'opérateur le plus proche qui a des obus de 40 mm s'approche à 35 m, épaule et tire ; l'obus vole presque droit et éclate à l'impact, au sol ou contre un mur (dégâts jusqu'à 3,5 m). Pas à moins de 6 m : l'obus ne s'armerait pas. Le départ s'entend à 18 m, l'explosion bien plus loin."
+toggle_mode = true
+text = "M320"
+
 [node name="Plant" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
 unique_name_in_owner = true
 layout_mode = 2

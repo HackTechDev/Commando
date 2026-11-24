@@ -1691,3 +1691,11 @@
 - En marche, l'emprise testée couvre toute l'envergure des pattes, pieds compris (5,5 × 4,6 m), et non plus la seule caisse ; ses chemins gardent 2,8 m des obstacles.
 - Un pied ne se pose jamais dans un mur, un rocher, une caisse ou un véhicule : il raccourcit son pas, ou reste planté.
 - Une unité devant lui est repérée sur toute la largeur des pattes (le Sabre garde sa largeur).
+
+## Lance-grenades M320
+
+- Nouvel équipement « Grenades de 40 mm (lance-grenades M320) », jusqu'à 4 obus (0,25 kg chacun, plus 1,5 kg pour le lance-grenades dès le premier obus).
+- Touche ù (`action_launcher`) ou bouton « M320 », puis clic au sol : l'opérateur le plus proche qui a des obus s'approche à 35 m, épaule et tire. L'obus vole presque droit (26 m/s) et éclate à l'impact, au sol ou contre un obstacle (rayon 3,5 m). Refusé à moins de 6 m (« Trop près »).
+- Tir possible à bord d'un véhicule ou en vol, comme le tir libre ; l'opérateur reprend son arme principale s'il tenait l'arme secondaire.
+- Départ audible à 18 m (son « thump »), puis le bruit de l'explosion.
+- Tube visible sous le garde-main de la carabine, du FAMAS, des SCAR et du HK417 ; ravitaillement, sauvegarde, portrait et aide en jeu à jour.

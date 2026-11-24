@@ -318,7 +318,15 @@ const EQUIPMENT: Dictionary = {
 	&"shield": {"name": "Bouclier balistique", "max": 1},
 	&"grapnel": {"name": "Grappin", "max": 1},
 	&"hatchet": {"name": "Hachette", "max": 1},
+	&"launcher_grenades": {"name": "Grenades de 40 mm (lance-grenades M320)", "max": 4},
 }
+
+## Lance-grenades M320 : monté sous le garde-main de ces armes principales,
+## porté seul (avec sa crosse) sinon. Emporté dès qu'on prend des munitions
+## de 40 mm ; son poids (`LAUNCHER_WEIGHT`) s'ajoute alors une fois.
+const LAUNCHER_RIFLES: Array[StringName] = [&"carbine", &"famas", &"scar_l", &"scar_h", &"hk417"]
+const LAUNCHER_AMMO: Array[StringName] = [&"launcher_grenades"]
+const LAUNCHER_WEIGHT := 1.5
 
 ## Poids (kg) de ce que porte un opérateur : tenue de base, armes, accessoires
 ## (casque compris) et équipement (à l'unité).
@@ -330,7 +338,7 @@ const WEIGHTS: Dictionary = {
 	&"helmet": 1.4, &"nvg": 0.75, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0, &"sunglasses": 0.05,
 	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"stun_grenades": 0.4, &"explosives": 2.0, &"medkit": 1.5,
-	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9,
+	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9, &"launcher_grenades": 0.25,
 }
 ## Paliers de charge : jusqu'à `limit` kg, vitesses multipliées par `speed` ;
 ## le palier lourd fait du bruit en courant (`noise`, rayon en m). Au-delà de
@@ -424,7 +432,17 @@ static func load_of(profile: OperatorProfile) -> float:
 			total += WEIGHTS[key]
 	for key: StringName in EQUIPMENT:
 		total += WEIGHTS[key] * int(profile.get(key))
+	if carries_launcher(profile):
+		total += LAUNCHER_WEIGHT
 	return snappedf(total, 0.1)
+
+
+## Vrai si `profile` emporte le lance-grenades (des munitions de 40 mm).
+static func carries_launcher(profile: OperatorProfile) -> bool:
+	for key in LAUNCHER_AMMO:
+		if int(profile.get(key)) > 0:
+			return true
+	return false
 
 
 ## Palier de charge (`LOAD_TIERS`) de `weight` kg.

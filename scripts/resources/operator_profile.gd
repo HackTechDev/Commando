@@ -75,6 +75,8 @@ const DEFAULTS: Array[Dictionary] = [
 @export var grapnel: int = 0
 ## Hachette (0 ou 1) : au corps à corps, tue même de face, mais bruyamment.
 @export var hatchet: int = 0
+## Grenades explosives de 40 mm pour le lance-grenades M320 (sous le canon).
+@export var launcher_grenades: int = 0
 
 ## Spécialité (`GearCatalog.SPECIALTIES`) : petit bonus en mission.
 @export var specialty: StringName = &"none"
@@ -92,6 +94,7 @@ const OUTFIT_KEYS: Array[String] = [
 	"clothing", "sunglasses", "camo", "pants_camo", "vest_camo", "headwear_camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
 	"primary", "secondary", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
+	"launcher_grenades",
 ]
 ## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
 ## couleurs, couvre-chef et accessoires, sans l'armement.
@@ -103,7 +106,8 @@ const LOOK_KEYS: Array[String] = [
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
 const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "pants_camo", "vest_camo", "headwear_camo", "nose", "jaw", "eyes", "scar", "face_paint", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads", "sunglasses"]
-const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet"]
+const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
+	"launcher_grenades"]
 
 
 ## Profil par défaut de l'opérateur numéro `index` (0 à 2).
@@ -267,6 +271,10 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 		"shield": GearCatalog.EQUIPMENT[&"shield"]["max"], "grapnel": GearCatalog.EQUIPMENT[&"grapnel"]["max"],
 		"hatchet": GearCatalog.EQUIPMENT[&"hatchet"]["max"],
 	}
+	# Le reste de l'équipement : la limite du catalogue.
+	for key: StringName in GearCatalog.EQUIPMENT:
+		if not limits.has(String(key)):
+			limits[String(key)] = GearCatalog.EQUIPMENT[key]["max"]
 	for key in _INT_KEYS:
 		var value: Variant = data.get(key)
 		if value is int or value is float:

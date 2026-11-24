@@ -3869,6 +3869,8 @@ func _build_rifle_and_arms() -> void:
 	_pump = null
 	_tube_fed = false
 	var muzzle := _build_weapon(rifle, outfit.secondary if drawn else primary)
+	if not drawn:
+		_build_launcher(rifle, primary)
 	var pump := _pump
 	var tube_fed := _tube_fed
 	_left_grip = PISTOL_LEFT_GRIP if drawn else LEFT_GRIP
@@ -3879,6 +3881,7 @@ func _build_rifle_and_arms() -> void:
 		back.transform = _rifle_slung
 		var magazine := _rifle_mag
 		_build_weapon(back, primary)
+		_build_launcher(back, primary)
 		back.name = "SlungPrimary"
 		_rifle_mag = magazine
 		_pump = pump
@@ -4045,6 +4048,22 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 	_box(rifle, Vector3(0.03, 0.03, 0.005), Vector3(0.0, 0.118, -0.092), _m_lens)
 	_box(rifle, Vector3(0.03, 0.03, 0.09), Vector3(0.042, 0.05, -0.40), _m_weapon)
 	return -0.77
+
+
+## Lance-grenades M320 sous le garde-main de `primary`, si l'opérateur
+## emporte des obus de 40 mm et que l'arme l'accepte
+## (`GearCatalog.LAUNCHER_RIFLES`) : tube court, culasse et pontet. La main
+## gauche tient le tube.
+func _build_launcher(rifle: Node3D, primary: StringName) -> void:
+	if outfit == null or not GearCatalog.carries_launcher(outfit) or not primary in GearCatalog.LAUNCHER_RIFLES:
+		return
+	var launcher := _pivot(rifle, Vector3(0.0, -0.035, -0.37), "Launcher")
+	_barrel(launcher, 0.024, 0.25, Vector3.ZERO, _m_weapon)
+	_barrel(launcher, 0.017, 0.006, Vector3(0.0, 0.0, -0.126), _m_lens)
+	_box(launcher, Vector3(0.05, 0.05, 0.1), Vector3(0.0, 0.005, 0.15), _m_weapon)
+	_box(launcher, Vector3(0.012, 0.035, 0.05), Vector3(0.0, -0.035, 0.17), _m_weapon)
+	# Rail de fixation sous le garde-main.
+	_box(launcher, Vector3(0.03, 0.02, 0.2), Vector3(0.0, 0.03, 0.02), _m_gear)
 
 
 ## Cylindre couché le long du canon (axe Z de l'arme).

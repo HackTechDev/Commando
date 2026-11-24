@@ -140,6 +140,8 @@ func _refresh() -> void:
 		gear.append("Fumigènes %d" % _unit.smoke_grenades)
 	if _unit.stun_grenades > 0:
 		gear.append("Assourdissantes %d" % _unit.stun_grenades)
+	if _unit.launcher_grenades > 0:
+		gear.append("40 mm %d" % _unit.launcher_grenades)
 	if _unit.hatchets > 0:
 		gear.append("Hachette")
 	if _unit.explosives > 0:
