@@ -638,7 +638,7 @@ func is_body() -> bool:
 func is_hidden_body() -> bool:
 	if carrier != null or on_vehicle != null:
 		return true
-	if HidingSpot.at(get_tree(), body_center()) != null:
+	if HidingSpot.at(get_tree(), body_center()) != null or is_under_crate():
 		return true
 	for roof in get_tree().get_nodes_in_group(&"roofs"):
 		if roof is Roof and (roof as Roof).covers(global_position + Vector3.UP * 0.3):
@@ -714,6 +714,21 @@ func _look_for_tracks(delta: float) -> void:
 	_followed_track = found["time"]
 	last_heard = &"tracks"
 	investigate(found["at"])
+
+
+## Vrai si une caisse est posée sur lui (corps glissé dessous, ennemi
+## assommé coincé) : on ne le voit pas, il ne se relève pas.
+func is_pinned() -> bool:
+	return is_inside_tree() and (is_dead or is_stunned()) and Climbable.covering(get_tree(), body_center() + Vector3.UP * 0.2) != null
+
+
+## Vrai si une caisse couvre le corps entier (bassin et tête) : glissé
+## dessous, il échappe aux regards.
+func is_under_crate() -> bool:
+	if not is_pinned():
+		return false
+	var head := _model.head_node().global_position
+	return Climbable.covering(get_tree(), Vector3(head.x, global_position.y + 0.2, head.z)) != null
 
 
 ## Vrai pour un chien de garde.
@@ -876,7 +891,7 @@ func _update_feedback() -> void:
 		_gauge.position.y = GAUGE_HEIGHT_DOWN
 		_gauge_back.visible = false
 		_gauge_fill.visible = false
-		_mark.text = "ligoté" if tied else "z z"
+		_mark.text = "ligoté" if tied else ("coincé" if is_pinned() else "z z")
 		_mark.modulate = Color(0.85, 0.7, 0.45) if tied else Color(0.6, 0.8, 1.0)
 		return
 	if is_dazed():

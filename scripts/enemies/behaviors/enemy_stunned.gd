@@ -6,6 +6,7 @@ extends EnemyBehavior
 
 ## Perte de connaissance restante (s).
 var left: float = 0.0
+var _pinned: bool = false
 
 
 func takes_over() -> bool:
@@ -13,7 +14,12 @@ func takes_over() -> bool:
 
 
 func update(delta: float) -> Vector3:
-	if enemy.on_vehicle == null and not enemy.tied:
+	# Coincé sous une caisse : il ne se relèvera pas tant qu'elle y est.
+	var pinned := enemy.is_pinned()
+	if pinned != _pinned:
+		_pinned = pinned
+		enemy._update_feedback()
+	if enemy.on_vehicle == null and not enemy.tied and not pinned:
 		left -= delta
 	if left <= 0.0:
 		enemy._wake_up()

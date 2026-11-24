@@ -1615,3 +1615,9 @@
 - **Chien** (`kind` = chien) : berger procédural qui trotte, se jette pour mordre, se couche assommé ou mort. Il flaire les opérateurs à 4,5 m tout autour de lui, même dans son dos ou à plat ventre ; en alerte, il aboie (les gardes à 20 m accourent), court (6,4 m/s) et mord. Fragile (45 PV), sans arme ; ni balayage, ni projection, ni bouclier humain, ni ligotage.
 - Un garde qui voit un camarade se faire saisir (prise, bouclier humain) passe en alerte vers l'assaillant et crie.
 - Nouvelle carte « Terrain d'essai : gardes » (`guard_yard`) : le terrain d'essai avec deux soldats qui se voient, une sentinelle, un officier et un chien. Le terrain d'essai d'origine, chargé par les tests, ne change pas.
+
+## Caisses : corps cachés dessous, ennemis coincés (2.8 a, b)
+
+- Une caisse poussée ou tirée passe par-dessus un ennemi assommé, au lieu de s'arrêter contre lui.
+- Posée sur son bassin, elle le coince : il ne se réveille pas tant qu'elle y est (marque « coincé »).
+- Si elle couvre le corps entier (bassin et tête), il échappe aux regards : les gardes ne le découvrent pas. Un corps derrière une caisse était déjà caché par elle, qui arrête la vue.

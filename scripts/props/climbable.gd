@@ -112,6 +112,25 @@ func has_top_point(point: Vector3) -> bool:
 	return absf(local.x) <= half_extent and absf(local.z) <= half_extent
 
 
+## Vrai si `point` (dans le monde) est sous l'objet : dans son emprise au
+## sol, entre sa base et son dessus.
+func covers(point: Vector3) -> bool:
+	if is_broken or point.y < global_position.y - 0.3 or point.y > global_position.y + top_height:
+		return false
+	var local := global_transform.affine_inverse() * point
+	return absf(local.x) <= half_extent and absf(local.z) <= half_extent
+
+
+## Caisse posée sur `point` (un corps glissé dessous, un ennemi coincé), ou
+## null.
+static func covering(tree: SceneTree, point: Vector3) -> Climbable:
+	for node in tree.get_nodes_in_group(&"climbables"):
+		var crate := node as Climbable
+		if crate and crate.movable and crate.covers(point):
+			return crate
+	return null
+
+
 ## Objet du groupe `climbables` dont le dessus contient `point`, ou null.
 static func find_at(tree: SceneTree, point: Vector3) -> Climbable:
 	for node in tree.get_nodes_in_group(&"climbables"):
@@ -155,7 +174,8 @@ func get_side_toward(near: Vector3) -> Vector3:
 
 
 ## Vrai si la caisse tiendrait à `at` sans heurter d'obstacle ni d'unité
-## (hormis celles de `exclude`).
+## (hormis celles de `exclude`). Un ennemi assommé, au sol, ne l'arrête pas :
+## elle passe par-dessus et le coince (`covering`).
 func is_free_at(at: Vector3, exclude: Array[RID]) -> bool:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(half_extent * 2.0 - 0.01, top_height - 0.04, half_extent * 2.0 - 0.01)
@@ -166,7 +186,11 @@ func is_free_at(at: Vector3, exclude: Array[RID]) -> bool:
 	var excluded: Array[RID] = [get_rid()]
 	excluded.append_array(exclude)
 	query.exclude = excluded
-	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+	for hit in get_world_3d().direct_space_state.intersect_shape(query, 8):
+		var body := hit["collider"] as Enemy
+		if body == null or not body.is_stunned():
+			return false
+	return true
 
 
 func _world_side(direction: Vector3) -> Vector3:
