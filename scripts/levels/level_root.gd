@@ -23,6 +23,8 @@ const MAP_SYNC_RETRY_FRAMES := 20
 ## mission (réception, rue animée…). Un opérateur en tenue civile s'y fond
 ## dans la foule (`Commando.blend_factor`).
 @export var dress_code: StringName = &""
+## Vent (m/s, à plat) : les nuages de fumigène dérivent avec lui.
+@export var wind := Vector3(0.45, 0.0, 0.2)
 ## Part de la portée de vue lointaine des ennemis qui reste la nuit.
 const NIGHT_SIGHT := 0.55
 

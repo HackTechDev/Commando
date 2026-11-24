@@ -21,6 +21,8 @@ signal evacuated
 enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET, TIE }
 
 const MASK_OCCLUDERS := 0b10
+## Précision gardée en tirant à travers un nuage de fumigène.
+const SMOKE_AIM_FACTOR := 0.3
 ## Blessé (évacuable) sous cette part de sa santé.
 const WOUNDED_SHARE := 0.6
 ## Distance (m) au corps d'un officier pour lui prendre ses documents.
@@ -1861,6 +1863,9 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	# finit souvent dans l'abri.
 	last_cover = Cover.measure(get_world_3d(), muzzle, enemy.global_position, SoldierModel.Posture.STANDING, ignored)
 	chance *= last_cover.hit_factor()
+	# Fumée sur la ligne de tir : il tire au jugé.
+	if SmokeCloud.blocks_sight(get_tree(), muzzle, aim):
+		chance *= SMOKE_AIM_FACTOR
 	var hit := GameRng.chance(self, chance)
 	var scene := get_tree().current_scene as Node3D
 	if not hit and last_cover.miss_hits_cover(GameRng.of(self)):

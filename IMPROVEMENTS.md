@@ -23,8 +23,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **e)** caisses trop lourdes pour un seul opérateur (pousser à deux) ;
   - **f)** réaction des ennemis à un décor qui a bougé.
 - **2.9 Végétation** (couche 6) : buissons où se cacher, qui masquent partiellement la vue.
-- **2.14 Explosifs, suite** :
-  - **d)** fumée qui dérive avec le vent, et qui gêne aussi la visée des opérateurs.
 - **2.15 Météo en jeu** : la pluie (« Quartier sous la pluie ») et la neige (« Station polaire ») sont aujourd'hui de simples effets visuels et sonores. Pistes :
   - **a)** la pluie couvre les bruits de pas (portée d'ouïe des gardes réduite) ;
   - **b)** la pluie ou une neige dense réduisent la portée de vue ;

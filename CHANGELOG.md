@@ -1587,3 +1587,8 @@
 - Nouvel équipement « Grenades assourdissantes » (3 au plus, 0,4 kg), dans l'écran Opérateurs. Maj + N (ou le bouton « Assourdissante ») puis clic au sol : l'opérateur la lance à 12 m au plus.
 - Éclair et détonation : les ennemis debout à moins de 8 m qui ont la détonation en vue directe (les murs protègent) sont sonnés 7 s au plus près, 3 s au bord. Sonné (`EnemyDazed`, marque « sonné ») : aveugle, il ne tire pas, ne se défend pas (désarmer, assommer, saisir passent de face), bras devant le visage ; remis, il est en alerte vers la détonation. La détonation donne l'alerte comme une explosion. Les opérateurs ne sont pas touchés.
 - Ravitaillement à bord, sauvegarde rapide et portrait du HUD à jour. L'action Maj (`timed_fuse`) devient `action_variant` : variante d'une action (charge à retardement, grenade assourdissante).
+
+## Fumée au vent (2.14 d)
+
+- Les nuages de fumigène dérivent avec le vent de la carte (`LevelRoot.wind`, réglable dans l'inspecteur de la racine ; 0,5 m/s par défaut), d'autant plus qu'ils sont formés ; les bouffées sont poussées dans le même sens.
+- Un opérateur qui tire à travers un nuage épais tire au jugé : sa précision tombe à 30 %.

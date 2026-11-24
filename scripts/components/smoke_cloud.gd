@@ -3,6 +3,9 @@ extends Node3D
 ## Nuage d'une grenade fumigène : enfle en quelques secondes, dure, puis se
 ## dissipe. Tant qu'il est épais, il coupe la vue des ennemis
 ## (`blocks_sight`) : un regard qui le traverse, ou qui en part, ne voit rien.
+## Il gêne aussi la visée des opérateurs qui tirent au travers
+## (`Commando.SMOKE_AIM_FACTOR`). Il dérive avec le vent de la carte
+## (`LevelRoot.wind`), d'autant plus qu'il est formé.
 
 const GROUP := &"smoke_clouds"
 ## Rayon (m) du nuage formé.
@@ -18,6 +21,8 @@ const FADE_TIME := 3.0
 const OPAQUE_FROM := 0.35
 
 var _time: float = 0.0
+## Dérive (m/s) : le vent de la carte.
+var drift := Vector3.ZERO
 var _particles: CPUParticles3D
 var _material: StandardMaterial3D
 
@@ -64,8 +69,17 @@ func crosses(from: Vector3, to: Vector3) -> bool:
 	return (a + segment * t).length() <= radius()
 
 
+## Vent de la carte en cours (`LevelRoot.wind`), nul hors d'un niveau.
+static func wind_of(tree: SceneTree) -> Vector3:
+	var level := tree.current_scene as LevelRoot if tree else null
+	if level == null:
+		return Vector3.ZERO
+	return Vector3(level.wind.x, 0.0, level.wind.z)
+
+
 func _ready() -> void:
 	add_to_group(GROUP)
+	drift = wind_of(get_tree())
 	_particles = CPUParticles3D.new()
 	_particles.amount = 90
 	_particles.lifetime = 4.0
@@ -76,7 +90,8 @@ func _ready() -> void:
 	_particles.spread = 90.0
 	_particles.initial_velocity_min = 0.6
 	_particles.initial_velocity_max = 2.0
-	_particles.gravity = Vector3(0.0, 0.08, 0.0)
+	# Bouffées poussées par le vent (en plus de la dérive du nuage).
+	_particles.gravity = Vector3(drift.x * 0.4, 0.08, drift.z * 0.4)
 	_particles.damping_min = 0.6
 	_particles.damping_max = 1.0
 	_particles.scale_amount_min = 1.6
@@ -110,6 +125,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_time += delta
+	global_position += drift * delta * clampf(_time / GROW_TIME, 0.0, 1.0)
 	var r := radius()
 	_particles.emission_sphere_radius = r * 0.55
 	_particles.position.y = 0.4 + 0.4 * clampf(_time / GROW_TIME, 0.0, 1.0)
