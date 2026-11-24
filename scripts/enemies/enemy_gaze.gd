@@ -3,7 +3,8 @@ extends RefCounted
 ## Regard d'un ennemi (le cône de vision suit la tête). Au calme : coups
 ## d'œil sur le côté de temps en temps (plus souvent et plus loin s'il est
 ## vigilant), balayage de gauche à droite pendant les pauses et les haltes
-## de la ronde (pas un garde fixe, qui n'a que les coups d'œil). Une cible
+## de la ronde (pas un garde fixe, qui n'a que les coups d'œil, sauf une
+## sentinelle, `Enemy.sweeping`, qui balaie sans cesse). Une cible
 ## en vue (jauge qui monte) retient son regard. Ailleurs, il regarde droit
 ## devant (ce qu'il fixe, il le fixe du corps entier).
 
@@ -44,7 +45,7 @@ func update(delta: float, walking: bool) -> void:
 		var local := enemy.to_local(enemy._target.global_position)
 		goal = clampf(atan2(-local.x, -local.z), -deg_to_rad(SCAN_ANGLE), deg_to_rad(SCAN_ANGLE))
 		_glance_left = 0.0
-	elif calm and not walking and not enemy.stationary and not enemy._waypoints.is_empty() and enemy.patrol_behavior.is_stopped():
+	elif calm and not walking and (enemy.sweeping or (not enemy.stationary and not enemy._waypoints.is_empty() and enemy.patrol_behavior.is_stopped())):
 		_scan_phase += delta * SCAN_SPEED
 		goal = sin(_scan_phase) * deg_to_rad(SCAN_ANGLE)
 		_glance_left = 0.0

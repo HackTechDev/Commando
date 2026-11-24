@@ -9,6 +9,7 @@ Voir `CAHIER_DES_CHARGES.md` pour la vision, l'architecture et les jalons.
 godot --path .            # menu de démarrage : choix de la carte ; « Configuration » (son activé ou coupé)
 godot --path . scenes/levels/tutorial/tutorial.tscn        # lance directement le didacticiel
 godot --path . scenes/levels/sandbox/sandbox.tscn          # lance directement le terrain d'essai
+godot --path . scenes/levels/guard_yard/guard_yard.tscn    # terrain d'essai gardé (sentinelle, officier, chien)
 godot --path . scenes/levels/airbase/airbase.tscn          # lance directement la base aérienne (sabotage du convertible)
 godot --path . scenes/levels/patrol/patrol.tscn          # lance directement la patrouille en Sabre
 godot --path . scenes/levels/training_a/training_a.tscn   # lance directement la carte UFO:AI « training_a »

@@ -1607,3 +1607,11 @@
 ## Unités mouillées ou enneigées (2.15 d)
 
 - Sous la pluie, opérateurs, ennemis et VIP ont des tenues plus sombres et plus brillantes (trempées) ; sous la neige, des teintes un peu blanchies. Les unités qui arrivent en cours de mission (renforts) aussi. Le point 2.15 est terminé.
+
+## Types d'ennemis : sentinelle, officier, chien (2.6)
+
+- **Sentinelle** (`sweeping`) : au calme, elle balaie sans cesse du regard de gauche à droite, au lieu de simples coups d'œil.
+- **Officier** (`kind` = officier) : bande rouge au casque. En alerte, il crie ses ordres : les gardes à moins de 20 m passent en alerte vers ce qu'il a repéré. Tant qu'il est debout, les gardes à moins de 12 m repèrent 25 % plus vite.
+- **Chien** (`kind` = chien) : berger procédural qui trotte, se jette pour mordre, se couche assommé ou mort. Il flaire les opérateurs à 4,5 m tout autour de lui, même dans son dos ou à plat ventre ; en alerte, il aboie (les gardes à 20 m accourent), court (6,4 m/s) et mord. Fragile (45 PV), sans arme ; ni balayage, ni projection, ni bouclier humain, ni ligotage.
+- Un garde qui voit un camarade se faire saisir (prise, bouclier humain) passe en alerte vers l'assaillant et crie.
+- Nouvelle carte « Terrain d'essai : gardes » (`guard_yard`) : le terrain d'essai avec deux soldats qui se voient, une sentinelle, un officier et un chien. Le terrain d'essai d'origine, chargé par les tests, ne change pas.

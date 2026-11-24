@@ -137,8 +137,10 @@ Les éléments qui bloquent le passage (murs, caisses, bâtiments) vont sous `Na
 - **Garde en ronde** : un clic par point de la ronde, double-clic ou Entrée pour finir. Le greffon crée le chemin `PatrolPaths/RouteN` et y attache le garde, posé au premier point et tourné vers le second. Le garde boucle : du dernier point, il revient au premier. Dans la vue, la ronde est dessinée en vert, la couleur du greffon : une bande au sol avec des chevrons dans le sens de marche, le retour au premier point plus pâle, et un pointillé du garde à son premier point s'il en est écarté. Pour retoucher la ronde ensuite, sélectionnez le chemin dans l'arbre de scène : la barre d'outils de la vue 3D propose alors les outils de chemin de Godot (ajouter, déplacer, supprimer des points).
 - **Pick-up armé** : comme une ronde ; le véhicule suit son chemin.
 - Réglages d'un garde dans l'inspecteur :
+  - `kind` : soldat, officier (bande rouge au casque ; en alerte, il rallie les gardes à moins de 20 m, et rend plus vifs ceux à moins de 12 m) ou chien (modèle de chien en jeu ; dans l'éditeur, il garde l'apparence d'un soldat) ;
   - `armed` ;
   - `stationary` ;
+  - `sweeping` : sentinelle qui balaie sans cesse du regard (avec `stationary`) ;
   - `blind` : sentinelle aveugle, pour les cibles d'entraînement ;
   - `launcher` et `rockets` : lance-roquettes ;
   - `documents` : porteur des documents.

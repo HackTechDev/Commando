@@ -1110,15 +1110,17 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 			{"id": &"knockout", "label": "Assommer", "detail": "coup sur la tempe"},
 		]
 	var standing := not enemy.is_stunned()
+	# Un chien : ni balayage, ni projection, ni bouclier humain.
+	var human := not enemy.is_dog()
 	return [
 		{"id": &"knockout", "label": "Assommer", "detail": "coup ou prise par derrière", "enabled": standing},
 		{"id": &"knife", "label": "Couteau", "detail": "silencieux par derrière"},
 		{"id": &"hatchet", "label": "Hachette", "detail": "tue même de face, bruyant",
 			"enabled": SelectionManager.selected.any(func(unit: Commando) -> bool: return unit.hatchets > 0)},
-		{"id": &"sweep", "label": "Balayage", "detail": "il tombe, sonné peu de temps", "enabled": standing},
-		{"id": &"throw", "label": "Projection", "detail": "au sol, puis assommé", "enabled": standing},
+		{"id": &"sweep", "label": "Balayage", "detail": "il tombe, sonné peu de temps", "enabled": standing and human},
+		{"id": &"throw", "label": "Projection", "detail": "au sol, puis assommé", "enabled": standing and human},
 		{"id": &"disarm", "label": "Désarmer", "detail": "pris de court, il se rend", "enabled": enemy.can_be_disarmed()},
-		{"id": &"hostage", "label": "Bouclier humain", "detail": "par derrière, arme de poing", "enabled": standing},
+		{"id": &"hostage", "label": "Bouclier humain", "detail": "par derrière, arme de poing", "enabled": standing and human},
 		{"id": &"tie", "label": "Ligoter", "detail": "assommé, il ne se réveillera plus", "enabled": Enemy.can_be_tied(enemy)},
 	]
 

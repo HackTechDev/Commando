@@ -14,7 +14,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 ## 2. Gameplay d'infiltration
 
 - **2.5 Alarme générale et renforts** (§5.3) : sirène, points d'apparition de renforts, niveau d'alerte 2 qui ne retombe pas tout seul.
-- **2.6 Plusieurs ennemis et types** : sentinelle fixe qui balaie du regard, officier, chien. Le sandbox n'a qu'un soldat et une cible d'entraînement. On ne peut donc pas tester la coordination : un ennemi qui voit un camarade se faire saisir, plusieurs ennemis au corps à corps.
 - **2.8 Caisses, suite** :
   - **a)** cacher un corps derrière ou dessous ;
   - **b)** écraser ou coincer un ennemi ;

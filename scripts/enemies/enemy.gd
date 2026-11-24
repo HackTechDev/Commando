@@ -31,6 +31,10 @@ enum State { PATROL, SUSPICIOUS, ALERT, STUNNED, GRABBED }
 ## - SEARCH : cible perdue, il fouille autour du dernier point connu (méfiant) ;
 ## - RETURN : fouille finie, il rentre à sa ronde ou à son poste (calme).
 enum Activity { NONE, INVESTIGATE, SEARCH, RETURN }
+## Type d'ennemi : soldat ; officier (en alerte, il rallie les gardes
+## voisins ; près de lui, ils repèrent plus vite) ; chien de garde (flaire
+## les opérateurs tout autour de lui, aboie en alerte, court et mord).
+enum Kind { SOLDIER, OFFICER, DOG }
 
 signal state_changed(state: State)
 
@@ -38,12 +42,17 @@ signal state_changed(state: State)
 const MELEE_MAX_HEIGHT := 0.8
 
 @export var stats: EnemyStats
+## Soldat, officier ou chien (`Kind`).
+@export var kind: Kind = Kind.SOLDIER
 ## Chemin de patrouille (points de la courbe), parcouru en boucle.
 @export var patrol_path: Path3D
 ## Porte une arme et tire en alerte. Sans arme, il se contente de regarder.
 @export var armed: bool = true
 ## Ne se déplace jamais, même en alerte (sentinelle, cible d'entraînement).
 @export var stationary: bool = false
+## Sentinelle : au calme, elle balaie sans cesse du regard de gauche à
+## droite (`EnemyGaze`), au lieu de simples coups d'œil.
+@export var sweeping: bool = false
 ## Ne voit rien (mannequin d'entraînement) : il ne passe jamais en alerte de
 ## lui-même, et son cône n'est pas affiché.
 @export var blind: bool = false
@@ -95,6 +104,15 @@ const BODY_CHECK_INTERVAL := 0.3
 const TRACK_CHECK_INTERVAL := 0.5
 ## Rayon (m) du cri d'un ennemi qui découvre un corps.
 const BODY_ALARM_RADIUS := 12.0
+## Chien : flair (m), tout autour de lui, même dans le dos ou au sol ;
+## portée de l'aboiement.
+const DOG_SCENT := 4.5
+const DOG_BARK_RADIUS := 20.0
+## Officier : rayon (m) dans lequel il rallie les gardes en alerte, et dans
+## lequel sa présence rend les gardes plus vifs (`OFFICER_GAIN`).
+const OFFICER_RALLY_RADIUS := 20.0
+const OFFICER_PRESENCE := 12.0
+const OFFICER_GAIN := 1.25
 const GAUGE_HEIGHT := 2.3
 const GAUGE_HEIGHT_DOWN := 1.0
 
@@ -222,6 +240,10 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	add_to_group(ALL_GROUP)
+	if kind == Kind.DOG:
+		_become_dog()
+	elif kind == Kind.OFFICER:
+		_dress_officer()
 	health.reset(stats.max_health)
 	ammo = stats.ammo
 	gunner.setup()
@@ -553,6 +575,11 @@ func _update_detection(delta: float) -> void:
 		var ride := unit.get(&"riding") as Sabre
 		if ride:
 			zone = ride.sight_zone(zone, _vision)
+		# Chien : il flaire ce qui est tout près, de dos ou au sol.
+		if zone == VisionComponent.Zone.NONE and kind == Kind.DOG and ride == null \
+				and global_position.distance_to(unit.global_position) <= DOG_SCENT \
+				and absf(unit.global_position.y - global_position.y) < 1.5:
+			zone = VisionComponent.Zone.FAR
 		if zone == VisionComponent.Zone.NONE:
 			continue
 		var distance := global_position.distance_to(unit.global_position)
@@ -580,6 +607,8 @@ func _update_detection(delta: float) -> void:
 			var gain := delta / stats.detection_time * lerpf(0.6, 1.6, closeness) * blend
 			if wary_left > 0.0:
 				gain *= WARY_GAIN
+			if kind != Kind.OFFICER and _officer_near():
+				gain *= OFFICER_GAIN
 			if blend <= Commando.BLEND_MATCH and best_zone != VisionComponent.Zone.NEAR:
 				detection = maxf(detection, minf(detection + gain, stats.suspicion_threshold * 0.8))
 			else:
@@ -654,6 +683,17 @@ func _look_for_bodies(delta: float) -> void:
 		if _vision.sees_point(body.body_center() + Vector3.UP * 0.25):
 			discover_body(body)
 			return
+	# Un camarade saisi (bouclier humain, prise) sous ses yeux : alerte vers
+	# l'assaillant.
+	if state == State.ALERT:
+		return
+	for node in get_tree().get_nodes_in_group(&"enemies"):
+		var mate := node as Enemy
+		if mate == null or mate == self or mate.is_dead or mate.state != State.GRABBED:
+			continue
+		if _vision.sees_point(mate.global_position + Vector3.UP * 1.2):
+			see_comrade_grabbed(mate)
+			return
 
 
 ## Traces de pas fraîches dans la neige (`SnowTracks`) : au calme ou
@@ -674,6 +714,98 @@ func _look_for_tracks(delta: float) -> void:
 	_followed_track = found["time"]
 	last_heard = &"tracks"
 	investigate(found["at"])
+
+
+## Vrai pour un chien de garde.
+func is_dog() -> bool:
+	return kind == Kind.DOG
+
+
+## Chien : soldat caché (il garde ses états), modèle de chien à la place,
+## sans arme, plus rapide, plus fragile, le nez au ras du sol.
+func _become_dog() -> void:
+	armed = false
+	launcher = false
+	documents = false
+	var dog := stats.duplicate() as EnemyStats
+	dog.max_health = 45.0
+	dog.patrol_speed = 1.8
+	dog.chase_speed = 6.4
+	dog.melee_range = 1.3
+	dog.melee_time = 0.35
+	dog.melee_interval = 1.1
+	dog.melee_damage = 18.0
+	dog.detection_time = 1.2
+	dog.ammo = 0
+	stats = dog
+	_model.visible = false
+	add_child(DogModel.new(self))
+	if _vision.config:
+		var nose := _vision.config.duplicate() as VisionConfig
+		nose.eye_height = 0.6
+		nose.cone_ray_height = 0.5
+		_vision.config = nose
+
+
+## Officier : bande rouge sur le casque, épaulettes.
+func _dress_officer() -> void:
+	var red := StandardMaterial3D.new()
+	red.albedo_color = Color(0.62, 0.08, 0.06)
+	red.roughness = 0.6
+	var band := MeshInstance3D.new()
+	band.name = "OfficerBand"
+	var ring := CylinderMesh.new()
+	ring.top_radius = 0.147
+	ring.bottom_radius = 0.152
+	ring.height = 0.03
+	band.mesh = ring
+	band.material_override = red
+	band.position = Vector3(0, 0.205, 0)
+	_model.head_node().add_child(band)
+
+
+## Aboiement : tous les gardes à portée accourent.
+func bark() -> void:
+	Sfx.play_at(&"bark", global_position + Vector3.UP * 0.6)
+	EventBus.noise_emitted.emit(global_position, DOG_BARK_RADIUS, &"help")
+
+
+## Officier en alerte : il donne ses ordres, les gardes à portée passent en
+## alerte vers ce qu'il a repéré.
+func _rally() -> void:
+	Sfx.play_at(&"cry", global_position + Vector3.UP * 1.6, -3.0)
+	for node in get_tree().get_nodes_in_group(ALL_GROUP):
+		var mate := node as Enemy
+		if mate == null or mate == self or mate.is_dead or mate.is_stunned() or mate.state == State.ALERT or mate.tied:
+			continue
+		if mate.global_position.distance_to(global_position) <= OFFICER_RALLY_RADIUS:
+			mate.hear_alarm(_last_seen)
+
+
+## Un officier vivant et debout est tout près : il est plus vif.
+func _officer_near() -> bool:
+	for node in get_tree().get_nodes_in_group(ALL_GROUP):
+		var officer := node as Enemy
+		if officer and officer.kind == Kind.OFFICER and not officer.is_dead and not officer.is_stunned() \
+				and officer.global_position.distance_to(global_position) <= OFFICER_PRESENCE:
+			return true
+	return false
+
+
+## Il voit `mate` se faire saisir : alerte vers l'assaillant (ou vers le
+## camarade, sans assaillant connu), et il crie.
+func see_comrade_grabbed(mate: Enemy) -> void:
+	var attacker: Node3D = mate.captor
+	if attacker == null:
+		for node in get_tree().get_nodes_in_group(&"commandos"):
+			var unit := node as Commando
+			if unit and not unit.is_dead and unit.global_position.distance_to(mate.global_position) < 1.5:
+				attacker = unit
+				break
+	hear_alarm(attacker.global_position if attacker else mate.global_position)
+	cries += 1
+	Sfx.play_at(&"cry", global_position + Vector3.UP * 1.6, -2.0)
+	EventBus.noise_emitted.emit(global_position, BODY_ALARM_RADIUS, &"help")
 
 
 ## Corps découvert : il crie (les ennemis proches accourent) et va voir.
@@ -935,6 +1067,10 @@ func _update_state() -> void:
 		Sfx.play_at(&"suspicious", global_position + Vector3.UP * 2.0, -4.0)
 	if state == State.ALERT:
 		alert_age = 0.0
+		if kind == Kind.DOG:
+			bark()
+		elif kind == Kind.OFFICER:
+			_rally()
 	_sync_behavior()
 	if state == State.ALERT:
 		if _target:
@@ -1120,7 +1256,7 @@ func knock_out(fall_forward: bool = false, duration: float = -1.0) -> void:
 ## Vrai si `enemy` peut être ligoté : assommé, vivant, pas encore ligoté,
 ## ni porté.
 static func can_be_tied(enemy: Enemy) -> bool:
-	return is_instance_valid(enemy) and not enemy.is_dead and enemy.is_stunned() and not enemy.tied and enemy.carrier == null
+	return is_instance_valid(enemy) and not enemy.is_dead and enemy.is_stunned() and not enemy.tied and enemy.carrier == null and not enemy.is_dog()
 
 
 ## Le ligote (`TieGesture`) : il reste inconscient jusqu'à la fin de la

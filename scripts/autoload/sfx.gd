@@ -190,6 +190,12 @@ func _build_library() -> void:
 		_concat([_tone([380.0, 520.0], 0.22, 0.4, 0.02, 0.12), _tone([520.0, 340.0], 0.32, 0.4, 0.02, 0.18)]),
 		_noise(0.54, 0.02, 0.3, 0.3, 0.12),
 	]))
+	# Aboiement de chien de garde : deux « wouf » graves et rauques.
+	var woof := _mix([
+		_tone([330.0, 520.0, 260.0], 0.16, 0.55, 0.004, 0.08),
+		_noise(0.16, 0.003, 0.08, 0.45, 0.35),
+	])
+	_streams[&"bark"] = _wav(_concat([woof, _silence(0.12), woof]))
 	# Interface : sélection, ordre, action armée.
 	_streams[&"select"] = _wav(_tone([1000.0, 1000.0], 0.05, 0.3, 0.003, 0.02))
 	_streams[&"order"] = _wav(_concat([
