@@ -53,6 +53,7 @@ static func entries() -> Array[Dictionary]:
 		{"id": "wall", "label": "Mur de 6 m", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "low_wall", "label": "Muret", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"id": "crate", "label": "Caisse", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"id": "heavy_crate", "label": "Caisse lourde (à deux)", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "bush", "label": "Haie / buisson", "category": "Décor", "parent": "Decor", "tool": "point"},
 		{"id": "lamp", "label": "Lampadaire", "category": "Décor", "parent": "Lamps", "tool": "point"},
 		{"ground": true, "id": "pine", "label": "Sapin enneigé", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
@@ -175,6 +176,10 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			nodes.append(_instance("res://scenes/props/low_wall.tscn", "LowWall"))
 		"crate":
 			nodes.append(_instance("res://scenes/props/crate.tscn", "Crate"))
+		"heavy_crate":
+			var heavy := _instance("res://scenes/props/crate.tscn", "HeavyCrate")
+			heavy.set("heavy", true)
+			nodes.append(heavy)
 		"ladder":
 			nodes.append(_instance("res://scenes/props/ladder.tscn", "Ladder"))
 		"bush":

@@ -1631,3 +1631,8 @@
 ## Faire pivoter une caisse (2.8 d)
 
 - Maj + P fait pivoter d'un huitième de tour la caisse tenue : l'opérateur tourne autour avec elle, mains sur le même côté. Elle se pousse ensuite dans le nouvel axe (en diagonale). La rotation s'arrête contre un obstacle et frotte au sol comme une poussée.
+
+## Caisses lourdes, à deux (2.8 e)
+
+- Caisse lourde (`heavy`, cerclée de fer ; « Caisse lourde (à deux) » dans la palette de l'éditeur) : seul, un opérateur la tient mais ne la bouge pas (« Trop lourde : il faut être deux »).
+- Un second opérateur peut la saisir par un autre côté libre. À deux, un ordre de déplacement donné à l'un ou à l'autre la fait glisser (plus lentement : 60 %), et Maj + P la fait pivoter ; le premier mène le mouvement, le second suit.

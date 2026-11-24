@@ -30,14 +30,19 @@ const SIDES: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vec
 @export var can_stand_on: bool = true
 ## Faux pour un objet fixe (corniche) : ni poussé ni tiré.
 @export var movable: bool = true
+## Caisse lourde (cerclée de fer) : il faut être deux pour la pousser, la
+## tirer ou la faire pivoter.
+@export var heavy: bool = false
 ## Faux si l'on ne peut y monter que depuis un objet voisin (trop haut pour
 ## grimper depuis le sol). On peut toujours en sauter, faute d'autre chemin.
 @export var climbable_from_ground: bool = true
 
 ## Unité actuellement dessus (ou en train d'y monter).
 var occupant: Commando
-## Unité qui la pousse ou la tire.
+## Unité qui la pousse ou la tire (la première, qui mène le mouvement).
 var handler: Commando
+## Toutes les unités qui la tiennent (deux au plus, pour une caisse lourde).
+var handlers: Array[Commando] = []
 ## Détruite par une explosion (invisible, sans collision).
 var is_broken: bool = false
 var _layer_before_break: int = 0
@@ -69,6 +74,8 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	if heavy:
+		_add_straps()
 	if skin.is_empty():
 		return
 	# Même matériau, autre texture : copie propre à cette caisse, que le
@@ -82,6 +89,59 @@ func _ready() -> void:
 			material = material.duplicate() as StandardMaterial3D
 			material.set_meta(&"albedo_source", skin)
 			mesh.material_override = material
+
+
+## Caisse lourde : deux cerclages de fer, bien visibles.
+func _add_straps() -> void:
+	var iron := StandardMaterial3D.new()
+	iron.albedo_color = Color(0.16, 0.17, 0.18)
+	iron.metallic = 0.7
+	iron.roughness = 0.45
+	for offset in [-0.3, 0.3]:
+		for vertical in [false, true]:
+			var band := MeshInstance3D.new()
+			var box := BoxMesh.new()
+			var size := half_extent * 2.0 + 0.03
+			box.size = Vector3(0.09, top_height + 0.03, size) if vertical else Vector3(size, 0.09, size)
+			band.mesh = box
+			band.material_override = iron
+			band.position = Vector3(offset * half_extent * 2.0, top_height * 0.5, 0) if vertical else Vector3(0, top_height * (0.5 + offset * 0.8), 0)
+			band.name = "Strap"
+			add_child(band)
+
+
+## Vrai si `unit` peut la saisir : libre, déjà tenue par lui, ou caisse
+## lourde tenue par un seul.
+func can_take(unit: Commando) -> bool:
+	return handlers.is_empty() or unit in handlers or (heavy and handlers.size() < 2)
+
+
+## Assez de bras pour la déplacer.
+func can_move() -> bool:
+	return not heavy or handlers.size() >= 2
+
+
+func add_handler(unit: Commando) -> void:
+	if not unit in handlers:
+		handlers.append(unit)
+	handler = handlers[0]
+
+
+func remove_handler(unit: Commando) -> void:
+	handlers.erase(unit)
+	handler = handlers[0] if not handlers.is_empty() else null
+
+
+## Côtés déjà tenus (directions dans le monde).
+func taken_sides(except: Commando = null) -> Array[Vector3]:
+	var sides: Array[Vector3] = []
+	for unit in handlers:
+		if unit == except or not is_instance_valid(unit):
+			continue
+		var order: Variant = unit._order
+		if order is CrateHoldOrder or order is CrateApproachOrder:
+			sides.append(order.side)
+	return sides
 
 
 ## Position des pieds d'une unité debout sur l'objet.
@@ -166,6 +226,28 @@ func get_access_points() -> Array[Vector3]:
 ## Point au sol face au côté `side` (direction unitaire dans le monde).
 func get_access_point(side: Vector3) -> Vector3:
 	return global_position + side * (half_extent + access_margin)
+
+
+## Côté praticable, libre (pas déjà tenu, `taken_sides`), le plus proche de
+## `near` ; `Vector3.ZERO` s'il n'y en a aucun.
+func get_free_side_toward(near: Vector3, unit: Commando) -> Vector3:
+	var taken := taken_sides(unit)
+	if taken.is_empty():
+		return get_side_toward(near)
+	var best := Vector3.ZERO
+	var best_distance := INF
+	for local_side in SIDES:
+		var side := _world_side(local_side)
+		if taken.any(func(other: Vector3) -> bool: return other.dot(side) > 0.9):
+			continue
+		var access := get_access_point(side)
+		if not _is_reachable(access):
+			continue
+		var distance := Vector2(access.x - near.x, access.z - near.z).length()
+		if distance < best_distance:
+			best_distance = distance
+			best = side
+	return best
 
 
 ## Côté praticable (direction unitaire dans le monde, du centre vers

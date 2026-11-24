@@ -5,6 +5,8 @@ extends CommandoAction
 ## Le déplacement est scripté : la physique de l'unité ne s'en mêle pas.
 
 const NOISE_INTERVAL := 0.5
+## Caisse lourde : part de la vitesse de poussée qui reste, à deux.
+const HEAVY_SPEED := 0.6
 ## Rotation : pas d'un ordre (45°) et vitesse (rad/s).
 const TURN_STEP := PI / 4.0
 const TURN_SPEED := 1.2
@@ -33,7 +35,7 @@ static func grip_point(target: Climbable, toward: Vector3, height: float) -> Vec
 
 
 func start() -> void:
-	crate.handler = unit
+	crate.add_handler(unit)
 	unit.add_collision_exception_with(crate)
 	goal = crate.global_position
 	unit._model.crate_grip = true
@@ -47,12 +49,26 @@ func hands_free() -> bool:
 ## tourne autour avec elle, mains posées sur le même côté. Elle se pousse
 ## ensuite dans le nouvel axe (en diagonale, par exemple).
 func turn(clockwise: bool = true) -> void:
+	var lead := _lead()
+	if lead != self:
+		if lead and absf(lead._turn_left) < 0.001:
+			lead.turn(clockwise)
+		return
+	if not crate.can_move():
+		unit.flash_message("Trop lourde : il faut être deux")
+		return
 	goal = crate.global_position
 	_turn_left += -TURN_STEP if clockwise else TURN_STEP
 
 
 ## Destination de la caisse : projection de `target` sur l'axe du côté tenu.
 func set_goal(target: Vector3) -> void:
+	# Caisse lourde tenue à deux : c'est le premier qui mène.
+	var lead := _lead()
+	if lead != self:
+		if lead:
+			lead.set_goal(target)
+		return
 	var axis := -side
 	goal = crate.global_position + axis * (target - crate.global_position).dot(axis)
 
@@ -60,7 +76,7 @@ func set_goal(target: Vector3) -> void:
 func cancel() -> void:
 	if is_instance_valid(crate):
 		unit.remove_collision_exception_with(crate)
-		crate.handler = null
+		crate.remove_handler(unit)
 	unit._model.crate_grip = false
 	if _moving:
 		_moving = false
@@ -74,19 +90,36 @@ func update(delta: float) -> Vector3:
 		return Vector3.ZERO
 	unit.velocity = Vector3.ZERO
 	unit._model.posture = unit.posture
+	# Second porteur d'une caisse lourde : le premier le déplace avec elle.
+	if _lead() != self:
+		unit._face(-side, delta)
+		unit._model.move_ratio = _lead()._model_ratio() if _lead() else 0.0
+		return Vector3.ZERO
 	if absf(_turn_left) > 0.001:
 		_update_turn(delta)
 		return Vector3.ZERO
 	var axis := -side
 	unit._face(axis, delta)
 	var remaining := (goal - crate.global_position).dot(axis)
-	if absf(remaining) > 0.01:
+	if absf(remaining) > 0.01 and not crate.can_move():
+		unit.flash_message("Trop lourde : il faut être deux")
+		goal = crate.global_position
+	elif absf(remaining) > 0.01:
 		unit._model.crate_pull = remaining < 0.0
 		var speed := unit.stats.crate_push_speed if remaining > 0.0 else unit.stats.crate_pull_speed
+		if crate.heavy:
+			speed *= HEAVY_SPEED
 		var step := axis * signf(remaining) * minf(absf(remaining), speed * delta)
-		if crate.is_free_at(crate.global_position + step, [unit.get_rid()]) and not unit.test_move(unit.global_transform, step):
+		var partners := _partners()
+		var exclude: Array[RID] = [unit.get_rid()]
+		for other in partners:
+			exclude.append(other.get_rid())
+		if crate.is_free_at(crate.global_position + step, exclude) and not unit.test_move(unit.global_transform, step) \
+				and partners.all(func(other: Commando) -> bool: return not other.test_move(other.global_transform, step)):
 			crate.global_position += step
 			unit.global_position += step
+			for other in partners:
+				other.global_position += step
 			_moving = true
 			# Poussée au-delà d'un rebord : elle tombe (l'ordre est annulé).
 			if crate.check_support():
@@ -109,18 +142,31 @@ func _update_turn(delta: float) -> void:
 	var angle := signf(_turn_left) * minf(absf(_turn_left), TURN_SPEED * delta)
 	var basis := crate.global_basis.rotated(Vector3.UP, angle)
 	var center := crate.global_position
-	var new_side := side.rotated(Vector3.UP, angle)
-	var grip := grip_point(crate, new_side, unit.global_position.y)
-	var step := grip - unit.global_position
-	step.y = 0.0
-	if not crate.is_free_at(center, [unit.get_rid()], basis) or unit.test_move(unit.global_transform, step):
+	var holds: Array[CrateHoldOrder] = [self]
+	for other in _partners():
+		holds.append(other._order as CrateHoldOrder)
+	var exclude: Array[RID] = []
+	var steps: Array[Vector3] = []
+	for hold in holds:
+		exclude.append(hold.unit.get_rid())
+		var turned := hold.side.rotated(Vector3.UP, angle)
+		var step := grip_point(crate, turned, hold.unit.global_position.y) - hold.unit.global_position
+		step.y = 0.0
+		steps.append(step)
+	var blocked := not crate.is_free_at(center, exclude, basis)
+	for i in holds.size():
+		blocked = blocked or holds[i].unit.test_move(holds[i].unit.global_transform, steps[i])
+	if blocked:
 		# Bloquée : elle reste où elle est.
 		_turn_left = 0.0
 		_stop()
 		return
 	crate.global_basis = basis
-	side = new_side
-	unit.global_position += step
+	for i in holds.size():
+		holds[i].side = holds[i].side.rotated(Vector3.UP, angle)
+		holds[i].unit.global_position += steps[i]
+		if holds[i] != self:
+			holds[i].unit._face(-holds[i].side, delta * 4.0)
 	unit._face(-side, delta * 4.0)
 	_turn_left -= angle
 	_moving = true
@@ -133,6 +179,26 @@ func _update_turn(delta: float) -> void:
 	if absf(_turn_left) <= 0.001:
 		_turn_left = 0.0
 		_stop()
+
+
+## Ordre de celui qui mène le mouvement (le premier à tenir la caisse).
+func _lead() -> CrateHoldOrder:
+	if not is_instance_valid(crate.handler) or crate.handler == unit:
+		return self
+	return crate.handler._order as CrateHoldOrder
+
+
+## Les autres qui tiennent la caisse (mains posées).
+func _partners() -> Array[Commando]:
+	var others: Array[Commando] = []
+	for other in crate.handlers:
+		if other != unit and is_instance_valid(other) and other._order is CrateHoldOrder:
+			others.append(other)
+	return others
+
+
+func _model_ratio() -> float:
+	return unit._model.move_ratio
 
 
 ## Plus rien ne bouge : la navigation et les piles se mettent à jour.

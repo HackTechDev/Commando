@@ -149,6 +149,8 @@ Le **cône de vue** de chaque garde s'affiche au sol en jaune : la zone proche, 
 
 Pour voir l'ensemble, cochez **Couverture des gardes** dans la section Carte. Le sol se colore case par case (1 m) selon ce que voient les gardes, avec les règles du jeu : murs et toits arrêtent la vue, la nuit réduit la zone lointaine. En **rouge**, la zone proche : on y est vu même accroupi. En **jaune**, la zone lointaine : on y est vu debout, pas accroupi. Plus la couleur est soutenue, plus il y a de gardes. Un garde en ronde compte sur tout son chemin, retour au premier point compris, dans les deux sens de marche. La carte se recalcule à chaque changement (pose, déplacement, Nuit) et n'est jamais enregistrée dans la scène. Les cases sans couleur sont les passages.
 
+Une **caisse lourde** (palette « Caisse lourde (à deux) », ou `heavy` dans l'inspecteur d'une caisse) est cerclée de fer : il faut deux opérateurs pour la déplacer.
+
 Le vent de la carte (`wind`, dans l'inspecteur de la racine) fait dériver les nuages de fumigène.
 
 La neige et la pluie (« Chute de neige », « Pluie » dans la palette) tombent aussi dans la vue 3D, autour de ce que regarde la caméra de l'éditeur, sans le bruit de la pluie. Décochez **Météo (neige, pluie)** dans la section Carte pour les masquer pendant l'édition ; rien n'est enregistré.

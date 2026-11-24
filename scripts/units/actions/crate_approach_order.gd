@@ -25,7 +25,7 @@ func hands_free() -> bool:
 
 
 func update(delta: float) -> Vector3:
-	if not is_instance_valid(crate) or crate.occupant != null or (crate.handler != null and crate.handler != unit):
+	if not is_instance_valid(crate) or crate.occupant != null or not crate.can_take(unit):
 		finish()
 		return Vector3.ZERO
 	var to_grip := CrateHoldOrder.grip_point(crate, side, unit.global_position.y) - unit.global_position

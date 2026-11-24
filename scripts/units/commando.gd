@@ -1252,11 +1252,12 @@ func handle_crate(crate: Climbable, near: Vector3) -> bool:
 		return false
 	if is_dead or _hopping or crate == null or not crate.movable or crate.occupant != null:
 		return false
-	if crate.handler != null and crate.handler != self:
+	if not crate.can_take(self):
 		return false
 	if perched_on:
 		return _descend(near, handle_crate.bind(crate, near))
-	var side := crate.get_side_toward(near)
+	# Caisse lourde déjà tenue : il prend un autre côté.
+	var side := crate.get_free_side_toward(near, self)
 	if side == Vector3.ZERO:
 		return false
 	_set_order(CrateApproachOrder.new(self, crate, side))
