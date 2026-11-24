@@ -29,6 +29,14 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **c)** avion de transport au sol (base aérienne) : cachette dans la soute, sabotage, ou moyen d'extraction ;
   - **d)** parachutage d'ouverture : zone d'atterrissage choisie en début de mission, dispersion selon le vent (`LevelRoot.wind`) ;
   - **e)** ballon captif d'observation : poste de guet très haut, qu'on fait tomber en coupant son câble.
+- **2.18 Relève de la garde** : à heures fixes, une sentinelle est remplacée ; le remplaçant remarque un poste vide ou un collègue absent. Fenêtres de temps à exploiter.
+- **2.19 Radio des gardes** : chaque poste se signale à intervalles réguliers ; un garde neutralisé ne répond plus et une patrouille vient voir. Un opérateur déguisé (2.25) peut répondre à sa place.
+- **2.20 Gardes qui discutent** : deux gardes en conversation sont moins attentifs, mais chacun remarque la disparition de l'autre.
+- **2.21 Lumières qu'on coupe** : tirer sur un lampadaire ou couper le groupe électrogène plonge une zone dans le noir ; les gardes viennent réparer.
+- **2.22 Leurres à retardement** : réveil ou radio qui sonne au bout de quelques secondes, pour attirer un garde hors de son poste (en plus des appâts).
+- **2.23 Blessures et fatigue** : un opérateur blessé boite et rampe moins vite tant qu'il n'est pas soigné ; les blessures se gardent d'une mission à l'autre (avec 10.1).
+- **2.24 Progression des opérateurs** : l'expérience des missions (discrétion, tir, soins) améliore un peu leurs réglages.
+- **2.25 Déguisement pris sur l'ennemi** : revêtir l'uniforme d'un garde assommé pour passer près des autres ; l'officier et le chien ne s'y trompent pas. S'appuie sur la tenue civile (`blend_factor`).
 
 ## 4. Contrôles et lisibilité
 
@@ -40,6 +48,10 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** pour le couteau, les cercles de 7 m et de 4 m (où le lancer porte toujours), et la trajectoire au survol d'un ennemi ;
   - **b)** pour la grenade, le cercle de 12 m, et la zone de l'explosion au survol du sol.
 - **4.10 Retour des actions refusées** : certains ordres impossibles ne font toujours rien (assommer un ennemi déjà inconscient). Afficher un court message, en plus du son de refus déjà joué pour les lancers, les charges et les soins.
+- **4.11 Ordres synchronisés** : préparer des actions pour plusieurs opérateurs (« Alpha au couteau, Bravo tire ») et les déclencher ensemble d'une touche.
+- **4.12 Rediffusion** : revoir la mission en accéléré, cônes de vue affichés, pour comprendre où l'on a été repéré.
+- **4.13 Ralenti tactique** : temps ralenti (pas en pause) pendant lequel on peut toujours donner des ordres.
+- **4.14 Portée du bruit** : avant une action (course, caisse, tir), un cercle au sol montre jusqu'où elle s'entendra.
 
 ## 5. Interface
 
@@ -86,7 +98,8 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **c)** répliques des opérateurs à la sélection et aux ordres (bus « Voix ») ;
   - **e)** sons d'ambiance (vent, circulation, oiseaux ; la pluie a déjà le sien, synthétisé) ;
   - **f)** sous-titres des sons importants, pour l'accessibilité (le signal `Sfx.played` existe).
-
+- **7.12 Sauvegarde complète** : plusieurs emplacements avec vignette, en plus de la sauvegarde rapide.
+- **7.13 Performances des grandes cartes** : regrouper les tests de vue des gardes (aujourd'hui un par garde et par image) pour tenir une soixantaine de gardes.
 
 ## 8. Éditeur de mission
 
@@ -98,3 +111,9 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
 - **8.5 Fiabilité et ménage** :
   - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification.
 
+## 10. Missions et campagne
+
+- **10.1 Campagne** : carte d'opérations où les missions s'enchaînent ; opérateurs perdus pour de bon, matériel récupéré.
+- **10.2 Objectifs secondaires et notation** : aucun mort, aucune alerte, temps limite, documents en bonus ; note en fin de mission.
+- **10.3 Heure qui avance** : lumière et vue des gardes évoluent pendant la mission ; agir avant l'aube.
+- **10.4 Rondes tirées au hasard** : même carte, gardes et rondes différents à chaque partie (graine de `GameRng`), pour la rejouabilité.
