@@ -168,6 +168,8 @@ var hesitations: int = 0
 var ammo: int = -1
 ## Désarmé : mains en l'air, inoffensif.
 var disarmed: bool = false
+## Ligoté (assommé, poignets et chevilles liés) : il ne se réveille plus.
+var tied: bool = false
 ## Temps (s) écoulé depuis son passage en alerte.
 var alert_age: float = 0.0
 ## Arme qu'on lui a arrachée, au sol.
@@ -677,8 +679,8 @@ func _update_feedback() -> void:
 		_gauge.position.y = GAUGE_HEIGHT_DOWN
 		_gauge_back.visible = false
 		_gauge_fill.visible = false
-		_mark.text = "z z"
-		_mark.modulate = Color(0.6, 0.8, 1.0)
+		_mark.text = "ligoté" if tied else "z z"
+		_mark.modulate = Color(0.85, 0.7, 0.45) if tied else Color(0.6, 0.8, 1.0)
 		return
 	_gauge.position.y = GAUGE_HEIGHT
 	_gauge_back.visible = true
@@ -1032,8 +1034,27 @@ func knock_out(fall_forward: bool = false, duration: float = -1.0) -> void:
 	GameState.refresh_alert()
 
 
+## Vrai si `enemy` peut être ligoté : assommé, vivant, pas encore ligoté,
+## ni porté.
+static func can_be_tied(enemy: Enemy) -> bool:
+	return is_instance_valid(enemy) and not enemy.is_dead and enemy.is_stunned() and not enemy.tied and enemy.carrier == null
+
+
+## Le ligote (`TieGesture`) : il reste inconscient jusqu'à la fin de la
+## mission. Renvoie faux si c'est impossible.
+func tie_up() -> bool:
+	if not can_be_tied(self):
+		return false
+	tied = true
+	Sfx.play_at(&"clink", global_position, -12.0)
+	_update_feedback()
+	return true
+
+
 ## Fin de la perte de connaissance : il se relève et donne l'alerte sur place.
 func _wake_up() -> void:
+	if tied:
+		return
 	if carrier:
 		carrier.drop_body()
 	_model.position.y = 0.0
@@ -1061,7 +1082,7 @@ func save_state() -> Dictionary:
 	return {
 		"position": global_position, "rotation": rotation.y, "state": state,
 		"detection": detection, "waypoint": _waypoint_index, "stun_left": stunned_behavior.left, "ammo": ammo,
-		"disarmed": disarmed,
+		"disarmed": disarmed, "tied": tied,
 		"last_seen": _last_seen, "memory_left": _memory_left, "health": health.save_state(),
 		"discovered": discovered, "carried_hips": carried_hips, "carried_axis": carried_axis,
 		"rockets": rockets, "documents": documents,
@@ -1100,7 +1121,10 @@ func load_state(data: Dictionary) -> void:
 	if saved == State.STUNNED:
 		knock_out()
 		stunned_behavior.left = data.get("stun_left", stunned_behavior.left)
+		tied = data.get("tied", false)
+		_update_feedback()
 		return
+	tied = false
 	if saved == State.GRABBED:
 		saved = State.ALERT
 	if state == State.STUNNED:

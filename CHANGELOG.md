@@ -1552,3 +1552,8 @@
 - `Rainfall` : pluie en traits fins qui suit la caméra, avec le bruit de l'averse (boucle synthétisée, bus SFX).
 - `WeatherParticles` : base commune de la neige (`Snowfall`) et de la pluie.
 - Éditeur de mission : « Pluie » dans la palette (Décor). Les deux nouvelles cartes s'ouvrent et s'enregistrent dans l'éditeur sans changement.
+
+## Ligoter un ennemi assommé (2.3)
+
+- Menu de corps à corps (clic du milieu) : « Ligoter », sur un ennemi assommé. L'opérateur s'en approche, s'accroupit 3 s et lui lie poignets et chevilles : il ne se réveille plus de la mission (marque « ligoté » au-dessus de lui). Un nouvel ordre ou un corps emporté interrompt le geste.
+- On peut toujours le porter, le cacher ou l'achever. L'état est gardé par la sauvegarde rapide.

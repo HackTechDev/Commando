@@ -18,7 +18,7 @@ signal evacuated
 
 ## Corps à corps : couteau (tue), assommer, balayage (assomme moins
 ## longtemps), projection (au sol par-dessus la hanche, puis assommé).
-enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET }
+enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET, TIE }
 
 const MASK_OCCLUDERS := 0b10
 ## Blessé (évacuable) sous cette part de sa santé.
@@ -664,7 +664,11 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 	if kind == MeleeKind.HATCHET and hatchets <= 0:
 		flash_message("Pas de hachette (à équiper : écran Opérateurs)")
 		return false
-	if not finishes(kind) and enemy.is_stunned():
+	if kind == MeleeKind.TIE:
+		if not Enemy.can_be_tied(enemy):
+			flash_message("Ligoter : seulement un ennemi assommé, pas déjà ligoté")
+			return false
+	elif not finishes(kind) and enemy.is_stunned():
 		return false
 	if kind == MeleeKind.DISARM and not enemy.can_be_disarmed():
 		return false
@@ -677,6 +681,11 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 ## Vrai si le coup `kind` achève un ennemi au sol (lames).
 static func finishes(kind: MeleeKind) -> bool:
 	return kind == MeleeKind.KNIFE or kind == MeleeKind.HATCHET
+
+
+## Vrai si l'action `kind` vise un ennemi déjà au sol (lames, ligotage).
+static func reaches_downed(kind: MeleeKind) -> bool:
+	return finishes(kind) or kind == MeleeKind.TIE
 
 
 ## Ordonne de lancer un couteau sur `enemy` : l'unité s'approche à portée,

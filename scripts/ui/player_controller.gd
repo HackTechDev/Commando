@@ -1115,6 +1115,7 @@ static func melee_options(enemy: Enemy) -> Array[Dictionary]:
 		{"id": &"throw", "label": "Projection", "detail": "au sol, puis assommé", "enabled": standing},
 		{"id": &"disarm", "label": "Désarmer", "detail": "pris de court, il se rend", "enabled": enemy.can_be_disarmed()},
 		{"id": &"hostage", "label": "Bouclier humain", "detail": "par derrière, arme de poing", "enabled": standing},
+		{"id": &"tie", "label": "Ligoter", "detail": "assommé, il ne se réveillera plus", "enabled": Enemy.can_be_tied(enemy)},
 	]
 
 
@@ -1248,7 +1249,7 @@ func _on_radial_chosen(id: StringName) -> void:
 	var kinds := {&"knockout": Commando.MeleeKind.KNOCKOUT, &"knife": Commando.MeleeKind.KNIFE,
 			&"sweep": Commando.MeleeKind.SWEEP, &"throw": Commando.MeleeKind.THROW,
 			&"disarm": Commando.MeleeKind.DISARM, &"hostage": Commando.MeleeKind.HOSTAGE,
-			&"hatchet": Commando.MeleeKind.HATCHET}
+			&"hatchet": Commando.MeleeKind.HATCHET, &"tie": Commando.MeleeKind.TIE}
 	if not kinds.has(id):
 		return
 	var accepted := SelectionManager.order_melee(enemy, kinds[id])
