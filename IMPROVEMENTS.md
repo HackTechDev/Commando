@@ -105,4 +105,4 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **b)** routes au pinceau, avec carrefours, et trottoirs posés le long des routes.
 - **8.5 Fiabilité et ménage** :
   - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification.
-- **8.6 Météo dans l'éditeur** : la neige et la pluie (`Snowfall`, `Rainfall`) ne s'affichent qu'en jeu. Les montrer dans la vue de l'éditeur (sans le bruit de la pluie), avec une case pour les masquer.
+

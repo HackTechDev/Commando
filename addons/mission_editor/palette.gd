@@ -188,9 +188,9 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			pine.set("variant", randi() % 8)
 			nodes.append(pine)
 		"snowfall":
-			nodes.append(_scripted("GPUParticles3D", "res://scripts/levels/snowfall.gd", "Snowfall"))
+			nodes.append(_scripted("Node3D", "res://scripts/levels/snowfall.gd", "Snowfall"))
 		"rainfall":
-			nodes.append(_scripted("GPUParticles3D", "res://scripts/levels/rainfall.gd", "Rainfall"))
+			nodes.append(_scripted("Node3D", "res://scripts/levels/rainfall.gd", "Rainfall"))
 		"tower":
 			var tower := _scripted("Node3D", "res://scripts/props/tower.gd", "Tower")
 			tower.set("storeys", 3)

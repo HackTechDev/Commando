@@ -1,3 +1,4 @@
+@tool
 class_name Rainfall
 extends WeatherParticles
 ## Pluie (cartes urbaines) : gouttes en traits fins qui tombent vite, un peu
@@ -10,22 +11,27 @@ const LOOP_TIME := 3.0
 const LOOP_FADE := 0.25
 
 ## Nombre de gouttes.
-@export var drops: int = 2400
+@export var drops: int = 2400:
+	set(value):
+		drops = value
+		_reconfigure()
 ## Vent (m/s) : inclinaison des gouttes.
-@export var wind := Vector3(1.2, 0.0, 0.5)
+@export var wind := Vector3(1.2, 0.0, 0.5):
+	set(value):
+		wind = value
+		_reconfigure()
 ## Volume du bruit de la pluie (dB).
 @export var volume_db: float = -14.0
 
 var _sound: AudioStreamPlayer
 
 
-func _ready() -> void:
-	name = "Rainfall"
+func _configure(particles: GPUParticles3D) -> void:
 	var motion := falling_motion(14.0, 17.0, -4.0, wind)
 	motion.spread = 2.0
 	motion.scale_min = 0.8
 	motion.scale_max = 1.2
-	process_material = motion
+	particles.process_material = motion
 	var drop := QuadMesh.new()
 	drop.size = Vector2(0.025, 0.55)
 	var look := StandardMaterial3D.new()
@@ -35,15 +41,16 @@ func _ready() -> void:
 	look.albedo_color = Color(0.78, 0.84, 0.92, 0.3)
 	look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	drop.material = look
-	draw_pass_1 = drop
-	_setup(drops, 1.4)
-	if not Engine.is_editor_hint():
+	particles.draw_pass_1 = drop
+	_setup(particles, drops, 1.4)
+	# Le bruit de l'averse : en jeu seulement.
+	if not Engine.is_editor_hint() and _sound == null:
 		_sound = AudioStreamPlayer.new()
 		_sound.name = "RainSound"
 		_sound.bus = &"SFX"
 		_sound.volume_db = volume_db
 		_sound.stream = rain_loop()
-		add_child(_sound)
+		add_child(_sound, false, Node.INTERNAL_MODE_FRONT)
 		_sound.play()
 
 

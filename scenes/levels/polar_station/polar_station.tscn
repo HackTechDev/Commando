@@ -568,7 +568,7 @@ mesh = SubResource("drift_mesh")
 transform = Transform3D(4, 0, 0, 0, 0.35, 0, 0, 0, 3, -45, 0, -38)
 mesh = SubResource("drift_mesh")
 
-[node name="Snowfall" type="GPUParticles3D" parent="Decor"]
+[node name="Snowfall" type="Node3D" parent="Decor"]
 script = ExtResource("8")
 
 [node name="Lamps" type="Node3D" parent="."]

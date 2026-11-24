@@ -147,6 +147,8 @@ Le **cône de vue** de chaque garde s'affiche au sol en jaune : la zone proche, 
 
 Pour voir l'ensemble, cochez **Couverture des gardes** dans la section Carte. Le sol se colore case par case (1 m) selon ce que voient les gardes, avec les règles du jeu : murs et toits arrêtent la vue, la nuit réduit la zone lointaine. En **rouge**, la zone proche : on y est vu même accroupi. En **jaune**, la zone lointaine : on y est vu debout, pas accroupi. Plus la couleur est soutenue, plus il y a de gardes. Un garde en ronde compte sur tout son chemin, retour au premier point compris, dans les deux sens de marche. La carte se recalcule à chaque changement (pose, déplacement, Nuit) et n'est jamais enregistrée dans la scène. Les cases sans couleur sont les passages.
 
+La neige et la pluie (« Chute de neige », « Pluie » dans la palette) tombent aussi dans la vue 3D, autour de ce que regarde la caméra de l'éditeur, sans le bruit de la pluie. Décochez **Météo (neige, pluie)** dans la section Carte pour les masquer pendant l'édition ; rien n'est enregistré.
+
 Pour régler le rythme des rondes, utilisez la section **Animation** du dock. **▶ Lecture** fait avancer les rondes, pick-ups, avions, passants et voitures comme en jeu : vitesse de marche, pause à chaque point, boucle. Chaque unité mobile est représentée par une silhouette, et chaque garde par un cône de vue qui le suit. La **barre de temps** (3 minutes) place tout le monde à un instant choisi, **× 2** à **× 8** accélère, **⏮** revient au début et retire les silhouettes. Elles ne sont jamais enregistrées, et suivent chaque modification de la scène. Cherchez les fenêtres de passage : le moment où deux rondes se tournent le dos.
 
 Pour l'exemple : deux gardes postés à l'entrée de la cour, une ronde autour du bâtiment, un garde en ronde le long de la route.
@@ -229,7 +231,7 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Haie / buisson | 1 clic | `Decor` | Cachette pour les corps ; `kind` : buisson, eau, abri. |
 | | Lampadaire | 1 clic | `Lamps` | |
 | | Sapin enneigé | 1 clic | `NavigationRegion3D` | Tronc solide (vue, balles), feuillage poudré de neige ; `height`, `variant`. |
-| | Chute de neige | 1 clic | `Decor` | Flocons autour de ce que regarde la caméra ; `flakes`, `wind`. Une seule par carte. |
+| | Chute de neige | 1 clic | `Decor` | Flocons autour de ce que regarde la caméra ; `flakes`, `wind`. Une seule par carte ; visible aussi dans l'éditeur. |
 | | Pluie | 1 clic | `Decor` | Gouttes autour de ce que regarde la caméra, bruit de l'averse ; `drops`, `wind`, `volume_db`. Une seule par carte. |
 | | Immeuble à étages | 1 clic | `NavigationRegion3D` | 3 étages, 14 × 10 m ; `storeys`, `size`, `doors`, `windows` dans l'inspecteur. |
 | | Route, Trottoir, Piste | 2 clics | `Decor` | 9 m, 2,5 m, 4,5 m de large. |

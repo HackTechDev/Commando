@@ -1570,3 +1570,9 @@
 - Chaque impact sur un obstacle se voit et s'entend : étincelles et tintement sur le métal (voitures, convertible, Sabre, technical), échardes et choc sourd sur le bois (caisses, portes), poussière et claquement sur les murs et le sol. Une trace reste à l'endroit touché (trou sombre, éraflure claire sur le métal et les vitres), accrochée à l'objet : elle suit une voiture qui roule. Les 150 plus récentes sont gardées.
 - Le bruit d'impact (7 m) intrigue les gardes proches, qui viennent voir : même un tir au silencieux trahit l'endroit où la balle a frappé.
 - Valable pour le tir libre (mur, caisse, voiture, convertible…), les balles manquées et la mitrailleuse de bord.
+
+## Météo dans l'éditeur de mission (8.6)
+
+- La neige et la pluie tombent aussi dans la vue 3D de l'éditeur, autour de ce que regarde sa caméra, sans le bruit de la pluie ; nombre de particules et vent se règlent dans l'inspecteur, avec un aperçu immédiat.
+- Case « Météo (neige, pluie) » dans la section Carte du dock pour les masquer.
+- `WeatherParticles` devient un `Node3D` dont les particules sont un enfant interne, jamais enregistré, placé hors de son repère : la scène reste identique après enregistrement (vérifié par `tools/editor_check/check_all.sh`).

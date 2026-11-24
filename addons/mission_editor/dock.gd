@@ -26,6 +26,8 @@ signal route_point_added
 signal route_point_removed
 ## Carte de couverture des gardes affichée ou non.
 signal coverage_toggled(on: bool)
+## Case « Météo » : neige et pluie affichées dans la vue 3D.
+signal weather_toggled(on: bool)
 ## Limites de la caméra à caler sur le terrain.
 signal camera_fit_requested
 ## Fenêtre « Vue du jeu » demandée.
@@ -265,6 +267,13 @@ func _init() -> void:
 	_coverage_legend = _label("Rouge : vu même accroupi (zone proche). Jaune : vu debout (zone lointaine). Plus soutenu : plusieurs gardes. Recalculée à chaque changement.", DIM_COLOR)
 	_coverage_legend.visible = false
 	_body.add_child(_coverage_legend)
+	var weather := CheckBox.new()
+	weather.name = "Weather"
+	weather.text = "Météo (neige, pluie)"
+	weather.button_pressed = true
+	weather.tooltip_text = "Affiche dans la vue 3D la neige et la pluie de la carte, autour de ce que regarde la caméra (sans le bruit de la pluie). Rien n'est enregistré."
+	weather.toggled.connect(func(on: bool) -> void: weather_toggled.emit(on))
+	_body.add_child(weather)
 
 	_section("Animation")
 	_body.add_child(_label("Rondes, pick-ups, avions, passants et voitures se déplacent comme en jeu (silhouettes, cône de vue des gardes).", DIM_COLOR))

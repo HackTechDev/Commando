@@ -801,7 +801,7 @@ speed = 1.30
 look_seed = 33708
 dress = &"casual"
 
-[node name="Rainfall" type="GPUParticles3D" parent="Decor"]
+[node name="Rainfall" type="Node3D" parent="Decor"]
 script = ExtResource("9")
 
 [node name="Lamps" type="Node3D" parent="."]

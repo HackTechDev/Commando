@@ -148,6 +148,9 @@ func _enter_tree() -> void:
 	_dock.plan_remove_requested.connect(plan_remove_last)
 	_dock.plan_storey_changed.connect(func(_storey: int) -> void: _update_status())
 	_dock.coverage_toggled.connect(func(_on: bool) -> void: refresh_coverage())
+	_dock.weather_toggled.connect(func(on: bool) -> void:
+		WeatherParticles.editor_hidden = not on
+		WeatherParticles.refresh_all(get_tree()))
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
 	_gizmos = Gizmos.new()
 	_gizmos.plugin = self
