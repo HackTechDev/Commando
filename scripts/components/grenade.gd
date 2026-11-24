@@ -32,6 +32,8 @@ var smoke: bool = false
 var stun: bool = false
 ## Obus tiré au lance-grenades (`launch`).
 var launched: bool = false
+## Obus lacrymogène : libère un nuage de gaz (`GasCloud`).
+var gas: bool = false
 ## Corps que l'obus traverse (véhicule du tireur).
 var _exclude: Array[RID] = []
 var _ball: MeshInstance3D
@@ -55,10 +57,12 @@ static func spawn(parent: Node, from: Vector3, to: Vector3, stats: UnitStats, is
 	return grenade
 
 
-## Tire un obus de 40 mm de `from` vers `to` (lance-grenades M320) : il
-## éclate à l'impact (il traverse les corps de `exclude`).
-static func launch(parent: Node, from: Vector3, to: Vector3, stats: UnitStats, exclude: Array[RID] = []) -> Grenade:
-	var shell := spawn(parent, from, to, stats)
+## Tire un obus de 40 mm `kind` (`Commando.SHELLS`) de `from` vers `to`
+## (lance-grenades M320) : il éclate à l'impact, ou y libère son nuage (il
+## traverse les corps de `exclude`).
+static func launch(parent: Node, from: Vector3, to: Vector3, stats: UnitStats, exclude: Array[RID] = [], kind: StringName = Commando.SHELL_EXPLOSIVE) -> Grenade:
+	var shell := spawn(parent, from, to, stats, kind == Commando.SHELL_SMOKE)
+	shell.gas = kind == Commando.SHELL_GAS
 	shell.launched = true
 	shell._exclude = exclude
 	var flat := Vector2(to.x - from.x, to.z - from.z).length()
@@ -126,7 +130,9 @@ func _physics_process(delta: float) -> void:
 
 ## Fin de la grenade : explosion, nuage ou éclair, selon son type.
 func _burst() -> void:
-	if smoke:
+	if gas:
+		GasCloud.spawn(get_parent(), global_position)
+	elif smoke:
 		SmokeCloud.spawn(get_parent(), global_position)
 	elif stun:
 		StunBurst.detonate(get_parent(), global_position, _noise)

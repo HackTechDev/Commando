@@ -40,7 +40,7 @@ const CALLSIGN_HEIGHTS: Array[float] = [2.05, 1.55, 0.85]
 ## Raison pour laquelle l'opérateur ne tire pas ou ne lance pas, affichée
 ## sous son indicatif (`report_hint` pendant un ordre, `flash_hint` pour un
 ## ordre refusé).
-enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE, NO_SMOKE, NO_GRAPNEL, MESSAGE, NO_STUN, NO_LAUNCHER, TOO_CLOSE }
+enum Hint { NONE, OUT_OF_RANGE, OBSTACLE, NO_AMMO, NO_KNIFE, NO_GRENADE, NO_SMOKE, NO_GRAPNEL, MESSAGE, NO_STUN, TOO_CLOSE }
 const HINT_TEXTS: Dictionary = {
 	Hint.OUT_OF_RANGE: "Hors de portée",
 	Hint.OBSTACLE: "Obstacle : pas de ligne de tir",
@@ -49,7 +49,6 @@ const HINT_TEXTS: Dictionary = {
 	Hint.NO_GRENADE: "Plus de grenade",
 	Hint.NO_SMOKE: "Plus de fumigène",
 	Hint.NO_STUN: "Plus de grenade assourdissante",
-	Hint.NO_LAUNCHER: "Plus d'obus de 40 mm",
 	Hint.TOO_CLOSE: "Trop près : l'obus ne s'armerait pas",
 	Hint.NO_GRAPNEL: "Pas de grappin (à équiper : écran Opérateurs)",
 	# Texte libre (`flash_message`).
@@ -62,6 +61,15 @@ const LAUNCHER_RANGE := 35.0
 const LAUNCHER_MIN_RANGE := 6.0
 const LAUNCHER_AIM_TIME := 0.8
 const LAUNCHER_NOISE := 18.0
+## Types d'obus de 40 mm (nom du compteur) et message quand il n'en reste plus.
+const SHELL_EXPLOSIVE := &"launcher_grenades"
+const SHELL_SMOKE := &"launcher_smoke"
+const SHELL_GAS := &"launcher_gas"
+const SHELLS: Dictionary = {
+	SHELL_EXPLOSIVE: "Plus d'obus explosif de 40 mm",
+	SHELL_SMOKE: "Plus d'obus fumigène de 40 mm",
+	SHELL_GAS: "Plus d'obus lacrymogène de 40 mm",
+}
 ## Durée d'affichage d'un refus.
 const FLASH_TIME := 1.6
 ## Distance (entre centres) à partir de laquelle une attaque au corps à corps est possible.
@@ -156,8 +164,11 @@ var grenades: int = 0
 var smoke_grenades: int = 0
 var stun_grenades: int = 0
 var hatchets: int = 0
-## Obus de 40 mm du lance-grenades M320.
+## Obus de 40 mm du lance-grenades M320 : explosifs, fumigènes,
+## lacrymogènes (le nom du champ sert de type d'obus, voir `SHELLS`).
 var launcher_grenades: int = 0
+var launcher_smoke: int = 0
+var launcher_gas: int = 0
 ## Corps porté sur les épaules (`carry_body`), ou null.
 var carried_body: Enemy
 var explosives: int = 0
@@ -265,6 +276,8 @@ func _ready() -> void:
 	smoke_grenades = stats.smoke_grenades
 	stun_grenades = stats.stun_grenades
 	launcher_grenades = stats.launcher_grenades
+	launcher_smoke = stats.launcher_smoke
+	launcher_gas = stats.launcher_gas
 	hatchets = stats.hatchets
 	# Charges fournies par la mission, en plus de l'équipement choisi.
 	explosives = stats.explosives + mission_explosives
@@ -415,6 +428,8 @@ func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.smoke_grenades = operator.smoke_grenades
 	weapon.stun_grenades = operator.stun_grenades
 	weapon.launcher_grenades = operator.launcher_grenades
+	weapon.launcher_smoke = operator.launcher_smoke
+	weapon.launcher_gas = operator.launcher_gas
 	weapon.hatchets = operator.hatchet
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
@@ -888,29 +903,35 @@ func throw_stun(target: Vector3, run: bool = false) -> bool:
 	return true
 
 
-## Ordonne de tirer un obus de 40 mm (lance-grenades M320) vers `target` :
-## il éclate à l'impact, jusqu'à `LAUNCHER_RANGE` m. Renvoie faux sans obus
-## ou si le point est trop proche.
-func fire_launcher(target: Vector3, run: bool = false) -> bool:
+## Ordonne de tirer un obus de 40 mm `shell` (`SHELLS`, explosif par
+## défaut) vers `target` au lance-grenades M320, jusqu'à `LAUNCHER_RANGE` m.
+## Renvoie faux sans obus de ce type, ou si un obus explosif viserait trop
+## près.
+func fire_launcher(target: Vector3, run: bool = false, shell: StringName = SHELL_EXPLOSIVE) -> bool:
 	if _hostage_busy() or is_dead:
 		return false
-	if launcher_grenades <= 0:
-		flash_hint(Hint.NO_LAUNCHER)
+	if launcher_rounds(shell) <= 0:
+		flash_message(SHELLS[shell])
 		return false
 	if _hopping or carried_body:
 		return false
 	var offset := target - global_position
 	offset.y = 0.0
-	if offset.length() < LAUNCHER_MIN_RANGE:
+	if shell == SHELL_EXPLOSIVE and offset.length() < LAUNCHER_MIN_RANGE:
 		flash_hint(Hint.TOO_CLOSE)
 		return false
-	_set_order(LauncherOrder.new(self, target, run))
+	_set_order(LauncherOrder.new(self, target, run, shell))
 	return true
 
 
-## Départ de l'obus de 40 mm (instant du tir de `LauncherOrder`).
-func _fire_launcher(target: Vector3) -> void:
-	launcher_grenades -= 1
+## Obus de 40 mm de type `shell` qui lui restent.
+func launcher_rounds(shell: StringName) -> int:
+	return int(get(shell)) if SHELLS.has(shell) else 0
+
+
+## Départ d'un obus de 40 mm `shell` (instant du tir de `LauncherOrder`).
+func _fire_launcher(target: Vector3, shell: StringName = SHELL_EXPLOSIVE) -> void:
+	set(shell, launcher_rounds(shell) - 1)
 	_fire_cooldown = LAUNCHER_AIM_TIME
 	EventBus.unit_ammo_changed.emit(self)
 	var forward := -global_basis.z
@@ -918,7 +939,7 @@ func _fire_launcher(target: Vector3) -> void:
 	var excluded: Array[RID] = []
 	if riding:
 		excluded = riding.body_rids()
-	Grenade.launch(get_tree().current_scene, muzzle, target + Vector3.UP * 0.05, stats, excluded)
+	Grenade.launch(get_tree().current_scene, muzzle, target + Vector3.UP * 0.05, stats, excluded, shell)
 	_model.play_shot()
 	Sfx.play_at(&"thump", muzzle, -2.0)
 	# Le « pop » du départ s'entend moins loin que l'explosion.
@@ -1833,7 +1854,8 @@ func missing_supplies() -> Dictionary:
 	if reserve > 0:
 		missing["munitions"] = reserve
 	for entry: Array in [["grenades", gear.grenades - grenades], ["fumigènes", gear.smoke_grenades - smoke_grenades], ["assourdissantes", gear.stun_grenades - stun_grenades],
-			["obus de 40 mm", gear.launcher_grenades - launcher_grenades],
+			["obus de 40 mm", gear.launcher_grenades - launcher_grenades], ["obus fumigènes", gear.launcher_smoke - launcher_smoke],
+			["obus lacrymogènes", gear.launcher_gas - launcher_gas],
 			["trousses", gear.medkits - medkits], ["charges", gear.explosives + mission_explosives - explosives]]:
 		if int(entry[1]) > 0:
 			missing[entry[0]] = int(entry[1])
@@ -1855,6 +1877,8 @@ func resupply() -> Dictionary:
 	smoke_grenades = maxi(smoke_grenades, gear.smoke_grenades)
 	stun_grenades = maxi(stun_grenades, gear.stun_grenades)
 	launcher_grenades = maxi(launcher_grenades, gear.launcher_grenades)
+	launcher_smoke = maxi(launcher_smoke, gear.launcher_smoke)
+	launcher_gas = maxi(launcher_gas, gear.launcher_gas)
 	medkits = maxi(medkits, gear.medkits)
 	explosives = maxi(explosives, gear.explosives + mission_explosives)
 	EventBus.unit_ammo_changed.emit(self)
@@ -2071,7 +2095,8 @@ func save_state() -> Dictionary:
 		"using_secondary": using_secondary, "ammo": Vector2i(ammo_in_magazine, ammo_reserve),
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
 		"evacuated": is_evacuated, "documents": has_documents,
-		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "stun_grenades": stun_grenades, "launcher_grenades": launcher_grenades, "hatchets": hatchets, "explosives": explosives,
+		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "stun_grenades": stun_grenades, "launcher_grenades": launcher_grenades,
+		"launcher_smoke": launcher_smoke, "launcher_gas": launcher_gas, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
 	})
@@ -2109,6 +2134,8 @@ func load_state(data: Dictionary) -> void:
 	smoke_grenades = data.get("smoke_grenades", smoke_grenades)
 	stun_grenades = data.get("stun_grenades", stun_grenades)
 	launcher_grenades = data.get("launcher_grenades", launcher_grenades)
+	launcher_smoke = data.get("launcher_smoke", launcher_smoke)
+	launcher_gas = data.get("launcher_gas", launcher_gas)
 	hatchets = data.get("hatchets", hatchets)
 	explosives = data.get("explosives", explosives)
 	medkits = data.get("medkits", medkits)

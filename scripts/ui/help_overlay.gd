@@ -43,6 +43,8 @@ const SECTIONS: Array = [
 		[[&"action_smoke"], "Fumigène, puis clic au sol"],
 		[[[&"action_variant", &"action_grenade"]], "Grenade assourdissante, puis clic au sol"],
 		[[&"action_launcher"], "Lance-grenades M320 (40 mm), puis clic au sol"],
+		[[[&"action_variant", &"action_smoke"]], "Obus fumigène de 40 mm (M320), puis clic au sol"],
+		[[[&"action_variant", &"action_launcher"]], "Obus lacrymogène de 40 mm (M320), puis clic au sol"],
 		[[&"action_fire_at"], "Tir libre, puis clic sur un mur ou un objet"],
 		[[&"action_carry"], "Porter un corps (clic dessus) / le déposer"],
 		[[&"reload"], "Recharger"],

@@ -2,17 +2,19 @@ class_name LauncherOrder
 extends CommandoAction
 ## Tir au lance-grenades M320 (sous le canon) sur un point : s'approcher à
 ## portée (`Commando.LAUNCHER_RANGE`), épauler, puis tirer un obus de 40 mm
-## qui éclate à l'impact (`Grenade.launch`). Un point trop proche
-## (`Commando.LAUNCHER_MIN_RANGE`) est refusé : l'obus ne s'arme pas si
-## près.
+## (`shell` : explosif, fumigène ou lacrymogène) qui agit à l'impact
+## (`Grenade.launch`). Un obus explosif visant trop près
+## (`Commando.LAUNCHER_MIN_RANGE`) est refusé : il ne s'armerait pas.
 
 var point: Vector3
 var run: bool
+var shell: StringName
 var _fired: bool = false
 
 
-func _init(owner: Commando, target: Vector3, running: bool) -> void:
+func _init(owner: Commando, target: Vector3, running: bool, kind: StringName = Commando.SHELL_EXPLOSIVE) -> void:
 	super(owner)
+	shell = kind
 	point = target
 	run = running
 
@@ -31,7 +33,7 @@ func is_aiming() -> bool:
 
 
 func update(delta: float) -> Vector3:
-	if _fired or unit.launcher_grenades <= 0:
+	if _fired or unit.launcher_rounds(shell) <= 0:
 		finish()
 		return Vector3.ZERO
 	if unit.using_secondary:
@@ -47,7 +49,7 @@ func update(delta: float) -> Vector3:
 		unit._fire_cooldown -= delta
 		if not unit.is_reloading() and unit._model.is_weapon_ready() and not unit._model.is_changing_posture() \
 				and unit._fire_cooldown <= 0.0 and (-unit.global_basis.z).angle_to(to_target) < 0.2:
-			unit._fire_launcher(point)
+			unit._fire_launcher(point, shell)
 			_fired = true
 		return Vector3.ZERO
 	unit.report_hint(Commando.Hint.OUT_OF_RANGE)

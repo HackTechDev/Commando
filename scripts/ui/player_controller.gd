@@ -37,6 +37,14 @@ const ACTION_SMOKE := &"smoke"
 ## Grenade assourdissante (Maj + touche de la grenade).
 const ACTION_STUN := &"stun"
 const ACTION_LAUNCHER := &"launcher"
+const ACTION_LAUNCHER_SMOKE := &"launcher_smoke"
+const ACTION_LAUNCHER_GAS := &"launcher_gas"
+## Type d'obus de 40 mm de chaque action du lance-grenades.
+const LAUNCHER_SHELLS: Dictionary = {
+	ACTION_LAUNCHER: Commando.SHELL_EXPLOSIVE,
+	ACTION_LAUNCHER_SMOKE: Commando.SHELL_SMOKE,
+	ACTION_LAUNCHER_GAS: Commando.SHELL_GAS,
+}
 ## Tir libre : puis clic gauche sur un mur, un objet ou le sol.
 const ACTION_FIRE_AT := &"fire_at"
 ## Porter un corps : puis clic gauche sur le corps.
@@ -344,7 +352,7 @@ func cursor_kind_at(screen_position: Vector2) -> GameCursor.Kind:
 ## Curseur d'une action armée : sa cible, ou interdit hors d'une cible valable.
 func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 	match pending_action:
-		ACTION_GRENADE, ACTION_SMOKE, ACTION_STUN, ACTION_LAUNCHER:
+		ACTION_GRENADE, ACTION_SMOKE, ACTION_STUN, ACTION_LAUNCHER, ACTION_LAUNCHER_SMOKE, ACTION_LAUNCHER_GAS:
 			return GameCursor.Kind.GRENADE
 		ACTION_FIRE_AT:
 			return GameCursor.Kind.ATTACK
@@ -516,9 +524,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Maj : grenade assourdissante.
 		toggle_pending_action(ACTION_STUN if Input.is_action_pressed(&"action_variant") else ACTION_GRENADE)
 	elif event.is_action_pressed(&"action_smoke"):
-		toggle_pending_action(ACTION_SMOKE)
+		# Maj : obus fumigène de 40 mm (M320), tiré de loin.
+		toggle_pending_action(ACTION_LAUNCHER_SMOKE if Input.is_action_pressed(&"action_variant") else ACTION_SMOKE)
 	elif event.is_action_pressed(&"action_launcher"):
-		toggle_pending_action(ACTION_LAUNCHER)
+		# Maj : obus lacrymogène.
+		toggle_pending_action(ACTION_LAUNCHER_GAS if Input.is_action_pressed(&"action_variant") else ACTION_LAUNCHER)
 	elif event.is_action_pressed(&"action_fire_at"):
 		toggle_pending_action(ACTION_FIRE_AT)
 	elif event.is_action_pressed(&"action_carry"):
@@ -1424,7 +1434,7 @@ func _use_pending_action(screen_position: Vector2) -> void:
 				Sfx.play_ui(&"denied")
 		cancel_pending_action()
 		return
-	if pending_action in [ACTION_GRENADE, ACTION_SMOKE, ACTION_STUN, ACTION_LAUNCHER]:
+	if pending_action in [ACTION_GRENADE, ACTION_SMOKE, ACTION_STUN] or LAUNCHER_SHELLS.has(pending_action):
 		var ground := _raycast(screen_position, MASK_GROUND)
 		if not ground.is_empty():
 			var point: Vector3 = ground["position"]
@@ -1434,8 +1444,8 @@ func _use_pending_action(screen_position: Vector2) -> void:
 					ordered = SelectionManager.order_smoke(point)
 				ACTION_STUN:
 					ordered = SelectionManager.order_stun(point)
-				ACTION_LAUNCHER:
-					ordered = SelectionManager.order_launcher(point)
+				ACTION_LAUNCHER, ACTION_LAUNCHER_SMOKE, ACTION_LAUNCHER_GAS:
+					ordered = SelectionManager.order_launcher(point, false, LAUNCHER_SHELLS[pending_action])
 				_:
 					ordered = SelectionManager.order_grenade(point)
 			if ordered:

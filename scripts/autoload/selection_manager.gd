@@ -349,14 +349,15 @@ func order_stun(target: Vector3, run: bool = false) -> bool:
 	return false
 
 
-## Confie un tir au lance-grenades M320 vers `target` à l'unité sélectionnée
-## la plus proche qui a encore des obus de 40 mm.
-func order_launcher(target: Vector3, run: bool = false) -> bool:
+## Confie un tir au lance-grenades M320 (obus `shell`, `Commando.SHELLS`)
+## vers `target` à l'unité sélectionnée la plus proche qui a encore de ces
+## obus.
+func order_launcher(target: Vector3, run: bool = false, shell: StringName = Commando.SHELL_EXPLOSIVE) -> bool:
 	for unit in _nearest_first(target):
 		if planning:
-			if not unit.is_dead and unit.launcher_grenades > 0:
-				return _issue(unit, unit.fire_launcher.bind(target, run), target, &"attack")
-		elif unit.fire_launcher(target, run):
+			if not unit.is_dead and unit.launcher_rounds(shell) > 0:
+				return _issue(unit, unit.fire_launcher.bind(target, run, shell), target, &"attack")
+		elif unit.fire_launcher(target, run, shell):
 			return true
 	return false
 

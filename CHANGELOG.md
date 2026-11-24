@@ -1699,3 +1699,9 @@
 - Tir possible à bord d'un véhicule ou en vol, comme le tir libre ; l'opérateur reprend son arme principale s'il tenait l'arme secondaire.
 - Départ audible à 18 m (son « thump »), puis le bruit de l'explosion.
 - Tube visible sous le garde-main de la carabine, du FAMAS, des SCAR et du HK417 ; ravitaillement, sauvegarde, portrait et aide en jeu à jour.
+
+## Obus fumigènes et lacrymogènes (M320)
+
+- Deux nouveaux équipements : « Obus fumigènes de 40 mm » et « Obus lacrymogènes de 40 mm » (3 au plus chacun, 0,25 kg), tirés au M320 jusqu'à 35 m.
+- Maj + ; : obus fumigène, le nuage naît à l'impact. Maj + ù : obus lacrymogène.
+- `GasCloud` : nuage jaunâtre qui ne cache rien ; les gardes dedans (chiens compris) sont sonnés tant qu'ils y restent et 2,5 s après, toussent (bruit qui intrigue à 9 m), puis passent en alerte. Les opérateurs, masqués, ne sont pas gênés.

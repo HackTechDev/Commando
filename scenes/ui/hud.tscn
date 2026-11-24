@@ -131,6 +131,22 @@ tooltip_text = "Lance-grenades M320 (sous le canon) : puis clic gauche au sol. L
 toggle_mode = true
 text = "M320"
 
+[node name="LauncherSmoke" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Obus fumigène de 40 mm (M320) : puis clic gauche au sol. Comme le fumigène, mais tiré jusqu'à 35 m : le nuage naît là où l'obus touche (sol ou mur)."
+toggle_mode = true
+text = "Obus fumigène"
+
+[node name="LauncherGas" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Obus lacrymogène de 40 mm (M320) : puis clic gauche au sol, jusqu'à 35 m. Le gaz (4 m, environ 15 s, dérive avec le vent) ne cache rien, mais les gardes qui s'y trouvent suffoquent : ni vue, ni tir, ni défense tant qu'ils y sont et 2 s après, puis en alerte. Leur toux intrigue les voisins. Les opérateurs, masqués, ne sont pas gênés."
+toggle_mode = true
+text = "Lacrymogène"
+
 [node name="Plant" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
 unique_name_in_owner = true
 layout_mode = 2
