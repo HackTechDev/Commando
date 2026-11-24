@@ -50,6 +50,11 @@ const ALARM_COOLDOWN := 8.0
 ## Gabarit : demi-largeur, demi-longueur (m) ; position de la mitrailleuse.
 const HALF_WIDTH := 1.0
 const HALF_LENGTH := 2.4
+## Emprise pour les collisions en roulant ; bloqué ce temps (s), il
+## recalcule son chemin.
+const FOOTPRINT := AABB(Vector3(-HALF_WIDTH, 0.3, -HALF_LENGTH), Vector3(HALF_WIDTH * 2.0, 1.5, HALF_LENGTH * 2.0))
+const STUCK_REPATH := 2.0
+const NAV_RADIUS := 1.3
 const GUN_MUZZLE := Vector3(0.0, 2.25, 0.2)
 
 enum State { PATROL, CHASE, ENGAGE, WRECKED }
@@ -73,6 +78,7 @@ var _cooldown: float = 0.0
 var _alarm_left: float = 0.0
 ## Délai avant de redemander un chemin (carte de navigation pas prête).
 var _repath_left: float = 0.0
+var _stuck_for: float = 0.0
 var _materials: Array[StandardMaterial3D] = []
 var _gun_pivot: Node3D
 var _crew: Array[Node3D] = []
@@ -100,6 +106,7 @@ func _ready() -> void:
 	shape.position.y = 0.95
 	add_child(shape)
 	_build_model()
+	VehicleNavigation.prepare(self, NAV_RADIUS)
 	var path := get_node_or_null(patrol_path) as Path3D
 	if path and path.curve:
 		for i in path.curve.point_count:
@@ -207,9 +214,8 @@ func _set_goal(point: Vector3) -> void:
 		_repath_left = 0.5
 		return
 	_repath_left = 0.0
-	var start := NavigationServer3D.map_get_closest_point(map, global_position)
-	var end := NavigationServer3D.map_get_closest_point(map, point)
-	_path = NavigationServer3D.map_get_path(map, start, end, true)
+	# Chemin à la mesure du pick-up (loin des murs et des véhicules).
+	_path = VehicleNavigation.path(self, global_position, point, NAV_RADIUS)
 	_path_index = 1 if _path.size() > 1 else _path.size()
 
 
@@ -230,9 +236,21 @@ func _drive(delta: float, speed: float) -> bool:
 		return _path_index >= _path.size()
 	var forward := -global_basis.z
 	var turn := forward.signed_angle_to(to_next.normalized(), Vector3.UP)
-	rotate_y(clampf(turn, -TURN_RATE * delta, TURN_RATE * delta))
 	var sharpness := clampf(absf(turn) / 1.2, 0.0, 1.0)
-	global_position += -global_basis.z * speed * lerpf(1.0, 0.25, sharpness) * delta
+	var distance := speed * lerpf(1.0, 0.25, sharpness) * delta
+	# Sans traverser murs ni véhicules : il longe l'obstacle ; bloqué, il
+	# cherche un autre chemin.
+	var frame: Variant = VehicleClearance.step(self, FOOTPRINT, [get_rid()], clampf(turn, -TURN_RATE * delta, TURN_RATE * delta), TURN_RATE * delta, distance, 0.25)
+	var before := global_position
+	if frame != null:
+		global_transform = frame
+	if frame == null or before.distance_to(global_position) < distance * 0.3:
+		_stuck_for += delta
+		if _stuck_for >= STUCK_REPATH:
+			_stuck_for = 0.0
+			_repath_left = 0.5
+		return false
+	_stuck_for = 0.0
 	var map := get_world_3d().navigation_map
 	global_position.y = lerpf(global_position.y, NavigationServer3D.map_get_closest_point(map, global_position).y - 0.08, minf(1.0, delta * 4.0))
 	return false

@@ -70,6 +70,10 @@ func _ready() -> void:
 	# Caisse et cabine (les pattes, mobiles, ne bloquent rien).
 	_add_box(AABB(Vector3(-0.85, y - 0.4, -1.3), Vector3(1.7, 0.85, 2.8)))
 	_add_box(AABB(Vector3(-0.65, y + 0.4, -1.3), Vector3(1.3, 0.7, 1.25)))
+	# Pattes : un pilier fin à chaque pied (les autres véhicules ne passent
+	# pas entre elles ; le regard, si).
+	for foot in HexapodModel.REST_FEET:
+		_add_box(AABB(foot + Vector3(-0.25, 0.0, -0.25), Vector3(0.5, 1.4, 0.5)))
 	var hexa := model as HexapodModel
 	_gun = MountedGun.new(self, hexa.gun_pivot, HexapodModel.GATLING_MUZZLE)
 	_gun.reach = GATLING_RANGE
@@ -86,6 +90,7 @@ func _ready() -> void:
 	hexa.foot_down.connect(_on_foot_down)
 	_night = LevelRoot.is_night(self)
 	_build_headlights()
+	VehicleNavigation.prepare(self, nav_radius())
 	for i in _lamps.size():
 		_lamps[i].position = Vector3(-0.4 + 0.8 * i, y + 0.33, -1.36)
 
@@ -168,18 +173,6 @@ func boarding_point(_from: Vector3) -> Vector3:
 	return _on_navmesh(to_global(REAR_EXIT))
 
 
-func _ground_start(toward: Vector3) -> Vector3:
-	var candidates: Array[Vector3] = []
-	for local: Vector3 in [Vector3(0, 0, -3.2), Vector3(-3.0, 0, 0.0), Vector3(3.0, 0, 0.0), Vector3(0, 0, 3.2)]:
-		var point := _on_navmesh(to_global(local))
-		if absf(point.y - global_position.y) < 0.6 and point.distance_to(to_global(local)) < 1.5:
-			candidates.append(point)
-	if candidates.is_empty():
-		return Vector3.INF
-	candidates.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(toward) < b.distance_squared_to(toward))
-	return candidates[0]
-
-
 # --- Marche -----------------------------------------------------------------------
 
 ## Marche vers le point suivant du chemin : pivote sur place si le cap est
@@ -215,7 +208,7 @@ func _drive(delta: float) -> void:
 		return
 	var forward := -global_basis.z
 	var turn := forward.signed_angle_to(to_next.normalized(), Vector3.UP)
-	rotate_y(clampf(turn, -WALK_TURN * delta, WALK_TURN * delta))
+	var step := clampf(turn, -WALK_TURN * delta, WALK_TURN * delta)
 	var speed := 0.0 if absf(turn) > PIVOT_ANGLE else WALK_SPEED * (1.0 - absf(turn) / PIVOT_ANGLE * 0.6)
 	if _night and not headlights:
 		speed *= NIGHT_DARK_SHARE
@@ -232,7 +225,8 @@ func _drive(delta: float) -> void:
 		driver().flash_message("Mine devant : la contourner ou la désamorcer")
 		stop_driving()
 		return
-	global_position += forward * speed * delta
+	if _advance(step, WALK_TURN * delta, speed * delta, delta) < 0.0:
+		return
 	global_position.y = lerpf(global_position.y, _ground_height(), minf(1.0, delta * 3.0))
 	var mine := Landmine.under(self)
 	if mine:
@@ -389,6 +383,23 @@ func _wreck() -> void:
 	for unit in crew():
 		unit.visible = true
 	super()
+
+
+# --- Collisions -----------------------------------------------------------------
+
+## Emprise : la caisse et l'envergure des pattes (genoux), au-dessus du sol.
+func footprint() -> AABB:
+	return AABB(Vector3(-2.0, 0.3, -2.0), Vector3(4.0, 2.4, 4.1))
+
+
+## Un marcheur se décale franchement en crabe pour longer un obstacle.
+func _can_crab() -> float:
+	return 0.6
+
+
+## Rayon pour ses chemins : l'envergure des pattes.
+func nav_radius() -> float:
+	return 2.2
 
 
 # --- Ce que le marcheur ne fait pas ----------------------------------------------

@@ -138,6 +138,8 @@ const MINE_LOOKAHEAD := 1.5
 const BLOCK_DEPTH := 3.0
 const BLOCK_HALF_WIDTH := 1.4
 const BLOCK_GIVE_UP := 3.0
+## Contre un mur ou un véhicule, sans avancer : abandon au bout de (s).
+const STUCK_GIVE_UP := 2.5
 ## Distance (m) à la portière à laquelle un opérateur qui le rejoint monte.
 const BOARD_REACH := 1.3
 ## Ordre dans lequel les places sont prises (indices de `SabreModel.SEATS`).
@@ -222,6 +224,7 @@ var _missile_left: float = 0.0
 var _path := PackedVector3Array()
 var _path_index: int = 0
 var _blocked_left: float = 0.0
+var _stuck_left: float = 0.0
 var _noise_left: float = 0.0
 var _steer: float = 0.0
 ## Opérateurs en route pour monter : unité -> vrai.
@@ -323,6 +326,7 @@ func _ready() -> void:
 		_side_guns.append(side)
 	_night = LevelRoot.is_night(self)
 	_build_headlights()
+	VehicleNavigation.prepare(self, nav_radius())
 	if not start_stowed_in.is_empty():
 		_stow_at_start.call_deferred()
 
@@ -518,22 +522,6 @@ func boarding_point(from: Vector3) -> Vector3:
 func _on_navmesh(point: Vector3) -> Vector3:
 	var map := get_world_3d().navigation_map
 	return NavigationServer3D.map_get_closest_point(map, point)
-
-
-## Départ du chemin de conduite : un point du sol autour du véhicule (devant
-## de préférence). Le dessus du véhicule, cuit dans le maillage de
-## navigation, ne compte pas. Vector3.INF si aucun.
-func _ground_start(toward: Vector3) -> Vector3:
-	var candidates: Array[Vector3] = []
-	for local: Vector3 in [Vector3(0, 0, -3.4), Vector3(-2.3, 0, -1.0), Vector3(2.3, 0, -1.0), Vector3(0, 0, 3.4)]:
-		var point := _on_navmesh(to_global(local))
-		if absf(point.y - global_position.y) < 0.6 and point.distance_to(to_global(local)) < 1.5:
-			candidates.append(point)
-	if candidates.is_empty():
-		return Vector3.INF
-	# Le plus proche de la destination : on ne repart pas à contresens.
-	candidates.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(toward) < b.distance_squared_to(toward))
-	return candidates[0]
 
 
 ## Envoie `unit` monter à bord. Renvoie faux si c'est impossible (déjà à
@@ -927,18 +915,16 @@ func _next_waypoint() -> bool:
 	return false
 
 
-## Chemin de navigation du sol autour du véhicule jusqu'à `target`.
+## Chemin jusqu'à `target`, à la mesure du véhicule (`VehicleNavigation` :
+## assez loin des murs et des autres véhicules pour qu'il y passe).
 func _set_path(target: Vector3) -> String:
-	var map := get_world_3d().navigation_map
-	var start := _ground_start(target)
-	if start == Vector3.INF:
-		return "pas de chemin"
-	var path := NavigationServer3D.map_get_path(map, start, target, true)
+	var path := VehicleNavigation.path(self, global_position, target, nav_radius())
 	if path.size() < 2:
 		return "pas de chemin"
 	_path = path
 	_path_index = 1
 	_blocked_left = BLOCK_GIVE_UP
+	_stuck_left = STUCK_GIVE_UP
 	return ""
 
 
@@ -1200,7 +1186,6 @@ func _drive(delta: float) -> void:
 	var forward := -global_basis.z
 	var turn := forward.signed_angle_to(to_next.normalized(), Vector3.UP)
 	var step := clampf(turn, -TURN_RATE * delta, TURN_RATE * delta)
-	rotate_y(step)
 	var sharpness := clampf(absf(turn) / 1.2, 0.0, 1.0)
 	var speed := SPEED * lerpf(1.0, SLOW_SHARE, sharpness)
 	if _night and not headlights:
@@ -1229,7 +1214,9 @@ func _drive(delta: float) -> void:
 			driver().flash_message("Plus d'élan : relancer le moteur")
 			stop_driving()
 			return
-	global_position += -global_basis.z * distance
+	distance = _advance(step, TURN_RATE * delta, distance, delta)
+	if distance < 0.0:
+		return
 	global_position.y = lerpf(global_position.y, _ground_height(), minf(1.0, delta * 4.0))
 	# Mine cachée sous les roues : le véhicule saute.
 	var mine := Landmine.under(self)
@@ -1241,6 +1228,47 @@ func _drive(delta: float) -> void:
 	model.steer(_steer)
 	model.roll(distance)
 	_carry_crew()
+
+
+## Emprise du véhicule pour les collisions (repère du véhicule) : la caisse
+## et les roues, au-dessus du sol.
+func footprint() -> AABB:
+	return AABB(Vector3(-1.08, 0.3, -2.6), Vector3(2.16, 1.6, 5.1))
+
+
+## Rayon du véhicule pour ses chemins (m) : demi-largeur et marge.
+func nav_radius() -> float:
+	return 1.3
+
+
+## Décalage de côté permis pour longer un obstacle (rad, de la direction
+## d'avance) : un léger glissement pour un véhicule à roues.
+func _can_crab() -> float:
+	return 0.25
+
+
+## Un pas : tourne de `turn` et avance de `distance`, sans traverser
+## d'obstacle (`VehicleClearance` : il longe un mur, contourne un véhicule).
+## Renvoie la distance parcourue ; s'il n'avance plus depuis
+## `STUCK_GIVE_UP` s, il s'arrête (« Passage bloqué ») et renvoie -1.
+func _advance(turn: float, max_turn: float, distance: float, delta: float) -> float:
+	var frame: Variant = VehicleClearance.step(self, footprint(), body_rids(), turn, max_turn, distance, _can_crab())
+	var moved := 0.0
+	if frame != null:
+		var before := global_position
+		var next_frame: Transform3D = frame
+		global_transform = next_frame
+		moved = Vector2(next_frame.origin.x - before.x, next_frame.origin.z - before.z).length()
+	if frame == null or (distance > 0.001 and moved < distance * 0.3):
+		_stuck_left -= delta
+		if _stuck_left <= 0.0:
+			if driver():
+				driver().flash_message("Passage bloqué")
+			stop_driving()
+			return -1.0
+	else:
+		_stuck_left = STUCK_GIVE_UP
+	return moved
 
 
 ## Hauteur du sol sous le véhicule (le maillage de navigation flotte un peu

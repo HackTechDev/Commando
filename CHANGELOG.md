@@ -1669,3 +1669,10 @@
 - Gatling : rafales de 18 coups, 42 m, canons qui tournent au tir, très bruyante. Radar : avec un équipage, un balayage toutes les 2 s signale les gardes debout à 40 m par un écho rouge au sol, visible à travers les murs.
 - Menus adaptés (« Prendre les commandes », « Tourelle Gatling », ni plateau, ni ravitaillement, ni missile, ni roue libre) ; clic milieu sur la caisse : menu de bord de l'opérateur sélectionné à bord.
 - Nouvelle carte « Vallée des marcheurs » (`walker_valley`) : l'hexapode au sud, un camp gardé au nord (sentinelle, officier, chien, rondes, pick-up armé). Hexapode dans la palette de l'éditeur de mission.
+
+## Collisions des véhicules
+
+- Le Sabre, l'hexapode et le pick-up armé ne traversent plus rien : avant chaque pas, leur emprise est essayée à sa future place contre les murs, bâtiments, immeubles, murets, caisses, poteaux de barrière, le convertible et les autres véhicules (`VehicleClearance`). Contre un obstacle, ils braquent ou glissent pour le longer (l'hexapode se décale franchement en crabe) ; sans issue pendant 2,5 s, le Sabre et l'hexapode s'arrêtent (« Passage bloqué »), le pick-up cherche un autre chemin.
+- Chemins à la mesure des véhicules (`VehicleNavigation`) : chaque véhicule a sa carte de navigation, générée avec son rayon (1,3 m pour le Sabre et le pick-up, 2,2 m pour l'hexapode) et sans son propre corps, préparée au chargement et régénérée quand une caisse ou un véhicule change de place. Ils ne coupent plus les virages au ras des murs et ne s'engagent plus là où ils ne passent pas.
+- La voiture civile s'arrête derrière un Sabre, un hexapode ou un pick-up armé dans sa voie, et l'attend (en klaxonnant), comme devant un piéton.
+- L'hexapode a une collision à chaque pied : les autres véhicules ne passent pas entre ses pattes.

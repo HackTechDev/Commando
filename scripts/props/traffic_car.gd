@@ -128,7 +128,7 @@ func _process(delta: float) -> void:
 	if points.size() < 2 or _total <= 0.0:
 		return
 	var held := _update_hold(delta)
-	var unit_gap := minf(_gap_ahead(UNIT_GROUPS), _halted_car_gap())
+	var unit_gap := minf(minf(_gap_ahead(UNIT_GROUPS), _halted_car_gap()), _vehicle_gap())
 	var other_gap := _gap_ahead([Passerby.GROUP, GROUP])
 	halted = held or unit_gap < LOOK_AHEAD
 	var gap := 0.0 if held else unit_gap
@@ -239,6 +239,30 @@ var last_cover_spots: Array[Vector3] = []
 
 ## Distance (m) du pare-chocs avant au premier membre des groupes `groups`
 ## qui se trouve devant la voiture, dans sa voie (`INF` s'il n'y en a pas).
+## Distance de pare-chocs jusqu'au véhicule de l'équipe ou ennemi (Sabre,
+## hexapode, pick-up armé) le plus proche dans la voie, `INF` sinon : la
+## voiture l'attend sans limite, comme une unité (pas de collision).
+func _vehicle_gap() -> float:
+	var forward := -global_basis.z
+	var right := global_basis.x
+	var nearest := INF
+	for group: StringName in [Sabre.GROUP, Technical.GROUP]:
+		for node in get_tree().get_nodes_in_group(group):
+			var other := node as Node3D
+			if other == null or not other.is_inside_tree() or not other.visible:
+				continue
+			var box: AABB = (other as Sabre).footprint() if other is Sabre else Technical.FOOTPRINT
+			# Demi-diagonale de l'emprise : le véhicule peut être de biais.
+			var reach := Vector2(box.size.x, box.size.z).length() * 0.5
+			var offset := other.global_position - global_position
+			if absf(offset.y) > 2.0:
+				continue
+			var ahead := offset.dot(forward) - HALF_LENGTH - reach
+			if ahead > -HALF_LENGTH - reach and ahead < nearest and absf(offset.dot(right)) < HALF_WIDTH_BODY + reach:
+				nearest = maxf(ahead, 0.0)
+	return nearest
+
+
 func _gap_ahead(groups: Array[StringName]) -> float:
 	var forward := -global_basis.z
 	var right := global_basis.x
