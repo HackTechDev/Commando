@@ -1636,3 +1636,7 @@
 
 - Caisse lourde (`heavy`, cerclée de fer ; « Caisse lourde (à deux) » dans la palette de l'éditeur) : seul, un opérateur la tient mais ne la bouge pas (« Trop lourde : il faut être deux »).
 - Un second opérateur peut la saisir par un autre côté libre. À deux, un ordre de déplacement donné à l'un ou à l'autre la fait glisser (plus lentement : 60 %), et Maj + P la fait pivoter ; le premier mène le mouvement, le second suit.
+
+## Gardes qui remarquent une caisse déplacée (2.8 f)
+
+- Une caisse déplacée de plus d'un mètre, ou tournée, n'est plus « à sa place » : un garde au calme ou méfiant qui la voit va voir. Les gardes la savent ensuite à sa nouvelle place (on ne la remarque qu'une fois). Ils remarquent le résultat, pas le geste : une caisse tenue n'attire pas encore leur attention. Le point 2.8 est terminé.

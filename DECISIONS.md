@@ -254,3 +254,4 @@
 - **Chute des caisses.** On ne regarde que l'appui sous le centre : une caisse à moitié dans le vide tient, au-delà elle tombe. Elle écrase (tue) à partir de 1,5 m, assomme en deçà ; c'est bruyant (16 m), donc un moyen d'élimination à double tranchant.
 - **Rotation des caisses.** Par pas de 45° : les caisses sont carrées, un quart de tour ne changerait rien. Un huitième de tour permet de pousser en diagonale et d'aligner une caisse sur un mur en biais.
 - **Caisses lourdes.** Deux porteurs au plus, sur deux côtés différents. Le premier mène (axe de poussée, rotation) ; l'ordre donné au second lui est transmis, pour que le joueur n'ait pas à choisir le bon. Tous les porteurs doivent avoir la place de suivre, sinon la caisse s'arrête.
+- **Décor déplacé.** Les gardes connaissent la place des caisses (au début, puis là où l'un d'eux l'a vue bouger) ; une caisse déplacée d'un mètre ou tournée les intrigue (enquête, pas alerte). Les chiens n'y prêtent pas attention.

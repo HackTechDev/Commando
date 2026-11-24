@@ -66,6 +66,11 @@ const MASK_SUPPORT := 0b11
 
 ## En train de tomber d'un rebord.
 var falling: bool = false
+## Place où les gardes savent la caisse (celle du début, puis là où l'un
+## d'eux l'a vue déplacée) : écart au-delà duquel un garde la remarque.
+var known_transform: Transform3D
+const MOVED_NOTICE := 1.0
+const TURNED_NOTICE := 0.3
 
 
 func _enter_tree() -> void:
@@ -74,6 +79,7 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	known_transform = global_transform
 	if heavy:
 		_add_straps()
 	if skin.is_empty():
@@ -108,6 +114,17 @@ func _add_straps() -> void:
 			band.position = Vector3(offset * half_extent * 2.0, top_height * 0.5, 0) if vertical else Vector3(0, top_height * (0.5 + offset * 0.8), 0)
 			band.name = "Strap"
 			add_child(band)
+
+
+## Vrai si la caisse n'est plus où les gardes la savent (déplacée ou
+## tournée), et que personne ne la tient encore (ils remarquent le
+## résultat, pas le geste).
+func looks_moved() -> bool:
+	if not movable or is_broken or falling or handler != null:
+		return false
+	var moved := global_position.distance_to(known_transform.origin) > MOVED_NOTICE
+	var turned := absf(global_basis.get_euler().y - known_transform.basis.get_euler().y) > TURNED_NOTICE
+	return moved or turned
 
 
 ## Vrai si `unit` peut la saisir : libre, déjà tenue par lui, ou caisse
@@ -470,12 +487,13 @@ func _set_broken(broken: bool) -> void:
 ## Sauvegarde rapide (`QuickSave`) : place et orientation (caisses
 ## déplacées), objet détruit.
 func save_state() -> Dictionary:
-	return {"transform": global_transform, "broken": is_broken, "damage": damage_taken}
+	return {"transform": global_transform, "broken": is_broken, "damage": damage_taken, "known": known_transform}
 
 
 func load_state(data: Dictionary) -> void:
 	_set_broken(data.get("broken", false))
 	damage_taken = data.get("damage", 0.0)
+	known_transform = data.get("known", known_transform)
 	var saved: Transform3D = data.get("transform", global_transform)
 	if saved.is_equal_approx(global_transform):
 		return

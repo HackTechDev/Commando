@@ -102,6 +102,8 @@ const DOCUMENTS_GROUP := &"documents"
 const BODY_CHECK_INTERVAL := 0.3
 ## Intervalle (s) entre deux regards sur les traces dans la neige.
 const TRACK_CHECK_INTERVAL := 0.5
+## Intervalle (s) entre deux regards sur les caisses déplacées.
+const CRATE_CHECK_INTERVAL := 0.7
 ## Rayon (m) du cri d'un ennemi qui découvre un corps.
 const BODY_ALARM_RADIUS := 12.0
 ## Chien : flair (m), tout autour de lui, même dans le dos ou au sol ;
@@ -184,6 +186,7 @@ var carried_hips := Vector3.ZERO
 var carried_axis := Vector3.BACK
 var _body_check_left: float = 0.0
 var _track_check_left: float = 0.0
+var _crate_check_left: float = 0.0
 ## Heure (`SnowTracks.now`) de la dernière empreinte suivie : il ne réagit
 ## qu'aux plus récentes.
 var _followed_track: float = -1.0
@@ -823,6 +826,26 @@ func see_comrade_grabbed(mate: Enemy) -> void:
 	EventBus.noise_emitted.emit(global_position, BODY_ALARM_RADIUS, &"help")
 
 
+## Caisse qui n'est plus à sa place (`Climbable.looks_moved`), sous ses
+## yeux : au calme ou méfiant, il va voir. Les gardes la savent désormais là.
+func _look_for_moved_crates(delta: float) -> void:
+	if blind or state == State.ALERT or kind == Kind.DOG:
+		return
+	_crate_check_left -= delta
+	if _crate_check_left > 0.0:
+		return
+	_crate_check_left = CRATE_CHECK_INTERVAL
+	for node in get_tree().get_nodes_in_group(&"climbables"):
+		var crate := node as Climbable
+		if crate == null or not crate.looks_moved():
+			continue
+		if _vision.sees_point(crate.global_position + Vector3.UP * (crate.top_height + 0.05)):
+			crate.known_transform = crate.global_transform
+			last_heard = &"moved_crate"
+			investigate(crate.global_position)
+			return
+
+
 ## Corps découvert : il crie (les ennemis proches accourent) et va voir.
 func discover_body(body: Enemy) -> void:
 	body.discovered = true
@@ -966,6 +989,7 @@ func _physics_process(delta: float) -> void:
 	_update_detection(delta)
 	_look_for_bodies(delta)
 	_look_for_tracks(delta)
+	_look_for_moved_crates(delta)
 	_update_state()
 	if _traversal.update(delta):
 		_model.aiming = false
