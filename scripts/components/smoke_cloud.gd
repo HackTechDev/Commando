@@ -96,9 +96,14 @@ func _ready() -> void:
 	_particles.damping_max = 1.0
 	_particles.scale_amount_min = 1.6
 	_particles.scale_amount_max = 2.6
+	# Chaque bouffée naît petite, enfle, puis s'éteint en rétrécissant (pas de
+	# fondu par couleur de particule : sous Godot 4.7, les couleurs des
+	# premières bouffées sortaient noires, une tache sombre au cœur du nuage).
 	var grow := Curve.new()
-	grow.add_point(Vector2(0.0, 0.4))
-	grow.add_point(Vector2(1.0, 1.0))
+	grow.add_point(Vector2(0.0, 0.3))
+	grow.add_point(Vector2(0.2, 0.85))
+	grow.add_point(Vector2(0.7, 1.0))
+	grow.add_point(Vector2(1.0, 0.0))
 	_particles.scale_amount_curve = grow
 	var puff := QuadMesh.new()
 	puff.size = Vector2(1.6, 1.6)
@@ -106,18 +111,13 @@ func _ready() -> void:
 	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	_material.vertex_color_use_as_albedo = true
 	_material.albedo_texture = _puff_texture()
 	_material.albedo_color = Color(0.82, 0.83, 0.8, 0.55)
 	puff.material = _material
 	_particles.mesh = puff
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(1, 1, 1, 0.0))
-	ramp.set_color(1, Color(1, 1, 1, 0.0))
-	ramp.add_point(0.15, Color(1, 1, 1, 0.9))
-	ramp.add_point(0.7, Color(1, 1, 1, 0.8))
-	_particles.color_ramp = ramp
 	_particles.position.y = 0.5
+	# Les bouffées, transparentes, ne projettent pas d'ombre.
+	_particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_particles)
 	Sfx.play_at(&"whoosh", global_position, -4.0)
 	EventBus.noise_emitted.emit(global_position, 4.0, &"smoke")

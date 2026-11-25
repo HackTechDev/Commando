@@ -1705,3 +1705,4 @@
 - Deux nouveaux équipements : « Obus fumigènes de 40 mm » et « Obus lacrymogènes de 40 mm » (3 au plus chacun, 0,25 kg), tirés au M320 jusqu'à 35 m.
 - Maj + ; : obus fumigène, le nuage naît à l'impact. Maj + ù : obus lacrymogène.
 - `GasCloud` : nuage jaunâtre qui ne cache rien ; les gardes dedans (chiens compris) sont sonnés tant qu'ils y restent et 2,5 s après, toussent (bruit qui intrigue à 9 m), puis passent en alerte. Les opérateurs, masqués, ne sont pas gênés.
+- Correctif : une tache noire apparaissait au cœur des nuages (fumigène et gaz) pendant leurs premières secondes. Les bouffées s'éteignent désormais en rétrécissant, sans couleur par particule, et ne projettent plus d'ombre.
