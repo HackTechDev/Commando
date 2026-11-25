@@ -451,6 +451,17 @@ func switch_weapons() -> void:
 		unit.switch_weapon()
 
 
+## Allume (ou éteint, si toutes sont allumées) la lampe de l'arme de poing
+## des unités sélectionnées qui en ont une. Renvoie faux si aucune.
+func toggle_lamps() -> bool:
+	var carriers := selected.filter(func(unit: Commando) -> bool: return unit.has_lamp())
+	var light := not carriers.all(func(unit: Commando) -> bool: return unit.lamp_on)
+	for unit: Commando in carriers:
+		if unit.lamp_on != light:
+			unit.toggle_lamp()
+	return not carriers.is_empty()
+
+
 func _nearest_first(point: Vector3) -> Array[Commando]:
 	var candidates: Array[Commando] = selected.duplicate()
 	candidates.sort_custom(func(a: Commando, b: Commando) -> bool:

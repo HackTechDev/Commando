@@ -1706,3 +1706,10 @@
 - Maj + ; : obus fumigène, le nuage naît à l'impact. Maj + ù : obus lacrymogène.
 - `GasCloud` : nuage jaunâtre qui ne cache rien ; les gardes dedans (chiens compris) sont sonnés tant qu'ils y restent et 2,5 s après, toussent (bruit qui intrigue à 9 m), puis passent en alerte. Les opérateurs, masqués, ne sont pas gênés.
 - Correctif : une tache noire apparaissait au cœur des nuages (fumigène et gaz) pendant leurs premières secondes. Les bouffées s'éteignent désormais en rétrécissant, sans couleur par particule, et ne projettent plus d'ombre.
+
+## HK45 silencieux à lampe
+
+- Nouvelle arme secondaire « HK45 silencieux à lampe » : calibre .45 (36 de dégâts, 11 m), chargeur de 10, 1,3 kg.
+- Maj + Y allume ou éteint sa lampe tactique (cône de lumière visible), qui n'éclaire que lorsque le HK45 est en main.
+- La nuit, un garde à moins de 8 m, dans l'axe du faisceau et qui regarde vers la lampe, est ébloui 1,5 s (comme sonné), au plus une fois toutes les 8 s.
+- En contrepartie, la nuit, un opérateur à lampe allumée se voit jusqu'à 30 m dans le champ de vision des gardes.

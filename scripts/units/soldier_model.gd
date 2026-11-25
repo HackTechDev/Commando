@@ -736,6 +736,15 @@ var _pump_rest: Vector3
 var _tube_fed: bool = false
 var _hand_mag: Node3D
 var _flash: Node3D
+## Lampe de l'arme de poing (HK45) : cône de lumière, allumé par `lamp_on`.
+var _lamp: SpotLight3D
+## Lampe de l'arme allumée (visible seulement si l'arme qui la porte est en
+## main).
+var lamp_on: bool = false:
+	set(value):
+		lamp_on = value
+		if is_instance_valid(_lamp):
+			_lamp.visible = value
 var _knife: Node3D
 var _hand_grenade: Node3D
 var _hatchet: Node3D
@@ -3868,6 +3877,7 @@ func _build_rifle_and_arms() -> void:
 	var drawn := _sidearm_built and outfit != null and outfit.secondary != &"none"
 	_pump = null
 	_tube_fed = false
+	_lamp = null
 	var muzzle := _build_weapon(rifle, outfit.secondary if drawn else primary)
 	if not drawn:
 		_build_launcher(rifle, primary)
@@ -3935,6 +3945,8 @@ func _build_weapon(rifle: Node3D, kind: StringName) -> float:
 	var grip := _box(rifle, Vector3(0.035, 0.10, 0.045), Vector3(0.0, -0.045, 0.04), _m_weapon)
 	grip.rotation.x = deg_to_rad(18.0)
 	match kind:
+		&"hk45":
+			return _build_hk45(rifle)
 		&"pistol", &"machine_pistol":
 			# Tenue à deux mains : la poignée sert de repère, comme pour les fusils.
 			var long := kind == &"machine_pistol"
@@ -4064,6 +4076,32 @@ func _build_launcher(rifle: Node3D, primary: StringName) -> void:
 	_box(launcher, Vector3(0.012, 0.035, 0.05), Vector3(0.0, -0.035, 0.17), _m_weapon)
 	# Rail de fixation sous le garde-main.
 	_box(launcher, Vector3(0.03, 0.02, 0.2), Vector3(0.0, 0.03, 0.02), _m_gear)
+
+
+## HK45 : pistolet .45 plus massif, long silencieux, lampe tactique sous le
+## canon (`_lamp`, allumée par `lamp_on`).
+func _build_hk45(rifle: Node3D) -> float:
+	_box(rifle, Vector3(0.036, 0.055, 0.19), Vector3(0.0, 0.03, -0.06), _m_weapon)
+	_rifle_mag = _box(rifle, Vector3(0.026, 0.09, 0.038), Vector3(0.0, -0.055, 0.04), _m_weapon)
+	_rifle_mag.rotation.x = deg_to_rad(18.0)
+	# Pontet.
+	_box(rifle, Vector3(0.01, 0.012, 0.05), Vector3(0.0, -0.025, -0.01), _m_weapon)
+	_barrel(rifle, 0.02, 0.17, Vector3(0.0, 0.035, -0.24), _m_weapon)
+	# Lampe : corps, verre, et la lumière elle-même.
+	_box(rifle, Vector3(0.032, 0.03, 0.07), Vector3(0.0, -0.012, -0.12), _m_weapon)
+	_box(rifle, Vector3(0.026, 0.024, 0.004), Vector3(0.0, -0.012, -0.157), _m_lens)
+	_lamp = SpotLight3D.new()
+	_lamp.name = "Lamp"
+	_lamp.position = Vector3(0.0, -0.012, -0.16)
+	_lamp.light_color = Color(1.0, 0.97, 0.88)
+	_lamp.light_energy = 6.0
+	_lamp.spot_range = 14.0
+	_lamp.spot_angle = 16.0
+	_lamp.spot_attenuation = 0.6
+	_lamp.shadow_enabled = true
+	_lamp.visible = lamp_on
+	rifle.add_child(_lamp)
+	return -0.33
 
 
 ## Cylindre couché le long du canon (axe Z de l'arme).

@@ -561,7 +561,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not ground.is_empty():
 			_feedback(SelectionManager.dive(ground["position"]))
 	elif event.is_action_pressed(&"switch_weapon"):
-		SelectionManager.switch_weapons()
+		# Maj : lampe de l'arme de poing.
+		if Input.is_action_pressed(&"action_variant"):
+			_feedback(SelectionManager.toggle_lamps())
+		else:
+			SelectionManager.switch_weapons()
 	elif event.is_action_pressed(&"action_sling"):
 		SelectionManager.toggle_sling()
 	elif event.is_action_pressed(&"reload"):

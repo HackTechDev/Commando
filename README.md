@@ -113,6 +113,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Arme à la bretelle / en main | G (bascule) |
 | Se fondre dans la foule (missions à tenue de rigueur, comme Centre de commandement ou La Tour) : tenue civile choisie dans l'écran « Opérateurs » (onglet Tenue), sans équipement militaire, pistolet-mitrailleur à la bretelle, debout et au pas | G pour libérer les mains, puis marcher |
 | Arme secondaire / principale | Y |
+| Lampe de l'arme de poing (HK45 silencieux à lampe) : la nuit, éblouit 1,5 s un garde à moins de 8 m qui regarde dans le faisceau ; mais un opérateur à lampe allumée se voit à 30 m | Maj + Y |
 | Recharger | R |
 | Annuler l'ordre en cours | F (clic droit pour annuler une action V / B / T / P armée) |
 | Accroupi / rampé | C / X (bascule) |

@@ -578,6 +578,9 @@ func _update_detection(delta: float) -> void:
 		var ride := unit.get(&"riding") as Sabre
 		if ride:
 			zone = ride.sight_zone(zone, _vision)
+		# Opérateur à lampe allumée, la nuit : la lumière se voit de loin.
+		if zone == VisionComponent.Zone.NONE and unit is Commando:
+			zone = (unit as Commando).lamp_sight_zone(_vision)
 		# Chien : il flaire ce qui est tout près, de dos ou au sol.
 		if zone == VisionComponent.Zone.NONE and kind == Kind.DOG and ride == null \
 				and global_position.distance_to(unit.global_position) <= DOG_SCENT \

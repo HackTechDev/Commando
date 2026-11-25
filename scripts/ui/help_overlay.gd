@@ -49,6 +49,7 @@ const SECTIONS: Array = [
 		[[&"action_carry"], "Porter un corps (clic dessus) / le déposer"],
 		[[&"reload"], "Recharger"],
 		[[&"switch_weapon"], "Arme secondaire / principale"],
+		[[[&"action_variant", &"switch_weapon"]], "Lampe de l'arme de poing (HK45)"],
 		[[&"action_sling"], "Arme à la bretelle"],
 		[[&"action_shield"], "Lever le bouclier"],
 	]],

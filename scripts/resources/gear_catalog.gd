@@ -304,8 +304,19 @@ const SECONDARY: Dictionary = {
 			"reload_time": 1.8, "gunshot_noise_radius": 14.0, "suppressed": false,
 		},
 	},
+	&"hk45": {
+		"name": "HK45 silencieux à lampe",
+		"description": "Calibre .45, plus puissant que le pistolet. Sa lampe (Maj + changer d'arme) éblouit un garde proche la nuit, mais se voit de loin.",
+		"stats": {
+			"fire_range": 11.0, "aim_time": 0.35, "fire_interval": 0.5, "fire_damage": 36.0,
+			"hit_chance_near": 0.92, "hit_chance_far": 0.5, "magazine_size": 10, "reserve_ammo": 20,
+			"reload_time": 1.6, "gunshot_noise_radius": 5.5, "suppressed": true,
+		},
+	},
 	&"none": {"name": "Aucune", "description": "", "stats": {}},
 }
+## Armes secondaires qui portent une lampe tactique.
+const LAMP_SIDEARMS: Array[StringName] = [&"hk45"]
 
 ## Équipement : nom affiché et nombre maximal.
 const EQUIPMENT: Dictionary = {
@@ -336,7 +347,7 @@ const BASE_WEIGHT := 2.0
 const WEIGHTS: Dictionary = {
 	&"carbine": 3.5, &"smg": 2.8, &"dmr": 6.0, &"shotgun": 4.0, &"pump_shotgun": 3.6,
 	&"famas": 3.8, &"scar_l": 3.6, &"scar_h": 4.3, &"hk417": 5.0, &"m249": 8.0, &"hecate": 13.8,
-	&"pistol": 1.0, &"machine_pistol": 1.6, &"none": 0.0,
+	&"pistol": 1.0, &"machine_pistol": 1.6, &"hk45": 1.3, &"none": 0.0,
 	&"helmet": 1.4, &"nvg": 0.75, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0, &"sunglasses": 0.05,
 	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"stun_grenades": 0.4, &"explosives": 2.0, &"medkit": 1.5,

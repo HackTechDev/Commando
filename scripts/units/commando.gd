@@ -61,6 +61,13 @@ const LAUNCHER_RANGE := 35.0
 const LAUNCHER_MIN_RANGE := 6.0
 const LAUNCHER_AIM_TIME := 0.8
 const LAUNCHER_NOISE := 18.0
+## Lampe de l'arme de poing, la nuit : vue de loin (m) ; éblouit un garde
+## proche (m) dans l'axe (rad) pendant (s), pas plus d'une fois par (s).
+const LAMP_SIGHT := 30.0
+const LAMP_DAZZLE_RANGE := 8.0
+const LAMP_DAZZLE_ANGLE := 0.3
+const LAMP_DAZZLE_TIME := 1.5
+const LAMP_DAZZLE_COOLDOWN := 8.0
 ## Types d'obus de 40 mm (nom du compteur) et message quand il n'en reste plus.
 const SHELL_EXPLOSIVE := &"launcher_grenades"
 const SHELL_SMOKE := &"launcher_smoke"
@@ -164,6 +171,10 @@ var grenades: int = 0
 var smoke_grenades: int = 0
 var stun_grenades: int = 0
 var hatchets: int = 0
+## Lampe de l'arme de poing (HK45) allumée, et gardes déjà éblouis (id
+## d'instance : temps avant de pouvoir l'être de nouveau).
+var lamp_on: bool = false
+var _dazzled: Dictionary = {}
 ## Obus de 40 mm du lance-grenades M320 : explosifs, fumigènes,
 ## lacrymogènes (le nom du champ sert de type d'obus, voir `SHELLS`).
 var launcher_grenades: int = 0
@@ -452,7 +463,9 @@ func _physics_process(delta: float) -> void:
 	_model.weapon_slung = not is_dead and (weapon_slung or _climbing or hands_free or is_traversing())
 	_update_reload(delta)
 	_update_documents(delta)
-	_model.aiming = not is_dead and ((_order is AttackOrder and (_order as AttackOrder).is_aiming()) or (_order is FireAtOrder and (_order as FireAtOrder).is_aiming()))
+	_model.aiming = not is_dead and ((_order is AttackOrder and (_order as AttackOrder).is_aiming()) or (_order is FireAtOrder and (_order as FireAtOrder).is_aiming()) \
+			or (_order is LauncherOrder and (_order as LauncherOrder).is_aiming()))
+	_update_lamp(delta)
 	_model.look_target = _look_point()
 	_model.shield_raised = is_shield_up()
 	_model.hostage_hold = hostage != null
@@ -807,6 +820,76 @@ func take_supplies(kind: SupplyPickup.Kind, amount: int) -> int:
 ## Vrai si l'unité a une arme secondaire.
 func has_secondary() -> bool:
 	return _secondary_stats != null
+
+
+## Vrai si son arme secondaire porte une lampe (HK45).
+func has_lamp() -> bool:
+	return has_secondary() and profile != null and profile.secondary in GearCatalog.LAMP_SIDEARMS
+
+
+## Allume ou éteint la lampe de l'arme de poing. Elle n'éclaire que l'arme
+## en main. Renvoie faux sans lampe.
+func toggle_lamp() -> bool:
+	if is_dead or not has_lamp():
+		return false
+	lamp_on = not lamp_on
+	_model.lamp_on = lamp_on
+	Sfx.play_at(&"reload", global_position + Vector3.UP, -18.0)
+	weapon_changed.emit(using_secondary)
+	EventBus.unit_ammo_changed.emit(self)
+	return true
+
+
+## Vrai si la lampe éclaire : allumée, arme de poing en main.
+func lamp_lit() -> bool:
+	return lamp_on and using_secondary and not is_dead and has_lamp()
+
+
+## Zone où un garde (`vision`) voit l'opérateur à lampe allumée, la nuit :
+## la lumière se voit de loin (`LAMP_SIGHT`), dans son champ de vision et
+## sans mur entre eux.
+func lamp_sight_zone(vision: VisionComponent) -> VisionComponent.Zone:
+	if not lamp_lit() or not LevelRoot.is_night(self):
+		return VisionComponent.Zone.NONE
+	var center := global_position + Vector3.UP * _weapon_height()
+	var local := vision.to_local(center)
+	var flat := Vector2(local.x, local.z)
+	if flat.length() > LAMP_SIGHT or absf(atan2(flat.x, -flat.y)) > deg_to_rad(vision.config.fov_degrees) * 0.5:
+		return VisionComponent.Zone.NONE
+	var eye := vision.global_position + Vector3.UP * vision.config.eye_height
+	var query := PhysicsRayQueryParameters3D.create(eye, center, MASK_OCCLUDERS)
+	if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+		return VisionComponent.Zone.NONE
+	return VisionComponent.Zone.NEAR if flat.length() <= vision.config.near_range else VisionComponent.Zone.FAR
+
+
+## Lampe allumée, la nuit : un garde tout proche pris dans le faisceau est
+## ébloui un instant (`Enemy.daze`), puis pas avant `LAMP_DAZZLE_COOLDOWN`.
+func _update_lamp(delta: float) -> void:
+	for key: int in _dazzled.keys():
+		_dazzled[key] = float(_dazzled[key]) - delta
+		if float(_dazzled[key]) <= 0.0:
+			_dazzled.erase(key)
+	if not lamp_lit() or not LevelRoot.is_night(self):
+		return
+	var eye := global_position + Vector3.UP * _weapon_height()
+	var forward := -global_basis.z
+	for node in get_tree().get_nodes_in_group(&"enemies"):
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dead or _dazzled.has(enemy.get_instance_id()):
+			continue
+		var face := enemy.global_position + Vector3.UP * 1.6
+		var offset := face - eye
+		if offset.length() > LAMP_DAZZLE_RANGE or forward.angle_to(Vector3(offset.x, 0.0, offset.z)) > LAMP_DAZZLE_ANGLE:
+			continue
+		# Il faut qu'il regarde vers la lampe.
+		if (-enemy.global_basis.z).angle_to(Vector3(-offset.x, 0.0, -offset.z)) > deg_to_rad(70.0):
+			continue
+		var query := PhysicsRayQueryParameters3D.create(eye, face, MASK_OCCLUDERS)
+		if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+			continue
+		_dazzled[enemy.get_instance_id()] = LAMP_DAZZLE_COOLDOWN
+		enemy.daze(LAMP_DAZZLE_TIME, global_position)
 
 
 ## Change d'arme (principale ↔ secondaire). Un rechargement en cours est
