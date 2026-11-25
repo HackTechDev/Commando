@@ -1713,3 +1713,9 @@
 - Maj + Y allume ou éteint sa lampe tactique (cône de lumière visible), qui n'éclaire que lorsque le HK45 est en main.
 - La nuit, un garde à moins de 8 m, dans l'axe du faisceau et qui regarde vers la lampe, est ébloui 1,5 s (comme sonné), au plus une fois toutes les 8 s.
 - En contrepartie, la nuit, un opérateur à lampe allumée se voit jusqu'à 30 m dans le champ de vision des gardes.
+
+## Taser
+
+- Nouvel équipement « Taser (cartouches) », 2 au plus (0,3 kg chacune).
+- Maj + B ou bouton « Taser », puis clic sur un ennemi : l'opérateur le plus proche qui a une cartouche s'approche à 5 m avec une ligne de tir dégagée, vise 0,5 s et tire deux dards reliés par des fils.
+- Touché (à coup sûr à moins de 2,5 m, 3 fois sur 4 au-delà), le garde s'effondre, inconscient 25 s, et peut être ligoté. Bruit faible (5 m), son de crépitement.

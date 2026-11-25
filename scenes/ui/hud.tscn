@@ -147,6 +147,14 @@ tooltip_text = "Obus lacrymogène de 40 mm (M320) : puis clic gauche au sol, jus
 toggle_mode = true
 text = "Lacrymogène"
 
+[node name="Taser" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Taser : puis clic gauche sur un ennemi. L'opérateur le plus proche qui a une cartouche s'approche à 5 m, vise et tire : touché (à coup sûr à moins de 2,5 m, 3 fois sur 4 au-delà), le garde s'effondre, inconscient 25 s, et peut être ligoté. Discret : bruit à 5 m."
+toggle_mode = true
+text = "Taser"
+
 [node name="Plant" type="Button" parent="PlayerController/ActionBar/Rows/Gear"]
 unique_name_in_owner = true
 layout_mode = 2

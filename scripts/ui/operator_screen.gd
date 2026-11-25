@@ -686,7 +686,7 @@ func _build_armament() -> Control:
 		row.add_child(spin)
 		box.add_child(row)
 		_spins[key] = spin
-	_note(box, "En mission : H change d'arme (l'opérateur dégaine seul son arme secondaire quand l'autre est à sec), N lance une grenade, Maj + N une grenade assourdissante, ; un fumigène, ù un obus explosif de 40 mm (lance-grenades M320, monté sous le canon des fusils d'assaut, porté seul sinon ; 1,5 kg dès le premier obus), Maj + ; un obus fumigène, Maj + ù un obus lacrymogène, K pose une charge et L la fait sauter, J soigne le blessé le plus proche, U lève le bouclier (il faut une arme secondaire). Le couteau de combat est toujours emporté ; la hachette s'utilise au corps à corps (clic du milieu sur l'ennemi).")
+	_note(box, "En mission : H change d'arme (l'opérateur dégaine seul son arme secondaire quand l'autre est à sec), N lance une grenade, Maj + N une grenade assourdissante, ; un fumigène, ù un obus explosif de 40 mm (lance-grenades M320, monté sous le canon des fusils d'assaut, porté seul sinon ; 1,5 kg dès le premier obus), Maj + ; un obus fumigène, Maj + ù un obus lacrymogène, Maj + B le Taser (5 m), K pose une charge et L la fait sauter, J soigne le blessé le plus proche, U lève le bouclier (il faut une arme secondaire). Le couteau de combat est toujours emporté ; la hachette s'utilise au corps à corps (clic du milieu sur l'ennemi).")
 	return box
 
 

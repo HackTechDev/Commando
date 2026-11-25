@@ -89,6 +89,8 @@ extends Resource
 @export var launcher_grenades: int = 0
 @export var launcher_smoke: int = 0
 @export var launcher_gas: int = 0
+## Cartouches de Taser.
+@export var tasers: int = 0
 ## Portée du lancer de grenade (m), délai entre l'impact et l'explosion (s).
 @export var grenade_range: float = 12.0
 @export var grenade_fuse: float = 1.0

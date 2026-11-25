@@ -362,6 +362,18 @@ func order_launcher(target: Vector3, run: bool = false, shell: StringName = Comm
 	return false
 
 
+## Confie le Taser sur `enemy` à l'unité sélectionnée la plus proche qui a
+## encore une cartouche.
+func order_taser(enemy: Enemy, run: bool = false) -> bool:
+	for unit in _nearest_first(enemy.global_position):
+		if planning:
+			if not unit.is_dead and unit.tasers > 0:
+				return _issue(unit, unit.tase.bind(enemy, run), enemy.global_position, &"melee")
+		elif unit.tase(enemy, run):
+			return true
+	return false
+
+
 ## Confie le lancer d'un caillou de diversion vers `target` à l'unité
 ## sélectionnée la plus proche.
 func order_pebble(target: Vector3, run: bool = false) -> bool:

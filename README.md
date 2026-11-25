@@ -55,6 +55,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Porter un corps (ennemi mort ou assommé) / le déposer | ! (touche à droite de « : » en AZERTY), puis clic gauche sur le corps ; de nouveau ! pour le déposer |
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
+| Taser (équipement, 2 cartouches au plus) : l'opérateur s'approche à 5 m et tire ; le garde touché s'effondre, inconscient 25 s, et peut être ligoté (sûr à moins de 2,5 m, 3 fois sur 4 au-delà) | Maj + B, puis clic gauche sur l'ennemi |
 | Corps à corps au choix (assommer, couteau, hachette si équipée, balayage, projection, désarmer, bouclier humain, ligoter un ennemi assommé ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
 | Parer un coup | I, juste avant que l'ennemi frappe (option du menu pause : parade automatique au hasard) |
 | Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le corps pour le ramasser |

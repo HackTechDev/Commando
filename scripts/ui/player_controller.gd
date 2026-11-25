@@ -37,6 +37,7 @@ const ACTION_SMOKE := &"smoke"
 ## Grenade assourdissante (Maj + touche de la grenade).
 const ACTION_STUN := &"stun"
 const ACTION_LAUNCHER := &"launcher"
+const ACTION_TASER := &"taser"
 const ACTION_LAUNCHER_SMOKE := &"launcher_smoke"
 const ACTION_LAUNCHER_GAS := &"launcher_gas"
 ## Type d'obus de 40 mm de chaque action du lance-grenades.
@@ -377,6 +378,8 @@ func _pending_cursor(screen_position: Vector2) -> GameCursor.Kind:
 	var enemy := _raycast(screen_position, MASK_ENEMIES).get("collider") as Enemy
 	if enemy == null or enemy.is_dead:
 		return GameCursor.Kind.FORBIDDEN
+	if pending_action == ACTION_TASER:
+		return GameCursor.Kind.ATTACK if enemy.state != Enemy.State.STUNNED else GameCursor.Kind.FORBIDDEN
 	return GameCursor.Kind.THROW if pending_action == ACTION_THROW else GameCursor.Kind.MELEE
 
 
@@ -510,7 +513,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"action_knife"):
 		toggle_pending_action(ACTION_KNIFE)
 	elif event.is_action_pressed(&"action_knockout"):
-		toggle_pending_action(ACTION_KNOCKOUT)
+		# Maj : Taser.
+		toggle_pending_action(ACTION_TASER if Input.is_action_pressed(&"action_variant") else ACTION_KNOCKOUT)
 	elif event.is_action_pressed(&"action_crate"):
 		# Maj + P fait pivoter la caisse tenue (45°) ; P la lâche ; sinon,
 		# arme l'action.
@@ -1482,7 +1486,12 @@ func _use_pending_action(screen_position: Vector2) -> void:
 		return
 	if hit.has("collider") and hit["collider"] is Enemy:
 		var enemy := hit["collider"] as Enemy
-		if pending_action == ACTION_THROW:
+		if pending_action == ACTION_TASER:
+			if SelectionManager.order_taser(enemy):
+				_spawn_marker(enemy.global_position, marker_attack_color)
+			else:
+				Sfx.play_ui(&"denied")
+		elif pending_action == ACTION_THROW:
 			if SelectionManager.order_throw(enemy):
 				_spawn_marker(enemy.global_position, marker_melee_color)
 			else:

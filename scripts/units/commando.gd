@@ -68,6 +68,14 @@ const LAMP_DAZZLE_RANGE := 8.0
 const LAMP_DAZZLE_ANGLE := 0.3
 const LAMP_DAZZLE_TIME := 1.5
 const LAMP_DAZZLE_COOLDOWN := 8.0
+## Taser : portée (m), temps de visée (s), chance de toucher au-delà de
+## `TASER_SURE_RANGE` (m), durée de l'inconscience (s), bruit (m).
+const TASER_RANGE := 5.0
+const TASER_AIM_TIME := 0.5
+const TASER_SURE_RANGE := 2.5
+const TASER_FAR_CHANCE := 0.75
+const TASER_KNOCKOUT := 25.0
+const TASER_NOISE := 5.0
 ## Types d'obus de 40 mm (nom du compteur) et message quand il n'en reste plus.
 const SHELL_EXPLOSIVE := &"launcher_grenades"
 const SHELL_SMOKE := &"launcher_smoke"
@@ -180,6 +188,8 @@ var _dazzled: Dictionary = {}
 var launcher_grenades: int = 0
 var launcher_smoke: int = 0
 var launcher_gas: int = 0
+## Cartouches de Taser restantes.
+var tasers: int = 0
 ## Corps porté sur les épaules (`carry_body`), ou null.
 var carried_body: Enemy
 var explosives: int = 0
@@ -289,6 +299,7 @@ func _ready() -> void:
 	launcher_grenades = stats.launcher_grenades
 	launcher_smoke = stats.launcher_smoke
 	launcher_gas = stats.launcher_gas
+	tasers = stats.tasers
 	hatchets = stats.hatchets
 	# Charges fournies par la mission, en plus de l'équipement choisi.
 	explosives = stats.explosives + mission_explosives
@@ -441,6 +452,7 @@ func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.launcher_grenades = operator.launcher_grenades
 	weapon.launcher_smoke = operator.launcher_smoke
 	weapon.launcher_gas = operator.launcher_gas
+	weapon.tasers = operator.taser
 	weapon.hatchets = operator.hatchet
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
@@ -464,7 +476,7 @@ func _physics_process(delta: float) -> void:
 	_update_reload(delta)
 	_update_documents(delta)
 	_model.aiming = not is_dead and ((_order is AttackOrder and (_order as AttackOrder).is_aiming()) or (_order is FireAtOrder and (_order as FireAtOrder).is_aiming()) \
-			or (_order is LauncherOrder and (_order as LauncherOrder).is_aiming()))
+			or (_order is LauncherOrder and (_order as LauncherOrder).is_aiming()) or (_order is TaserOrder and (_order as TaserOrder).is_aiming()))
 	_update_lamp(delta)
 	_model.look_target = _look_point()
 	_model.shield_raised = is_shield_up()
@@ -925,6 +937,53 @@ func _ready_to_fire() -> bool:
 	if _secondary_stats and _holstered_ammo.x + _holstered_ammo.y > 0:
 		return switch_weapon()
 	return false
+
+
+## Ordonne de neutraliser `enemy` au Taser : l'unité s'approche à
+## `TASER_RANGE` m, vise, puis tire. Renvoie faux sans cartouche.
+func tase(enemy: Enemy, run: bool = false) -> bool:
+	if _hostage_busy() or is_dead:
+		return false
+	if tasers <= 0:
+		flash_message("Plus de cartouche de Taser")
+		return false
+	if _hopping or carried_body or enemy == null or enemy.is_dead or enemy.state == Enemy.State.STUNNED:
+		return false
+	if perched_on and not _can_tase(enemy):
+		return _descend(enemy.global_position, tase.bind(enemy, run))
+	_set_order(TaserOrder.new(self, enemy, run))
+	return true
+
+
+## Vrai si `enemy` est à portée de Taser, sans obstacle entre eux.
+func _can_tase(enemy: Enemy) -> bool:
+	var offset := enemy.global_position - global_position
+	offset.y = 0.0
+	return offset.length() <= TASER_RANGE and _has_line_of_fire(enemy)
+
+
+## Tir du Taser sur `enemy` : deux dards reliés par des fils ; touché, il
+## s'effondre, inconscient `TASER_KNOCKOUT` s.
+func _fire_taser(enemy: Enemy) -> void:
+	tasers -= 1
+	EventBus.unit_ammo_changed.emit(self)
+	var offset := enemy.global_position - global_position
+	offset.y = 0.0
+	var chance := 1.0 if offset.length() <= TASER_SURE_RANGE else TASER_FAR_CHANCE
+	var hit := GameRng.chance(self, chance)
+	var muzzle := global_position + Vector3.UP * _weapon_height() - global_basis.z * 0.5
+	var target := enemy.global_position + Vector3.UP * 1.1
+	if not hit:
+		target = enemy.global_position + global_basis.x * 0.6 + Vector3.UP * 0.05
+	var scene := get_tree().current_scene
+	for spread: float in [-0.08, 0.08]:
+		Tracer.spawn(scene, muzzle, target + Vector3.UP * spread, Color(0.75, 0.85, 1.0))
+	Sfx.play_at(&"zap", muzzle, -4.0)
+	EventBus.noise_emitted.emit(global_position, TASER_NOISE, &"melee")
+	if hit:
+		enemy.knock_out(false, TASER_KNOCKOUT)
+	else:
+		flash_message("Taser : manqué")
 
 
 ## Ordonne de lancer une grenade vers `target` (au sol) : l'unité s'approche
@@ -1938,7 +1997,7 @@ func missing_supplies() -> Dictionary:
 		missing["munitions"] = reserve
 	for entry: Array in [["grenades", gear.grenades - grenades], ["fumigènes", gear.smoke_grenades - smoke_grenades], ["assourdissantes", gear.stun_grenades - stun_grenades],
 			["obus de 40 mm", gear.launcher_grenades - launcher_grenades], ["obus fumigènes", gear.launcher_smoke - launcher_smoke],
-			["obus lacrymogènes", gear.launcher_gas - launcher_gas],
+			["obus lacrymogènes", gear.launcher_gas - launcher_gas], ["cartouches de Taser", gear.tasers - tasers],
 			["trousses", gear.medkits - medkits], ["charges", gear.explosives + mission_explosives - explosives]]:
 		if int(entry[1]) > 0:
 			missing[entry[0]] = int(entry[1])
@@ -1962,6 +2021,7 @@ func resupply() -> Dictionary:
 	launcher_grenades = maxi(launcher_grenades, gear.launcher_grenades)
 	launcher_smoke = maxi(launcher_smoke, gear.launcher_smoke)
 	launcher_gas = maxi(launcher_gas, gear.launcher_gas)
+	tasers = maxi(tasers, gear.tasers)
 	medkits = maxi(medkits, gear.medkits)
 	explosives = maxi(explosives, gear.explosives + mission_explosives)
 	EventBus.unit_ammo_changed.emit(self)
@@ -2179,7 +2239,7 @@ func save_state() -> Dictionary:
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
 		"evacuated": is_evacuated, "documents": has_documents,
 		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "stun_grenades": stun_grenades, "launcher_grenades": launcher_grenades,
-		"launcher_smoke": launcher_smoke, "launcher_gas": launcher_gas, "hatchets": hatchets, "explosives": explosives,
+		"launcher_smoke": launcher_smoke, "launcher_gas": launcher_gas, "tasers": tasers, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
 	})
@@ -2219,6 +2279,7 @@ func load_state(data: Dictionary) -> void:
 	launcher_grenades = data.get("launcher_grenades", launcher_grenades)
 	launcher_smoke = data.get("launcher_smoke", launcher_smoke)
 	launcher_gas = data.get("launcher_gas", launcher_gas)
+	tasers = data.get("tasers", tasers)
 	hatchets = data.get("hatchets", hatchets)
 	explosives = data.get("explosives", explosives)
 	medkits = data.get("medkits", medkits)

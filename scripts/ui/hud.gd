@@ -21,6 +21,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _smoke: Button = %Smoke
 @onready var _stun: Button = %Stun
 @onready var _launcher: Button = %Launcher
+@onready var _taser: Button = %Taser
 @onready var _launcher_smoke: Button = %LauncherSmoke
 @onready var _launcher_gas: Button = %LauncherGas
 @onready var _grapple: Button = %Grapple
@@ -83,6 +84,7 @@ func _ready() -> void:
 	_grenade.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_GRENADE))
 	_smoke.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_SMOKE))
 	_stun.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_STUN))
+	_taser.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_TASER))
 	_launcher.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_LAUNCHER))
 	_launcher_smoke.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_LAUNCHER_SMOKE))
 	_launcher_gas.pressed.connect(_controller.toggle_pending_action.bind(PlayerController.ACTION_LAUNCHER_GAS))
@@ -106,6 +108,7 @@ func _ready() -> void:
 	_stun.text = "Assourdissante  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_grenade")]
 	_fire_at.text = "Tir libre  [%s]" % KeyNames.label(&"action_fire_at")
 	_launcher.text = "M320  [%s]" % KeyNames.label(&"action_launcher")
+	_taser.text = "Taser  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_knockout")]
 	_launcher_smoke.text = "Obus fumigène  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_smoke")]
 	_launcher_gas.text = "Lacrymogène  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_launcher")]
 	_carry.text = "Porter  [%s]" % KeyNames.label(&"action_carry")
@@ -219,6 +222,9 @@ func _refresh_actions() -> void:
 	_grenade.disabled = not selected.any(func(unit: Commando) -> bool: return unit.grenades > 0)
 	_smoke.disabled = not selected.any(func(unit: Commando) -> bool: return unit.smoke_grenades > 0)
 	_stun.disabled = not selected.any(func(unit: Commando) -> bool: return unit.stun_grenades > 0)
+	_taser.disabled = not selected.any(func(unit: Commando) -> bool: return unit.tasers > 0)
+	_taser.visible = selected.any(func(unit: Commando) -> bool: return unit.stats.tasers > 0 or unit.tasers > 0)
+	_taser.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_TASER)
 	# Lance-grenades : un bouton par type d'obus, affiché si un opérateur
 	# sélectionné en emporte.
 	for entry: Array in [[_launcher, Commando.SHELL_EXPLOSIVE], [_launcher_smoke, Commando.SHELL_SMOKE], [_launcher_gas, Commando.SHELL_GAS]]:
