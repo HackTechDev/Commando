@@ -81,6 +81,9 @@ const DEFAULTS: Array[Dictionary] = [
 @export var launcher_smoke: int = 0
 ## Obus lacrymogènes de 40 mm (M320) : un nuage de gaz qui suffoque les gardes.
 @export var launcher_gas: int = 0
+## Lunette thermique sur l'arme principale : vise à travers la fumée, et
+## donne la vue thermique (touche des JVN).
+@export var thermal_scope: bool = false
 ## Taser : nombre de cartouches (un tir chacune) ; le garde touché s'effondre.
 @export var taser: int = 0
 
@@ -100,7 +103,7 @@ const OUTFIT_KEYS: Array[String] = [
 	"clothing", "sunglasses", "camo", "pants_camo", "vest_camo", "headwear_camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
 	"primary", "secondary", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
-	"launcher_grenades", "launcher_smoke", "launcher_gas", "taser",
+	"launcher_grenades", "launcher_smoke", "launcher_gas", "taser", "thermal_scope",
 ]
 ## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
 ## couleurs, couvre-chef et accessoires, sans l'armement.
@@ -111,7 +114,7 @@ const LOOK_KEYS: Array[String] = [
 
 const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "headwear_color"]
 const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "pants_camo", "vest_camo", "headwear_camo", "nose", "jaw", "eyes", "scar", "face_paint", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
-const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads", "sunglasses"]
+const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads", "sunglasses", "thermal_scope"]
 const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
 	"launcher_grenades", "launcher_smoke", "launcher_gas", "taser"]
 

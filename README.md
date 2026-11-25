@@ -130,6 +130,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Aide (toutes les commandes, jeu en pause) | H (Échap ou clic pour fermer) |
 | Journal des objectifs / minicarte | O / M (clic sur la minicarte : centrer la caméra) |
 | Abaisser ou relever les jumelles de vision nocturne : vue verte (abaissées d'office la nuit) | ² (à gauche de 1) |
+| Vue thermique (un opérateur a une lunette thermique) : niveaux de gris, gardes, chiens et opérateurs en blanc, fumée et gaz transparents. La lunette fait aussi viser sans gêne à travers la fumée (arme principale en main) | ² : jumelles, puis vue thermique, puis rien |
 | Menu pause (reprendre, recommencer, aide, options, menu, quitter) | Échap (annule d'abord une action V / B / T… armée) |
 | Quitter | Menu pause (Échap), « Quitter » |
 

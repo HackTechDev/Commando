@@ -834,6 +834,16 @@ func has_secondary() -> bool:
 	return _secondary_stats != null
 
 
+## Vrai s'il a une lunette thermique (sur son arme principale).
+func has_thermal_scope() -> bool:
+	return profile != null and profile.thermal_scope
+
+
+## Vrai s'il vise à la lunette thermique : arme principale en main.
+func thermal_sight() -> bool:
+	return has_thermal_scope() and not using_secondary
+
+
 ## Vrai si son arme secondaire porte une lampe (HK45).
 func has_lamp() -> bool:
 	return has_secondary() and profile != null and profile.secondary in GearCatalog.LAMP_SIDEARMS
@@ -2082,8 +2092,9 @@ func _fire(enemy: Enemy, distance: float) -> void:
 	# finit souvent dans l'abri.
 	last_cover = Cover.measure(get_world_3d(), muzzle, enemy.global_position, SoldierModel.Posture.STANDING, ignored)
 	chance *= last_cover.hit_factor()
-	# Fumée sur la ligne de tir : il tire au jugé.
-	if SmokeCloud.blocks_sight(get_tree(), muzzle, aim):
+	# Fumée sur la ligne de tir : il tire au jugé (pas avec une lunette
+	# thermique, qui voit au travers).
+	if SmokeCloud.blocks_sight(get_tree(), muzzle, aim) and not thermal_sight():
 		chance *= SMOKE_AIM_FACTOR
 	var hit := GameRng.chance(self, chance)
 	var scene := get_tree().current_scene as Node3D

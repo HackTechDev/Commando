@@ -1719,3 +1719,9 @@
 - Nouvel équipement « Taser (cartouches) », 2 au plus (0,3 kg chacune).
 - Maj + B ou bouton « Taser », puis clic sur un ennemi : l'opérateur le plus proche qui a une cartouche s'approche à 5 m avec une ligne de tir dégagée, vise 0,5 s et tire deux dards reliés par des fils.
 - Touché (à coup sûr à moins de 2,5 m, 3 fois sur 4 au-delà), le garde s'effondre, inconscient 25 s, et peut être ligoté. Bruit faible (5 m), son de crépitement.
+
+## Lunette thermique
+
+- Nouvel accessoire « Lunette thermique (arme principale) », 0,7 kg, visible sur le dessus de l'arme (montée devant la lunette des armes qui en ont déjà une).
+- Arme principale en main, l'opérateur vise à travers la fumée sans pénalité.
+- Touche ² : jumelles (vue verte), puis vue thermique, puis rien (selon l'équipement de l'équipe). La vue thermique est en niveaux de gris : gardes, chiens et opérateurs ressortent en silhouettes blanches, la fumée et le gaz deviennent transparents, les cônes de vision gardent leur couleur.

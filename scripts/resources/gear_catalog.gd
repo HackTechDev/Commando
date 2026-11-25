@@ -165,6 +165,7 @@ const ACCESSORIES: Dictionary = {
 	&"radio": "Radio",
 	&"knee_pads": "Genouillères",
 	&"sunglasses": "Lunettes de soleil Oakley",
+	&"thermal_scope": "Lunette thermique (arme principale)",
 }
 
 ## Armes principales : nom, description et réglages de tir (`UnitStats`).
@@ -352,7 +353,7 @@ const WEIGHTS: Dictionary = {
 	&"helmet": 1.4, &"nvg": 0.75, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0, &"sunglasses": 0.05,
 	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"stun_grenades": 0.4, &"explosives": 2.0, &"medkit": 1.5,
-	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9, &"launcher_grenades": 0.25, &"launcher_smoke": 0.25, &"launcher_gas": 0.25, &"taser": 0.3,
+	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9, &"launcher_grenades": 0.25, &"launcher_smoke": 0.25, &"launcher_gas": 0.25, &"taser": 0.3, &"thermal_scope": 0.7,
 }
 ## Paliers de charge : jusqu'à `limit` kg, vitesses multipliées par `speed` ;
 ## le palier lourd fait du bruit en courant (`noise`, rayon en m). Au-delà de
@@ -441,7 +442,7 @@ static func load_of(profile: OperatorProfile) -> float:
 		total += WEIGHTS[&"helmet"]
 	if profile.wears_nvg():
 		total += WEIGHTS[&"nvg"]
-	for key: StringName in [&"headset", &"vest", &"backpack", &"radio", &"knee_pads", &"balaclava", &"sunglasses"]:
+	for key: StringName in [&"headset", &"vest", &"backpack", &"radio", &"knee_pads", &"balaclava", &"sunglasses", &"thermal_scope"]:
 		if profile.get(key):
 			total += WEIGHTS[key]
 	for key: StringName in EQUIPMENT:

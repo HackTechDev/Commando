@@ -71,7 +71,7 @@ const SECTIONS: Array = [
 		[[&"ui_cancel"], "Menu pause (reprendre, recommencer, options…)"],
 		[[&"toggle_objectives"], "Journal des objectifs"],
 		[[&"toggle_minimap"], "Minicarte (clic : centrer la caméra)"],
-		[[&"toggle_nvg"], "Abaisser ou relever les jumelles : vue verte (opérateurs avec JVN)"],
+		[[&"toggle_nvg"], "Jumelles (vue verte), puis vue thermique (lunette thermique), puis rien"],
 	]],
 	["Caméra", [
 		[[&"camera_forward", &"camera_left", &"camera_back", &"camera_right"], "Déplacer (aussi : flèches, bord d'écran)"],

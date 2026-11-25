@@ -65,6 +65,7 @@ const HISTORY_SIZE := 50
 const ACCESSORY_PARTS: Dictionary = {
 	&"balaclava": &"head", &"nvg": &"head", &"headset": &"head", &"vest": &"torso",
 	&"backpack": &"torso", &"radio": &"torso", &"knee_pads": &"legs", &"sunglasses": &"head",
+	&"thermal_scope": &"weapon",
 }
 ## Caractéristiques comparées des armes principales : nom affiché.
 const COMPARED: Array[String] = ["Portée", "Dégâts", "Cadence", "Chargeur", "Discrétion"]

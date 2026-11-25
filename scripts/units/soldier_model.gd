@@ -3881,6 +3881,7 @@ func _build_rifle_and_arms() -> void:
 	var muzzle := _build_weapon(rifle, outfit.secondary if drawn else primary)
 	if not drawn:
 		_build_launcher(rifle, primary)
+		_build_thermal_scope(rifle, primary)
 	var pump := _pump
 	var tube_fed := _tube_fed
 	_left_grip = PISTOL_LEFT_GRIP if drawn else LEFT_GRIP
@@ -3892,6 +3893,7 @@ func _build_rifle_and_arms() -> void:
 		var magazine := _rifle_mag
 		_build_weapon(back, primary)
 		_build_launcher(back, primary)
+		_build_thermal_scope(back, primary)
 		back.name = "SlungPrimary"
 		_rifle_mag = magazine
 		_pump = pump
@@ -4102,6 +4104,23 @@ func _build_hk45(rifle: Node3D) -> float:
 	_lamp.visible = lamp_on
 	rifle.add_child(_lamp)
 	return -0.33
+
+
+## Lunette thermique sur le dessus de l'arme principale, si l'opérateur en
+## a une : boîtier carré, objectif au germanium (sombre) et œilleton. Sur
+## l'arme qui a déjà une lunette, elle se monte devant (clip-on).
+func _build_thermal_scope(rifle: Node3D, primary: StringName) -> void:
+	if outfit == null or not outfit.thermal_scope or primary == &"none":
+		return
+	var front := primary in [&"dmr", &"hecate", &"hk417"]
+	var scope := _pivot(rifle, Vector3(0.0, 0.135, -0.33 if front else -0.08), "ThermalScope")
+	_box(scope, Vector3(0.055, 0.06, 0.13), Vector3.ZERO, _m_weapon)
+	_barrel(scope, 0.03, 0.04, Vector3(0.0, 0.0, -0.085), _m_weapon)
+	_barrel(scope, 0.026, 0.005, Vector3(0.0, 0.0, -0.106), _m_lens)
+	if not front:
+		_barrel(scope, 0.018, 0.04, Vector3(0.0, 0.005, 0.085), _m_gear)
+	# Pied de fixation sur le rail.
+	_box(scope, Vector3(0.035, 0.03, 0.06), Vector3(0.0, -0.04, 0.0), _m_weapon)
 
 
 ## Cylindre couché le long du canon (axe Z de l'arme).
