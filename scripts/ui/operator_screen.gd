@@ -687,7 +687,13 @@ func _build_armament() -> Control:
 		row.add_child(spin)
 		box.add_child(row)
 		_spins[key] = spin
-	_note(box, "En mission : H change d'arme (l'opérateur dégaine seul son arme secondaire quand l'autre est à sec), N lance une grenade (appuis suivants : fumigène, assourdissante), ù tire un obus de 40 mm (lance-grenades M320, monté sous le canon des fusils d'assaut, porté seul sinon ; 1,5 kg dès le premier obus ; appuis suivants : obus fumigène, lacrymogène), Maj + B le Taser (5 m), K pose une charge et L la fait sauter, J soigne le blessé le plus proche, U lève le bouclier (il faut une arme secondaire). Le couteau de combat est toujours emporté ; la hachette s'utilise au corps à corps (clic du milieu sur l'ennemi).")
+	var key := KeyNames.label
+	_note(box, ("En mission : %s change d'arme (l'opérateur dégaine seul son arme secondaire quand l'autre est à sec), %s lance une grenade (appuis suivants : fumigène, assourdissante), "
+			+ "%s tire un obus de 40 mm (lance-grenades M320, monté sous le canon des fusils d'assaut, porté seul sinon ; 1,5 kg dès le premier obus ; appuis suivants : obus fumigène, lacrymogène), "
+			+ "%s pose une charge et %s la fait sauter, %s soigne le blessé le plus proche, %s lance le grappin, %s sort le Taser (5 m), %s lève le bouclier (il faut une arme secondaire). "
+			+ "Le couteau de combat est toujours emporté ; la hachette s'utilise au corps à corps (clic du milieu sur l'ennemi).") % [
+		key.call(&"switch_weapon"), key.call(&"action_grenade"), key.call(&"action_launcher"), key.call(&"action_plant"), key.call(&"action_detonate"),
+		key.call(&"action_medkit"), key.call(&"action_grapple"), key.call(&"action_taser"), key.call(&"action_shield")])
 	return box
 
 

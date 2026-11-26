@@ -576,8 +576,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"action_knife"):
 		toggle_pending_action(ACTION_KNIFE)
 	elif event.is_action_pressed(&"action_knockout"):
-		# Maj : Taser.
-		toggle_pending_action(ACTION_TASER if Input.is_action_pressed(&"action_variant") else ACTION_KNOCKOUT)
+		toggle_pending_action(ACTION_KNOCKOUT)
 	elif event.is_action_pressed(&"action_crate"):
 		# Maj + P fait pivoter la caisse tenue (45°) ; P la lâche ; sinon,
 		# arme l'action.
@@ -612,6 +611,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_feedback(SelectionManager.detonate_explosives() > 0)
 	elif event.is_action_pressed(&"action_medkit"):
 		_feedback(SelectionManager.use_medkit())
+	elif event.is_action_pressed(&"action_taser"):
+		if pending_action == ACTION_TASER or SelectionManager.selected.any(func(unit: Commando) -> bool: return not unit.is_dead and unit.tasers > 0):
+			toggle_pending_action(ACTION_TASER)
+		else:
+			for unit in SelectionManager.selected:
+				unit.flash_message("Pas de Taser (à équiper : écran Opérateurs)")
+			_feedback(false)
 	elif event.is_action_pressed(&"parry"):
 		# Parade au moment du coup : pas de bip, il faut pouvoir la presser vite.
 		for unit in SelectionManager.selected:

@@ -1735,3 +1735,9 @@
 ## Menus sur les touches de fonction
 
 - Aide sur F1, journal des objectifs sur F2, minicarte sur F3 (au lieu de H, O et M). Les trois lettres, bien placées, sont gardées en réserve pour de prochaines actions de mission (voir `KEYBOARD_ACTION.md`).
+
+## Équipement rare sur 7 à 0
+
+- Trousse de soins sur 7, grappin sur 8, Taser sur 9 (nouvelle action `action_taser`, au lieu de Maj + B), bouclier sur 0. J, W et U sont libérées et gardées en réserve.
+- 9 sans Taser dans la sélection : message « Pas de Taser » plutôt qu'une action armée inutile.
+- Les boutons du HUD et l'aide de l'écran des opérateurs lisent leurs touches dans l'InputMap.

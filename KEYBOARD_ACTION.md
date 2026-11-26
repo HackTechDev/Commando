@@ -6,7 +6,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 
 ## 1. Inventaire actuel
 
-### Lettres (23 prises ; H, O et M libres)
+### Lettres (20 prises ; H, J, M, O, U et W libres)
 
 | Touche | Action | Usage en mission |
 |---|---|---|
@@ -16,16 +16,13 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 | R | Recharger | Fréquent |
 | C / X | Accroupi / rampé | Constant |
 | V | Couteau | Fréquent |
-| B (Maj : Taser) | Assommer | Fréquent |
+| B | Assommer | Fréquent |
 | T | Lancer (couteau, caillou) | Fréquent |
 | G | Bretelle | Occasionnel |
 | Y (Maj : lampe) | Arme secondaire | Occasionnel |
 | N (appuis suivants : fumigène, assourdissante) | Grenades à la main | Occasionnel |
 | K (Maj : à retardement) / L | Poser une charge / la faire sauter | Occasionnel |
 | P (Maj : tourner) | Caisse | Occasionnel |
-| J | Trousse de soins | Rare |
-| U | Bouclier | Rare |
-| W | Grappin | Rare |
 | I | Parer | Réflexe (au bon moment) |
 
 ### Ponctuation, chiffres et touches spéciales
@@ -38,6 +35,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 | ù (appuis suivants : obus fumigène, lacrymogène) | Lance-grenades M320 |
 | ² | Jumelles, puis vue thermique |
 | F1 / F2 / F3 | Aide / objectifs / minicarte |
+| 7 / 8 / 9 / 0 | Trousse de soins / grappin / Taser / bouclier |
 | 1 à 6 (Ctrl : centrer) | Sélection des opérateurs |
 | Espace | Pause tactique |
 | Tab / Entrée | Ordres simultanés : préparer / exécuter |
@@ -49,10 +47,10 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 
 ### Encore libres
 
-- Chiffres **7, 8, 9, 0**, et **)** et **=** à leur droite.
+- **)** et **=** (à droite de 0).
 - **^** et **$** (à droite de P), **;** (libéré par le cycle des grenades).
 - **F4 à F12**.
-- **H**, **O** et **M**, libérées par le passage des menus sur F1 à F3 : en réserve pour les prochaines actions de mission.
+- **H**, **O** et **M** (menus passés sur F1 à F3), **J**, **U** et **W** (équipement rare passé sur 7 à 0) : en réserve pour les prochaines actions de mission.
 - **Inser**, **Suppr**, **Fin**, **Retour arrière**.
 - Boutons latéraux de la souris (4 et 5 de Godot, à ne pas confondre avec la molette), molette avec Maj ou Ctrl.
 - **Alt**, à éviter pour les actions fréquentes : le système l'intercepte souvent (menus, gestionnaire de fenêtres sous Linux).
@@ -89,7 +87,7 @@ Trois paliers d'usage :
 
 Les commandes de menu (aide, objectifs, minicarte) peuvent passer sur F1, F2 et F3. Elles libèrent H, O et M, bien placées, pour des actions de mission.
 
-### 2.3 Les chiffres 7 à 0 comme emplacements d'équipement
+### 2.3 Les chiffres 7 à 0 comme emplacements d'équipement (fait)
 
 1 à 6 restent la sélection des opérateurs. 7, 8, 9 et 0 deviennent des emplacements d'équipement rare, dans un ordre fixe, par exemple :
 
@@ -145,7 +143,7 @@ Tout passe déjà par l'InputMap, et `KeyNames` affiche le nom imprimé sur le c
 
 1. ~~**Cycle par famille (2.1)**~~ : fait.
 2. ~~**Inventaire et redistribution (2.2)**~~ : aide, objectifs et minicarte sur F1 à F3 (fait) ; H, O et M sont en réserve.
-3. **Emplacements 7 à 0 (2.3)** pour l'équipement rare : libère J, W et U, et sort le Taser de Maj+B.
+3. ~~**Emplacements 7 à 0 (2.3)**~~ : fait ; J, W et U sont en réserve, le Taser est sur 9.
 4. **Écran de configuration (2.7)**, une fois les touches stabilisées.
 5. **Roue d'équipement (2.4)**, si l'équipement continue de grossir.
 

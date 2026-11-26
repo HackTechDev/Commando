@@ -112,7 +112,11 @@ func _ready() -> void:
 	_fire_at.text = "Tir libre  [%s]" % KeyNames.label(&"action_fire_at")
 	var launcher_key := KeyNames.label(&"action_launcher")
 	_launcher.text = "M320  [%s]" % launcher_key
-	_taser.text = "Taser  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_knockout")]
+	# Équipement rare : emplacements 7 à 0.
+	_taser.text = "Taser  [%s]" % KeyNames.label(&"action_taser")
+	_medkit.text = "Soigner  [%s]" % KeyNames.label(&"action_medkit")
+	_grapple.text = "Grappin  [%s]" % KeyNames.label(&"action_grapple")
+	_shield.text = "Bouclier  [%s]" % KeyNames.label(&"action_shield")
 	_launcher_smoke.text = "Obus fumigène  [%s]" % launcher_key
 	_launcher_gas.text = "Lacrymogène  [%s]" % launcher_key
 	_carry.text = "Porter  [%s]" % KeyNames.label(&"action_carry")

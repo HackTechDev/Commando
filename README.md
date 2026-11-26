@@ -55,7 +55,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Porter un corps (ennemi mort ou assommé) / le déposer | ! (touche à droite de « : » en AZERTY), puis clic gauche sur le corps ; de nouveau ! pour le déposer |
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
-| Taser (équipement, 2 cartouches au plus) : l'opérateur s'approche à 5 m et tire ; le garde touché s'effondre, inconscient 25 s, et peut être ligoté (sûr à moins de 2,5 m, 3 fois sur 4 au-delà) | Maj + B, puis clic gauche sur l'ennemi |
+| Taser (équipement, 2 cartouches au plus) : l'opérateur s'approche à 5 m et tire ; le garde touché s'effondre, inconscient 25 s, et peut être ligoté (sûr à moins de 2,5 m, 3 fois sur 4 au-delà) | 9, puis clic gauche sur l'ennemi |
 | Corps à corps au choix (assommer, couteau, hachette si équipée, balayage, projection, désarmer, bouclier humain, ligoter un ennemi assommé ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
 | Parer un coup | I, juste avant que l'ennemi frappe (option du menu pause : parade automatique au hasard) |
 | Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le corps pour le ramasser |
@@ -110,7 +110,8 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | À bord : « Canon latéral » (l'opérateur sert le canon, qui tire seul par rafales sur les ennemis en vue du côté droit, à 40 m ; bruyant) / « Lâcher le canon » ; « Ouverture » / « Fermeture » de la porte (rampe), « Monter » (vol stationnaire) / « Atterrir », « Descendre en rappel » (en vol, porte ouverte), « Piloter » (décoller avec toute l'équipe, sur les cartes où cela termine la mission) | Clic milieu sur un opérateur dans la soute |
 | Tirer depuis l'appareil en vol (porte ouverte) | Clic droit sur un ennemi, opérateurs à bord sélectionnés |
 | Ouvrir / fermer une porte, crocheter une porte verrouillée | Clic droit sur la porte (on passe aussi une porte fermée en marchant : elle s'ouvre) |
-| Grappin (équipement) | W, puis clic gauche sur un point en hauteur : l'opérateur lance le grappin et monte à la corde |
+| Soigner le blessé le plus proche (trousse de soins) / lever ou baisser le bouclier balistique (il faut une arme secondaire) | 7 / 0 (équipement rare : emplacements 7 à 0, avec 8 grappin et 9 Taser) |
+| Grappin (équipement) | 8, puis clic gauche sur un point en hauteur : l'opérateur lance le grappin et monte à la corde |
 | Échelle, muret | Clic droit sur le toit ou de l'autre côté : le chemin passe par l'échelle ou enjambe le muret |
 | Arme à la bretelle / en main | G (bascule) |
 | Se fondre dans la foule (missions à tenue de rigueur, comme Centre de commandement ou La Tour) : tenue civile choisie dans l'écran « Opérateurs » (onglet Tenue), sans équipement militaire, pistolet-mitrailleur à la bretelle, debout et au pas | G pour libérer les mains, puis marcher |
