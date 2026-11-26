@@ -1,8 +1,8 @@
 class_name ConfigurationScreen
 extends Control
 ## Page « Configuration » du menu de démarrage : réglages du jeu,
-## enregistrés par `Settings`. Pour l'instant : son activé ou coupé et,
-## son activé, volume général (barre).
+## enregistrés par `Settings` : son activé ou coupé et, son activé, volume
+## général (barre) ; touches du clavier (`KeyBindingsPanel`).
 
 signal closed
 
@@ -118,6 +118,14 @@ func _build() -> void:
 		percent.text = "%d %%" % roundi(value * 100.0)
 		Settings.set_value("audio", "Master", value))
 	_show_volume()
+	var keys_button := Button.new()
+	keys_button.name = "KeyBindings"
+	keys_button.text = "Touches du clavier…"
+	var keys_panel := KeyBindingsPanel.new()
+	add_child(keys_panel)
+	keys_button.pressed.connect(keys_panel.open)
+	keys_panel.closed.connect(func() -> void: keys_button.grab_focus())
+	column.add_child(keys_button)
 	var close_button := Button.new()
 	close_button.name = "Close"
 	close_button.text = "Retour"

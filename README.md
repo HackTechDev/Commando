@@ -134,6 +134,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Abaisser ou relever les jumelles de vision nocturne : vue verte (abaissées d'office la nuit) | ² (à gauche de 1) |
 | Vue thermique (un opérateur a une lunette thermique) : niveaux de gris, gardes, chiens et opérateurs en blanc, fumée et gaz transparents. La lunette fait aussi viser sans gêne à travers la fumée (arme principale en main) | ² : jumelles, puis vue thermique, puis rien |
 | Menu pause (reprendre, recommencer, aide, options, menu, quitter) | Échap (annule d'abord une action V / B / T… armée) |
+| Changer les touches : Options (menu pause) ou Configuration (menu de démarrage), « Touches du clavier… ». Clic sur une touche, puis appui sur la nouvelle ; une touche déjà prise est échangée avec l'autre action ; « Touches d'origine » revient au réglage ci-dessus. Les touches de ce tableau sont celles d'origine | Souris |
 | Quitter | Menu pause (Échap), « Quitter » |
 
 Les touches sont définies par position physique dans l'InputMap : sur un clavier QWERTY, ZQSD devient WASD et A/E devient Q/E.

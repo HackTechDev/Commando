@@ -1,7 +1,7 @@
 extends Node
 ## Réglages du joueur, conservés entre les parties (`user://settings.cfg`) :
 ## dernière carte jouée, son activé, volumes, plein écran, défilement par le bord de
-## l'écran, parade automatique.
+## l'écran, parade automatique, touches du clavier (`KeyBindings`).
 
 const PATH := "user://settings.cfg"
 ## Bus audio réglables : nom du bus → libellé.
@@ -36,6 +36,16 @@ func value(section: String, key: String, default: Variant) -> Variant:
 ## Change un réglage, l'enregistre et l'applique.
 func set_value(section: String, key: String, data: Variant) -> void:
 	_config.set_value(section, key, data)
+	_config.save(path)
+	apply()
+	changed.emit()
+
+
+## Efface toute la section `section` (retour aux valeurs par défaut),
+## l'enregistre et l'applique.
+func clear_section(section: String) -> void:
+	if _config.has_section(section):
+		_config.erase_section(section)
 	_config.save(path)
 	apply()
 	changed.emit()
@@ -79,9 +89,10 @@ func auto_parry() -> bool:
 	return value("gameplay", "auto_parry", false)
 
 
-## Applique volumes, mode d'affichage et parade automatique.
+## Applique volumes, mode d'affichage, parade automatique et touches.
 func apply() -> void:
 	Commando.auto_parry = auto_parry()
+	KeyBindings.apply(self)
 	for bus: StringName in BUSES:
 		var index := AudioServer.get_bus_index(bus)
 		if index >= 0:

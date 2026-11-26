@@ -102,24 +102,9 @@ func _ready() -> void:
 	quit_dialog = ConfirmDialog.for_quit(self)
 	add_child(quit_dialog)
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
-	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
-	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")
-	# Une touche par famille : chaque appui passe au type suivant.
-	var throw_key := KeyNames.label(&"action_grenade")
-	_grenade.text = "Grenade  [%s]" % throw_key
-	_smoke.text = "Fumigène  [%s]" % throw_key
-	_stun.text = "Assourdissante  [%s]" % throw_key
-	_fire_at.text = "Tir libre  [%s]" % KeyNames.label(&"action_fire_at")
-	var launcher_key := KeyNames.label(&"action_launcher")
-	_launcher.text = "M320  [%s]" % launcher_key
-	# Équipement rare : emplacements 7 à 0.
-	_taser.text = "Taser  [%s]" % KeyNames.label(&"action_taser")
-	_medkit.text = "Soigner  [%s]" % KeyNames.label(&"action_medkit")
-	_grapple.text = "Grappin  [%s]" % KeyNames.label(&"action_grapple")
-	_shield.text = "Bouclier  [%s]" % KeyNames.label(&"action_shield")
-	_launcher_smoke.text = "Obus fumigène  [%s]" % launcher_key
-	_launcher_gas.text = "Lacrymogène  [%s]" % launcher_key
-	_carry.text = "Porter  [%s]" % KeyNames.label(&"action_carry")
+	_label_keys()
+	# Touches réglées dans les options : libellés à jour.
+	Settings.changed.connect(_label_keys)
 	_build_mission_panels()
 	pause_menu = PauseMenu.new()
 	add_child(pause_menu)
@@ -206,6 +191,34 @@ func restart_mission() -> void:
 	pause_menu.abandon()
 	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+
+## Libellés des boutons, avec leur touche lue dans l'InputMap (réglable :
+## `KeyBindings`).
+func _label_keys() -> void:
+	if not is_inside_tree():
+		return
+	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
+	# Une touche par famille : chaque appui passe au type suivant.
+	var throw_key := KeyNames.label(&"action_grenade")
+	var launcher_key := KeyNames.label(&"action_launcher")
+	var labels := [
+		[_grenade, "Grenade", throw_key], [_smoke, "Fumigène", throw_key], [_stun, "Assourdissante", throw_key],
+		[_launcher, "M320", launcher_key], [_launcher_smoke, "Obus fumigène", launcher_key], [_launcher_gas, "Lacrymogène", launcher_key],
+		[_weapon, "Arme secondaire", KeyNames.label(&"switch_weapon")], [_fire_at, "Tir libre", KeyNames.label(&"action_fire_at")],
+		[_carry, "Porter", KeyNames.label(&"action_carry")], [_plant, "Charge", KeyNames.label(&"action_plant")],
+		[_detonate, "Mise à feu", KeyNames.label(&"action_detonate")],
+		# Équipement rare : emplacements 7 à 0.
+		[_medkit, "Soigner", KeyNames.label(&"action_medkit")], [_grapple, "Grappin", KeyNames.label(&"action_grapple")],
+		[_taser, "Taser", KeyNames.label(&"action_taser")], [_shield, "Bouclier", KeyNames.label(&"action_shield")],
+		[_crouch, "Accroupi", KeyNames.label(&"posture_crouch")], [_prone, "Rampé", KeyNames.label(&"posture_prone")],
+		[_knife, "Couteau", KeyNames.label(&"action_knife")], [_knockout, "Assommer", KeyNames.label(&"action_knockout")],
+		[_throw, "Lancer", KeyNames.label(&"action_throw")], [_crate, "Caisse", KeyNames.label(&"action_crate")],
+		[_sling, "Bretelle", KeyNames.label(&"action_sling")], [_reload, "Recharger", KeyNames.label(&"reload")],
+		[_stop, "Stop", KeyNames.label(&"stop")],
+	]
+	for entry: Array in labels:
+		(entry[0] as Button).text = "%s  [%s]" % [entry[1], entry[2]]
 
 
 ## Une page ouverte depuis le menu pause (aide, confirmation annulée) se

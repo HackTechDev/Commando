@@ -1,7 +1,8 @@
 class_name OptionsPanel
 extends Control
 ## Options (menu pause) : volumes, plein écran, défilement de la caméra par
-## le bord de l'écran, parade automatique. Enregistrées par `Settings`.
+## le bord de l'écran, parade automatique, touches du clavier
+## (`KeyBindingsPanel`). Enregistrées par `Settings`.
 
 signal closed
 
@@ -115,6 +116,14 @@ func _build() -> void:
 	parry.button_pressed = Settings.auto_parry()
 	parry.toggled.connect(func(on: bool) -> void: Settings.set_value("gameplay", "auto_parry", on))
 	column.add_child(parry)
+	var keys_button := Button.new()
+	keys_button.name = "KeyBindings"
+	keys_button.text = "Touches du clavier…"
+	var keys_panel := KeyBindingsPanel.new()
+	add_child(keys_panel)
+	keys_button.pressed.connect(keys_panel.open)
+	keys_panel.closed.connect(func() -> void: keys_button.grab_focus())
+	column.add_child(keys_button)
 	var close_button := Button.new()
 	close_button.name = "Close"
 	close_button.text = "Retour"

@@ -23,15 +23,32 @@ static func label(action: StringName) -> String:
 		var key := event as InputEventKey
 		if key == null:
 			continue
-		var code := key.keycode
 		if key.physical_keycode != KEY_NONE:
-			code = key.physical_keycode
-			# Sans écran (tests), pas de disposition du clavier : position QWERTY.
-			if DisplayServer.get_name() != "headless":
-				var printed := DisplayServer.keyboard_get_label_from_physical(key.physical_keycode)
-				if printed != KEY_NONE:
-					code = printed
-		if code != KEY_NONE:
-			var text := OS.get_keycode_string(code)
-			return FRENCH.get(text, text)
+			return of_physical(key.physical_keycode)
+		if key.keycode != KEY_NONE:
+			return of_code(key.keycode)
 	return "?"
+
+
+## Nom imprimé de la touche à la position physique `physical` (position
+## QWERTY). La rangée des chiffres garde son chiffre, même en AZERTY (où
+## l'on lit « & », « é »… sans Maj).
+static func of_physical(physical: Key) -> String:
+	if physical >= KEY_0 and physical <= KEY_9:
+		return str(physical - KEY_0)
+	var code := physical
+	# Sans écran (tests), pas de disposition du clavier : position QWERTY.
+	if DisplayServer.get_name() != "headless":
+		var printed := DisplayServer.keyboard_get_label_from_physical(physical)
+		if printed != KEY_NONE:
+			code = printed
+	return of_code(code)
+
+
+## Nom de la touche `code` : le caractère pour un signe imprimable
+## (« : » plutôt que « Colon »), le nom français sinon.
+static func of_code(code: Key) -> String:
+	if code > 32 and code < 256:
+		return char(code).to_upper()
+	var text := OS.get_keycode_string(code)
+	return FRENCH.get(text, text)

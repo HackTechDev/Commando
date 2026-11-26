@@ -61,7 +61,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **c)** munitions de l'arme secondaire visibles en même temps que celles de la principale ;
   - **d)** effet visuel de soin.
 - **5.8 Traduction** : passer tous les textes par `tr()` (français et anglais, M10).
-- **5.10 Rendre les touches affichées dynamiques** : les boutons affichent « [C] » ou « [R] » en dur au lieu de lire l'InputMap.
 
 ## 6. Modèle et animation
 

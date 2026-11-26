@@ -1741,3 +1741,10 @@
 - Trousse de soins sur 7, grappin sur 8, Taser sur 9 (nouvelle action `action_taser`, au lieu de Maj + B), bouclier sur 0. J, W et U sont libérées et gardées en réserve.
 - 9 sans Taser dans la sélection : message « Pas de Taser » plutôt qu'une action armée inutile.
 - Les boutons du HUD et l'aide de l'écran des opérateurs lisent leurs touches dans l'InputMap.
+
+## Touches du clavier réglables
+
+- Écran « Touches du clavier » dans les Options (menu pause) et la page Configuration (menu de démarrage) : une ligne par action, clic sur la touche puis appui sur la nouvelle. Une touche déjà prise par une autre action lui est échangée ; les touches fixes (flèches, modificateurs, Échap) sont refusées ; « Touches d'origine » revient au réglage du jeu. Les touches modifiées s'affichent en bleu.
+- Enregistrées dans `user://settings.cfg` (section `keys`, par position physique) et appliquées à l'InputMap au lancement (`KeyBindings`).
+- Les boutons du HUD et l'aide en jeu lisent toutes leurs touches dans l'InputMap et se mettent à jour aussitôt (fin du point 5.10).
+- Noms de touches lisibles : « : », « ! », « ù » plutôt que « Colon », « Exclam » ; la rangée des chiffres garde son chiffre en AZERTY.

@@ -129,7 +129,7 @@ Les touches dédiées restent pour forcer un choix (assommer plutôt que tuer), 
 - Pas plus de deux niveaux par touche (seule, avec Maj).
 - Pas d'**Alt** pour les actions de mission.
 
-### 2.7 Écran de configuration des touches
+### 2.7 Écran de configuration des touches (fait)
 
 Tout passe déjà par l'InputMap, et `KeyNames` affiche le nom imprimé sur le clavier du joueur. Un écran dans les options (liste des actions, clic puis appui pour réassigner, détection des conflits, retour aux valeurs par défaut), enregistré dans `user://`, est donc peu coûteux. Il règle aussi les dispositions autres que l'AZERTY (QWERTZ, Bépo).
 
@@ -144,7 +144,7 @@ Tout passe déjà par l'InputMap, et `KeyNames` affiche le nom imprimé sur le c
 1. ~~**Cycle par famille (2.1)**~~ : fait.
 2. ~~**Inventaire et redistribution (2.2)**~~ : aide, objectifs et minicarte sur F1 à F3 (fait) ; H, O et M sont en réserve.
 3. ~~**Emplacements 7 à 0 (2.3)**~~ : fait ; J, W et U sont en réserve, le Taser est sur 9.
-4. **Écran de configuration (2.7)**, une fois les touches stabilisées.
+4. ~~**Écran de configuration (2.7)**~~ : fait (`KeyBindings`, `KeyBindingsPanel`). Reste : générer l'aide du README depuis l'InputMap.
 5. **Roue d'équipement (2.4)**, si l'équipement continue de grossir.
 
 La touche contextuelle (2.5) est un chantier de jeu plus que de clavier : à envisager avec les ordres au clic du milieu.

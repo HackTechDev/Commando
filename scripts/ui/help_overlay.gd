@@ -94,6 +94,16 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
+	# Touches réglées dans les options : la page est refaite.
+	Settings.changed.connect(_rebuild)
+
+
+## Refait la page (touches changées).
+func _rebuild() -> void:
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
+	_build()
 
 
 ## Ouvre ou ferme la page.
