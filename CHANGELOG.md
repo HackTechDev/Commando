@@ -1731,3 +1731,7 @@
 - N arme le dernier type de grenade à la main utilisé ; chaque appui suivant passe au type suivant que l'équipe possède encore (grenade, fumigène, assourdissante), en boucle. Sans autre type, l'appui désarme comme avant.
 - ù fait de même pour les obus de 40 mm du M320 (explosif, fumigène, lacrymogène).
 - Les touches « ; » (fumigène), Maj + N, Maj + ; et Maj + ù disparaissent. Les boutons du HUD, un par type, affichent la touche de leur famille ; l'aide, le README et l'écran des opérateurs sont à jour.
+
+## Menus sur les touches de fonction
+
+- Aide sur F1, journal des objectifs sur F2, minicarte sur F3 (au lieu de H, O et M). Les trois lettres, bien placées, sont gardées en réserve pour de prochaines actions de mission (voir `KEYBOARD_ACTION.md`).

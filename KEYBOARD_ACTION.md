@@ -1,12 +1,12 @@
 # Clavier : gestion des touches d'action
 
-Toutes les lettres du clavier sont prises. Chaque nouvel objet (M320, obus fumigène et lacrymogène, Taser, lampe du HK45) a donc reçu une variante avec Maj ou une touche de ponctuation. Cette note fait l'inventaire des touches et propose comment en libérer, du plus utile au moins prioritaire.
+Toutes les lettres du clavier étaient prises. Depuis, le cycle par famille (2.1) et le passage des menus sur F1 à F3 (2.2) ont libéré « ; », H, O, M et quatre variantes avec Maj. Avant cela, chaque nouvel objet (M320, obus fumigène et lacrymogène, Taser, lampe du HK45) a donc reçu une variante avec Maj ou une touche de ponctuation. Cette note fait l'inventaire des touches et propose comment en libérer, du plus utile au moins prioritaire.
 
 Les touches sont définies par position physique (`project.godot`, section `[input]`) ; elles sont données ici en AZERTY, la disposition par défaut.
 
 ## 1. Inventaire actuel
 
-### Lettres (les 26 sont prises)
+### Lettres (23 prises ; H, O et M libres)
 
 | Touche | Action | Usage en mission |
 |---|---|---|
@@ -27,9 +27,6 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 | U | Bouclier | Rare |
 | W | Grappin | Rare |
 | I | Parer | Réflexe (au bon moment) |
-| H | Aide | Rare (menu) |
-| O | Objectifs | Rare (menu) |
-| M | Minicarte | Rare (menu) |
 
 ### Ponctuation, chiffres et touches spéciales
 
@@ -40,6 +37,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 | , | Roulade |
 | ù (appuis suivants : obus fumigène, lacrymogène) | Lance-grenades M320 |
 | ² | Jumelles, puis vue thermique |
+| F1 / F2 / F3 | Aide / objectifs / minicarte |
 | 1 à 6 (Ctrl : centrer) | Sélection des opérateurs |
 | Espace | Pause tactique |
 | Tab / Entrée | Ordres simultanés : préparer / exécuter |
@@ -53,7 +51,8 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 
 - Chiffres **7, 8, 9, 0**, et **)** et **=** à leur droite.
 - **^** et **$** (à droite de P), **;** (libéré par le cycle des grenades).
-- **F1 à F12**.
+- **F4 à F12**.
+- **H**, **O** et **M**, libérées par le passage des menus sur F1 à F3 : en réserve pour les prochaines actions de mission.
 - **Inser**, **Suppr**, **Fin**, **Retour arrière**.
 - Boutons latéraux de la souris (4 et 5 de Godot, à ne pas confondre avec la molette), molette avec Maj ou Ctrl.
 - **Alt**, à éviter pour les actions fréquentes : le système l'intercepte souvent (menus, gestionnaire de fenêtres sous Linux).
@@ -145,7 +144,7 @@ Tout passe déjà par l'InputMap, et `KeyNames` affiche le nom imprimé sur le c
 ## 3. Ordre conseillé
 
 1. ~~**Cycle par famille (2.1)**~~ : fait.
-2. **Inventaire et redistribution (2.2)** : aide, objectifs et minicarte sur F1 à F3, ce qui libère H, O et M.
+2. ~~**Inventaire et redistribution (2.2)**~~ : aide, objectifs et minicarte sur F1 à F3 (fait) ; H, O et M sont en réserve.
 3. **Emplacements 7 à 0 (2.3)** pour l'équipement rare : libère J, W et U, et sort le Taser de Maj+B.
 4. **Écran de configuration (2.7)**, une fois les touches stabilisées.
 5. **Roue d'équipement (2.4)**, si l'équipement continue de grossir.

@@ -41,7 +41,7 @@ var help: HelpOverlay
 var pause_menu: PauseMenu
 ## Écran de fin de mission.
 var end_screen: EndScreen
-## Objectifs de la mission, leur journal (O), la minicarte (M) et les
+## Objectifs de la mission, leur journal (F2), la minicarte (F3) et les
 ## options (menu pause).
 var objectives: Objectives
 var objectives_panel: ObjectivesPanel

@@ -128,8 +128,8 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Pause tactique (ordres possibles) | Espace |
 | Ordres simultanés (un ordre par unité : déplacement, attaque, lancers, charge, mise à feu, soins, roulade…) | Tab (préparer / abandonner), Entrée (exécuter) |
 | Étage affiché (cartes à bâtiments) | Page suiv. (descendre), Page préc. (monter ; au-dessus du dernier étage, tout s'affiche) |
-| Aide (toutes les commandes, jeu en pause) | H (Échap ou clic pour fermer) |
-| Journal des objectifs / minicarte | O / M (clic sur la minicarte : centrer la caméra) |
+| Aide (toutes les commandes, jeu en pause) | F1 (Échap ou clic pour fermer) |
+| Journal des objectifs / minicarte | F2 / F3 (clic sur la minicarte : centrer la caméra) |
 | Abaisser ou relever les jumelles de vision nocturne : vue verte (abaissées d'office la nuit) | ² (à gauche de 1) |
 | Vue thermique (un opérateur a une lunette thermique) : niveaux de gris, gardes, chiens et opérateurs en blanc, fumée et gaz transparents. La lunette fait aussi viser sans gêne à travers la fumée (arme principale en main) | ² : jumelles, puis vue thermique, puis rien |
 | Menu pause (reprendre, recommencer, aide, options, menu, quitter) | Échap (annule d'abord une action V / B / T… armée) |
