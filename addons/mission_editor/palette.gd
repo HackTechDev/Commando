@@ -61,6 +61,8 @@ static func entries() -> Array[Dictionary]:
 		{"id": "rainfall", "label": "Pluie", "category": "Décor", "parent": "Decor", "tool": "point"},
 		{"id": "ladder", "label": "Échelle", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "tower", "label": "Immeuble à étages", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "command_center", "label": "Centre de commandement replié", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "command_center_deployed", "label": "Centre de commandement déployé", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"ground": true, "id": "sidewalk", "label": "Trottoir", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"ground": true, "id": "track", "label": "Piste", "category": "Décor", "parent": "Decor", "tool": "line"},
@@ -202,6 +204,10 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			tower.set("storeys", 3)
 			tower.set("size", Vector2(14, 10))
 			nodes.append(tower)
+		"command_center", "command_center_deployed":
+			var center := _scripted("Node3D", "res://scripts/props/command_center.gd", "CommandCenter")
+			center.set("deployed", id == "command_center_deployed")
+			nodes.append(center)
 		"supply_ammo", "supply_grenades", "supply_smoke", "supply_medkit":
 			var kinds := {"supply_ammo": ["Ammo", 0, 2], "supply_grenades": ["Grenades", 1, 2], "supply_smoke": ["Smoke", 2, 2], "supply_medkit": ["Medkit", 3, 1]}
 			var spec: Array = kinds[id]

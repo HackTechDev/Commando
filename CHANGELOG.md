@@ -1757,3 +1757,8 @@
   - Chaque pièce est un corps à part : l'occlusion n'estompe que celle qui cache un opérateur (le pont au-dessus d'un opérateur caché dessous, par exemple).
 - Nouvelle carte « Centre mobile 07 » (`mobile_command`, désert, de jour, 150 × 150 m) : le centre 07 déployé au nord, le centre 12 replié à l'est. Objectifs : détruire le groupe électrogène de la salle des opérations, puis celui du plateau du centre replié (Alpha porte deux charges), repartir par le convertible d'extraction. Quatorze gardes (pont, toit, salle, officier, chien, rondes, coursive), un pick-up armé qui fait le tour de la vallée, une sentinelle sur un promontoire, un dépôt de carburant à faire sauter en diversion ; rochers et buissons sur l'approche.
 - Test : `tests/levels/test_mobile_command.gd`.
+
+## Centre de commandement dans la palette de l'éditeur de mission
+
+- Deux entrées dans la catégorie Décor : « Centre de commandement replié » et « Centre de commandement déployé » (`CommandCenter`, rangé sous `NavigationRegion3D`, tourné par le cap). Seul le nœud est enregistré dans la mission, pas les pièces qu'il construit ; les gardes et objectifs se posent sur ses ponts.
+- Scénario de vérification `tools/editor_check/command_center.gd` (`CAPTURE_TEST=command_center`).
