@@ -46,6 +46,11 @@ const LAUNCHER_SHELLS: Dictionary = {
 	ACTION_LAUNCHER_SMOKE: Commando.SHELL_SMOKE,
 	ACTION_LAUNCHER_GAS: Commando.SHELL_GAS,
 }
+## Familles d'actions sur une même touche : le premier appui arme le
+## dernier type utilisé de la famille, les suivants passent au type suivant
+## que l'équipe possède encore (voir `cycle_family`).
+const THROWN_FAMILY: Array[StringName] = [ACTION_GRENADE, ACTION_SMOKE, ACTION_STUN]
+const LAUNCHER_FAMILY: Array[StringName] = [ACTION_LAUNCHER, ACTION_LAUNCHER_SMOKE, ACTION_LAUNCHER_GAS]
 ## Tir libre : puis clic gauche sur un mur, un objet ou le sol.
 const ACTION_FIRE_AT := &"fire_at"
 ## Porter un corps : puis clic gauche sur le corps.
@@ -87,6 +92,9 @@ const REACH_HEIGHT := 1.0
 
 ## Action ciblée en attente d'un clic sur un ennemi (`ACTION_NONE` sinon).
 var pending_action: StringName = ACTION_NONE
+## Dernier type choisi par famille d'actions (première action de la
+## famille : action choisie).
+var _family_choice: Dictionary = {}
 
 var _dragging: bool = false
 var _drag_start: Vector2
@@ -196,10 +204,65 @@ func toggle_pending_action(action: StringName) -> void:
 	if action == pending_action or SelectionManager.selected.is_empty():
 		cancel_pending_action()
 		return
+	_remember_choice(action)
 	pending_action = action
 	Sfx.play_ui(&"arm")
 	_cursor_left = 0.0
 	pending_action_changed.emit(pending_action)
+
+
+## Touche d'une famille d'actions (`THROWN_FAMILY`, `LAUNCHER_FAMILY`) :
+## arme le dernier type utilisé de la famille (ou le premier dont l'équipe a
+## encore) ; si un type de la famille est déjà armé, passe au suivant dont
+## elle a encore, en boucle. Sans autre type disponible, l'appui désarme.
+func cycle_family(family: Array[StringName]) -> void:
+	if SelectionManager.selected.is_empty():
+		cancel_pending_action()
+		return
+	var available := family.filter(_has_supply_for)
+	var next := StringName()
+	if pending_action in family:
+		var at := family.find(pending_action)
+		for step in range(1, family.size()):
+			var candidate := family[(at + step) % family.size()]
+			if candidate in available:
+				next = candidate
+				break
+		if next.is_empty():
+			cancel_pending_action()
+			return
+	else:
+		next = _family_choice.get(family[0], family[0])
+		if not next in available and not available.is_empty():
+			next = available[0]
+	_remember_choice(next)
+	pending_action = next
+	Sfx.play_ui(&"arm")
+	_cursor_left = 0.0
+	pending_action_changed.emit(pending_action)
+
+
+## Vrai si un opérateur sélectionné, vivant, a de quoi faire l'action
+## `action` d'une famille (grenade, fumigène, obus…).
+func _has_supply_for(action: StringName) -> bool:
+	return SelectionManager.selected.any(func(unit: Commando) -> bool:
+		if unit.is_dead:
+			return false
+		match action:
+			ACTION_GRENADE:
+				return unit.grenades > 0
+			ACTION_SMOKE:
+				return unit.smoke_grenades > 0
+			ACTION_STUN:
+				return unit.stun_grenades > 0
+		return LAUNCHER_SHELLS.has(action) and unit.launcher_rounds(LAUNCHER_SHELLS[action]) > 0)
+
+
+## Retient `action` comme dernier type choisi de sa famille.
+func _remember_choice(action: StringName) -> void:
+	for family: Array[StringName] in [THROWN_FAMILY, LAUNCHER_FAMILY]:
+		if action in family:
+			_family_choice[family[0]] = action
 
 
 ## Arme une action du convertible `aircraft` (sans dépendre de la sélection).
@@ -525,14 +588,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"action_throw"):
 		toggle_pending_action(ACTION_THROW)
 	elif event.is_action_pressed(&"action_grenade"):
-		# Maj : grenade assourdissante.
-		toggle_pending_action(ACTION_STUN if Input.is_action_pressed(&"action_variant") else ACTION_GRENADE)
-	elif event.is_action_pressed(&"action_smoke"):
-		# Maj : obus fumigène de 40 mm (M320), tiré de loin.
-		toggle_pending_action(ACTION_LAUNCHER_SMOKE if Input.is_action_pressed(&"action_variant") else ACTION_SMOKE)
+		# Grenade, fumigène, assourdissante : un appui de plus, le type suivant.
+		cycle_family(THROWN_FAMILY)
 	elif event.is_action_pressed(&"action_launcher"):
-		# Maj : obus lacrymogène.
-		toggle_pending_action(ACTION_LAUNCHER_GAS if Input.is_action_pressed(&"action_variant") else ACTION_LAUNCHER)
+		# Obus de 40 mm explosif, fumigène, lacrymogène.
+		cycle_family(LAUNCHER_FAMILY)
 	elif event.is_action_pressed(&"action_fire_at"):
 		toggle_pending_action(ACTION_FIRE_AT)
 	elif event.is_action_pressed(&"action_carry"):

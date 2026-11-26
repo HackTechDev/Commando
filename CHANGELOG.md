@@ -1725,3 +1725,9 @@
 - Nouvel accessoire « Lunette thermique (arme principale) », 0,7 kg, visible sur le dessus de l'arme (montée devant la lunette des armes qui en ont déjà une).
 - Arme principale en main, l'opérateur vise à travers la fumée sans pénalité.
 - Touche ² : jumelles (vue verte), puis vue thermique, puis rien (selon l'équipement de l'équipe). La vue thermique est en niveaux de gris : gardes, chiens et opérateurs ressortent en silhouettes blanches, la fumée et le gaz deviennent transparents, les cônes de vision gardent leur couleur.
+
+## Une touche par famille d'objets
+
+- N arme le dernier type de grenade à la main utilisé ; chaque appui suivant passe au type suivant que l'équipe possède encore (grenade, fumigène, assourdissante), en boucle. Sans autre type, l'appui désarme comme avant.
+- ù fait de même pour les obus de 40 mm du M320 (explosif, fumigène, lacrymogène).
+- Les touches « ; » (fumigène), Maj + N, Maj + ; et Maj + ù disparaissent. Les boutons du HUD, un par type, affichent la touche de leur famille ; l'aide, le README et l'écran des opérateurs sont à jour.

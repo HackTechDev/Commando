@@ -61,14 +61,15 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le corps pour le ramasser |
 | Ramasser du ravitaillement (chargeurs, grenades, fumigènes, trousse de soins ; un ennemi abattu laisse un chargeur) : l'opérateur prend ce qui lui manque, le reste demeure | Passer dessus à pied (clic droit à côté) |
 | Caillou de diversion (jusqu'à 14 m) | T, puis clic gauche au sol : les ennemis à moins de 7 m vont voir |
+| Grenades à la main : une seule touche. Le premier appui arme le dernier type utilisé ; chaque appui suivant passe au type suivant que l'équipe possède (grenade, fumigène, assourdissante), en boucle ; sans autre type, il désarme | N (une ou plusieurs fois), puis clic gauche au sol |
 | Grenade explosive (équipement, jusqu'à 12 m) | N, puis clic gauche au sol |
-| Grenade assourdissante (équipement, jusqu'à 12 m) : les ennemis à moins de 8 m qui la voient sont sonnés 3 à 7 s (ni vue, ni tir, ni défense : à désarmer, assommer ou saisir), puis en alerte | Maj + N, puis clic gauche au sol |
+| Grenade assourdissante (équipement, jusqu'à 12 m) : les ennemis à moins de 8 m qui la voient sont sonnés 3 à 7 s (ni vue, ni tir, ni défense : à désarmer, assommer ou saisir), puis en alerte | N jusqu'à « Assourdissante », puis clic gauche au sol |
 | Poser une charge explosive / la faire sauter à distance | K / L |
 | Poser une charge à retardement (saute seule au bout de 10 s, compte à rebours affiché ; L la fait sauter plus tôt) | Maj + K |
-| Grenade fumigène (équipement, jusqu'à 12 m) | ; (touche à droite de « , » en AZERTY), puis clic gauche au sol : le nuage cache les opérateurs aux ennemis |
-| Lance-grenades M320 sous le canon (équipement « Grenades de 40 mm ») : l'opérateur s'approche à 35 m, épaule et tire ; l'obus vole presque droit et éclate à l'impact, au sol ou contre un mur (3,5 m). Pas à moins de 6 m. Possible à bord d'un véhicule ou en vol | ù (touche à droite de M en AZERTY), puis clic gauche au sol |
-| Obus fumigène de 40 mm (M320, équipement) : le nuage naît là où l'obus touche, jusqu'à 35 m | Maj + ;, puis clic gauche au sol |
-| Obus lacrymogène de 40 mm (M320, équipement) : le gaz ne cache rien, mais les gardes dedans suffoquent (ni vue, ni tir, ni défense, jusqu'à 2 s après en être sortis), toussent (leurs voisins viennent voir), puis passent en alerte. Les opérateurs sont masqués | Maj + ù, puis clic gauche au sol |
+| Grenade fumigène (équipement, jusqu'à 12 m) | N jusqu'à « Fumigène », puis clic gauche au sol : le nuage cache les opérateurs aux ennemis |
+| Lance-grenades M320 sous le canon (équipement « Grenades de 40 mm ») : l'opérateur s'approche à 35 m, épaule et tire ; l'obus vole presque droit et éclate à l'impact, au sol ou contre un mur (3,5 m). Pas à moins de 6 m. Possible à bord d'un véhicule ou en vol | ù (touche à droite de M en AZERTY), puis clic gauche au sol ; comme N, chaque appui passe à l'obus suivant (explosif, fumigène, lacrymogène) |
+| Obus fumigène de 40 mm (M320, équipement) : le nuage naît là où l'obus touche, jusqu'à 35 m | ù jusqu'à « Obus fumigène », puis clic gauche au sol |
+| Obus lacrymogène de 40 mm (M320, équipement) : le gaz ne cache rien, mais les gardes dedans suffoquent (ni vue, ni tir, ni défense, jusqu'à 2 s après en être sortis), toussent (leurs voisins viennent voir), puis passent en alerte. Les opérateurs sont masqués | ù jusqu'à « Lacrymogène », puis clic gauche au sol |
 | Pousser / tirer une caisse | P, puis clic gauche sur le côté de la caisse ; clic droit au sol pour la déplacer dans l'axe ; F pour lâcher |
 | Faire pivoter la caisse tenue d'un huitième de tour (pour la pousser en diagonale) | Maj + P |
 | Caisse lourde (cerclée de fer) : un second opérateur la saisit par un autre côté, puis l'un des deux reçoit l'ordre de la déplacer | P, puis clic gauche sur la caisse, pour chacun |

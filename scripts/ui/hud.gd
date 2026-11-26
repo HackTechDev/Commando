@@ -104,13 +104,17 @@ func _ready() -> void:
 	SelectionManager.selection_changed.connect(func(_units: Array[Commando]) -> void: _refresh_actions())
 	(_controller.get_node(^"Help") as Label).text = "%s : aide (toutes les commandes)" % KeyNames.label(&"toggle_help")
 	_weapon.text = "Arme secondaire  [%s]" % KeyNames.label(&"switch_weapon")
-	_smoke.text = "Fumigène  [%s]" % KeyNames.label(&"action_smoke")
-	_stun.text = "Assourdissante  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_grenade")]
+	# Une touche par famille : chaque appui passe au type suivant.
+	var throw_key := KeyNames.label(&"action_grenade")
+	_grenade.text = "Grenade  [%s]" % throw_key
+	_smoke.text = "Fumigène  [%s]" % throw_key
+	_stun.text = "Assourdissante  [%s]" % throw_key
 	_fire_at.text = "Tir libre  [%s]" % KeyNames.label(&"action_fire_at")
-	_launcher.text = "M320  [%s]" % KeyNames.label(&"action_launcher")
+	var launcher_key := KeyNames.label(&"action_launcher")
+	_launcher.text = "M320  [%s]" % launcher_key
 	_taser.text = "Taser  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_knockout")]
-	_launcher_smoke.text = "Obus fumigène  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_smoke")]
-	_launcher_gas.text = "Lacrymogène  [%s+%s]" % [KeyNames.label(&"action_variant"), KeyNames.label(&"action_launcher")]
+	_launcher_smoke.text = "Obus fumigène  [%s]" % launcher_key
+	_launcher_gas.text = "Lacrymogène  [%s]" % launcher_key
 	_carry.text = "Porter  [%s]" % KeyNames.label(&"action_carry")
 	_build_mission_panels()
 	pause_menu = PauseMenu.new()

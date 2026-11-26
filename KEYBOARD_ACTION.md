@@ -20,7 +20,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 | T | Lancer (couteau, caillou) | Fréquent |
 | G | Bretelle | Occasionnel |
 | Y (Maj : lampe) | Arme secondaire | Occasionnel |
-| N (Maj : assourdissante) | Grenade | Occasionnel |
+| N (appuis suivants : fumigène, assourdissante) | Grenades à la main | Occasionnel |
 | K (Maj : à retardement) / L | Poser une charge / la faire sauter | Occasionnel |
 | P (Maj : tourner) | Caisse | Occasionnel |
 | J | Trousse de soins | Rare |
@@ -35,11 +35,10 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 
 | Touche | Action |
 |---|---|
-| ; (Maj : obus fumigène) | Fumigène |
 | : | Tir libre |
 | ! | Porter un corps |
 | , | Roulade |
-| ù (Maj : obus lacrymogène) | Lance-grenades M320 |
+| ù (appuis suivants : obus fumigène, lacrymogène) | Lance-grenades M320 |
 | ² | Jumelles, puis vue thermique |
 | 1 à 6 (Ctrl : centrer) | Sélection des opérateurs |
 | Espace | Pause tactique |
@@ -53,7 +52,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 ### Encore libres
 
 - Chiffres **7, 8, 9, 0**, et **)** et **=** à leur droite.
-- **^** et **$** (à droite de P).
+- **^** et **$** (à droite de P), **;** (libéré par le cycle des grenades).
 - **F1 à F12**.
 - **Inser**, **Suppr**, **Fin**, **Retour arrière**.
 - Boutons latéraux de la souris (4 et 5 de Godot, à ne pas confondre avec la molette), molette avec Maj ou Ctrl.
@@ -68,7 +67,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 
 ## 2. Pistes, de la plus rentable à la plus ambitieuse
 
-### 2.1 Grouper par famille, avec un cycle (recommandé en premier)
+### 2.1 Grouper par famille, avec un cycle (fait)
 
 Une touche par famille d'objets, au lieu d'une touche par objet :
 
@@ -79,7 +78,7 @@ La touche arme l'action avec le dernier type utilisé. Un second appui, l'action
 
 Ce que ça libère : « ; » et les variantes Maj+N, Maj+; et Maj+ù. Un nouveau type de grenade ou d'obus n'a plus besoin de touche.
 
-Point d'attention : aujourd'hui, un second appui sur la même touche désarme l'action (`toggle_pending_action`). Il désarmerait désormais après le dernier type seulement, ou il n'y aurait plus que l'annulation par Échap et le clic droit.
+Retenu : le cycle tourne en boucle sur les types disponibles ; l'appui ne désarme que s'il n'y a aucun autre type (le comportement d'avant, pour une équipe qui n'a qu'une sorte de grenade). Échap et le clic droit annulent toujours. Les boutons du HUD restent un par type (`PlayerController.cycle_family`).
 
 ### 2.2 Inventaire des actions par fréquence, puis redistribution
 
@@ -145,7 +144,7 @@ Tout passe déjà par l'InputMap, et `KeyNames` affiche le nom imprimé sur le c
 
 ## 3. Ordre conseillé
 
-1. **Cycle par famille (2.1)**, pour les grenades et les obus : libère « ; » et trois variantes avec Maj, et empêche le problème de revenir pour ces familles.
+1. ~~**Cycle par famille (2.1)**~~ : fait.
 2. **Inventaire et redistribution (2.2)** : aide, objectifs et minicarte sur F1 à F3, ce qui libère H, O et M.
 3. **Emplacements 7 à 0 (2.3)** pour l'équipement rare : libère J, W et U, et sort le Taser de Maj+B.
 4. **Écran de configuration (2.7)**, une fois les touches stabilisées.
