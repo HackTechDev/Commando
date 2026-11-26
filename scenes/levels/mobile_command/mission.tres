@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_obj"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_info"]
+
+[sub_resource type="Resource" id="power_deployed"]
+script = ExtResource("1_obj")
+id = "power_deployed"
+text = "Détruire le groupe électrogène de la salle des opérations (centre 07, déployé)"
+
+[sub_resource type="Resource" id="power_closed"]
+script = ExtResource("1_obj")
+id = "power_closed"
+text = "Détruire le groupe électrogène sur le plateau du centre 12 (replié)"
+
+[sub_resource type="Resource" id="extracted"]
+script = ExtResource("1_obj")
+id = "extracted"
+text = "Repartir à bord du convertible d'extraction"
+
+[sub_resource type="Resource" id="lost"]
+script = ExtResource("1_obj")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_info")
+title = "Centre mobile 07"
+description = "De jour, dans le désert. Deux centres de commandement mobiles ennemis font halte dans la vallée. Au nord, le centre 07 est déployé : un grand pont sur vérins, où l'on monte par cinq escaliers, porte la salle des opérations (son groupe électrogène est à l'intérieur), un toit-terrasse gardé, une tourelle et une tour de contrôle. On peut aussi se glisser sous le pont, entre les jupes. À l'est, le centre 12 est replié sur sa remorque : son groupe électrogène est sur le plateau, à l'abri sous le module ; une coursive longe le flanc. Alpha porte deux charges. Des rochers et des buissons couvrent l'approche depuis le sud-ouest ; un pick-up armé fait le tour de la vallée et une sentinelle guette depuis le promontoire ouest. Appelez ensuite l'extraction par radio, à l'est."
+camo = "desert"
+order = 208
+objectives = Array[ExtResource("1_obj")]([SubResource("power_deployed"), SubResource("power_closed"), SubResource("extracted"), SubResource("lost")])

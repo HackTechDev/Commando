@@ -1748,3 +1748,12 @@
 - Enregistrées dans `user://settings.cfg` (section `keys`, par position physique) et appliquées à l'InputMap au lancement (`KeyBindings`).
 - Les boutons du HUD et l'aide en jeu lisent toutes leurs touches dans l'InputMap et se mettent à jour aussitôt (fin du point 5.10).
 - Noms de touches lisibles : « : », « ! », « ù » plutôt que « Colon », « Exclam » ; la rangée des chiffres garde son chiffre en AZERTY.
+
+## Centre de commandement mobile et carte « Centre mobile 07 »
+
+- Nouveau décor `CommandCenter`, construit en code d'après les images de `CommandoAsset/vehicles/commandcenter` : deux porteurs blindés 8 × 8 côte à côte et une remorque sur vérins, en deux versions (`deployed`).
+  - **Replié** : module à section hexagonale perché au-dessus du plateau, gros caissons d'extrémité numérotés, tour de contrôle, antennes, panneaux solaires. Deux escaliers mènent au plateau, couvert par le module ; un troisième mène à la coursive du flanc, devant les portes éclairées.
+  - **Déployé** : pont de 34 × 20 m sur vérins, garde-corps jaunes, jupes éclairées, cinq escaliers. Sur le pont, la salle des opérations (un `Tower` d'un étage : portes, fenêtres, escalier intérieur, coupe) et son toit-terrasse avec tourelle de défense rapprochée, tour de contrôle et pylône d'antennes ; conteneurs. On se glisse sous le pont (2,1 m) par les bouts et entre les jupes.
+  - Chaque pièce est un corps à part : l'occlusion n'estompe que celle qui cache un opérateur (le pont au-dessus d'un opérateur caché dessous, par exemple).
+- Nouvelle carte « Centre mobile 07 » (`mobile_command`, désert, de jour, 150 × 150 m) : le centre 07 déployé au nord, le centre 12 replié à l'est. Objectifs : détruire le groupe électrogène de la salle des opérations, puis celui du plateau du centre replié (Alpha porte deux charges), repartir par le convertible d'extraction. Quatorze gardes (pont, toit, salle, officier, chien, rondes, coursive), un pick-up armé qui fait le tour de la vallée, une sentinelle sur un promontoire, un dépôt de carburant à faire sauter en diversion ; rochers et buissons sur l'approche.
+- Test : `tests/levels/test_mobile_command.gd`.
