@@ -898,6 +898,8 @@ static func _tooltip(id: String, tool: String) -> String:
 			return how + " Le cap (R / Maj+R) suit la route : la barrière se pose en travers, un muret de chaque côté."
 		"aircraft":
 			return how + " L'avion survole ce trajet (PatrolPaths) à `altitude` m ; ajoutez des points en sélectionnant le chemin."
+		"drone":
+			return how + " Le drone survole ce trajet (PatrolPaths) à `altitude` m, caméra vers le bas (disque de 8 m) ; abattu au tir libre, aveuglé par le brouilleur (H). Ajoutez des points en sélectionnant le chemin ; refermez la boucle sur le premier point."
 		"reinforcements":
 			return how + " Point d'arrivée des renforts ; ils foncent vers le dépôt (`target`) quand `start_objective` est rempli, ou quand un opérateur entre dans une de leurs zones de déclenchement. Réglages dans la section Événements."
 		"arrival":

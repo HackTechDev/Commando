@@ -190,11 +190,11 @@ static func _check_enemies(root: Node, report: Array[Dictionary]) -> void:
 	for node in root.find_children("*", "", true, true):
 		if node is Reinforcements:
 			continue
-		if not (node is Enemy or node is Technical or node is EnemyAircraft):
+		if not (node is Enemy or node is Technical or node is EnemyAircraft or node is SurveillanceDrone):
 			continue
 		var value: Variant = node.get("patrol_path")
 		if value == null or (value is NodePath and (value as NodePath).is_empty()):
-			if node is Technical or node is EnemyAircraft:
+			if node is Technical or node is EnemyAircraft or node is SurveillanceDrone:
 				report.append(_item("error", "%s n'a pas de trajet (patrol_path)." % node.name, [node]))
 			continue
 		var path := value as Path3D if value is Path3D else node.get_node_or_null(value as NodePath) as Path3D
@@ -419,7 +419,7 @@ static func _check_bounds(root: Node, placed_later: bool, report: Array[Dictiona
 			or n is SabotageTarget or n is Tiltrotor or n is Sabre or n is Landmine or n is ExtractionZone)
 	for node: Node3D in items:
 		var spots: Array = [node.global_position]
-		var path := Gizmos.patrol_of(node) if not node is EnemyAircraft else null
+		var path := Gizmos.patrol_of(node) if not (node is EnemyAircraft or node is SurveillanceDrone) else null
 		if path and path.curve:
 			for i in path.curve.point_count:
 				spots.append(path.to_global(path.curve.get_point_position(i)))

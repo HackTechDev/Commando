@@ -26,7 +26,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **h)** centre de commandement mobile (`CommandCenter`), suite : aujourd'hui décor fixe en deux versions. Le déployer ou le replier en cours de mission (flancs, vérins), le faire rouler replié, et lui donner de vraies lumières pour les cartes de nuit.
 - **2.17 Véhicules aériens** :
   - **a)** hélicoptère de patrouille ennemi : survol et vol stationnaire, cône de projecteur au sol la nuit, appelé par une alerte ;
-  - **b)** drone de surveillance : ronde aérienne, vue de dessus que les toits n'arrêtent pas ; abattu au silencieux ou brouillé ;
   - **c)** avion de transport au sol (base aérienne) : cachette dans la soute, sabotage, ou moyen d'extraction ;
   - **d)** parachutage d'ouverture : zone d'atterrissage choisie en début de mission, dispersion selon le vent (`LevelRoot.wind`) ;
   - **e)** ballon captif d'observation : poste de guet très haut, qu'on fait tomber en coupant son câble.

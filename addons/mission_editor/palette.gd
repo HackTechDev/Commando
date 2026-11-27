@@ -84,6 +84,7 @@ static func entries() -> Array[Dictionary]:
 		{"id": "patrol", "label": "Garde en ronde", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "technical", "label": "Pick-up armé", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "aircraft", "label": "Avion ennemi", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
+		{"id": "drone", "label": "Drone de surveillance", "category": "Ennemis", "parent": "Enemies", "tool": "route"},
 		{"id": "reinforcements", "label": "Renforts", "category": "Événements", "parent": "Enemies", "tool": "point"},
 		{"id": "arrival", "label": "Pick-up qui arrive", "category": "Événements", "parent": "Enemies", "tool": "point"},
 		{"ground": true, "id": "trigger_zone", "label": "Zone de déclenchement", "category": "Événements", "parent": "Triggers", "tool": "line", "rect": true},
@@ -239,6 +240,13 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			plane.set("patrol_path", NodePath("../../PatrolPaths/%s" % sky.name))
 			nodes.append(sky)
 			nodes.append(plane)
+			return nodes
+		"drone":
+			var loop := _patrol_path(scene_root, route)
+			var drone := _scripted("StaticBody3D", "res://scripts/enemies/surveillance_drone.gd", "Drone")
+			drone.set("patrol_path", NodePath("../../PatrolPaths/%s" % loop.name))
+			nodes.append(loop)
+			nodes.append(drone)
 			return nodes
 		"reinforcements":
 			var reinforcements := _scripted("Node3D", "res://scripts/levels/reinforcements.gd", "Reinforcements")

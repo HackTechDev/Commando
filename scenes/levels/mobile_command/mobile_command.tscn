@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://scripts/enemies/surveillance_drone.gd" id="drone"]
 [ext_resource type="Script" path="res://scripts/levels/guard_radio.gd" id="guard_radio"]
 [ext_resource type="Script" path="res://scripts/levels/guard_relief.gd" id="guard_relief"]
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="root"]
@@ -252,6 +253,13 @@ _data = {
 "tilts": PackedFloat32Array(0, 0, 0, 0)
 }
 point_count = 4
+
+[sub_resource type="Curve3D" id="curve_DroneLoop"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -42, 0, 12, 0, 0, 0, 0, 0, 0, 26, 0, 12, 0, 0, 0, 0, 0, 0, 26, 0, -46, 0, 0, 0, 0, 0, 0, -42, 0, -46, 0, 0, 0, 0, 0, 0, -42, 0, 12),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
 
 [sub_resource type="Curve3D" id="curve_PatrolCamp"]
 _data = {
@@ -900,6 +908,9 @@ curve = SubResource("curve_PatrolDeck")
 [node name="PatrolCamp" type="Path3D" parent="PatrolPaths"]
 curve = SubResource("curve_PatrolCamp")
 
+[node name="DroneLoop" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("curve_DroneLoop")
+
 [node name="PatrolDog" type="Path3D" parent="PatrolPaths"]
 curve = SubResource("curve_PatrolDog")
 
@@ -1001,6 +1012,10 @@ talk_partner = NodePath("../Driver")
 position = Vector3(-21, 0, -33)
 rotation = Vector3(0, 3.1416, 0)
 stationary = true
+
+[node name="Drone" type="StaticBody3D" parent="Enemies"]
+script = ExtResource("drone")
+patrol_path = NodePath("../../PatrolPaths/DroneLoop")
 
 [node name="Technical" type="StaticBody3D" parent="Enemies"]
 position = Vector3(-58, 0, 26)

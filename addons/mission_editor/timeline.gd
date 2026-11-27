@@ -36,7 +36,7 @@ const COLORS := {
 static func movers(root: Node) -> Array[Node3D]:
 	var found: Array[Node3D] = []
 	for node in root.find_children("*", "", true, true):
-		if node is Enemy or node is Technical or node is EnemyAircraft:
+		if node is Enemy or node is Technical or node is EnemyAircraft or node is SurveillanceDrone:
 			var path := Gizmos.patrol_of(node)
 			if path and path.curve and path.curve.point_count >= 2:
 				found.append(node)
@@ -50,7 +50,7 @@ static func kind(node: Node) -> String:
 		return "enemy"
 	if node is Technical:
 		return "technical"
-	if node is EnemyAircraft:
+	if node is EnemyAircraft or node is SurveillanceDrone:
 		return "aircraft"
 	if node is Passerby:
 		return "passerby"
@@ -224,8 +224,8 @@ static func ghost(node: Node3D, night: bool) -> Node3D:
 		var config := Coverage.config_of(node, night)
 		if config:
 			holder.add_child(_cone(config))
-	if node is EnemyAircraft:
-		var radius := EnemyAircraft.NIGHT_RADIUS if night else EnemyAircraft.DAY_RADIUS
+	if node is EnemyAircraft or node is SurveillanceDrone:
+		var radius := SurveillanceDrone.FOOTPRINT if node is SurveillanceDrone else (EnemyAircraft.NIGHT_RADIUS if night else EnemyAircraft.DAY_RADIUS)
 		var disc := MeshInstance3D.new()
 		var cylinder := CylinderMesh.new()
 		cylinder.top_radius = radius

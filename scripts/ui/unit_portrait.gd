@@ -171,6 +171,8 @@ func _refresh() -> void:
 		gear.append("Lampe allumée" if _unit.using_secondary else "Lampe (arme de poing)")
 	if _unit.tasers > 0:
 		gear.append("Taser %d" % _unit.tasers)
+	if _unit.jammers > 0:
+		gear.append("Brouilleur %d" % _unit.jammers)
 	if _unit.launcher_grenades > 0:
 		gear.append("40 mm %d" % _unit.launcher_grenades)
 	if _unit.launcher_smoke > 0:

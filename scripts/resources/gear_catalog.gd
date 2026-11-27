@@ -334,6 +334,7 @@ const EQUIPMENT: Dictionary = {
 	&"launcher_smoke": {"name": "Obus fumigènes de 40 mm (M320)", "max": 3},
 	&"launcher_gas": {"name": "Obus lacrymogènes de 40 mm (M320)", "max": 3},
 	&"taser": {"name": "Taser (cartouches)", "max": 2},
+	&"jammer": {"name": "Brouilleur de drones (charges)", "max": 2},
 }
 
 ## Lance-grenades M320 : monté sous le garde-main de ces armes principales,
@@ -353,7 +354,7 @@ const WEIGHTS: Dictionary = {
 	&"helmet": 1.4, &"nvg": 0.75, &"headset": 0.3, &"vest": 3.0, &"backpack": 4.0,
 	&"radio": 1.0, &"knee_pads": 0.4, &"balaclava": 0.0, &"sunglasses": 0.05,
 	&"throwing_knives": 0.3, &"grenades": 0.6, &"smoke_grenades": 0.5, &"stun_grenades": 0.4, &"explosives": 2.0, &"medkit": 1.5,
-	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9, &"launcher_grenades": 0.25, &"launcher_smoke": 0.25, &"launcher_gas": 0.25, &"taser": 0.3, &"thermal_scope": 0.7,
+	&"shield": 7.0, &"grapnel": 2.5, &"hatchet": 0.9, &"launcher_grenades": 0.25, &"launcher_smoke": 0.25, &"launcher_gas": 0.25, &"taser": 0.3, &"jammer": 0.8, &"thermal_scope": 0.7,
 }
 ## Paliers de charge : jusqu'à `limit` kg, vitesses multipliées par `speed` ;
 ## le palier lourd fait du bruit en courant (`noise`, rayon en m). Au-delà de

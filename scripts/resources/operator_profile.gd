@@ -89,6 +89,8 @@ const DEFAULTS: Array[Dictionary] = [
 @export var thermal_scope: bool = false
 ## Taser : nombre de cartouches (un tir chacune) ; le garde touché s'effondre.
 @export var taser: int = 0
+## Brouilleur : nombre de charges ; chacune aveugle les drones proches.
+@export var jammer: int = 0
 
 ## Spécialité (`GearCatalog.SPECIALTIES`) : petit bonus en mission.
 @export var specialty: StringName = &"none"
@@ -106,7 +108,7 @@ const OUTFIT_KEYS: Array[String] = [
 	"clothing", "sunglasses", "camo", "pants_camo", "vest_camo", "headwear_camo", "top_color", "pants_color", "vest_color", "headwear_color", "headwear",
 	"balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads",
 	"primary", "secondary", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
-	"launcher_grenades", "launcher_smoke", "launcher_gas", "taser", "thermal_scope",
+	"launcher_grenades", "launcher_smoke", "launcher_gas", "taser", "jammer", "thermal_scope",
 ]
 ## Propriétés copiées vers les autres opérateurs (« même tenue ») : camouflage,
 ## couleurs, couvre-chef et accessoires, sans l'armement.
@@ -119,7 +121,7 @@ const _COLOR_KEYS: Array[String] = ["top_color", "pants_color", "vest_color", "h
 const _NAME_KEYS: Array[String] = ["body", "clothing", "camo", "pants_camo", "vest_camo", "headwear_camo", "nose", "jaw", "eyes", "scar", "face_paint", "hair_style", "beard", "headwear", "primary", "secondary", "specialty"]
 const _BOOL_KEYS: Array[String] = ["balaclava", "nvg", "headset", "vest", "backpack", "radio", "knee_pads", "sunglasses", "thermal_scope"]
 const _INT_KEYS: Array[String] = ["skin", "hair_color", "throwing_knives", "grenades", "smoke_grenades", "stun_grenades", "explosives", "medkit", "shield", "grapnel", "hatchet",
-	"launcher_grenades", "launcher_smoke", "launcher_gas", "taser"]
+	"launcher_grenades", "launcher_smoke", "launcher_gas", "taser", "jammer"]
 
 
 ## Profil par défaut de l'opérateur numéro `index` (0 à 2).

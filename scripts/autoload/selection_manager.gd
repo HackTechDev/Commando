@@ -436,6 +436,16 @@ func use_medkit() -> bool:
 	return false
 
 
+## Brouilleur de drones : le premier opérateur sélectionné qui en a un.
+func use_jammer() -> bool:
+	for unit in _by_index():
+		if not unit.is_dead and unit.jammers > 0:
+			return unit.use_jammer()
+	if not selected.is_empty():
+		selected[0].use_jammer()
+	return false
+
+
 ## Fait lever le bouclier aux unités sélectionnées qui en ont un, ou le leur
 ## fait baisser s'il est déjà levé chez toutes. Renvoie vrai si au moins une
 ## a obéi.

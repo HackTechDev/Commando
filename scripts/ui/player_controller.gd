@@ -611,6 +611,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_feedback(SelectionManager.detonate_explosives() > 0)
 	elif event.is_action_pressed(&"action_medkit"):
 		_feedback(SelectionManager.use_medkit())
+	elif event.is_action_pressed(&"action_jammer"):
+		_feedback(SelectionManager.use_jammer())
 	elif event.is_action_pressed(&"action_taser"):
 		if pending_action == ACTION_TASER or SelectionManager.selected.any(func(unit: Commando) -> bool: return not unit.is_dead and unit.tasers > 0):
 			toggle_pending_action(ACTION_TASER)

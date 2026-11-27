@@ -92,7 +92,7 @@ Principe de la pose :
 
 Les éléments « tracés » (mur, route, trottoir, piste, voiture) se posent en **deux clics** : le début, puis la fin. Entre les deux, la vue affiche le tracé et sa longueur.
 
-Les rondes (garde en ronde, pick-up armé, avion ennemi) et les passants se tracent **point par point** : un clic par point, puis **double-clic** ou **Entrée** pour finir. **Retour arrière** retire le dernier point ; **clic droit** ou **Échap** abandonne le tracé en cours (un second clic droit arrête l'outil). La vue affiche le tracé, le nombre de points et la longueur.
+Les rondes (garde en ronde, pick-up armé, avion ennemi, drone) et les passants se tracent **point par point** : un clic par point, puis **double-clic** ou **Entrée** pour finir. **Retour arrière** retire le dernier point ; **clic droit** ou **Échap** abandonne le tracé en cours (un second clic droit arrête l'outil). La vue affiche le tracé, le nombre de points et la longueur.
 
 La case **Grille de 0,5 m** aimante les points posés. La case **Sur les toits et les étages** pose sur la surface visée : toit d'un bâtiment, étage ou toit d'un immeuble, dessus d'un mur. Les murs eux-mêmes sont traversés. Décochée, tout se pose au sol. Revêtements, bâtiments, buissons, barrières, aire de poser et civils vont toujours au sol. Le second point d'un tracé reste à la hauteur du premier : une ronde commencée sur un toit y reste. Chaque pose est une action annulable (Ctrl+Z) et l'élément posé est sélectionné : ses réglages fins sont dans l'inspecteur.
 
@@ -260,6 +260,7 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | Ennemis | Garde posté | 1 clic | `Enemies` | |
 | | Garde en ronde, Pick-up armé | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Chemin `RouteN` créé avec lui. |
 | | Avion ennemi | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Survole son chemin à `altitude` m (25 par défaut), montré au premier point. |
+| | Drone de surveillance | Un clic par point, double-clic ou Entrée | `Enemies` + `PatrolPaths` | Survole son chemin à `altitude` m (12 par défaut), caméra vers le bas (disque de 8 m) ; abattu au tir libre, figé par le brouilleur. Refermez la boucle sur le premier point. |
 | Événements | Renforts | 1 clic | `Enemies` | Point d'arrivée ; cible (`target`) : le dépôt de la carte, sinon la première cible de sabotage, sinon la zone qui les appelle. Réglages dans la section Événements. |
 | | Pick-up qui arrive | 1 clic | `Enemies` | Renforts réduits à un pick-up armé, sans annonce, 8 s après le déclenchement ; à relier à une zone. |
 | | Zone de déclenchement | 2 clics (coins) | `Triggers` | Appelle l'événement choisi quand un opérateur y entre (une fois). Coins à poignées. |

@@ -55,6 +55,7 @@ const SECTIONS: Array = [
 		[[&"action_detonate"], "Mise à feu des charges"],
 		[[&"action_medkit"], "Soigner"],
 		[[&"action_taser"], "Taser (5 m), puis clic gauche sur l'ennemi"],
+		[[&"action_jammer"], "Brouilleur : aveugle et fige 15 s les drones à moins de 25 m"],
 		[[&"action_crate"], "Pousser / tirer une caisse"],
 		[[[&"action_variant", &"action_crate"]], "Faire pivoter la caisse tenue (45°)"],
 		[[&"action_grapple"], "Grappin, puis clic sur un point en hauteur"],

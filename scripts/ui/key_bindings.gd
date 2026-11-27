@@ -36,7 +36,7 @@ const GROUPS: Array = [
 		[&"action_plant", "Poser une charge (Maj : à retardement)"], [&"action_detonate", "Mise à feu"],
 	]],
 	["Équipement", [
-		[&"action_medkit", "Soigner"], [&"action_grapple", "Grappin"], [&"action_taser", "Taser"],
+		[&"action_medkit", "Soigner"], [&"action_grapple", "Grappin"], [&"action_taser", "Taser"], [&"action_jammer", "Brouilleur de drones"],
 		[&"action_shield", "Bouclier"], [&"toggle_nvg", "Jumelles, vue thermique"],
 	]],
 	["Partie", [

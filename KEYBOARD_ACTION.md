@@ -6,7 +6,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 
 ## 1. Inventaire actuel
 
-### Lettres (20 prises ; H, J, M, O, U et W libres)
+### Lettres (21 prises ; J, M, O, U et W libres)
 
 | Touche | Action | Usage en mission |
 |---|---|---|
@@ -24,6 +24,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 | K (Maj : à retardement) / L | Poser une charge / la faire sauter | Occasionnel |
 | P (Maj : tourner) | Caisse | Occasionnel |
 | I | Parer | Réflexe (au bon moment) |
+| H | Brouilleur de drones | Rare |
 
 ### Ponctuation, chiffres et touches spéciales
 
@@ -50,7 +51,7 @@ Les touches sont définies par position physique (`project.godot`, section `[inp
 - **)** et **=** (à droite de 0).
 - **^** et **$** (à droite de P), **;** (libéré par le cycle des grenades).
 - **F4 à F12**.
-- **H**, **O** et **M** (menus passés sur F1 à F3), **J**, **U** et **W** (équipement rare passé sur 7 à 0) : en réserve pour les prochaines actions de mission.
+- **O** et **M** (menus passés sur F1 à F3), **J**, **U** et **W** (équipement rare passé sur 7 à 0) : en réserve pour les prochaines actions de mission. **H** est passé au brouilleur de drones.
 - **Inser**, **Suppr**, **Fin**, **Retour arrière**.
 - Boutons latéraux de la souris (4 et 5 de Godot, à ne pas confondre avec la molette), molette avec Maj ou Ctrl.
 - **Alt**, à éviter pour les actions fréquentes : le système l'intercepte souvent (menus, gestionnaire de fenêtres sous Linux).

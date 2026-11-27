@@ -66,7 +66,7 @@ func _get_gizmo_name() -> String:
 
 
 func _has_gizmo(node: Node3D) -> bool:
-	return node is Enemy or node is Passerby or node is TrafficCar or node is Sabre or node is Technical or node is EnemyAircraft or node is CameraRig or node is TriggerZone or node is Reinforcements
+	return node is Enemy or node is Passerby or node is TrafficCar or node is Sabre or node is Technical or node is EnemyAircraft or node is SurveillanceDrone or node is CameraRig or node is TriggerZone or node is Reinforcements
 
 
 func _redraw(gizmo: EditorNode3DGizmo) -> void:
@@ -151,7 +151,7 @@ static func patrol_of(node: Node) -> Path3D:
 ## La ronde revient-elle au premier point en marchant (garde, pick-up) ?
 ## L'avion, lui, reprend son trajet au début.
 static func patrol_loops(node: Node) -> bool:
-	return not node is EnemyAircraft
+	return not (node is EnemyAircraft or node is SurveillanceDrone)
 
 
 func _draw_patrol(gizmo: EditorNode3DGizmo, node: Node3D) -> void:

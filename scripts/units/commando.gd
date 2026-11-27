@@ -197,6 +197,8 @@ var launcher_smoke: int = 0
 var launcher_gas: int = 0
 ## Cartouches de Taser restantes.
 var tasers: int = 0
+## Charges de brouilleur restantes (`use_jammer`).
+var jammers: int = 0
 ## Corps porté sur les épaules (`carry_body`), ou null.
 var carried_body: Enemy
 var explosives: int = 0
@@ -249,6 +251,8 @@ const BLEND_MISMATCH := 0.6
 ## Repérage en uniforme ennemi (`disguised`), tant qu'il en a l'air
 ## (`passes_as_guard`) : les soldats le repèrent bien plus lentement.
 const BLEND_DISGUISE := 0.3
+## Portée du brouilleur de drones (m, en distance réelle, altitude comprise).
+const JAMMER_RANGE := 25.0
 ## Blessé (`is_limping`) : il boite (marche, course, accroupi) et rampe
 ## moins vite, jusqu'aux soins.
 const WOUNDED_SPEED := 0.8
@@ -331,6 +335,7 @@ func _ready() -> void:
 	launcher_smoke = stats.launcher_smoke
 	launcher_gas = stats.launcher_gas
 	tasers = stats.tasers
+	jammers = stats.jammers
 	hatchets = stats.hatchets
 	# Charges fournies par la mission, en plus de l'équipement choisi.
 	explosives = stats.explosives + mission_explosives
@@ -521,6 +526,7 @@ func _equip(weapon: UnitStats, operator: OperatorProfile) -> UnitStats:
 	weapon.launcher_smoke = operator.launcher_smoke
 	weapon.launcher_gas = operator.launcher_gas
 	weapon.tasers = operator.taser
+	weapon.jammers = operator.jammer
 	weapon.hatchets = operator.hatchet
 	weapon.explosives = operator.explosives
 	weapon.medkits = operator.medkit
@@ -1353,6 +1359,27 @@ func use_medkit() -> bool:
 	return true
 
 
+## Brouilleur : aveugle et fige `SurveillanceDrone.JAM_TIME` s les drones à
+## moins de `JAMMER_RANGE` m. Une charge, même sans drone à portée (refusé
+## sans charge). Renvoie vrai si la charge est partie.
+func use_jammer() -> bool:
+	if is_dead or jammers <= 0:
+		if not is_dead:
+			flash_message("Pas de brouilleur (à équiper : écran Opérateurs)")
+		return false
+	jammers -= 1
+	var hit := 0
+	for node in get_tree().get_nodes_in_group(SurveillanceDrone.GROUP):
+		var drone := node as SurveillanceDrone
+		if drone and not drone.destroyed and drone.global_position.distance_to(global_position) <= JAMMER_RANGE:
+			drone.jam()
+			hit += 1
+	flash_message("Brouilleur : %s" % ("%d drone(s) aveuglé(s)" % hit if hit > 0 else "aucun drone à portée"))
+	Sfx.play_at(&"zap", global_position + Vector3.UP, -8.0)
+	EventBus.unit_ammo_changed.emit(self)
+	return true
+
+
 ## Vrai pendant des soins.
 func is_healing() -> bool:
 	return _gesture is HealGesture
@@ -2121,7 +2148,7 @@ func missing_supplies() -> Dictionary:
 		missing["munitions"] = reserve
 	for entry: Array in [["grenades", gear.grenades - grenades], ["fumigènes", gear.smoke_grenades - smoke_grenades], ["assourdissantes", gear.stun_grenades - stun_grenades],
 			["obus de 40 mm", gear.launcher_grenades - launcher_grenades], ["obus fumigènes", gear.launcher_smoke - launcher_smoke],
-			["obus lacrymogènes", gear.launcher_gas - launcher_gas], ["cartouches de Taser", gear.tasers - tasers],
+			["obus lacrymogènes", gear.launcher_gas - launcher_gas], ["cartouches de Taser", gear.tasers - tasers], ["charges de brouilleur", gear.jammers - jammers],
 			["trousses", gear.medkits - medkits], ["charges", gear.explosives + mission_explosives - explosives]]:
 		if int(entry[1]) > 0:
 			missing[entry[0]] = int(entry[1])
@@ -2146,6 +2173,7 @@ func resupply() -> Dictionary:
 	launcher_smoke = maxi(launcher_smoke, gear.launcher_smoke)
 	launcher_gas = maxi(launcher_gas, gear.launcher_gas)
 	tasers = maxi(tasers, gear.tasers)
+	jammers = maxi(jammers, gear.jammers)
 	medkits = maxi(medkits, gear.medkits)
 	explosives = maxi(explosives, gear.explosives + mission_explosives)
 	EventBus.unit_ammo_changed.emit(self)
@@ -2365,7 +2393,7 @@ func save_state() -> Dictionary:
 		"holstered_ammo": _holstered_ammo, "weapon_slung": weapon_slung, "shield_raised": shield_raised,
 		"evacuated": is_evacuated, "documents": has_documents,
 		"throwing_knives": throwing_knives, "grenades": grenades, "smoke_grenades": smoke_grenades, "stun_grenades": stun_grenades, "launcher_grenades": launcher_grenades,
-		"launcher_smoke": launcher_smoke, "launcher_gas": launcher_gas, "tasers": tasers, "hatchets": hatchets, "explosives": explosives,
+		"launcher_smoke": launcher_smoke, "launcher_gas": launcher_gas, "tasers": tasers, "jammers": jammers, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
 		"disguise": _disguise, "stamina": stamina, "winded": winded,
@@ -2417,6 +2445,7 @@ func load_state(data: Dictionary) -> void:
 	launcher_smoke = data.get("launcher_smoke", launcher_smoke)
 	launcher_gas = data.get("launcher_gas", launcher_gas)
 	tasers = data.get("tasers", tasers)
+	jammers = data.get("jammers", jammers)
 	hatchets = data.get("hatchets", hatchets)
 	explosives = data.get("explosives", explosives)
 	medkits = data.get("medkits", medkits)
