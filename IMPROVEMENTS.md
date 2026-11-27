@@ -26,7 +26,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **h)** centre de commandement mobile (`CommandCenter`), suite : aujourd'hui décor fixe en deux versions. Le déployer ou le replier en cours de mission (flancs, vérins), le faire rouler replié, et lui donner de vraies lumières pour les cartes de nuit.
 - **2.17 Véhicules aériens** :
   - **a)** hélicoptère de patrouille ennemi : survol et vol stationnaire, cône de projecteur au sol la nuit, appelé par une alerte ;
-  - **c)** avion de transport au sol (base aérienne) : cachette dans la soute, sabotage, ou moyen d'extraction ;
+  - **c)** avion de transport au sol (base aérienne) : sabotage, ou moyen d'extraction (le Mantis, décor fixe, offre déjà une soute praticable où cacher un corps ; voir 10.5) ;
   - **d)** parachutage d'ouverture : zone d'atterrissage choisie en début de mission, dispersion selon le vent (`LevelRoot.wind`) ;
   - **e)** ballon captif d'observation : poste de guet très haut, qu'on fait tomber en coupant son câble ;
   - **f)** drone, suite : bourdonnement audible à quelques mètres, drone armé ou qui suit un opérateur repéré, station de recharge à saboter.
@@ -104,7 +104,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** l'état allumé ou éteint de la lampe du HK45 (`Commando.lamp_on`) n'est pas sauvegardé ; au chargement, elle est toujours éteinte ;
   - **b)** une mission de garde en cours (`EnemyErrand` : ampoule à changer, relève, poste muet à visiter) est rechargée comme un simple retour : la tâche est perdue ;
   - **c)** les annonces de l'aube déjà faites (`DayCycle`) et le retour à pied d'un garde posté (`Enemy.walking_home`) ne sont pas gardés.
-- **7.15 Heure qui avance, suite** (10.3) : les véhicules et appareils (phares du Sabre, pick-up, hexapode, avion ennemi et son projecteur, feux du convertible) et les mines lisent jour ou nuit au chargement seulement ; les faire basculer à l'aube et au crépuscule. Éteindre les lampadaires le jour.
+- **7.15 Heure qui avance, suite** (10.3) : les véhicules et appareils (phares du Sabre, pick-up, hexapode, avion ennemi et son projecteur, feux du convertible) et les mines lisent jour ou nuit au chargement seulement ; les faire basculer à l'aube et au crépuscule. Éteindre les lampadaires le jour, ainsi que les plafonniers de la soute du Mantis (allumés en permanence, `hold_lights`).
 
 ## 8. Éditeur de mission
 
@@ -117,10 +117,14 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification ;
   - **b)** trajets de l'avion ennemi et du drone : ils ne se referment pas d'eux-mêmes (l'appareil saute du dernier point au premier). Les refermer à la pose, ou signaler un trajet ouvert dans la vérification.
 - **8.6 Événements des gardes dans l'éditeur** : relève (`GuardRelief`), radio (`GuardRadio`) et paires qui discutent (`talk_partner`) se règlent aujourd'hui à la main dans l'inspecteur. Les ajouter à la palette, montrer leurs liens dans la vue 3D (poste et remplaçant, postes appelés, paires) et les vérifier (garde manquant, remplaçant trop loin).
+- **8.8 Coupe dans l'éditeur** : la vue 3D de l'éditeur montre toujours le toit du Mantis (et les étages des immeubles) ; la visée le traverse, mais on pose dans la soute sans la voir. Afficher la coupe dans l'éditeur au survol, ou par un bouton du dock.
 
 ## 10. Missions et campagne
 
 - **10.1 Campagne** : carte d'opérations où les missions s'enchaînent ; opérateurs perdus pour de bon, matériel récupéré.
 - **10.2 Objectifs secondaires et notation** : aucun mort, aucune alerte, temps limite, documents en bonus ; note en fin de mission.
 - **10.4 Rondes tirées au hasard** : même carte, gardes et rondes différents à chaque partie (graine de `GameRng`), pour la rejouabilité.
-- **10.5 Mantis, suite** : rampe que l'on abaisse et relève en jeu (tableau près de la porte), décollage du Mantis comme extraction (la soute embarque véhicules et opérateurs), arrivée du Mantis en cours de mission avec des renforts qui descendent la rampe.
+- **10.5 Mantis, suite** :
+  - **a)** rampe que l'on abaisse et relève en jeu (tableau près de la porte), décollage du Mantis comme extraction (la soute embarque véhicules et opérateurs), arrivée du Mantis en cours de mission avec des renforts qui descendent la rampe ;
+  - **b)** les plafonniers de la soute et les feux de l'appareil ne comptent pas comme des lampes (`StreetLamp`) : un opérateur dans la soute éclairée n'est pas plus visible la nuit, et on ne peut pas les briser ;
+  - **c)** la cabine de pilotage est un bloc plein : la rendre praticable (sièges, poste de pilotage, porte depuis la soute), avec un objectif « documents de vol » ou « journal de bord ».
