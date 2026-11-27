@@ -85,6 +85,7 @@ point_count = 5
 [node name="Night" type="Node3D" unique_id=1962777372]
 script = ExtResource("1")
 night = true
+time_flow = 0.25
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1030348743]
 environment = SubResource("env")

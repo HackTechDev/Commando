@@ -1771,3 +1771,11 @@
 - Nouvelle activité des gardes, la mission (`EnemyErrand`, `Enemy.send_on_errand`) : aller à un point (même un garde posté), y travailler, puis rentrer ou y prendre son poste. Elle servira aussi à la relève et à la radio. Le poste du garde est sauvegardé.
 - Portée de la vue des gardes recalculée en jeu (`Enemy._refresh_sight`, `LevelRoot.darkness_of`), en vue de l'heure qui avance.
 - État des ampoules dans la sauvegarde rapide. Test : `tests/levels/test_street_lamps.gd`.
+
+## Heure qui avance (point 10.3)
+
+- Réglage `time_flow` de la carte (minutes de mission par seconde de jeu) : l'heure de la mission avance (`OperationClock.current_hour`, affichée sous la durée dans le HUD) et un `DayCycle` en tire l'obscurité : pleine nuit de 20:00 à 05:00, aube de 05:00 à 06:30, crépuscule de 18:30 à 20:00.
+- Le soleil et le ciel passent des teintes de nuit à celles du jour (orangées à l'aube et au crépuscule) ; la portée de la vue des gardes suit l'obscurité ; les jumelles se relèvent au lever du jour et s'abaissent à la tombée de la nuit.
+- Annonces radio 30 et 10 minutes avant l'aube, puis au lever du jour ; nouveau bandeau des messages radio dans le HUD (`RadioLog`, signal `EventBus.radio_message`), qui servira aussi à la relève et à la radio des gardes.
+- Objectif bonus `before_dawn` (« repartir avant l'aube »), manqué quand le jour se lève, proposé par l'éditeur de mission.
+- « Nuit sans lune » : départ à 01:45, l'heure avance au quart (aube après 13 minutes de jeu), bonus avant l'aube. Test : `tests/levels/test_day_cycle.gd`.

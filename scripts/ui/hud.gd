@@ -46,6 +46,7 @@ var end_screen: EndScreen
 var objectives: Objectives
 var objectives_panel: ObjectivesPanel
 var minimap: Minimap
+var radio_log: RadioLog
 var options: OptionsPanel
 ## Date et heure de l'opération, et chronomètre (en haut à droite, avant
 ## l'alerte).
@@ -134,6 +135,8 @@ func _ready() -> void:
 ## droite, et la minicarte en haut à gauche.
 func _build_mission_panels() -> void:
 	_build_operation_clock()
+	radio_log = RadioLog.new()
+	_controller.add_child(radio_log)
 	var level := get_parent() as Node3D
 	var key := ""
 	if level is LevelRoot:
@@ -180,6 +183,8 @@ func _update_operation_clock() -> void:
 	operation_label.get_parent().visible = clock != null
 	if clock:
 		operation_label.text = "Opération du %s\nDurée  %s" % [clock.date_text(), clock.duration_text()]
+		if clock.time_flow > 0.0:
+			operation_label.text += "\nHeure  %s" % clock.hour_text()
 
 
 func _process(_delta: float) -> void:

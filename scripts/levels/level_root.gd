@@ -23,6 +23,12 @@ const MAP_SYNC_RETRY_FRAMES := 20
 ## mission (réception, rue animée…). Un opérateur en tenue civile s'y fond
 ## dans la foule (`Commando.blend_factor`).
 @export var dress_code: StringName = &""
+## Heure qui avance (`DayCycle`) : minutes de mission par seconde de jeu
+## (0 : l'heure ne bouge pas). Lumière, nuit (`darkness`) et vue des
+## gardes suivent l'heure de la mission (`MissionInfo.time`).
+@export_range(0.0, 10.0, 0.05, "or_greater") var time_flow: float = 0.0
+## Cycle du jour (`time_flow` > 0), sinon null.
+var day_cycle: DayCycle
 ## Vent (m/s, à plat) : les nuages de fumigène dérivent avec lui.
 @export var wind := Vector3(0.45, 0.0, 0.2)
 ## Part de la portée de vue lointaine des ennemis qui reste la nuit.
@@ -62,7 +68,11 @@ func _ready() -> void:
 	# Date, heure et durée de l'opération.
 	var clock := OperationClock.new()
 	clock.setup(LevelCatalog.find(level_key()))
+	clock.time_flow = time_flow
 	add_child(clock)
+	if time_flow > 0.0:
+		day_cycle = DayCycle.new(self)
+		add_child(day_cycle)
 	_loading_screen = LoadingScreen.new(LevelCatalog.title_of(scene_file_path))
 	add_child(_loading_screen)
 	_was_paused = get_tree().paused
@@ -112,6 +122,8 @@ static func darkness_of(node: Node) -> float:
 
 ## Obscurité de cette carte : 0 de jour, 1 en pleine nuit.
 func darkness() -> float:
+	if day_cycle:
+		return day_cycle.darkness
 	return 1.0 if night else 0.0
 
 

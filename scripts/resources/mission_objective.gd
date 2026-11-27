@@ -12,12 +12,12 @@ const KNOWN_IDS: Array[String] = [
 	"all_enemies_down", "no_operator_lost", "no_alert", "vip_alive",
 	"vip_extracted", "extracted", "documents", "sabotage", "depot",
 	"aircraft_destroyed", "raid_in_time", "sabre_rally", "sabre_extracted",
-	"heli_hover", "heli_rappel",
+	"heli_hover", "heli_rappel", "before_dawn",
 	"tuto_move", "tuto_run", "tuto_climb", "tuto_melee", "tuto_shoot",
 	"tuto_sniper", "tuto_stealth", "tuto_end",
 ]
 
-@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, "all_enemies_down,no_operator_lost,no_alert,vip_alive,vip_extracted,extracted,documents,sabotage,depot,aircraft_destroyed,raid_in_time,sabre_rally,sabre_extracted,heli_hover,heli_rappel,tuto_move,tuto_run,tuto_climb,tuto_melee,tuto_shoot,tuto_sniper,tuto_stealth,tuto_end")
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, "all_enemies_down,no_operator_lost,no_alert,vip_alive,vip_extracted,extracted,documents,sabotage,depot,aircraft_destroyed,raid_in_time,sabre_rally,sabre_extracted,heli_hover,heli_rappel,before_dawn,tuto_move,tuto_run,tuto_climb,tuto_melee,tuto_shoot,tuto_sniper,tuto_stealth,tuto_end")
 var id: String = ""
 @export var text: String = ""
 

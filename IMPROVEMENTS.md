@@ -118,5 +118,4 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
 
 - **10.1 Campagne** : carte d'opérations où les missions s'enchaînent ; opérateurs perdus pour de bon, matériel récupéré.
 - **10.2 Objectifs secondaires et notation** : aucun mort, aucune alerte, temps limite, documents en bonus ; note en fin de mission.
-- **10.3 Heure qui avance** : lumière et vue des gardes évoluent pendant la mission ; agir avant l'aube.
 - **10.4 Rondes tirées au hasard** : même carte, gardes et rondes différents à chaque partie (graine de `GameRng`), pour la rejouabilité.

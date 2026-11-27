@@ -16,6 +16,9 @@ signal mission_ended(success: bool, message: String)
 signal noise_emitted(position: Vector3, radius: float, type: StringName)
 ## Un obstacle (caisse) a été déplacé : la navigation doit être recalculée.
 signal navigation_obstacle_moved
+## Message radio affiché dans le HUD (`RadioLog`) : aube, relève, poste
+## muet.
+signal radio_message(text: String)
 ## Porte ouverte, fermée ou détruite : la vue change, pas la navigation.
 signal sight_blockers_changed
 @warning_ignore_restore("unused_signal")

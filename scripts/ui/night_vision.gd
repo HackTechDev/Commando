@@ -116,6 +116,15 @@ func _ready() -> void:
 	set_active.call_deferred(night and is_available())
 
 
+## La nuit tombe ou le jour se lève (`DayCycle`) : jumelles abaissées ou
+## relevées d'office, gain du filtre adapté.
+func set_night(value: bool) -> void:
+	night = value
+	(_filter.material as ShaderMaterial).set_shader_parameter(&"gain", NIGHT_GAIN if night else DAY_GAIN)
+	if night != active:
+		set_active(night)
+
+
 ## Vrai si un opérateur vivant porte des JVN.
 func is_available() -> bool:
 	for node in get_tree().get_nodes_in_group(&"commandos"):

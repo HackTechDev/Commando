@@ -15,6 +15,8 @@ var elapsed: float = 0.0
 ## vides : celles du lancement.
 var mission_date: String = ""
 var mission_time: String = ""
+## Minutes de mission par seconde de jeu (`LevelRoot.time_flow`).
+var time_flow: float = 0.0
 
 
 func _init() -> void:
@@ -50,6 +52,30 @@ func date_text() -> String:
 	var day := mission_date if MissionInfo.is_date(mission_date) else "%02d/%02d/%04d" % [local["day"], local["month"], local["year"]]
 	var hour := mission_time if MissionInfo.is_time(mission_time) else "%02d:%02d" % [local["hour"], local["minute"]]
 	return "%s à %s" % [day, hour]
+
+
+## Heure de la mission maintenant (décimale, 0 à 24) : celle du départ
+## (`mission_time`, sinon le lancement) plus la durée écoulée, accélérée de
+## `time_flow` (minutes de mission par seconde de jeu ; 0 : l'heure ne
+## bouge pas).
+func current_hour() -> float:
+	return fposmod(start_hour() + elapsed * time_flow / 60.0, 24.0)
+
+
+## Heure du départ (décimale).
+func start_hour() -> float:
+	if MissionInfo.is_time(mission_time):
+		var parts := mission_time.split(":")
+		return parts[0].to_float() + parts[1].to_float() / 60.0
+	var bias := int(Time.get_time_zone_from_system().get("bias", 0))
+	var local := Time.get_datetime_dict_from_unix_time(started_unix + bias * 60)
+	return float(local["hour"]) + float(local["minute"]) / 60.0
+
+
+## « 04:37 » : heure de la mission maintenant.
+func hour_text() -> String:
+	var minutes := int(current_hour() * 60.0)
+	return "%02d:%02d" % [minutes / 60, minutes % 60]
 
 
 ## Durée de l'opération, « 00:05:12 ».

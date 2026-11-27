@@ -6,7 +6,8 @@ extends Node
 ## - `all_enemies_down` : plus aucun ennemi debout (morts ou inconscients) ;
 ## - conditions `vip_alive`, `no_operator_lost` : remplies à la réussite,
 ##   manquées à la mort d'un VIP ou d'un opérateur ;
-## - condition bonus `no_alert` : manquée dès que l'alerte est donnée.
+## - condition bonus `no_alert` : manquée dès que l'alerte est donnée ;
+## - bonus `before_dawn` : manqué quand le jour se lève (`DayCycle`).
 ## Tous les objectifs remplis : réussite ; une condition manquée : échec
 ## (`EventBus.mission_ended`, sauf si une autre source l'a déjà émis).
 
@@ -18,7 +19,7 @@ const CONDITIONS: Array[String] = ["vip_alive", "no_operator_lost", "no_alert"]
 ## Objectifs bonus : leur échec s'affiche mais ne bloque ni l'extraction ni
 ## la réussite (repartir avant l'arrivée des renforts, `Reinforcements` ;
 ## ne jamais donner l'alerte).
-const OPTIONAL: Array[String] = ["raid_in_time", "no_alert"]
+const OPTIONAL: Array[String] = ["raid_in_time", "no_alert", "before_dawn"]
 ## Intervalle de vérification des ennemis restants.
 const CHECK_INTERVAL := 0.5
 

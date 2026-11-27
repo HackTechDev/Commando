@@ -10,7 +10,7 @@ const OBJECTIVE_PROPERTIES: Array[StringName] = [
 	&"arrival_objective", &"stow_objective",
 ]
 ## Objectifs suivis par le jeu lui-même, sans cible sur la carte.
-const NO_TARGET: Array[String] = ["no_operator_lost", "no_alert"]
+const NO_TARGET: Array[String] = ["no_operator_lost", "no_alert", "before_dawn"]
 
 
 ## Identifiant d'objectif -> nœuds de `root` qui en sont la cible.
@@ -60,6 +60,7 @@ const SUGGESTED_TEXT := {
 	"depot": "Détruire le dépôt de carburant avec une charge",
 	"aircraft_destroyed": "Détruire le convertible (charge explosive) ou le voler",
 	"raid_in_time": "Bonus : repartir avant l'arrivée des renforts",
+	"before_dawn": "Bonus : repartir avant l'aube",
 	"sabre_rally": "Conduire le Sabre jusqu'au point de ralliement (drapeau)",
 	"sabre_extracted": "Faire monter le Sabre dans la soute du convertible d'extraction",
 	"heli_hover": "Monter en vol stationnaire avec un opérateur à bord",
