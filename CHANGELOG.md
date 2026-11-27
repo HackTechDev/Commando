@@ -1819,5 +1819,6 @@
 - Nouvel ennemi `SurveillanceDrone` : petit quadricoptère (modèle procédural : quatre rotors, caméra en boule, feu clignotant) en ronde aérienne sur un chemin, à 12 m. Sa caméra regarde droit vers le bas : un disque bleu de 8 m au sol, toits et hauteurs compris ; seuls un toit au-dessus de la tête, une cachette ou un surplomb en protègent. Un opérateur à découvert 1 s dans le disque est repéré : les gardes à 40 m accourent. Un opérateur déguisé qui passe pour un garde est ignoré.
 - Une balle (tir libre, clic sur le drone) l'abat : il tombe en tournoyant et s'écrase (bruit entendu à 14 m).
 - Nouvel équipement, le brouilleur de drones (2 charges au plus, 0,8 kg, écran des opérateurs) sur la touche H (`action_jammer`) : chaque charge aveugle et fige sur place 15 s les drones à moins de 25 m (feu orange clignotant, disque éteint), le temps de passer ou de l'abattre.
+- Bouton « Brouilleur [H] » dans la barre d'équipement du HUD : visible quand un opérateur sélectionné en emporte un, grisé quand les charges sont épuisées.
 - Éditeur de mission : « Drone de surveillance » dans la palette (catégorie Ennemis, ronde point par point), trajet vérifié, disque montré par l'animation de la carte.
 - « Centre mobile 07 » : un drone tourne au-dessus du centre déployé et du campement. Test : `tests/gameplay/test_surveillance_drone.gd`.

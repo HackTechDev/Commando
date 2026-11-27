@@ -22,6 +22,7 @@ const PORTRAIT_SCENE: PackedScene = preload("res://scenes/ui/unit_portrait.tscn"
 @onready var _stun: Button = %Stun
 @onready var _launcher: Button = %Launcher
 @onready var _taser: Button = %Taser
+@onready var _jammer: Button = %Jammer
 @onready var _launcher_smoke: Button = %LauncherSmoke
 @onready var _launcher_gas: Button = %LauncherGas
 @onready var _grapple: Button = %Grapple
@@ -94,6 +95,7 @@ func _ready() -> void:
 	_plant.tooltip_text = "Poser une charge (Maj : à retardement, %d s)" % int(ExplosiveCharge.TIMED_FUSE)
 	_detonate.pressed.connect(func() -> void: _controller._feedback(SelectionManager.detonate_explosives() > 0))
 	_medkit.pressed.connect(func() -> void: _controller._feedback(SelectionManager.use_medkit()))
+	_jammer.pressed.connect(func() -> void: _controller._feedback(SelectionManager.use_jammer()))
 	_weapon.pressed.connect(SelectionManager.switch_weapons)
 	_shield.pressed.connect(func() -> void: _controller._feedback(SelectionManager.toggle_shield()))
 	EventBus.unit_ammo_changed.connect(func(_unit: Node3D) -> void: _refresh_actions())
@@ -215,7 +217,7 @@ func _label_keys() -> void:
 		[_detonate, "Mise à feu", KeyNames.label(&"action_detonate")],
 		# Équipement rare : emplacements 7 à 0.
 		[_medkit, "Soigner", KeyNames.label(&"action_medkit")], [_grapple, "Grappin", KeyNames.label(&"action_grapple")],
-		[_taser, "Taser", KeyNames.label(&"action_taser")], [_shield, "Bouclier", KeyNames.label(&"action_shield")],
+		[_taser, "Taser", KeyNames.label(&"action_taser")], [_jammer, "Brouilleur", KeyNames.label(&"action_jammer")], [_shield, "Bouclier", KeyNames.label(&"action_shield")],
 		[_crouch, "Accroupi", KeyNames.label(&"posture_crouch")], [_prone, "Rampé", KeyNames.label(&"posture_prone")],
 		[_knife, "Couteau", KeyNames.label(&"action_knife")], [_knockout, "Assommer", KeyNames.label(&"action_knockout")],
 		[_throw, "Lancer", KeyNames.label(&"action_throw")], [_crate, "Caisse", KeyNames.label(&"action_crate")],
@@ -251,6 +253,8 @@ func _refresh_actions() -> void:
 	_taser.disabled = not selected.any(func(unit: Commando) -> bool: return unit.tasers > 0)
 	_taser.visible = selected.any(func(unit: Commando) -> bool: return unit.stats.tasers > 0 or unit.tasers > 0)
 	_taser.set_pressed_no_signal(_controller.pending_action == PlayerController.ACTION_TASER)
+	_jammer.disabled = not selected.any(func(unit: Commando) -> bool: return not unit.is_dead and unit.jammers > 0)
+	_jammer.visible = selected.any(func(unit: Commando) -> bool: return unit.stats.jammers > 0 or unit.jammers > 0)
 	# Lance-grenades : un bouton par type d'obus, affiché si un opérateur
 	# sélectionné en emporte.
 	for entry: Array in [[_launcher, Commando.SHELL_EXPLOSIVE], [_launcher_smoke, Commando.SHELL_SMOKE], [_launcher_gas, Commando.SHELL_GAS]]:

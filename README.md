@@ -56,7 +56,7 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Porter un corps (ennemi mort ou assommé) / le déposer | ! (touche à droite de « : » en AZERTY), puis clic gauche sur le corps ; de nouveau ! pour le déposer |
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
-| Brouilleur de drones (équipement, 2 charges au plus) : aveugle et fige 15 s les drones à moins de 25 m (ils font du surplace, plus faciles à abattre) | H |
+| Brouilleur de drones (équipement, 2 charges au plus) : aveugle et fige 15 s les drones à moins de 25 m (ils font du surplace, plus faciles à abattre) | H (ou bouton « Brouilleur » du HUD) |
 | Abattre un drone de surveillance : tir libre sur le drone (au silencieux, le bruit reste discret ; il s'écrase au sol) | Tir libre, puis clic sur le drone |
 | Taser (équipement, 2 cartouches au plus) : l'opérateur s'approche à 5 m et tire ; le garde touché s'effondre, inconscient 25 s, et peut être ligoté (sûr à moins de 2,5 m, 3 fois sur 4 au-delà) | 9, puis clic gauche sur l'ennemi |
 | Corps à corps au choix (assommer, couteau, hachette si équipée, balayage, projection, désarmer, bouclier humain, ligoter un ennemi assommé, revêtir son uniforme ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
