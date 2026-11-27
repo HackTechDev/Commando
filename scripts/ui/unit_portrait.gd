@@ -27,6 +27,11 @@ var _fill: StyleBoxFlat
 @onready var _no_knife: Label = %NoKnife
 ## Équipement restant (grenades, charges, trousses), sous la vie.
 var _gear: Label
+## Endurance (course, port d'un corps), sous la vie.
+var _stamina: ProgressBar
+var _stamina_fill: StyleBoxFlat
+const STAMINA_COLOR := Color(0.85, 0.75, 0.3)
+const WINDED_COLOR := Color(0.6, 0.45, 0.25)
 ## Visage 3D de l'opérateur (à gauche de l'en-tête), sa vue et son modèle.
 var _face: TextureRect
 var _face_view: SubViewport
@@ -47,6 +52,20 @@ func setup(unit: Commando) -> void:
 	_gear.modulate = Color(1, 1, 1, 0.75)
 	_gear.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$Rows.add_child(_gear)
+	_stamina = ProgressBar.new()
+	_stamina.name = "Stamina"
+	_stamina.show_percentage = false
+	_stamina.custom_minimum_size = Vector2(0, 4)
+	_stamina.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stamina.tooltip_text = "Endurance : la course et le port d'un corps l'épuisent"
+	_stamina_fill = StyleBoxFlat.new()
+	_stamina_fill.bg_color = STAMINA_COLOR
+	var back := StyleBoxFlat.new()
+	back.bg_color = Color(0, 0, 0, 0.35)
+	_stamina.add_theme_stylebox_override(&"fill", _stamina_fill)
+	_stamina.add_theme_stylebox_override(&"background", back)
+	$Rows.add_child(_stamina)
+	$Rows.move_child(_stamina, _health.get_index() + 1)
 	_build_face(unit)
 	_number.text = str(unit.unit_index)
 	_name.text = unit.display_name
@@ -101,6 +120,14 @@ func _gui_input(event: InputEvent) -> void:
 			rig.focus_on(_unit.global_position)
 
 
+func _process(_delta: float) -> void:
+	if _unit == null or _stamina == null:
+		return
+	_stamina.value = _unit.stamina * 100.0
+	_stamina_fill.bg_color = WINDED_COLOR if _unit.winded else STAMINA_COLOR
+	_stamina.visible = not (_unit.is_dead or _unit.is_evacuated) and _unit.stamina < 0.999
+
+
 func _on_unit_event(unit: Node3D) -> void:
 	if unit == _unit:
 		_refresh()
@@ -126,7 +153,7 @@ func _refresh() -> void:
 		modulate = Color(1.0, 1.0, 1.0, 0.45)
 		return
 	modulate = Color.WHITE
-	_status.text = POSTURE_NAMES[_unit.posture]
+	_status.text = POSTURE_NAMES[_unit.posture] + (" · boite" if _unit.is_limping() else "")
 	if _unit.is_reloading():
 		_ammo.text = "Rechargement…"
 	elif not _unit.has_ammo():

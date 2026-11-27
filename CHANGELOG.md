@@ -1806,3 +1806,10 @@
 - Un garde hors de combat (tué, assommé, saisi, emporté) ne répond pas : la radio ennemie, interceptée, le signale dans le bandeau radio, et le garde au calme le plus proche (80 m) part voir à son poste, puis fouille les alentours. Une seule fois par poste.
 - Un opérateur déguisé (uniforme ennemi, debout, au pas) à moins de 8 m du poste répond à sa place : rien ne se passe.
 - « Centre mobile 07 » : le promontoire, le pont, le toit et la coursive se signalent toutes les 90 s, la première fois à 50 s. Test : `tests/gameplay/test_guard_radio.gd`.
+
+## Blessures et fatigue (point 2.23)
+
+- Un opérateur sous 85 % de ses points de vie boite (`Commando.is_limping`, `SoldierModel.limp` : la hanche plonge à chaque appui) : marche, course et accroupi à 80 % de la vitesse, rampé à 60 %, jusqu'à ce qu'une trousse le soigne. Le portrait affiche « boite ».
+- Les blessures se gardent d'une mission à l'autre : à la réussite d'une mission, les points de vie manquants sont enregistrés dans le profil (`OperatorProfile.wound`) et retirés au départ suivant (35 % des points de vie au moins). L'écran des opérateurs le rappelle. Un échec ne garde rien.
+- Endurance : 30 s de course ou 45 s à porter un corps la vident ; à zéro, l'opérateur ne court plus avant d'avoir repris son souffle (20 s au pas ou à l'arrêt pour la remplir). Petite jauge sous la vie dans le portrait, quand elle n'est pas pleine.
+- Endurance et souffle gardés par la sauvegarde rapide. Test : `tests/gameplay/test_wounds_fatigue.gd`.

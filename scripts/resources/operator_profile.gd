@@ -56,6 +56,9 @@ const DEFAULTS: Array[Dictionary] = [
 @export var sunglasses: bool = false
 ## Tenue (`GearCatalog.CLOTHING`) : treillis ou tenue civile.
 @export var clothing: StringName = &"uniform"
+## Blessure gardée d'une mission à l'autre : points de vie manquants au
+## départ, jusqu'à ce qu'une trousse le soigne en mission.
+@export var wound: float = 0.0
 
 # Armement.
 @export var primary: StringName = &"carbine"
@@ -244,6 +247,7 @@ func to_dict() -> Dictionary:
 	for key in _BOOL_KEYS + _INT_KEYS:
 		data[key] = get(key)
 	data["saved_outfits"] = saved_outfits.duplicate(true)
+	data["wound"] = wound
 	return data
 
 
@@ -290,6 +294,9 @@ static func from_dict(data: Dictionary, index: int) -> OperatorProfile:
 			profile.set(key, clampi(int(value), 0, limits[key]))
 	if profile.callsign.is_empty():
 		profile.callsign = defaults(index).callsign
+	var wound: Variant = data.get("wound")
+	if wound is int or wound is float:
+		profile.wound = clampf(float(wound), 0.0, 1000.0)
 	if data.get("saved_outfits") is Array:
 		for entry: Variant in data["saved_outfits"]:
 			if profile.saved_outfits.size() >= MAX_SAVED_OUTFITS:

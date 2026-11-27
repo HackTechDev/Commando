@@ -547,6 +547,9 @@ const PICKUP_HAND := Vector3(0.2, 0.15, -0.45)
 ## reconstruit le modèle.
 ## Pas de bruits de pas (aperçu de l'écran « Opérateurs »).
 var silent: bool = false
+## Boiterie (0 à 1) d'un blessé : à chaque pas sur la jambe touchée, la
+## hanche plonge et le buste penche.
+var limp: float = 0.0
 ## Éditeur Godot : la pose de repos est calculée une fois.
 var _editor_posed: bool = false
 ## Jumelles de vision nocturne abaissées devant les yeux (sinon relevées).
@@ -1373,6 +1376,12 @@ func _animate_alive(delta: float) -> void:
 		knee -= Vector2.ONE * 2.0 * _knee_bend(dip)
 		lean -= 0.85 * pickup
 		head_pitch += 0.35 * pickup
+	# Boiterie : la jambe droite porte mal, la hanche plonge à chaque appui.
+	if limp > 0.0 and not prone and moving > 0.05:
+		var hobble := maxf(-s, 0.0) * limp * moving
+		hips_y -= 0.07 * hobble
+		chest_roll += 0.16 * hobble
+		knee.y *= 1.0 - 0.6 * limp
 	# Garde : poids sur l'avant des pieds, genoux souples, léger rebond ;
 	# poings levés sans arme, arme en travers de la poitrine avec.
 	_guard = move_toward(_guard, 1.0 if guard_up and not prone and (not is_armed or _sling < 0.5) else 0.0, delta * 4.0)

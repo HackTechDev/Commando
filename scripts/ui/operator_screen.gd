@@ -117,6 +117,8 @@ var _crate: MeshInstance3D
 ## Contrôles des onglets, rafraîchis quand on change d'opérateur.
 var _name_edit: LineEdit
 var _callsign_edit: LineEdit
+## Blessure gardée de la dernière mission (`OperatorProfile.wound`).
+var _wound_info: Label
 var _option_buttons: Dictionary = {}
 var _checks: Dictionary = {}
 var _spins: Dictionary = {}
@@ -520,6 +522,9 @@ func _build_identity() -> Control:
 		var callsign := text.strip_edges()
 		profile().callsign = callsign if not callsign.is_empty() else OperatorProfile.defaults(current).callsign
 		_changed(false, "callsign"))
+	_wound_info = _note(box, "")
+	_wound_info.name = "WoundInfo"
+	_wound_info.add_theme_color_override(&"font_color", Color(0.95, 0.45, 0.35))
 	_option(box, "Spécialité", &"specialty", _names(GearCatalog.SPECIALTIES), &"full")
 	_specialty_info = _note(box, "")
 	var suggested := Button.new()
@@ -1049,6 +1054,8 @@ func _refresh_controls() -> void:
 		_name_edit.text = operator.name
 	if _callsign_edit.text != operator.callsign:
 		_callsign_edit.text = operator.callsign
+	_wound_info.visible = operator.wound > 0.0
+	_wound_info.text = "Blessé à la dernière mission : %d PV de moins au départ, il boite. Une trousse le soigne en mission." % roundi(operator.wound)
 	for key: StringName in _option_buttons:
 		var option: OptionButton = _option_buttons[key][0]
 		option.select((_option_buttons[key][1] as Array).find(operator.get(key)))

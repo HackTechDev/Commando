@@ -25,6 +25,9 @@ func before_each() -> void:
 	# Parade à la touche, comme par défaut (les tests de défense au hasard
 	# l'activent eux-mêmes).
 	Commando.auto_parry = false
+	# Pas de blessure gardée d'un test à l'autre (`OperatorProfile.wound`).
+	for operator in OperatorRoster.current().operators:
+		operator.wound = 0.0
 
 
 func after_each() -> void:

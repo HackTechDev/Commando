@@ -152,6 +152,9 @@ static var auto_parry: bool = false
 
 ## Personnalisation appliquée (null : réglages de la scène).
 var profile: OperatorProfile
+## Endurance (0 à 1), et essoufflé (plus de course).
+var stamina: float = 1.0
+var winded: bool = false
 ## En uniforme ennemi (`wear_disguise`), jusqu'à la fin de la mission.
 var disguised: bool = false
 ## Uniforme porté : couleurs et couvre-chef (`Enemy.strip_uniform`).
@@ -246,6 +249,22 @@ const BLEND_MISMATCH := 0.6
 ## Repérage en uniforme ennemi (`disguised`), tant qu'il en a l'air
 ## (`passes_as_guard`) : les soldats le repèrent bien plus lentement.
 const BLEND_DISGUISE := 0.3
+## Blessé (`is_limping`) : il boite (marche, course, accroupi) et rampe
+## moins vite, jusqu'aux soins.
+const WOUNDED_SPEED := 0.8
+const WOUNDED_CRAWL := 0.6
+const LIMP_SHARE := 0.85
+## Points de vie au départ d'une mission, au moins (part du maximum), même
+## avec une blessure gardée (`OperatorProfile.wound`).
+const MIN_START_HEALTH := 0.35
+## Endurance (0 à 1) : vidée en `STAMINA_RUN_TIME` s de course, en
+## `STAMINA_CARRY_TIME` s à porter un corps ; rendue en
+## `STAMINA_RECOVER_TIME` s au pas ou à l'arrêt. À zéro, il ne court plus
+## avant d'avoir repris `STAMINA_RESUME`.
+const STAMINA_RUN_TIME := 30.0
+const STAMINA_CARRY_TIME := 45.0
+const STAMINA_RECOVER_TIME := 20.0
+const STAMINA_RESUME := 0.35
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
 ## Ordre en cours et geste en cours (null : aucun).
@@ -296,6 +315,11 @@ func _ready() -> void:
 	if use_roster:
 		_apply_profile(_mission_profile(OperatorRoster.current().profile(unit_index)))
 	health.reset(stats.max_health)
+	# Blessure gardée de la mission précédente.
+	if use_roster and profile and profile.wound > 0.0:
+		health.health = maxf(stats.max_health - profile.wound, stats.max_health * MIN_START_HEALTH)
+		health.health_changed.emit(health.health, health.max_health)
+	EventBus.mission_ended.connect(_record_wound)
 	_last_health = health.health
 	ammo_in_magazine = stats.magazine_size
 	ammo_reserve = stats.reserve_ammo
@@ -656,6 +680,47 @@ func _apply_velocity(horizontal: Vector3) -> void:
 	PathWalker.smooth_model(_model, climbed, get_physics_process_delta_time())
 	_model.posture = posture
 	_model.move_ratio = Vector2(velocity.x, velocity.z).length() / stats.walk_speed
+	_model.limp = 1.0 if is_limping() else 0.0
+	_update_stamina(get_physics_process_delta_time())
+
+
+## Boite : blessé sous `LIMP_SHARE` de ses points de vie, en vie, jusqu'aux
+## soins.
+func is_limping() -> bool:
+	return not is_dead and health.health < health.max_health * LIMP_SHARE
+
+
+## Course et port d'un corps vident l'endurance ; le pas et l'arrêt la
+## rendent. À bout de souffle, il marche.
+func _update_stamina(delta: float) -> void:
+	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
+	var drain := 0.0
+	if moving and _running and not winded and posture == SoldierModel.Posture.STANDING and not carried_body:
+		drain += 1.0 / STAMINA_RUN_TIME
+	if moving and carried_body:
+		drain += 1.0 / STAMINA_CARRY_TIME
+	if drain > 0.0:
+		stamina = maxf(stamina - drain * delta, 0.0)
+		if stamina <= 0.0 and not winded:
+			winded = true
+			flash_message("À bout de souffle : il marche")
+	else:
+		stamina = minf(stamina + delta / STAMINA_RECOVER_TIME, 1.0)
+		if winded and stamina >= STAMINA_RESUME:
+			winded = false
+
+
+## Mission réussie : blessure gardée dans le profil (rien pour un mort :
+## remplacé).
+func _record_wound(success: bool, _message: String) -> void:
+	if not success or not use_roster:
+		return
+	var roster := OperatorRoster.current()
+	var operator := roster.profile(unit_index)
+	if operator == null:
+		return
+	operator.wound = 0.0 if is_dead else maxf(health.max_health - health.health, 0.0)
+	roster.save()
 
 
 ## Ordonne un déplacement vers `target`. `run` n'a d'effet que debout.
@@ -2245,19 +2310,20 @@ func _fire_at_point(point: Vector3) -> void:
 
 
 func _current_speed() -> float:
+	var hurt := WOUNDED_SPEED if is_limping() else 1.0
 	if carried_body:
-		return stats.walk_speed * CARRY_SPEED
+		return stats.walk_speed * CARRY_SPEED * hurt
 	if hostage:
-		return stats.walk_speed * HOSTAGE_SPEED
+		return stats.walk_speed * HOSTAGE_SPEED * hurt
 	var shield := SHIELD_SPEED if shield_raised else 1.0
 	match posture:
 		SoldierModel.Posture.CROUCHED:
-			return stats.crouch_speed * shield
+			return stats.crouch_speed * shield * hurt
 		SoldierModel.Posture.PRONE:
-			return stats.crawl_speed
+			return stats.crawl_speed * (WOUNDED_CRAWL if is_limping() else 1.0)
 	if shield_raised:
-		return stats.walk_speed * shield
-	return stats.run_speed if _running else stats.walk_speed
+		return stats.walk_speed * shield * hurt
+	return (stats.run_speed if _running and not winded else stats.walk_speed) * hurt
 
 
 func _on_health_changed(current: float, _maximum: float) -> void:
@@ -2302,7 +2368,7 @@ func save_state() -> Dictionary:
 		"launcher_smoke": launcher_smoke, "launcher_gas": launcher_gas, "tasers": tasers, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
-		"disguise": _disguise,
+		"disguise": _disguise, "stamina": stamina, "winded": winded,
 	})
 	return data
 
@@ -2323,6 +2389,8 @@ func load_state(data: Dictionary) -> void:
 	if is_dead:
 		return
 	has_documents = data.get("documents", false)
+	stamina = data.get("stamina", 1.0)
+	winded = data.get("winded", false)
 	var look: Dictionary = data.get("disguise", {})
 	if look != _disguise:
 		if look.is_empty():
