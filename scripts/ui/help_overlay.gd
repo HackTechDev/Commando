@@ -18,6 +18,7 @@ const SECTIONS: Array = [
 		[["Clic droit sur le convertible"], "Monter à bord (soute) ; en vol, porte ouverte : hélitreuillage"],
 		[["Clic milieu sur un opérateur à bord"], "Porte, canon, ravitaillement, monter / atterrir, altitude, déplacer, élinguer, rappel, piloter"],
 		[["Clic milieu sur un opérateur au sol"], "Radio : renvoyer l'appareil, diversion, appeler l'extraction"],
+		[["Clic milieu sur un opérateur dans la soute du Mantis"], "Rampe (au tableau près de la porte), décoller"],
 		[["Clic droit sur le Sabre"], "Monter à bord (cinq places)"],
 		[["Clic droit sur l'hexapode"], "Monter à bord (cinq places, dans la caisse)"],
 		[["Clic milieu sur l'hexapode, passager sélectionné"], "Descendre, commandes, tourelle et feu de la gatling"],

@@ -23,15 +23,39 @@ extends Node3D
 ## corps déposé dans la soute est à l'abri des regards
 ## (`Enemy.is_hidden_body`).
 ##
+## Rampe en jeu : un opérateur au tableau de commande, près de la porte
+## latérale (`PANEL_REACH`), l'abaisse ou la relève (`set_ramp_down`, menu
+## de bord) ; relevée, elle ferme la soute. Personne ne doit se tenir dessus
+## ni à son pied (`is_ramp_blocked`).
+##
+## Extraction (`extraction`) : un opérateur dans la soute fait décoller
+## l'appareil (`take_off`) quand tous les opérateurs vivants sont à bord
+## (dans la soute, à pied ou dans un véhicule garé), que les véhicules
+## demandés (`required_cargo`) y sont garés et que les autres objectifs
+## sont remplis. Rampe relevée, moteurs lancés (bruit qui alerte), il monte
+## à la verticale puis s'éloigne, emportant tout ce qui est dans la soute :
+## l'objectif `objective_id` est rempli, la mission réussie.
+##
+## Arrivée avec des renforts (`arrives`) : absent au début, il arrive au bout
+## de `arrival_time` s (ou `ALARM_DELAY` s après une alerte générale, si
+## `arrive_on_alarm`) ; la radio ennemie, interceptée, l'annonce
+## `ARRIVAL_WARNING` s avant. Il approche nez en avant, se pose (pas sur un
+## opérateur), abaisse la rampe, et `reinforcements` soldats en descendent
+## pour prendre position autour de `reinforcement_target` (ou foncer vers
+## l'alerte en cours). Posé, c'est un Mantis comme un autre.
+##
 ## Repère : centré sur le milieu de la soute, au sol ; nez vers -X, rampe
-## vers +X. Plancher, rampe et marchepied sont des sols (couches 1 et 2 : la
+## vers +X. Plancher, rampe et marchepied sont des sols (couche 1 : la
 ## navigation les suit) ; le reste arrête le passage, la vue et les balles
 ## (couche 2). Chaque pièce est un corps à part, pour que l'occlusion
 ## (`OcclusionFader`) n'estompe que celle qui cache un opérateur.
 
 const GROUP := &"mantis"
-## Sols (marche, clics, navigation) et obstacles (vue, balles).
-const LAYER_FLOOR := 0b11
+## Sols (marche, clics, navigation) et obstacles (vue, balles). Plancher,
+## rampe abaissée et marchepied sont sur la seule couche du sol : les
+## véhicules (`VehicleClearance`, couche des obstacles) y montent même en
+## abordant la rampe de biais.
+const LAYER_FLOOR := 0b01
 const LAYER_OBSTACLE := 0b10
 ## Dessus du plancher de la soute.
 const FLOOR_TOP := 0.6
@@ -56,6 +80,31 @@ const NACELLE_RADIUS := 2.4
 const NACELLE_LENGTH := 7.2
 const FADE_TIME := 0.3
 const CHECK_INTERVAL := 0.1
+## Tableau de commande de la rampe (près de la porte latérale) et portée.
+const PANEL := Vector3(-5.9, 0.6, 5.3)
+const PANEL_REACH := 2.2
+const RAMP_TIME := 2.0
+## Décollage : mise en route, montée verticale, puis départ nez en avant.
+const SPIN_UP := 3.0
+const LIFT_HEIGHT := 12.0
+const LIFT_TIME := 4.0
+const CLIMB_HEIGHT := 50.0
+const CLIMB_DISTANCE := 90.0
+const CLIMB_TIME := 7.0
+const ENGINE_NOISE := 45.0
+const NOISE_INTERVAL := 1.5
+## Arrivée : approche (distance, hauteur, durée), descente, annonce radio,
+## délai après une alerte générale.
+const APPROACH_DISTANCE := 110.0
+const APPROACH_HEIGHT := 40.0
+const APPROACH_TIME := 14.0
+const DESCENT_TIME := 5.0
+const ARRIVAL_WARNING := 30.0
+const ALARM_DELAY := 20.0
+## Renforts : écart entre deux départs (s), rayon autour du point visé (m).
+const UNLOAD_STAGGER := 0.8
+const POST_SPREAD := 4.0
+const ENEMY_SCENE := "res://scenes/enemies/enemy.tscn"
 
 const SAND := Color(0.72, 0.6, 0.36)
 const SAND_DARK := Color(0.55, 0.45, 0.27)
@@ -83,8 +132,49 @@ const LAMP := Color(1.0, 0.86, 0.62)
 		hold_lights = value
 		_queue_rebuild()
 
+## On peut le voler : décollage avec l'équipe (`take_off`), qui termine la
+## mission.
+@export var extraction: bool = false
+## Objectif rempli au décollage avec l'équipe.
+@export var objective_id: StringName = &"mantis_stolen"
+## Véhicules (Sabre, hexapode) qui doivent être garés dans la soute pour
+## décoller.
+@export var required_cargo: Array[NodePath] = []
+@export_group("Arrivée avec renforts")
+## Absent au début : il arrive en cours de mission avec des renforts.
+@export var arrives: bool = false
+## Arrivée (s de jeu depuis le début).
+@export_range(0.0, 3600.0, 5.0) var arrival_time: float = 300.0
+## Une alerte générale avance l'arrivée (`ALARM_DELAY` s après).
+@export var arrive_on_alarm: bool = true
+## Soldats qui descendent la rampe.
+@export_range(0, 8) var reinforcements: int = 4
+## Point autour duquel ils prennent position (vide : devant la rampe).
+@export var reinforcement_target: NodePath
+
 ## Vrai quand la soute est affichée en coupe (un opérateur dedans).
 var is_cut: bool = false
+## Rampe abaissée (état en jeu ; `ramp_open` est l'état de départ).
+var ramp_down: bool = true
+## Rampe en mouvement.
+var ramp_moving: bool = false
+var ramp_body: StaticBody3D
+## Pas encore arrivé (`arrives`), en approche, en train de décoller.
+var is_away: bool = false
+var is_inbound: bool = false
+var is_flying: bool = false
+## Arrivé avec ses renforts.
+var arrived: bool = false
+## Temps (s) avant l'arrivée.
+var arrival_left: float = 0.0
+var _warned: bool = false
+var _solid: bool = true
+var _landing := Transform3D.IDENTITY
+var _exhausts: Array[MeshInstance3D] = []
+## Emportés en vol : nœud -> place dans le repère de l'appareil.
+var _carried: Dictionary = {}
+var _spawned: Array[Enemy] = []
+var _noise_left: float = 0.0
 
 var _rebuild_queued: bool = false
 var _materials: Dictionary = {}
@@ -124,8 +214,11 @@ static func is_cut_body(collider: Object) -> bool:
 	return ship != null and ship._cut_bodies.has(body)
 
 
-## Vrai si `point` est dans la soute (entre les flancs, sous le plafond).
+## Vrai si `point` est dans la soute (entre les flancs, sous le plafond),
+## appareil posé.
 func contains(point: Vector3) -> bool:
+	if is_away or is_inbound or is_flying:
+		return false
 	var local := to_local(point)
 	return HOLD.has_point(Vector2(local.x, local.z)) and local.y > FLOOR_TOP - 0.5 and local.y < CEILING
 
@@ -140,10 +233,22 @@ func _enter_tree() -> void:
 	if Engine.is_editor_hint():
 		return
 	add_to_group(GROUP)
+	add_to_group(QuickSave.GROUP)
 
 
 func _ready() -> void:
 	_build()
+	if Engine.is_editor_hint():
+		return
+	_landing = global_transform
+	if arrives:
+		is_away = true
+		arrival_left = arrival_time
+		visible = false
+		_set_solid(false)
+		ramp_down = false
+		_pose_ramp(0.0)
+		GameState.alert_level_changed.connect(_on_alert_changed)
 
 
 ## Réglage changé dans l'éditeur : reconstruit.
@@ -168,6 +273,15 @@ func _rebuild() -> void:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
+	if is_away:
+		_count_down(delta)
+		return
+	if is_flying or is_inbound:
+		_carry()
+		_noise_left -= delta
+		if _noise_left <= 0.0 and is_flying:
+			_noise_left = NOISE_INTERVAL
+			EventBus.noise_emitted.emit(global_position, ENGINE_NOISE, &"help")
 	_check_left -= delta
 	if _check_left <= 0.0:
 		_check_left = CHECK_INTERVAL
@@ -186,8 +300,367 @@ func _physics_process(delta: float) -> void:
 			mesh.visible = _fade < 0.999
 
 
+# --- Rampe ------------------------------------------------------------------------
+
+## Point du tableau de commande de la rampe (monde).
+func panel_point() -> Vector3:
+	return to_global(PANEL)
+
+
+## Vrai si `unit` est assez près du tableau pour manœuvrer la rampe.
+func at_panel(unit: Node3D) -> bool:
+	return unit.global_position.distance_to(panel_point()) <= PANEL_REACH and contains(unit.global_position + Vector3.UP * 0.3)
+
+
+## Raison pour laquelle `unit` ne peut pas manœuvrer la rampe (vide : c'est
+## possible).
+func ramp_problem(unit: Node3D = null) -> String:
+	if is_away or is_inbound or is_flying:
+		return "en vol"
+	if ramp_moving:
+		return "rampe en mouvement"
+	if unit and not at_panel(unit):
+		return "au tableau près de la porte"
+	if is_ramp_blocked():
+		return "quelqu'un sur la rampe"
+	return ""
+
+
+## Abaisse (`down`) ou relève la rampe, depuis le tableau (`unit`, null :
+## sans condition de place). Renvoie faux si rien ne change.
+func set_ramp_down(down: bool, unit: Node3D = null) -> bool:
+	if down == ramp_down or ramp_problem(unit) != "":
+		return false
+	_set_ramp(down, true)
+	return true
+
+
+func _set_ramp(down: bool, animate: bool) -> void:
+	ramp_down = down
+	Sfx.play_at(&"clink", to_global(Vector3(HOLD.end.x, FLOOR_TOP + 1.0, 0)), -2.0)
+	if not animate:
+		_pose_ramp(1.0 if down else 0.0)
+		_ramp_changed()
+		return
+	ramp_moving = true
+	# Relevée : obstacle dès le départ ; abaissée : sol à l'arrivée.
+	var tween := create_tween()
+	tween.tween_method(_pose_ramp, 0.0 if down else 1.0, 1.0 if down else 0.0, RAMP_TIME).set_trans(Tween.TRANS_SINE)
+	tween.tween_callback(func() -> void:
+		ramp_moving = false
+		_ramp_changed())
+
+
+func _ramp_changed() -> void:
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+
+
+## Vrai si une unité ou un véhicule se tient sur la rampe ou à son pied.
+func is_ramp_blocked() -> bool:
+	var reach := HOLD.end.x + RAMP_LENGTH + 0.5
+	for group: StringName in [&"commandos", Enemy.ALL_GROUP, &"vips", Sabre.GROUP]:
+		for node in get_tree().get_nodes_in_group(group):
+			var unit := node as Node3D
+			if unit == null or (unit is Commando and (unit as Commando).riding != null):
+				continue
+			var local := to_local(unit.global_position)
+			var margin := 2.6 if unit is Sabre else 0.4
+			if local.x > HOLD.end.x - 0.4 - margin * 0.5 and local.x < reach + margin \
+					and absf(local.z) < HOLD.size.y * 0.5 + 0.4 and local.y < FLOOR_TOP + 1.5:
+				return true
+	return false
+
+
+# --- Décollage ----------------------------------------------------------------------
+
+## Opérateurs vivants dans la soute (à pied ou dans un véhicule garé).
+func passengers() -> Array[Commando]:
+	var aboard: Array[Commando] = []
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and contains(unit.global_position + Vector3.UP * 0.3):
+			aboard.append(unit)
+	return aboard
+
+
+## Raison pour laquelle on ne peut pas décoller (vide : c'est possible).
+func take_off_problem() -> String:
+	if not extraction:
+		return "appareil verrouillé"
+	if is_away or is_inbound:
+		return "pas encore posé"
+	if is_flying:
+		return "déjà en vol"
+	if ramp_moving:
+		return "rampe en mouvement"
+	var aboard := passengers()
+	if aboard.is_empty():
+		return "personne à bord"
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and not aboard.has(unit):
+			return "tous les opérateurs à bord"
+	for path in required_cargo:
+		var vehicle := get_node_or_null(path) as Node3D
+		if vehicle == null or not contains(vehicle.global_position + Vector3.UP * 0.3):
+			return "%s dans la soute" % (String(path.get_name(path.get_name_count() - 1)) if vehicle == null else vehicle.name)
+	if ramp_down and is_ramp_blocked():
+		return "quelqu'un sur la rampe"
+	var objectives := get_tree().get_first_node_in_group(Objectives.GROUP) as Objectives
+	if objectives and not objectives.done_except(String(objective_id)):
+		return "objectifs en cours"
+	return ""
+
+
+## Décolle avec tout ce qui est dans la soute (`pilot` aux commandes) :
+## rampe relevée, moteurs lancés, montée verticale, départ. Renvoie faux si
+## c'est impossible (`take_off_problem`).
+func take_off(pilot: Commando = null) -> bool:
+	if take_off_problem() != "":
+		return false
+	if pilot:
+		pilot.stop()
+	# Avant `is_flying` : la soute ne contient plus rien en vol.
+	_grab_cargo()
+	is_flying = true
+	if ramp_down:
+		_set_ramp(false, true)
+	_set_jets(true)
+	_noise_left = 0.0
+	var flight := create_tween()
+	flight.tween_interval(maxf(SPIN_UP, RAMP_TIME + 0.2))
+	flight.tween_callback(func() -> void: _set_solid(false))
+	flight.tween_property(self, "global_position", global_position + Vector3.UP * LIFT_HEIGHT, LIFT_TIME).set_trans(Tween.TRANS_SINE)
+	var goal := global_position + Vector3.UP * (LIFT_HEIGHT + CLIMB_HEIGHT) - global_basis.x * CLIMB_DISTANCE
+	flight.tween_property(self, "global_position", goal, CLIMB_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	flight.tween_callback(_flown_away)
+	return true
+
+
+## Tout ce qui est dans la soute part avec l'appareil : opérateurs, VIP,
+## ennemis (corps compris) et véhicules garés, figés.
+func _grab_cargo() -> void:
+	_carried.clear()
+	for group: StringName in [&"commandos", &"vips", Enemy.ALL_GROUP, Sabre.GROUP]:
+		for node in get_tree().get_nodes_in_group(group):
+			var thing := node as Node3D
+			if thing == null or _carried.has(thing) or not contains(thing.global_position + Vector3.UP * 0.3):
+				continue
+			if thing is Commando:
+				(thing as Commando).stop()
+			thing.process_mode = Node.PROCESS_MODE_DISABLED
+			_carried[thing] = global_transform.affine_inverse() * thing.global_transform
+
+
+func _carry() -> void:
+	for thing: Node3D in _carried:
+		if is_instance_valid(thing):
+			thing.global_transform = global_transform * (_carried[thing] as Transform3D)
+
+
+func _flown_away() -> void:
+	_carry()
+	if objective_id != &"":
+		EventBus.objective_completed.emit(objective_id)
+	EventBus.mission_ended.emit(true, "RÉUSSITE — Mantis volé, équipe extraite")
+
+
+func _set_jets(on: bool) -> void:
+	for jet in _exhausts:
+		if is_instance_valid(jet):
+			jet.visible = on
+
+
+## Corps solides (posé) ou fantômes (absent, en vol) : la navigation est
+## recalculée.
+func _set_solid(solid: bool) -> void:
+	_solid = solid
+	for child in get_children():
+		var body := child as StaticBody3D
+		if body == null:
+			continue
+		if not body.has_meta(&"layer"):
+			body.set_meta(&"layer", body.collision_layer)
+		body.collision_layer = int(body.get_meta(&"layer")) if solid else 0
+	if ramp_body:
+		_pose_ramp(1.0 if ramp_down else 0.0)
+	EventBus.navigation_obstacle_moved.emit()
+	EventBus.sight_blockers_changed.emit()
+
+
+# --- Arrivée avec renforts --------------------------------------------------------
+
+func _count_down(delta: float) -> void:
+	arrival_left -= delta
+	if not _warned and arrival_left <= ARRIVAL_WARNING:
+		_warned = true
+		EventBus.radio_message.emit("(ennemie) le Mantis %s arrive avec des renforts dans %d secondes." % [hull_number, ceili(maxf(arrival_left, 0.0))])
+	if arrival_left <= 0.0:
+		_fly_in()
+
+
+func _on_alert_changed(level: GameState.AlertLevel) -> void:
+	if level == GameState.AlertLevel.ALARM and is_away and arrive_on_alarm and arrival_left > ALARM_DELAY:
+		arrival_left = ALARM_DELAY
+		_warned = true
+		EventBus.radio_message.emit("(ennemie) alerte : le Mantis %s décolle avec des renforts, arrivée dans %d secondes." % [hull_number, int(ALARM_DELAY)])
+
+
+## Approche nez en avant jusqu'au-dessus de sa place.
+func _fly_in() -> void:
+	is_away = false
+	is_inbound = true
+	visible = true
+	_set_jets(true)
+	var forward := -_landing.basis.x.normalized()
+	var hover := _landing.origin + Vector3.UP * LIFT_HEIGHT
+	global_position = hover - forward * APPROACH_DISTANCE + Vector3.UP * (APPROACH_HEIGHT - LIFT_HEIGHT)
+	var flight := create_tween()
+	flight.tween_property(self, "global_position", hover, APPROACH_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	flight.tween_callback(_over_landing)
+
+
+## Au-dessus de sa place : il attend qu'aucun opérateur ne soit dessous,
+## puis descend.
+func _over_landing() -> void:
+	if _commando_below():
+		get_tree().create_timer(0.5, false).timeout.connect(_over_landing)
+		return
+	var flight := create_tween()
+	flight.tween_property(self, "global_position", _landing.origin, DESCENT_TIME).set_trans(Tween.TRANS_SINE)
+	flight.tween_callback(_touched_down)
+
+
+func _footprint_has(point: Vector3) -> bool:
+	var local := _landing.affine_inverse() * point
+	return local.x > HOLD.position.x - 9.5 and local.x < HOLD.end.x + RAMP_LENGTH \
+			and absf(local.z) < HOLD.size.y * 0.5 + WALL + 2.0
+
+
+func _commando_below() -> bool:
+	for node in get_tree().get_nodes_in_group(&"commandos"):
+		var unit := node as Commando
+		if unit and not unit.is_dead and _footprint_has(unit.global_position):
+			return true
+	return false
+
+
+## Posé : solide, renforts dans la soute, rampe abaissée, puis ils
+## descendent.
+func _touched_down() -> void:
+	is_inbound = false
+	arrived = true
+	global_transform = _landing
+	_set_jets(false)
+	# Ennemis restés dessous : écartés sur le côté.
+	for node in get_tree().get_nodes_in_group(Enemy.ALL_GROUP):
+		var enemy := node as Node3D
+		if enemy and _footprint_has(enemy.global_position):
+			var local := to_local(enemy.global_position)
+			local.z = (HOLD.size.y * 0.5 + WALL + 2.5) * (1.0 if local.z >= 0.0 else -1.0)
+			enemy.global_position = to_global(local)
+	_set_solid(true)
+	EventBus.radio_message.emit("(ennemie) le Mantis %s s'est posé : %d hommes débarquent." % [hull_number, reinforcements])
+	_spawn_reinforcements()
+	_set_ramp(true, true)
+	get_tree().create_timer(RAMP_TIME + 0.6, false).timeout.connect(_unload)
+
+
+## Point autour duquel les renforts prennent position.
+func reinforcement_goal() -> Vector3:
+	var target := get_node_or_null(reinforcement_target) as Node3D if not reinforcement_target.is_empty() else null
+	if target:
+		return target.global_position
+	return to_global(Vector3(HOLD.end.x + RAMP_LENGTH + 8.0, 0, 0))
+
+
+## Postes des renforts : en cercle autour du point visé, tournés vers
+## l'extérieur. (monde, cap)
+func reinforcement_posts() -> Array:
+	var posts: Array = []
+	var goal := reinforcement_goal()
+	for i in reinforcements:
+		var angle := TAU * float(i) / maxf(1.0, float(reinforcements))
+		var out := Vector3(cos(angle), 0, sin(angle))
+		posts.append([goal + out * POST_SPREAD, atan2(-out.x, -out.z)])
+	return posts
+
+
+## Soldats en rangs dans la soute, près de la rampe.
+func _spawn_reinforcements() -> void:
+	var scene := load(ENEMY_SCENE) as PackedScene
+	var parent := get_tree().current_scene.get_node_or_null(^"Enemies") if get_tree().current_scene else null
+	if parent == null:
+		parent = get_parent()
+	for i in reinforcements:
+		var enemy := scene.instantiate() as Enemy
+		enemy.stationary = true
+		enemy.name = "%sTrooper%d" % [name, i + 1]
+		parent.add_child(enemy)
+		enemy.global_position = to_global(Vector3(HOLD.end.x - 2.0 - float(i / 2) * 1.6, FLOOR_TOP, -1.2 if i % 2 == 0 else 1.2))
+		enemy.global_rotation.y = global_rotation.y - PI * 0.5
+		_spawned.append(enemy)
+
+
+## Les renforts descendent la rampe, l'un après l'autre : vers leur poste,
+## ou vers l'alerte en cours.
+func _unload() -> void:
+	var posts := reinforcement_posts()
+	for i in _spawned.size():
+		var enemy := _spawned[i]
+		if not is_instance_valid(enemy) or enemy.is_dead:
+			continue
+		var post: Array = posts[i]
+		get_tree().create_timer(UNLOAD_STAGGER * i, false).timeout.connect(_send_trooper.bind(enemy, post[0], post[1]))
+
+
+static func _send_trooper(enemy: Enemy, at: Vector3, yaw: float) -> void:
+	if not is_instance_valid(enemy) or enemy.is_dead:
+		return
+	enemy.set_post(at, yaw)
+	if GameState.alert_level == GameState.AlertLevel.ALARM:
+		enemy.hear_alarm(at)
+	elif enemy.state == Enemy.State.PATROL:
+		enemy.walking_home = true
+		enemy._begin_return()
+
+
+# --- Sauvegarde rapide ------------------------------------------------------------
+
+func save_state() -> Dictionary:
+	return {"ramp": ramp_down, "away": is_away, "left": arrival_left, "warned": _warned,
+		"arrived": arrived or is_inbound}
+
+
+## Un Mantis en approche est rechargé posé ; ses renforts reviennent à leur
+## poste (ceux tombés entre-temps reviennent aussi).
+func load_state(data: Dictionary) -> void:
+	arrival_left = data.get("left", arrival_left)
+	_warned = data.get("warned", false)
+	if data.get("arrived", false) and arrives and not arrived:
+		is_away = false
+		is_inbound = false
+		arrived = true
+		visible = true
+		global_transform = _landing
+		_set_jets(false)
+		_set_solid(true)
+		_spawn_reinforcements()
+		var posts := reinforcement_posts()
+		for i in _spawned.size():
+			_spawned[i].global_position = posts[i][0]
+			_spawned[i].global_rotation.y = posts[i][1]
+			_spawned[i].set_post(posts[i][0], posts[i][1])
+	var down: bool = data.get("ramp", ramp_down)
+	if down != ramp_down and not is_away:
+		_set_ramp(down, false)
+
+
 func _build() -> void:
+	_exhausts.clear()
 	_build_floor()
+	_build_ramp()
 	_build_walls()
 	_build_roof()
 	_build_cockpit()
@@ -217,19 +690,39 @@ func _build_floor() -> void:
 	for i in 8:
 		var z := HOLD.position.y + 0.7 + i * 1.375
 		_mesh(body, Vector3(0.5, 0.03, 0.6), Vector3(x1 - 0.3, FLOOR_TOP + 0.025, z), _mat(YELLOW if i % 2 == 0 else DARK))
-	if ramp_open:
-		var ramp := _body("Ramp", LAYER_FLOOR)
-		var high := Vector3(x1, FLOOR_TOP, 0)
-		var low := Vector3(x1 + RAMP_LENGTH, 0.0, 0)
-		_slab(ramp, high, low, HOLD.size.y, 0.25, _mat(SAND_DARK))
-		_slab(ramp, high + Vector3.UP * 0.02, low + Vector3.UP * 0.02, HOLD.size.y - 0.6, 0.02, _mat(INTERIOR), false)
-		# Vérins de la rampe.
-		for z: float in [-5.0, 5.0]:
-			_strut(ramp, Vector3(x1 - 0.2, 2.6, z), Vector3(x1 + 2.6, 0.35, z), 0.09, _mat(STEEL, 0.4))
 	# Marchepied de la porte latérale.
 	var steps := _body("DoorSteps", LAYER_FLOOR)
 	var door_mid := DOOR_X + DOOR_WIDTH * 0.5
 	_slab(steps, Vector3(door_mid, FLOOR_TOP, half), Vector3(door_mid, 0.0, half + 2.2), DOOR_WIDTH, 0.2, _mat(STEEL, 0.5))
+
+
+## Rampe arrière, articulée au bord du plancher : abaissée, c'est un sol en
+## pente douce jusqu'au terrain ; relevée, elle ferme la soute (obstacle).
+## Repère du corps : la charnière, rampe couchée le long de +X, dessus à
+## y = 0 ; on la fait pivoter autour de Z.
+func _build_ramp() -> void:
+	ramp_body = _body("Ramp", LAYER_FLOOR)
+	ramp_body.position = Vector3(HOLD.end.x, FLOOR_TOP, 0)
+	var length := Vector2(RAMP_LENGTH, FLOOR_TOP).length()
+	var width := HOLD.size.y
+	_box(ramp_body, Vector3(length, 0.25, width), Vector3(length * 0.5, -0.125, 0), _mat(SAND_DARK))
+	_mesh(ramp_body, Vector3(length - 0.2, 0.02, width - 0.6), Vector3(length * 0.5, 0.01, 0), _mat(INTERIOR))
+	# Chevrons antidérapants, bandes jaunes au bout, charnières.
+	for i in 5:
+		_mesh(ramp_body, Vector3(0.12, 0.03, width - 1.2), Vector3(0.8 + i * 0.9, 0.025, 0), _mat(DARK))
+	for i in 6:
+		_mesh(ramp_body, Vector3(0.35, 0.03, 0.9), Vector3(length - 0.25, 0.025, -width * 0.5 + 0.9 + i * 1.84), _mat(YELLOW if i % 2 == 0 else DARK))
+	for z: float in [-4.5, -1.5, 1.5, 4.5]:
+		_cylinder(ramp_body, 0.18, 0.9, Vector3(0, -0.12, z), _mat(STEEL, 0.4), Basis(Vector3.RIGHT, PI * 0.5))
+	ramp_down = ramp_open
+	_pose_ramp(1.0 if ramp_down else 0.0)
+
+
+## Angle de la rampe : 0 relevée (verticale), 1 abaissée (bout au sol).
+func _pose_ramp(open: float) -> void:
+	var down := -atan2(FLOOR_TOP, RAMP_LENGTH)
+	ramp_body.rotation = Vector3(0, 0, lerpf(PI * 0.5, down, open))
+	ramp_body.collision_layer = 0 if not _solid else (LAYER_FLOOR if open > 0.99 else LAYER_OBSTACLE)
 
 
 ## Flancs et cloison avant, en deux étages : le bas reste affiché en coupe,
@@ -262,12 +755,6 @@ func _build_walls() -> void:
 	for z: float in [-zw, zw]:
 		_box(high, Vector3(x1 - x0, high_h, WALL), Vector3((x0 + x1) * 0.5, CUT_HEIGHT + high_h * 0.5, z), _mat(SAND))
 	_box(high, Vector3(WALL, high_h, HOLD.size.y + WALL * 2.0), Vector3(x0 - WALL * 0.5, CUT_HEIGHT + high_h * 0.5, 0), _mat(SAND))
-	# Rampe relevée : elle ferme l'arrière de la soute.
-	if not ramp_open:
-		var door := _body("RampClosed", LAYER_OBSTACLE)
-		_box(door, Vector3(0.35, CEILING - FLOOR_TOP, HOLD.size.y), Vector3(x1 + 0.18, (CEILING + FLOOR_TOP) * 0.5, 0), _mat(SAND_DARK))
-		for i in 6:
-			_mesh(door, Vector3(0.05, 0.5, 1.2), Vector3(x1 + 0.38, 1.2, -4.6 + i * 1.84), _mat(YELLOW if i % 2 == 0 else DARK))
 	# Bandes de camouflage en biais sur les flancs (extérieur).
 	for z: float in [-1.0, 1.0]:
 		for i in 6:
@@ -412,6 +899,18 @@ func _build_nacelle(side: float) -> void:
 	_cylinder(body, NACELLE_RADIUS * 0.82, 0.08, center + tilt * Vector3(0, NACELLE_LENGTH * 0.5 + 0.02, 0), _mat(DARK), tilt)
 	_cylinder(body, NACELLE_RADIUS * 0.35, 0.3, center + tilt * Vector3(0, NACELLE_LENGTH * 0.5 + 0.1, 0), _mat(STEEL, 0.4), tilt)
 	_cylinder(body, NACELLE_RADIUS * 0.75, 0.7, center + tilt * Vector3(0, -NACELLE_LENGTH * 0.5 - 0.3, 0), _mat(DARK), tilt)
+	# Jet de poussée, allumé en vol.
+	var jet := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = NACELLE_RADIUS * 0.7
+	cone.bottom_radius = NACELLE_RADIUS * 0.15
+	cone.height = 3.0
+	jet.mesh = cone
+	jet.material_override = _glow(Color(1.0, 0.6, 0.3), 3.0)
+	jet.transform = Transform3D(tilt, center + tilt * Vector3(0, -NACELLE_LENGTH * 0.5 - 2.1, 0))
+	jet.visible = is_flying or is_inbound
+	body.add_child(jet)
+	_exhausts.append(jet)
 	# Plaques de blindage en biais et bandes.
 	for k in 3:
 		var y := -1.8 + k * 1.8

@@ -1838,3 +1838,13 @@
 - Vérification : un véhicule garé dans la soute d'un Mantis à rampe relevée est signalé (il ne pourrait pas sortir).
 - Scénario `tools/editor_check/mantis.gd` : pose des deux versions, seul le nœud enregistré, garde posé dans la soute, remarque de la vérification, annulation.
 
+## Mantis en jeu : rampe, décollage, renforts (point 10.5 a)
+
+- **Rampe** articulée : un opérateur au tableau de commande, près de la porte latérale, l'abaisse ou la relève (menu de bord : clic du milieu sur un opérateur dans la soute). Elle pivote en 2 s ; relevée, elle ferme la soute (passage, vue, balles), et la navigation est recalculée. Refusée si quelqu'un (ou un véhicule) se tient dessus ou à son pied.
+- **Décollage** (`extraction`) : « Décoller » dans le menu de bord quand tous les opérateurs vivants sont dans la soute (à pied ou en véhicule), que les véhicules demandés (`required_cargo`) y sont garés et que les autres objectifs sont remplis. Rampe relevée, jets allumés, bruit qui alerte ; le Mantis monte à la verticale puis s'éloigne nez en avant, emportant tout ce qui est dans la soute. Objectif `objective_id` rempli, mission réussie.
+- **Arrivée avec renforts** (`arrives`) : absent au début, le Mantis arrive au bout de `arrival_time` s, ou 20 s après une alerte générale (`arrive_on_alarm`) ; la radio ennemie l'annonce 30 s avant. Il approche nez en avant, attend qu'aucun opérateur ne soit sous lui, se pose, abaisse la rampe, et `reinforcements` soldats descendent prendre position en cercle autour de `reinforcement_target` (ou foncent vers l'alerte en cours).
+- Plancher, rampe abaissée et marchepied passent sur la seule couche du sol : un véhicule qui aborde la rampe de biais ne bute plus contre son flanc.
+- « Le Mantis » : le Sabre et l'hexapode attendent dehors (au sud-ouest, gardé, et au nord) ; objectif : les ramener dans la soute du M-3 et décoller avec l'équipe (après la citerne). Un second Mantis, le M-7, se pose au nord au bout de six minutes (ou après une alerte) et débarque quatre soldats.
+- Sauvegarde rapide : rampe, compte à rebours et arrivée gardés ; un Mantis en approche est rechargé posé, ses renforts à leur poste.
+- Tests : `tests/levels/test_mantis_lz.gd` (rampe, décollage, renforts, chemins des véhicules jusqu'à la soute).
+

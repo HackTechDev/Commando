@@ -3,15 +3,10 @@
 [ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_obj"]
 [ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_info"]
 
-[sub_resource type="Resource" id="sabre_out"]
+[sub_resource type="Resource" id="mantis_stolen"]
 script = ExtResource("1_obj")
-id = "sabre_out"
-text = "Reprendre le Sabre garé dans la soute du Mantis et le conduire au point de ralliement, à l'est"
-
-[sub_resource type="Resource" id="hexapod_out"]
-script = ExtResource("1_obj")
-id = "hexapod_out"
-text = "Reprendre l'hexapode de la soute et le conduire au point de ralliement, à l'est"
+id = "mantis_stolen"
+text = "Ramener le Sabre et l'hexapode dans la soute du Mantis M-3, puis décoller avec toute l'équipe"
 
 [sub_resource type="Resource" id="fuel"]
 script = ExtResource("1_obj")
@@ -26,8 +21,8 @@ text = "Ne perdre aucun opérateur"
 [resource]
 script = ExtResource("2_info")
 title = "Le Mantis"
-description = "Au crépuscule, sur un plateau caillouteux. Le Mantis, transporteur lourd ennemi à décollage vertical, s'est posé pour ravitailler : dans sa soute de 28 mètres, il emporte un Sabre et un hexapode pris à nos troupes. Reprenez-les et conduisez-les au point de ralliement, à l'est. On entre dans la soute par la grande rampe arrière, gardée par deux sentinelles et éclairée (écartez-les : elles barrent aussi le passage des véhicules), ou à pied par la porte latérale tribord, au sud, et son marchepied ; dans la soute, le toit s'efface pour qu'on voie l'intérieur. Un chef de soute et un garde y veillent. Alpha porte deux charges : la citerne de ravitaillement est au sud de l'appareil, gardée par une sentinelle et un chien. Au pied du nez, le pilote bavarde avec un mécanicien. Une patrouille fait le tour de l'appareil, un pick-up armé celui du plateau. Les sentinelles se signalent par radio toutes les 90 s. La nuit tombe pendant la mission : les gardes verront de moins en moins loin, sauf sous les lampes."
+description = "Au crépuscule, sur un plateau caillouteux. Le Mantis M-3, transporteur lourd ennemi à décollage vertical, s'est posé pour embarquer un Sabre et un hexapode pris à nos troupes : le Sabre attend au sud-ouest, près du campement, l'hexapode au nord. Conduisez-les dans sa soute, puis volez l'appareil : dans la soute, menu de bord (clic du milieu sur un opérateur) : « Décoller », quand toute l'équipe est à bord et la citerne détruite. Au tableau près de la porte latérale, on abaisse ou relève la rampe. On entre par la grande rampe arrière, gardée par deux sentinelles éclairées (écartez-les : elles barrent aussi le passage des véhicules), ou à pied par la porte latérale tribord, au sud ; dans la soute, le toit s'efface. Un chef de soute et un garde y veillent. Alpha porte deux charges : la citerne de ravitaillement est au sud de l'appareil, gardée par une sentinelle et un chien. Au pied du nez, le pilote bavarde avec un mécanicien. Une patrouille fait le tour de l'appareil, un pick-up armé celui du plateau ; les sentinelles se signalent par radio toutes les 90 s. Au bout de six minutes, ou vingt secondes après une alerte générale, un second Mantis, le M-7, se pose au nord et débarque quatre soldats : la radio ennemie l'annonce. La nuit tombe pendant la mission."
 camo = "desert"
 time = "18:45"
 order = 209
-objectives = Array[ExtResource("1_obj")]([SubResource("sabre_out"), SubResource("hexapod_out"), SubResource("fuel"), SubResource("lost")])
+objectives = Array[ExtResource("1_obj")]([SubResource("mantis_stolen"), SubResource("fuel"), SubResource("lost")])

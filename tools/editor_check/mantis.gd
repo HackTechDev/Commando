@@ -21,7 +21,7 @@ static func run(tree: SceneTree, out: String) -> void:
 		await tree.process_frame
 	for ship: Node3D in [open, closed]:
 		var built := ship.get_children().filter(func(n: Node) -> bool: return n.owner == null).size()
-		print("TEST %s : parent %s, rampe %s, cap %.0f°, %d pièces construites, rampe construite %s" % [ship.name, ship.get_parent().name, ship.get("ramp_open"), rad_to_deg(ship.rotation.y), built, ship.has_node("Ramp")])
+		print("TEST %s : parent %s, rampe %s, cap %.0f°, %d pièces construites, rampe à %.0f°" % [ship.name, ship.get_parent().name, ship.get("ramp_open"), rad_to_deg(ship.rotation.y), built, (ship.get_node("Ramp") as Node3D).rotation_degrees.z])
 	var packed := PackedScene.new()
 	packed.pack(root)
 	var state := packed.get_state()

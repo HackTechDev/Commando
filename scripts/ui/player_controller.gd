@@ -110,6 +110,8 @@ var _menu_enemy: Enemy
 ## Appareil et opérateur du menu de bord ouvert.
 var _menu_aircraft: Tiltrotor
 var _menu_crew: Commando
+## Mantis dont le menu de bord est ouvert, et l'opérateur visé.
+var _menu_mantis: Mantis
 ## Menu radio ouvert (sur un opérateur au sol).
 var _menu_radio: bool = false
 ## Sabre du menu du véhicule (ouvert depuis le sol) et opérateurs à pied
@@ -160,6 +162,7 @@ func _ready() -> void:
 		_menu_enemy = null
 		_menu_aircraft = null
 		_menu_crew = null
+		_menu_mantis = null
 		_menu_radio = false
 		_menu_sabre = null
 		_menu_rider = null
@@ -543,7 +546,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _middle_start.distance_to(middle.position) < DRAG_THRESHOLD:
 				if open_vip_menu(middle.position) or open_sabre_menu(middle.position) or open_vehicle_menu(middle.position) \
 						or open_car_menu(middle.position) \
-						or open_aircraft_menu(middle.position) \
+						or open_aircraft_menu(middle.position) or open_mantis_menu(middle.position) \
 						or open_radio_menu(middle.position) or open_melee_menu(middle.position):
 					get_viewport().set_input_as_handled()
 			_middle_start = Vector2.INF
@@ -877,6 +880,39 @@ func open_aircraft_menu(screen_position: Vector2) -> bool:
 	_radial.open(screen_position, aircraft_options(aircraft, unit), unit.display_name)
 	Sfx.play_ui(&"select")
 	return true
+
+
+## Ouvre le menu de bord du Mantis sur l'opérateur à pied sous
+## `screen_position`, s'il est dans la soute : rampe (au tableau), décollage.
+## Renvoie faux sinon.
+func open_mantis_menu(screen_position: Vector2) -> bool:
+	var hit := _raycast(screen_position, MASK_COMMANDOS)
+	var unit := hit.get("collider") as Commando
+	if unit == null or unit.is_dead or unit.riding != null:
+		return false
+	var ship := Mantis.at(get_tree(), unit.global_position + Vector3.UP * 0.3)
+	if ship == null:
+		return false
+	cancel_pending_action()
+	_menu_mantis = ship
+	_menu_crew = unit
+	_radial.open(screen_position, mantis_options(ship, unit), "Mantis %s" % ship.hull_number)
+	Sfx.play_ui(&"select")
+	return true
+
+
+## Options du menu de bord du Mantis, pour `crew` dans la soute.
+static func mantis_options(ship: Mantis, crew: Commando) -> Array[Dictionary]:
+	var ramp := ship.ramp_problem(crew)
+	var options: Array[Dictionary] = [
+		{"id": &"ramp", "label": "Relever la rampe" if ship.ramp_down else "Abaisser la rampe",
+			"detail": ("ferme la soute" if ship.ramp_down else "ouvre la soute") if ramp == "" else ramp, "enabled": ramp == ""},
+	]
+	if ship.extraction:
+		var problem := ship.take_off_problem()
+		options.append({"id": &"take_off", "label": "Décoller", "detail": "partir avec la soute (bruyant)" if problem == "" else problem,
+			"enabled": problem == ""})
+	return options
 
 
 ## Sabre à bord duquel est un opérateur sélectionné, ou null.
@@ -1314,6 +1350,19 @@ func _on_radial_chosen(id: StringName) -> void:
 		var done := false
 		if aircraft:
 			done = aircraft.call_in() if id == &"extract" else aircraft.dismiss()
+		Sfx.play_ui(&"order" if done else &"denied")
+		return
+	if _menu_mantis:
+		var ship := _menu_mantis
+		var crew := _menu_crew
+		_menu_mantis = null
+		_menu_crew = null
+		var done := false
+		if is_instance_valid(ship) and is_instance_valid(crew):
+			if id == &"ramp":
+				done = ship.set_ramp_down(not ship.ramp_down, crew)
+			elif id == &"take_off":
+				done = ship.take_off(crew)
 		Sfx.play_ui(&"order" if done else &"denied")
 		return
 	if _menu_aircraft:

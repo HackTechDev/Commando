@@ -158,7 +158,7 @@ point_count = 4
 
 [sub_resource type="Curve3D" id="curve_TechLoop"]
 _data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -44, 0, -40, 0, 0, 0, 0, 0, 0, 46, 0, -42, 0, 0, 0, 0, 0, 0, 52, 0, 36, 0, 0, 0, 0, 0, 0, -36, 0, 40),
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -44, 0, -36, 0, 0, 0, 0, 0, 0, 46, 0, -36, 0, 0, 0, 0, 0, 0, 52, 0, 36, 0, 0, 0, 0, 0, 0, -36, 0, 40),
 "tilts": PackedFloat32Array(0, 0, 0, 0)
 }
 point_count = 4
@@ -374,7 +374,7 @@ position = Vector3(0, 1.5, 0)
 mesh = SubResource("rock_mesh5")
 
 [node name="Rock14" type="StaticBody3D" parent="NavigationRegion3D"]
-position = Vector3(10, 0, -36)
+position = Vector3(14, 0, -26)
 rotation = Vector3(0, 0.000000, 0)
 collision_layer = 2
 collision_mask = 0
@@ -473,18 +473,24 @@ mesh = SubResource("rock_mesh0")
 
 [node name="Mantis" type="Node3D" parent="NavigationRegion3D"]
 script = ExtResource("mantis")
+extraction = true
+required_cargo = Array[NodePath]([NodePath("../Sabre"), NodePath("../Hexapod")])
+
+[node name="Mantis7" type="Node3D" parent="NavigationRegion3D"]
+position = Vector3(-6, 0, -56)
+script = ExtResource("mantis")
+hull_number = "M-7"
+arrives = true
+arrival_time = 360.0
+reinforcement_target = NodePath("../../ReinforcementPoint")
 
 [node name="Sabre" type="StaticBody3D" parent="NavigationRegion3D"]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 12, 0.6, -3.6)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -16, 0, 20)
 script = ExtResource("sabre")
-arrival_objective = &"sabre_out"
-arrival_point = Vector3(66, 0, -6)
 
 [node name="Hexapod" type="StaticBody3D" parent="NavigationRegion3D"]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1, 0.6, 1.4)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 6, 0, -28)
 script = ExtResource("hexapod")
-arrival_objective = &"hexapod_out"
-arrival_point = Vector3(66, 0, 8)
 
 [node name="FuelBowser" type="StaticBody3D" parent="NavigationRegion3D"]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 2, 0, 24.5)
@@ -494,13 +500,13 @@ lights = NodePath("../../Lamps/Lamp3")
 fuel = true
 
 [node name="Sandbags1" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
-position = Vector3(28, 0, -10)
+position = Vector3(34, 0, -15)
 rotation = Vector3(0, 0.000000, 0)
 length = 5
 texture = "tex_nature/dirt002.png"
 
 [node name="Sandbags2" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
-position = Vector3(28, 0, 10)
+position = Vector3(34, 0, 15)
 rotation = Vector3(0, 0.000000, 0)
 length = 5
 texture = "tex_nature/dirt002.png"
@@ -536,43 +542,37 @@ length = 5
 texture = "tex_nature/dirt002.png"
 
 [node name="Crate1" parent="NavigationRegion3D" instance=ExtResource("crate")]
-position = Vector3(-8.6, 0.6, 4.6)
-
-[node name="Crate2" parent="NavigationRegion3D" instance=ExtResource("crate")]
-position = Vector3(-7.3, 0.6, 4.6)
-
-[node name="Crate3" parent="NavigationRegion3D" instance=ExtResource("crate")]
-position = Vector3(-8.6, 0.6, 3.3)
-
-[node name="Crate4" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(-20, 0, -10)
 
-[node name="Crate5" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate2" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(-18.7, 0, -10)
 
-[node name="Crate6" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate3" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(-20, 0, -11.3)
 
-[node name="Crate7" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate4" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(24, 0, -16)
 
-[node name="Crate8" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate5" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(25.3, 0, -16)
 
-[node name="Crate9" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate6" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(-4, 0, 18)
 
-[node name="Crate10" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate7" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(-2.7, 0, 18)
 
-[node name="Crate11" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate8" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(14, 0, 19)
 
-[node name="Crate12" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate9" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(36, 0, 22)
 
-[node name="Crate13" parent="NavigationRegion3D" instance=ExtResource("crate")]
+[node name="Crate10" parent="NavigationRegion3D" instance=ExtResource("crate")]
 position = Vector3(-22, 0, 20)
+
+[node name="ReinforcementPoint" type="Marker3D" parent="."]
+position = Vector3(0, 0, -20)
 
 [node name="Lamps" type="Node3D" parent="."]
 
@@ -808,6 +808,12 @@ sweeping = true
 [node name="EastSentry" parent="Enemies" instance=ExtResource("enemy")]
 position = Vector3(45, 0, 0)
 rotation = Vector3(0, -1.57080, 0)
+stationary = true
+sweeping = true
+
+[node name="SabreGuard" parent="Enemies" instance=ExtResource("enemy")]
+position = Vector3(-12, 0, 17)
+rotation = Vector3(0, 2.35619, 0)
 stationary = true
 sweeping = true
 

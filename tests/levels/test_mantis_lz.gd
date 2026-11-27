@@ -1,7 +1,8 @@
 extends LevelTest
 ## Carte « Le Mantis » : le transporteur lourd (`Mantis`), sa soute
-## praticable (rampe et porte latérale), la coupe du toit, et les véhicules
-## qui en sortent jusqu'au point de ralliement.
+## praticable (rampe et porte latérale), la coupe du toit, la rampe manœuvrée
+## au tableau, le décollage avec l'équipe et les véhicules, et le second
+## Mantis qui arrive avec des renforts.
 
 const MAP := "res://scenes/levels/mantis_lz/mantis_lz.tscn"
 const START := Vector3(-60, 0, 58)
@@ -60,20 +61,109 @@ func test_operator_in_the_hold_cuts_the_roof() -> void:
 	assert_false(Mantis.is_revealed_body(ship.get_node("WallsLow")), "le bas des flancs reste")
 
 
-func test_vehicles_fit_in_the_hold() -> void:
-	for path: String in ["NavigationRegion3D/Sabre", "NavigationRegion3D/Hexapod"]:
-		var vehicle := node(path) as Sabre
-		assert_true(ship.contains(vehicle.global_position + Vector3.UP * 0.3), "%s dans la soute" % vehicle.name)
+## Opérateurs et ennemis hors jeu, pour les manœuvres sans alerte.
+func _clear_enemies() -> void:
+	for enemy in level.get_tree().get_nodes_in_group(Enemy.ALL_GROUP):
+		park(enemy as Enemy)
+	var truck := node("Enemies/Technical") as Node3D
+	truck.process_mode = Node.PROCESS_MODE_DISABLED
+	truck.global_position = Vector3(-60, 0, 70)
 
 
-func test_vehicles_have_a_way_out_to_the_rally_point() -> void:
+func test_vehicles_can_drive_into_the_hold() -> void:
 	await frames(5)
-	for path: String in ["NavigationRegion3D/Sabre", "NavigationRegion3D/Hexapod"]:
+	var parking := {"NavigationRegion3D/Hexapod": Vector3(-4, Mantis.FLOOR_TOP, 0), "NavigationRegion3D/Sabre": Vector3(10, Mantis.FLOOR_TOP, -2.5)}
+	for path: String in parking:
 		var vehicle := node(path) as Sabre
-		var route := VehicleNavigation.path(vehicle, vehicle.global_position, vehicle.arrival_point, vehicle.nav_radius())
+		var goal: Vector3 = parking[path]
+		assert_false(ship.contains(vehicle.global_position + Vector3.UP * 0.3), "%s dehors au départ" % vehicle.name)
+		var route := VehicleNavigation.path(vehicle, vehicle.global_position, goal, vehicle.nav_radius())
 		assert_false(route.is_empty(), "%s : chemin" % vehicle.name)
 		var end := route[route.size() - 1]
-		assert_lt(Vector2(end.x - vehicle.arrival_point.x, end.z - vehicle.arrival_point.z).length(), 1.0, "%s : jusqu'au ralliement" % vehicle.name)
+		assert_lt(Vector2(end.x - goal.x, end.z - goal.z).length(), 1.0, "%s : jusque dans la soute" % vehicle.name)
+
+
+func test_ramp_is_worked_from_the_panel() -> void:
+	_clear_enemies()
+	var alpha := node("Units/Alpha") as Commando
+	alpha.global_position = Vector3(10, Mantis.FLOOR_TOP, 2)
+	await frames(2)
+	assert_eq(ship.ramp_problem(alpha), "au tableau près de la porte")
+	assert_false(ship.set_ramp_down(false, alpha))
+	alpha.global_position = ship.panel_point() + Vector3(0.6, 0, -0.4)
+	await frames(2)
+	assert_eq(ship.ramp_problem(alpha), "")
+	assert_true(ship.set_ramp_down(false, alpha), "rampe relevée")
+	await frames_until(func() -> bool: return not ship.ramp_moving, 300)
+	assert_false(ship.ramp_down)
+	assert_eq(ship.ramp_body.collision_layer, Mantis.LAYER_OBSTACLE, "relevée : elle ferme la soute")
+	assert_true(ship.set_ramp_down(true, alpha), "rampe abaissée")
+	await frames_until(func() -> bool: return not ship.ramp_moving, 300)
+	assert_eq(ship.ramp_body.collision_layer, Mantis.LAYER_FLOOR, "abaissée : un sol")
+	# Quelqu'un sur la rampe : on ne la relève pas.
+	(node("Units/Bravo") as Commando).global_position = Vector3(20.5, 0.4, 0)
+	await frames(2)
+	assert_eq(ship.ramp_problem(alpha), "quelqu'un sur la rampe")
+
+
+func test_take_off_needs_team_cargo_and_objectives() -> void:
+	_clear_enemies()
+	assert_true(ship.extraction)
+	assert_eq(ship.take_off_problem(), "tous les opérateurs à bord")
+	var spots := [Vector3(2, 0.6, 3), Vector3(3, 0.6, 3), Vector3(4, 0.6, 3)]
+	var units := level.get_tree().get_nodes_in_group(&"commandos")
+	for i in units.size():
+		(units[i] as Node3D).global_position = spots[i]
+	await frames(2)
+	assert_eq(ship.take_off_problem(), "Sabre dans la soute")
+	var sabre := node("NavigationRegion3D/Sabre") as Node3D
+	var hexapod := node("NavigationRegion3D/Hexapod") as Node3D
+	hexapod.global_position = Vector3(-4, Mantis.FLOOR_TOP, 0)
+	sabre.global_position = Vector3(10, Mantis.FLOOR_TOP, -2.5)
+	await frames(2)
+	assert_eq(ship.take_off_problem(), "objectifs en cours", "la citerne d'abord")
+	var fuel := node("NavigationRegion3D/FuelBowser") as SabotageTarget
+	fuel.blast(fuel.global_position, 4.0)
+	assert_eq(ship.take_off_problem(), "")
+	var ended := []
+	EventBus.mission_ended.connect(func(ok: bool, _message: String) -> void: ended.append(ok))
+	assert_true(ship.take_off(units[0] as Commando))
+	await frames(400)
+	assert_gt(ship.global_position.y, 3.0, "il décolle")
+	assert_gt(sabre.global_position.y, 3.0, "le Sabre part avec lui")
+	assert_gt((units[0] as Node3D).global_position.y, 3.0, "l'équipe aussi")
+	await frames_until(func() -> bool: return not ended.is_empty(), 900)
+	assert_eq(ended, [true], "mission réussie")
+	var objectives := level.get_tree().get_first_node_in_group(Objectives.GROUP) as Objectives
+	assert_eq(objectives.status_of("mantis_stolen"), Objectives.Status.DONE)
+
+
+func test_second_mantis_lands_with_reinforcements() -> void:
+	var m7 := node("NavigationRegion3D/Mantis7") as Mantis
+	assert_true(m7.is_away, "absent au début")
+	assert_false(m7.visible)
+	assert_false(m7.contains(m7.to_global(Vector3(0, 1, 0))))
+	var radio := []
+	EventBus.radio_message.connect(func(text: String) -> void: radio.append(text))
+	m7.arrival_left = 1.0
+	await frames_until(func() -> bool: return m7.arrived, 60 * 30)
+	assert_true(m7.arrived, "posé")
+	assert_true(m7.visible)
+	assert_eq(m7._spawned.size(), 4, "quatre renforts")
+	assert_true(radio.any(func(text: String) -> bool: return text.contains("M-7")), "annoncé par radio")
+	await frames_until(func() -> bool: return m7.ramp_down and not m7.ramp_moving, 300)
+	await frames(60 * 6)
+	var goal := m7.reinforcement_goal()
+	for enemy in m7._spawned:
+		assert_false(m7.contains(enemy.global_position + Vector3.UP * 0.3), "%s a quitté la soute" % enemy.name)
+		assert_lt(enemy.home_position().distance_to(goal), Mantis.POST_SPREAD + 0.1, "%s : poste autour du point visé" % enemy.name)
+
+
+func test_alarm_brings_the_second_mantis_sooner() -> void:
+	var m7 := node("NavigationRegion3D/Mantis7") as Mantis
+	assert_gt(m7.arrival_left, Mantis.ALARM_DELAY)
+	m7._on_alert_changed(GameState.AlertLevel.ALARM)
+	assert_almost_eq(m7.arrival_left, Mantis.ALARM_DELAY, 0.01)
 
 
 func test_fuel_bowser_completes_its_objective() -> void:
