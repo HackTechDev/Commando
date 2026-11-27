@@ -1785,3 +1785,11 @@
 - Réglage `talk_partner` des gardes (lien posé des deux côtés au chargement) : deux gardes au calme, à leur poste et à moins de 4 m, se font face et bavardent, une bulle « … » au-dessus de celui qui parle. Leur jauge de repérage monte deux fois moins vite (`EnemyChat`).
 - Chacun remarque la disparition de l'autre : tué, assommé, saisi, emporté, ou garde posté parti à plus de 8 m sans raison. Trois secondes plus tard, le garde resté devient méfiant et va voir là où l'autre se tenait. Une mission (lampe à réparer) ou une enquête n'est pas une disparition.
 - « Centre mobile 07 » : le chauffeur du centre replié bavarde avec un mécanicien. Test : `tests/enemies/test_enemy_chat.gd`.
+
+## Relève de la garde (point 2.18)
+
+- Nouveau nœud `GuardRelief` (sentinelle `post`, remplaçant `relief`, intervalle et première relève en secondes) : le remplaçant marche jusqu'au poste, s'arrête devant la sentinelle, puis les deux échangent leur place ; les rôles s'inversent pour la relève suivante.
+- Poste vide à son arrivée (sentinelle tuée, assommée, saisie, emportée ou partie à plus de 6 m) : le remplaçant devient méfiant, fouille autour du poste, puis le garde. Plus de relève ensuite.
+- La radio ennemie, interceptée, annonce la relève 20 s avant (bandeau radio du HUD).
+- Correction : un garde posté qui rentre après une mission (lampe réparée) regagne son poste à pied (`Enemy.walking_home`) au lieu de rester sur place.
+- « Centre mobile 07 » : relève de la sentinelle de l'escalier par un garde au repos près du campement, à 1 min 15 puis toutes les 2 min 30. Test : `tests/gameplay/test_guard_relief.gd`.

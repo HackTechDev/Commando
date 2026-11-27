@@ -30,7 +30,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **c)** avion de transport au sol (base aérienne) : cachette dans la soute, sabotage, ou moyen d'extraction ;
   - **d)** parachutage d'ouverture : zone d'atterrissage choisie en début de mission, dispersion selon le vent (`LevelRoot.wind`) ;
   - **e)** ballon captif d'observation : poste de guet très haut, qu'on fait tomber en coupant son câble.
-- **2.18 Relève de la garde** : à heures fixes, une sentinelle est remplacée ; le remplaçant remarque un poste vide ou un collègue absent. Fenêtres de temps à exploiter.
 - **2.19 Radio des gardes** : chaque poste se signale à intervalles réguliers ; un garde neutralisé ne répond plus et une patrouille vient voir. Un opérateur déguisé (2.25) peut répondre à sa place.
 - **2.22 Leurres à retardement** : réveil ou radio qui sonne au bout de quelques secondes, pour attirer un garde hors de son poste (en plus des appâts).
 - **2.23 Blessures et fatigue** : un opérateur blessé boite et rampe moins vite tant qu'il n'est pas soigné ; les blessures se gardent d'une mission à l'autre (avec 10.1).

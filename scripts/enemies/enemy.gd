@@ -149,6 +149,9 @@ var gunner := EnemyGunner.new(self)
 var brawler := EnemyBrawler.new(self)
 var gaze := EnemyGaze.new(self)
 var chat := EnemyChat.new(self)
+## Garde fixe qui regagne son poste à pied (après une mission, une relève) :
+## il marche, malgré `stationary`, jusqu'à y être.
+var walking_home: bool = false
 
 ## Activité en cours (`Activity`), selon le comportement.
 var activity: Activity:
@@ -1072,8 +1075,9 @@ func _physics_process(delta: float) -> void:
 		gunner.engage_aircraft(delta)
 	else:
 		horizontal = behavior.update(delta)
-	# Un garde fixe ne bouge pas, sauf en mission (relève, réparation).
-	if stationary and behavior != errand_behavior:
+	# Un garde fixe ne bouge pas, sauf en mission (relève, réparation) et
+	# pour regagner son poste ensuite.
+	if stationary and behavior != errand_behavior and not (walking_home and behavior == return_behavior):
 		horizontal = Vector3.ZERO
 	gaze.update(delta, horizontal != Vector3.ZERO)
 	chat.update(delta, horizontal != Vector3.ZERO)

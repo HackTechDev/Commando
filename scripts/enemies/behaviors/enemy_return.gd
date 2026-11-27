@@ -2,6 +2,8 @@ class_name EnemyReturn
 extends EnemyBehavior
 ## Retour, fouille ou enquête finie : il marche jusqu'à sa ronde (qu'il
 ## reprend au point le plus proche) ou à son poste (où il reprend son cap).
+## Un garde fixe se contente de reprendre son cap, sauf s'il regagne son
+## poste à pied (`Enemy.walking_home`).
 ## Méfiant en route (jauge qui monte), il s'arrête pour regarder, puis
 ## repart une fois rassuré.
 
@@ -29,7 +31,7 @@ func update(delta: float) -> Vector3:
 	if enemy.state == Enemy.State.SUSPICIOUS:
 		enemy._face(enemy._last_seen - enemy.global_position, delta)
 		return Vector3.ZERO
-	if enemy.stationary:
+	if enemy.stationary and not enemy.walking_home:
 		return _face_home(delta)
 	if not enemy._agent.is_navigation_finished():
 		var direction := enemy._path_direction(delta)
@@ -48,5 +50,6 @@ func _face_home(delta: float) -> Vector3:
 	var yaw := enemy._home_yaw
 	enemy._face(Vector3(-sin(yaw), 0.0, -cos(yaw)), delta)
 	if absf(angle_difference(enemy.rotation.y, yaw)) < 0.05:
+		enemy.walking_home = false
 		enemy._end_activity()
 	return Vector3.ZERO

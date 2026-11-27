@@ -147,6 +147,8 @@ Les éléments qui bloquent le passage (murs, caisses, bâtiments) vont sous `Na
   - `documents` : porteur des documents.
   - `talk_partner` : un autre garde avec qui il bavarde (à moins de 4 m, à son poste ; il suffit de le régler sur l'un des deux) : moins attentifs, mais chacun remarque la disparition de l'autre.
 
+Relève de la garde : ajoutez à la racine de la carte un nœud `GuardRelief` (Ajouter un nœud enfant, puis « GuardRelief »). Dans l'inspecteur, `post` est la sentinelle de service et `relief` le remplaçant (un garde posté au repos, ailleurs sur la carte) ; `first_at` et `interval` règlent la première relève et le rythme (secondes de jeu), `post_name` le nom du poste dans l'annonce radio.
+
 Le **cône de vue** de chaque garde s'affiche au sol en jaune : la zone proche, plus soutenue, où il voit tout de suite, puis la zone lointaine. Cochez Nuit : la zone lointaine se réduit, comme en jeu. Placez les gardes pour que leurs cônes laissent un passage, sans en laisser un trop facile.
 
 Pour voir l'ensemble, cochez **Couverture des gardes** dans la section Carte. Le sol se colore case par case (1 m) selon ce que voient les gardes, avec les règles du jeu : murs et toits arrêtent la vue, la nuit réduit la zone lointaine. En **rouge**, la zone proche : on y est vu même accroupi. En **jaune**, la zone lointaine : on y est vu debout, pas accroupi. Plus la couleur est soutenue, plus il y a de gardes. Un garde en ronde compte sur tout son chemin, retour au premier point compris, dans les deux sens de marche. La carte se recalcule à chaque changement (pose, déplacement, Nuit) et n'est jamais enregistrée dans la scène. Les cases sans couleur sont les passages.

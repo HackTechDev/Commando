@@ -64,6 +64,7 @@ func update(delta: float) -> Vector3:
 		enemy._home_yaw = enemy.rotation.y
 		enemy._end_activity()
 	else:
+		enemy.walking_home = enemy.stationary
 		enemy._begin_return()
 	if done.is_valid():
 		done.call()
