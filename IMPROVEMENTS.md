@@ -22,7 +22,8 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **d)** jeep d'officier : traverse la carte ; une embuscade fait de l'officier et de ses documents un objectif ;
   - **e)** chariot élévateur ou engin de chantier : soulève les caisses lourdes (2.8 e) et ouvre un passage ;
   - **f)** ambulance ou camion de pompiers : véhicule civil, sortie discrète d'une évasion avec la bonne tenue ;
-  - **g)** bateau pneumatique : infiltration par l'eau (carte côtière ou rivière) ; moteur audible, pagaies silencieuses.
+  - **g)** bateau pneumatique : infiltration par l'eau (carte côtière ou rivière) ; moteur audible, pagaies silencieuses ;
+  - **h)** centre de commandement mobile (`CommandCenter`), suite : aujourd'hui décor fixe en deux versions. Le déployer ou le replier en cours de mission (flancs, vérins), le faire rouler replié, et lui donner de vraies lumières pour les cartes de nuit.
 - **2.17 Véhicules aériens** :
   - **a)** hélicoptère de patrouille ennemi : survol et vol stationnaire, cône de projecteur au sol la nuit, appelé par une alerte ;
   - **b)** drone de surveillance : ronde aérienne, vue de dessus que les toits n'arrêtent pas ; abattu au silencieux ou brouillé ;
@@ -48,10 +49,11 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** pour le couteau, les cercles de 7 m et de 4 m (où le lancer porte toujours), et la trajectoire au survol d'un ennemi ;
   - **b)** pour la grenade, le cercle de 12 m, et la zone de l'explosion au survol du sol.
 - **4.10 Retour des actions refusées** : certains ordres impossibles ne font toujours rien (assommer un ennemi déjà inconscient). Afficher un court message, en plus du son de refus déjà joué pour les lancers, les charges et les soins.
-- **4.11 Ordres synchronisés** : préparer des actions pour plusieurs opérateurs (« Alpha au couteau, Bravo tire ») et les déclencher ensemble d'une touche.
 - **4.12 Rediffusion** : revoir la mission en accéléré, cônes de vue affichés, pour comprendre où l'on a été repéré.
 - **4.13 Ralenti tactique** : temps ralenti (pas en pause) pendant lequel on peut toujours donner des ordres.
 - **4.14 Portée du bruit** : avant une action (course, caisse, tir), un cercle au sol montre jusqu'où elle s'entendra.
+- **4.15 Roue d'équipement** (`KEYBOARD_ACTION.md`, §2.4) : une touche maintenue affiche autour du curseur tout l'équipement des opérateurs sélectionnés ; on relâche sur l'objet voulu. Le jeu reste en pause tant qu'elle est ouverte. À faire si l'équipement continue de grossir.
+- **4.16 Touche contextuelle** (`KEYBOARD_ACTION.md`, §2.5) : une touche « Utiliser » fait l'action logique selon ce qui est sous le curseur (couteau, porter, caisse, échelle, porte, véhicule) ; les touches dédiées restent pour forcer un choix.
 
 ## 5. Interface
 
@@ -59,8 +61,10 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** gestes propres à la pose d'une charge et aux soins (aujourd'hui, l'opérateur reste simplement accroupi ou debout) ;
   - **b)** grenade qui rebondit et roule selon le relief ;
   - **c)** munitions de l'arme secondaire visibles en même temps que celles de la principale ;
-  - **d)** effet visuel de soin.
+  - **d)** effet visuel de soin ;
+  - **e)** obus de 40 mm du M320 : une apparence propre à chaque type en vol (explosif, fumigène, lacrymogène).
 - **5.8 Traduction** : passer tous les textes par `tr()` (français et anglais, M10).
+- **5.11 Touches du README** : les tableaux de touches du README sont écrits à la main et montrent les touches d'origine. Les générer depuis l'InputMap, comme l'aide en jeu.
 
 ## 6. Modèle et animation
 
@@ -99,6 +103,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **f)** sous-titres des sons importants, pour l'accessibilité (le signal `Sfx.played` existe).
 - **7.12 Sauvegarde complète** : plusieurs emplacements avec vignette, en plus de la sauvegarde rapide.
 - **7.13 Performances des grandes cartes** : regrouper les tests de vue des gardes (aujourd'hui un par garde et par image) pour tenir une soixantaine de gardes.
+- **7.14 Sauvegarde rapide de la lampe** : l'état allumé ou éteint de la lampe du HK45 (`Commando.lamp_on`) n'est pas sauvegardé ; au chargement, elle est toujours éteinte.
 
 ## 8. Éditeur de mission
 
