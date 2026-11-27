@@ -30,7 +30,7 @@ enum State { PATROL, SUSPICIOUS, ALERT, STUNNED, GRABBED }
 ## - INVESTIGATE : il va voir d'où vient un bruit (méfiant) et regarde autour ;
 ## - SEARCH : cible perdue, il fouille autour du dernier point connu (méfiant) ;
 ## - RETURN : fouille finie, il rentre à sa ronde ou à son poste (calme).
-enum Activity { NONE, INVESTIGATE, SEARCH, RETURN }
+enum Activity { NONE, INVESTIGATE, SEARCH, RETURN, ERRAND }
 ## Type d'ennemi : soldat ; officier (en alerte, il rallie les gardes
 ## voisins ; près de lui, ils repèrent plus vite) ; chien de garde (flaire
 ## les opérateurs tout autour de lui, aboie en alerte, court et mord).
@@ -139,6 +139,7 @@ var stunned_behavior := EnemyStunned.new(self)
 var grabbed_behavior := EnemyGrabbed.new(self)
 var disarmed_behavior := EnemyDisarmed.new(self)
 var dazed_behavior := EnemyDazed.new(self)
+var errand_behavior := EnemyErrand.new(self)
 var behavior: EnemyBehavior = patrol_behavior
 ## Composants : tir, corps à corps, regard.
 var gunner := EnemyGunner.new(self)
@@ -225,6 +226,13 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _walker := PathWalker.new()
 ## Franchissement d'échelle ou de muret en cours.
 var _traversal: LinkTraversal
+## Vue de jour (réglages d'origine) ; `_vision.config` est réduite la nuit
+## et par mauvais temps (`_refresh_sight`).
+var _day_vision: VisionConfig
+var _sight_factor: float = 1.0
+var _sight_check_left: float = 0.0
+## Intervalle (s) entre deux mises à jour de la portée (heure qui avance).
+const SIGHT_CHECK_INTERVAL := 2.0
 
 @onready var _agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _model: SoldierModel = $SoldierModel
@@ -266,13 +274,8 @@ func _ready() -> void:
 	_agent.link_reached.connect(_on_link_reached)
 	# Les ennemis ont les clés : ils passent aussi les portes verrouillées.
 	_agent.navigation_layers = Door.NAV_EVERYONE | Door.NAV_ENEMIES
-	# La nuit, sous la pluie ou la neige, on voit moins loin (la zone proche
-	# ne change pas).
-	var sight := (LevelRoot.NIGHT_SIGHT if LevelRoot.is_night(self) else 1.0) * WeatherParticles.sight_factor_of(get_tree())
-	if sight < 1.0 and _vision.config:
-		var dark := _vision.config.duplicate() as VisionConfig
-		dark.far_range = maxf(dark.near_range, dark.far_range * sight)
-		_vision.config = dark
+	_day_vision = _vision.config
+	_refresh_sight()
 	if patrol_path and patrol_path.curve:
 		for i in patrol_path.curve.point_count:
 			_waypoints.append(patrol_path.to_global(patrol_path.curve.get_point_position(i)))
@@ -288,6 +291,38 @@ func _ready() -> void:
 		_vision.set_physics_process(false)
 		# Mannequin : sourd aussi.
 		_hearing.deaf = true
+
+
+## Portée de la vue selon l'obscurité (`LevelRoot.darkness_of`) et le
+## temps (pluie, neige) : la zone lointaine raccourcit, la proche ne change
+## pas.
+func _refresh_sight() -> void:
+	if _day_vision == null:
+		return
+	var factor := lerpf(1.0, LevelRoot.NIGHT_SIGHT, LevelRoot.darkness_of(self)) * WeatherParticles.sight_factor_of(get_tree())
+	if absf(factor - _sight_factor) < 0.01 and _vision.config != null:
+		return
+	_sight_factor = factor
+	if factor >= 0.999:
+		_vision.config = _day_vision
+	else:
+		var dark := _day_vision.duplicate() as VisionConfig
+		dark.far_range = maxf(dark.near_range, dark.far_range * factor)
+		_vision.config = dark
+	_vision.invalidate()
+
+
+## Zone où `unit` est vu : de nuit, une lampe allumée (`StreetLamp`) le
+## montre d'aussi loin que de jour.
+func _sight_zone(unit: Unit) -> VisionComponent.Zone:
+	var ignore_posture := state == State.ALERT
+	var dark := _vision.config
+	if dark == _day_vision or not StreetLamp.lit_at(get_tree(), unit.global_position + Vector3.UP):
+		return _vision.check(unit, ignore_posture)
+	_vision.config = _day_vision
+	var zone := _vision.check(unit, ignore_posture)
+	_vision.config = dark
+	return zone
 
 
 ## Entrée d'un lien de navigation : échelle ou muret à franchir.
@@ -572,7 +607,7 @@ func _update_detection(delta: float) -> void:
 	var best_distance := INF
 	_target = null
 	for unit in Unit.targets(get_tree()):
-		var zone := _vision.check(unit, state == State.ALERT)
+		var zone := _sight_zone(unit)
 		# Passager du Sabre (opérateur ou VIP), la nuit : phares éteints ou
 		# allumés.
 		var ride := unit.get(&"riding") as Sabre
@@ -989,6 +1024,10 @@ func _physics_process(delta: float) -> void:
 	gunner.update_reload(delta)
 	alert_age += delta
 	wary_left = maxf(wary_left - delta, 0.0)
+	_sight_check_left -= delta
+	if _sight_check_left <= 0.0:
+		_sight_check_left = SIGHT_CHECK_INTERVAL
+		_refresh_sight()
 	_update_detection(delta)
 	_look_for_bodies(delta)
 	_look_for_tracks(delta)
@@ -1025,7 +1064,8 @@ func _physics_process(delta: float) -> void:
 		gunner.engage_aircraft(delta)
 	else:
 		horizontal = behavior.update(delta)
-	if stationary:
+	# Un garde fixe ne bouge pas, sauf en mission (relève, réparation).
+	if stationary and behavior != errand_behavior:
 		horizontal = Vector3.ZERO
 	gaze.update(delta, horizontal != Vector3.ZERO)
 
@@ -1077,7 +1117,7 @@ func _sync_behavior() -> void:
 	var next := _base_behavior()
 	if next == watch_behavior and behavior.activity() != Activity.NONE:
 		next = behavior
-	elif next == patrol_behavior and behavior == return_behavior:
+	elif next == patrol_behavior and (behavior == return_behavior or behavior == errand_behavior):
 		next = behavior
 	_set_behavior(next)
 
@@ -1184,6 +1224,41 @@ func _begin_return() -> void:
 	_update_state()
 	_agent.target_position = return_behavior.goal()
 	_update_feedback()
+
+
+## Mission au calme (`EnemyErrand`) : aller en `at` (même posté), y
+## travailler `seconds` s en regardant `look`, puis appeler `done` et
+## rentrer, ou rester là (`stay`, nouveau poste). Refusée s'il n'est pas
+## calme et libre (alerte, méfiance, neutralisé, autre mission). Renvoie
+## vrai si elle est acceptée.
+func send_on_errand(at: Vector3, look: Vector3, seconds: float, done: Callable = Callable(), stay: bool = false) -> bool:
+	if not can_take_errand():
+		return false
+	errand_behavior.begin(at, look, seconds, stay, done)
+	_set_behavior(errand_behavior)
+	_update_feedback()
+	return true
+
+
+## Vrai s'il peut partir en mission : vivant, calme, libre, pas un chien.
+func can_take_errand() -> bool:
+	return not is_dead and not disarmed and kind != Kind.DOG and state == State.PATROL \
+			and behavior != errand_behavior and not behavior.takes_over() and carrier == null and on_vehicle == null
+
+
+## Vrai s'il est en mission (`send_on_errand`).
+func is_on_errand() -> bool:
+	return behavior == errand_behavior
+
+
+## Poste (point et cap) où il revient au calme, sans ronde.
+func set_post(at: Vector3, yaw: float) -> void:
+	_home = at
+	_home_yaw = yaw
+
+
+func home_position() -> Vector3:
+	return _home
 
 
 ## Donne une ronde (points parcourus en boucle) à un ennemi déjà en place,
@@ -1352,6 +1427,7 @@ func save_state() -> Dictionary:
 		"look_left": search_behavior.look_left if behavior == search_behavior else investigate_behavior.look_left,
 		"drop_left": _saved_drop(), "wary_left": wary_left,
 		"search_points": search_behavior.points.duplicate(), "search_index": search_behavior.index,
+		"home": _home, "home_yaw": _home_yaw, "stationary": stationary,
 	}
 
 
@@ -1372,6 +1448,9 @@ func load_state(data: Dictionary) -> void:
 	global_position = data.get("position", global_position)
 	rotation = Vector3(0.0, data.get("rotation", rotation.y), 0.0)
 	_drop_left = data.get("drop_left", _drop_left)
+	_home = data.get("home", _home)
+	_home_yaw = data.get("home_yaw", _home_yaw)
+	stationary = data.get("stationary", stationary)
 	health.load_state(data.get("health", {}))
 	if is_dead:
 		return
@@ -1420,7 +1499,8 @@ func load_state(data: Dictionary) -> void:
 				_set_behavior(search_behavior)
 				if search_behavior.index < search_behavior.points.size():
 					_agent.target_position = search_behavior.points[search_behavior.index]
-			Activity.RETURN:
+			Activity.RETURN, Activity.ERRAND:
+				# Une mission en cours n'est pas reprise : il rentre.
 				_set_behavior(return_behavior)
 				_agent.target_position = return_behavior.goal()
 	_update_feedback()

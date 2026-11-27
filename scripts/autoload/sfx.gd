@@ -101,6 +101,17 @@ func _build_library() -> void:
 		_noise(0.09, 0.001, 0.05, 0.35, 0.9),
 		_tone([180.0, 70.0], 0.08, 0.6, 0.002, 0.06),
 	]))
+	# Ampoule brisée : éclat de verre clair et tintements.
+	_streams[&"glass"] = _wav(_mix([
+		_noise(0.12, 0.001, 0.06, 1.0, 0.7),
+		_tone([3100.0, 2600.0], 0.18, 0.18, 0.001, 0.12),
+		_tone([4200.0, 3900.0], 0.25, 0.12, 0.01, 0.2),
+	]))
+	# Radio : grésillement bref et bip de fin de message.
+	_streams[&"radio"] = _wav(_mix([
+		_noise(0.32, 0.01, 0.05, 0.55, 0.28),
+		_tone([1250.0, 1250.0], 0.09, 0.3, 0.002, 0.02),
+	]))
 	# Tir ennemi (sans silencieux) : détonation et queue.
 	_streams[&"shot"] = _wav(_mix([
 		_noise(0.35, 0.001, 0.12, 0.8, 1.0),

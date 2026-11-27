@@ -41,7 +41,7 @@ const SECTIONS: Array = [
 		[[&"parry"], "Parer : au moment où l'ennemi frappe"],
 		[[&"action_grenade"], "Grenade, fumigène, assourdissante (chaque appui : la suivante), puis clic au sol"],
 		[[&"action_launcher"], "M320 : obus explosif, fumigène, lacrymogène (chaque appui : le suivant), puis clic au sol"],
-		[[&"action_fire_at"], "Tir libre, puis clic sur un mur ou un objet"],
+		[[&"action_fire_at"], "Tir libre, puis clic sur un mur ou un objet (une ampoule : la lampe s'éteint)"],
 		[[&"action_carry"], "Porter un corps (clic dessus) / le déposer"],
 		[[&"reload"], "Recharger"],
 		[[&"switch_weapon"], "Arme secondaire / principale"],

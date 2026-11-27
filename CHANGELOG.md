@@ -1762,3 +1762,12 @@
 
 - Deux entrées dans la catégorie Décor : « Centre de commandement replié » et « Centre de commandement déployé » (`CommandCenter`, rangé sous `NavigationRegion3D`, tourné par le cap). Seul le nœud est enregistré dans la mission, pas les pièces qu'il construit ; les gardes et objectifs se posent sur ses ponts.
 - Scénario de vérification `tools/editor_check/command_center.gd` (`CAPTURE_TEST=command_center`).
+
+## Lumières qu'on coupe (point 2.21)
+
+- Chaque lampe des cartes (nœud avec une lumière « Light » et une ampoule « Bulb ») reçoit un `StreetLamp` au chargement : une balle (tir libre sur l'ampoule) la brise, avec un bruit de verre entendu à 10 m.
+- La nuit, un opérateur dans le disque d'une lampe allumée se voit d'aussi loin que de jour ; dans le noir, la vue des gardes reste réduite. Détruire le groupe électrogène (`SabotageTarget.lights`) éteint toutes ses lampes.
+- Lampe brisée : le garde au calme le plus proche (35 m) vient changer l'ampoule en 6 s, puis rentre. Courant coupé : un seul garde vient constater devant le groupe électrogène.
+- Nouvelle activité des gardes, la mission (`EnemyErrand`, `Enemy.send_on_errand`) : aller à un point (même un garde posté), y travailler, puis rentrer ou y prendre son poste. Elle servira aussi à la relève et à la radio. Le poste du garde est sauvegardé.
+- Portée de la vue des gardes recalculée en jeu (`Enemy._refresh_sight`, `LevelRoot.darkness_of`), en vue de l'heure qui avance.
+- État des ampoules dans la sauvegarde rapide. Test : `tests/levels/test_street_lamps.gd`.

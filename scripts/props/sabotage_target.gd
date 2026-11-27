@@ -6,6 +6,8 @@ extends StaticBody3D
 ## détruit (`blast`) : objectif `objective_id` rempli, et les lumières
 ## alimentées (`lights`) s'éteignent.
 ##
+## Lumières coupées : un garde au calme vient voir (`StreetLamp`).
+##
 ## Variante dépôt de carburant (`fuel`) : citerne couchée et fûts ; détruit,
 ## il s'embrase dans une explosion secondaire qui s'entend de loin.
 
@@ -139,11 +141,26 @@ func destroy() -> void:
 	if is_destroyed:
 		return
 	_set_destroyed(true)
+	_call_guard()
 	if fuel:
 		# Le carburant s'embrase : explosion secondaire, entendue de loin.
 		Explosion.detonate(get_parent(), global_position + Vector3.UP * 0.5, 5.0, 80.0, 70.0)
 	if objective_id != &"":
 		EventBus.objective_completed.emit(objective_id)
+
+
+## Lumières coupées : un garde au calme vient constater (sans pouvoir
+## réparer), après le même délai qu'une ampoule brisée.
+func _call_guard() -> void:
+	if get_node_or_null(lights) == null:
+		return
+	await get_tree().create_timer(StreetLamp.CALL_DELAY, false).timeout
+	if not is_inside_tree():
+		return
+	var guard := StreetLamp.nearest_guard(get_tree(), global_position, StreetLamp.CALL_RADIUS * 1.5)
+	if guard:
+		var spot := global_position + (guard.global_position - global_position).normalized() * (size().x * 0.5 + 1.2)
+		guard.send_on_errand(spot, global_position, StreetLamp.REPAIR_TIME)
 
 
 func _set_destroyed(value: bool) -> void:

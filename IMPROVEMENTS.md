@@ -33,7 +33,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 - **2.18 Relève de la garde** : à heures fixes, une sentinelle est remplacée ; le remplaçant remarque un poste vide ou un collègue absent. Fenêtres de temps à exploiter.
 - **2.19 Radio des gardes** : chaque poste se signale à intervalles réguliers ; un garde neutralisé ne répond plus et une patrouille vient voir. Un opérateur déguisé (2.25) peut répondre à sa place.
 - **2.20 Gardes qui discutent** : deux gardes en conversation sont moins attentifs, mais chacun remarque la disparition de l'autre.
-- **2.21 Lumières qu'on coupe** : tirer sur un lampadaire ou couper le groupe électrogène plonge une zone dans le noir ; les gardes viennent réparer.
 - **2.22 Leurres à retardement** : réveil ou radio qui sonne au bout de quelques secondes, pour attirer un garde hors de son poste (en plus des appâts).
 - **2.23 Blessures et fatigue** : un opérateur blessé boite et rampe moins vite tant qu'il n'est pas soigné ; les blessures se gardent d'une mission à l'autre (avec 10.1).
 - **2.24 Progression des opérateurs** : l'expérience des missions (discrétion, tir, soins) améliore un peu leurs réglages.

@@ -77,6 +77,8 @@ func _ready() -> void:
 			if not is_inside_tree():
 				return
 	TextureLibrary.apply_to_tree(self)
+	# Lampes qu'on éteint (balle, groupe électrogène).
+	StreetLamp.adopt_all(self)
 	# Les caisses ont déjà choisi leur variante (`_ready` des enfants).
 	_loading_screen.set_status("Préparation des chemins")
 	_navigation.bake_navigation_mesh(true)
@@ -92,14 +94,25 @@ static func dress_code_of(node: Node) -> StringName:
 	return &""
 
 
-## Vrai si `node` est dans une carte de nuit.
+## Vrai si `node` est dans une carte de nuit (obscurité à moitié au
+## moins : `darkness_of`).
 static func is_night(node: Node) -> bool:
+	return darkness_of(node) >= 0.5
+
+
+## Obscurité de la carte de `node` : 0 de jour, 1 en pleine nuit.
+static func darkness_of(node: Node) -> float:
 	var parent := node.get_parent()
 	while parent:
 		if parent is LevelRoot:
-			return (parent as LevelRoot).night
+			return (parent as LevelRoot).darkness()
 		parent = parent.get_parent()
-	return false
+	return 0.0
+
+
+## Obscurité de cette carte : 0 de jour, 1 en pleine nuit.
+func darkness() -> float:
+	return 1.0 if night else 0.0
 
 
 ## Clé de ce niveau (aperçu, dernière carte jouée : `LevelCatalog.key_of`).
