@@ -2798,6 +2798,26 @@ func _build_sunglasses() -> void:
 	_box(glasses, Vector3(0.014, 0.01, 0.008), Vector3(0.0, 0.194, -0.112), frame)
 
 
+## Uniforme de ce soldat ennemi, pour un déguisement
+## (`Commando.wear_disguise`) : couleurs de la tenue, du harnais et du
+## couvre-chef.
+func guard_uniform() -> Dictionary:
+	var look := _guard_look if not _guard_look.is_empty() else _pick_guard_look()
+	var headwear: StringName = look.get("headwear", &"helmet")
+	return {
+		"uniform": uniform_color, "gear": gear_color, "headwear": headwear,
+		"headwear_color": (uniform_color as Color).darkened(0.1) if headwear == &"helmet" else look.get("headwear_color", helmet_color),
+	}
+
+
+## Uniforme pris (`Enemy.strip_uniform`) : maillot et pantalon clairs, sans
+## harnais.
+func strip_uniform() -> void:
+	uniform_color = Color(0.78, 0.76, 0.7)
+	gear_color = Color(0.7, 0.68, 0.62)
+	_rebuild()
+
+
 ## Apparence d'un soldat ennemi : visage, cheveux, barbe et couvre-chef,
 ## toujours la même pour un même nœud.
 func _pick_guard_look() -> Dictionary:

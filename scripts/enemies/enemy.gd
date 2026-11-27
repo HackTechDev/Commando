@@ -152,6 +152,8 @@ var chat := EnemyChat.new(self)
 ## Garde fixe qui regagne son poste à pied (après une mission, une relève) :
 ## il marche, malgré `stationary`, jusqu'à y être.
 var walking_home: bool = false
+## Uniforme pris par un opérateur (`strip_uniform`).
+var stripped: bool = false
 
 ## Activité en cours (`Activity`), selon le comportement.
 var activity: Activity:
@@ -648,6 +650,9 @@ func _update_detection(delta: float) -> void:
 		var blend := 1.0
 		if state != State.ALERT and _target.has_method(&"blend_factor"):
 			blend = _target.blend_factor()
+			# Uniforme volé : l'officier connaît ses hommes, le chien les flaire.
+			if kind != Kind.SOLDIER and _target.get(&"disguised") == true:
+				blend = 1.0
 		if best_zone == VisionComponent.Zone.NEAR and blend >= 1.0:
 			detection = 1.0
 		else:
@@ -1385,6 +1390,25 @@ func knock_out(fall_forward: bool = false, duration: float = -1.0) -> void:
 
 ## Vrai si `enemy` peut être ligoté : assommé, vivant, pas encore ligoté,
 ## ni porté.
+## Vrai si un opérateur peut lui prendre son uniforme : soldat ou officier
+## assommé, pas encore dévêtu, à terre.
+static func can_be_stripped(enemy: Enemy) -> bool:
+	return is_instance_valid(enemy) and not enemy.is_dead and enemy.is_stunned() and not enemy.stripped \
+			and enemy.carrier == null and not enemy.is_dog()
+
+
+## Lui prend son uniforme (`DisguiseGesture`) : il reste en maillot clair.
+## Renvoie les couleurs et le couvre-chef (`Commando.wear_disguise`), vide
+## si c'est impossible.
+func strip_uniform() -> Dictionary:
+	if not can_be_stripped(self):
+		return {}
+	var look := _model.guard_uniform()
+	stripped = true
+	_model.strip_uniform()
+	return look
+
+
 static func can_be_tied(enemy: Enemy) -> bool:
 	return is_instance_valid(enemy) and not enemy.is_dead and enemy.is_stunned() and not enemy.tied and enemy.carrier == null and not enemy.is_dog()
 
@@ -1441,7 +1465,7 @@ func save_state() -> Dictionary:
 		"drop_left": _saved_drop(), "wary_left": wary_left,
 		"search_points": search_behavior.points.duplicate(), "search_index": search_behavior.index,
 		"home": _home, "home_yaw": _home_yaw, "stationary": stationary,
-		"chat": chat.save_state(),
+		"chat": chat.save_state(), "stripped": stripped,
 	}
 
 
@@ -1466,6 +1490,9 @@ func load_state(data: Dictionary) -> void:
 	_home_yaw = data.get("home_yaw", _home_yaw)
 	stationary = data.get("stationary", stationary)
 	chat.load_state(data.get("chat", {}))
+	if data.get("stripped", false) and not stripped:
+		stripped = true
+		_model.strip_uniform()
 	health.load_state(data.get("health", {}))
 	if is_dead:
 		return

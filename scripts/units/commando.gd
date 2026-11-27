@@ -18,7 +18,7 @@ signal evacuated
 
 ## Corps à corps : couteau (tue), assommer, balayage (assomme moins
 ## longtemps), projection (au sol par-dessus la hanche, puis assommé).
-enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET, TIE }
+enum MeleeKind { KNIFE, KNOCKOUT, SWEEP, THROW, DISARM, HOSTAGE, HATCHET, TIE, DISGUISE }
 
 const MASK_OCCLUDERS := 0b10
 ## Précision gardée en tirant à travers un nuage de fumigène.
@@ -152,6 +152,10 @@ static var auto_parry: bool = false
 
 ## Personnalisation appliquée (null : réglages de la scène).
 var profile: OperatorProfile
+## En uniforme ennemi (`wear_disguise`), jusqu'à la fin de la mission.
+var disguised: bool = false
+## Uniforme porté : couleurs et couvre-chef (`Enemy.strip_uniform`).
+var _disguise: Dictionary = {}
 
 var is_selected: bool = false
 ## Couverture de sa cible au dernier tir (mise au point, tests).
@@ -239,6 +243,9 @@ var _running: bool = false
 ## civile.
 const BLEND_MATCH := 0.25
 const BLEND_MISMATCH := 0.6
+## Repérage en uniforme ennemi (`disguised`), tant qu'il en a l'air
+## (`passes_as_guard`) : les soldats le repèrent bien plus lentement.
+const BLEND_DISGUISE := 0.3
 var _fire_cooldown: float = 0.0
 var _reload_left: float = 0.0
 ## Ordre en cours et geste en cours (null : aucun).
@@ -396,10 +403,47 @@ func _apply_profile(operator: OperatorProfile) -> void:
 ## (`LevelRoot.dress_code`), il se fond dans la foule tant qu'il en a l'air
 ## (`looks_civilian`) ; mieux encore dans la tenue de l'occasion.
 func blend_factor() -> float:
+	if disguised:
+		return BLEND_DISGUISE if passes_as_guard() else 1.0
 	var code := LevelRoot.dress_code_of(self)
 	if code.is_empty() or not looks_civilian():
 		return 1.0
 	return BLEND_MATCH if code == _model.outfit.clothing else BLEND_MISMATCH
+
+
+## Vrai s'il passe pour un garde, en uniforme ennemi : debout, au pas, sans
+## viser, sans corps ni otage, à pied, bouclier baissé.
+func passes_as_guard() -> bool:
+	if not disguised or is_dead or posture != SoldierModel.Posture.STANDING or _running:
+		return false
+	if carried_body or hostage or riding or airborne_in or shield_raised:
+		return false
+	return not _model.aiming
+
+
+## Revêt l'uniforme `look` d'un garde (`Enemy.strip_uniform`) : le modèle
+## en prend les couleurs et le couvre-chef, sans cagoule, peinture, sac ni
+## jumelles en vue. Le profil de l'opérateur ne change pas.
+func wear_disguise(look: Dictionary) -> void:
+	if look.is_empty():
+		return
+	disguised = true
+	_disguise = look
+	var dress := (profile.duplicate() if profile else OperatorProfile.new()) as OperatorProfile
+	dress.clothing = &"uniform"
+	dress.camo = &""
+	dress.pants_camo = &"="
+	dress.vest_camo = &""
+	dress.headwear_camo = &""
+	dress.top_color = look["uniform"]
+	dress.pants_color = look["uniform"]
+	dress.vest_color = look["gear"]
+	dress.headwear = look["headwear"]
+	dress.headwear_color = look["headwear_color"]
+	dress.face_paint = &"none"
+	for accessory: StringName in [&"balaclava", &"nvg", &"headset", &"backpack", &"knee_pads", &"sunglasses"]:
+		dress.set(accessory, false)
+	_model.outfit = dress
 
 
 ## Vrai s'il passe pour un civil : tenue civile sans rien de militaire en vue,
@@ -726,6 +770,10 @@ func melee(enemy: Enemy, kind: MeleeKind, run: bool = false) -> bool:
 		if not Enemy.can_be_tied(enemy):
 			flash_message("Ligoter : seulement un ennemi assommé, pas déjà ligoté")
 			return false
+	elif kind == MeleeKind.DISGUISE:
+		if not Enemy.can_be_stripped(enemy):
+			flash_message("Uniforme : seulement un soldat assommé, pas déjà dévêtu")
+			return false
 	elif not finishes(kind) and enemy.is_stunned():
 		return false
 	if kind == MeleeKind.DISARM and not enemy.can_be_disarmed():
@@ -741,9 +789,10 @@ static func finishes(kind: MeleeKind) -> bool:
 	return kind == MeleeKind.KNIFE or kind == MeleeKind.HATCHET
 
 
-## Vrai si l'action `kind` vise un ennemi déjà au sol (lames, ligotage).
+## Vrai si l'action `kind` vise un ennemi déjà au sol (lames, ligotage,
+## uniforme).
 static func reaches_downed(kind: MeleeKind) -> bool:
-	return finishes(kind) or kind == MeleeKind.TIE
+	return finishes(kind) or kind == MeleeKind.TIE or kind == MeleeKind.DISGUISE
 
 
 ## Ordonne de lancer un couteau sur `enemy` : l'unité s'approche à portée,
@@ -2253,6 +2302,7 @@ func save_state() -> Dictionary:
 		"launcher_smoke": launcher_smoke, "launcher_gas": launcher_gas, "tasers": tasers, "hatchets": hatchets, "explosives": explosives,
 		"medkits": medkits, "shields": shields, "grapnels": grapnels,
 		"carried_body": String(carried_body.get_path()) if carried_body else "",
+		"disguise": _disguise,
 	})
 	return data
 
@@ -2273,6 +2323,14 @@ func load_state(data: Dictionary) -> void:
 	if is_dead:
 		return
 	has_documents = data.get("documents", false)
+	var look: Dictionary = data.get("disguise", {})
+	if look != _disguise:
+		if look.is_empty():
+			disguised = false
+			_disguise = {}
+			_model.outfit = profile
+		else:
+			wear_disguise(look)
 	var gone: bool = data.get("evacuated", false)
 	if gone != is_evacuated:
 		_set_evacuated(gone)

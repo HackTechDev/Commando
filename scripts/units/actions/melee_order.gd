@@ -34,7 +34,8 @@ func look_point() -> Vector3:
 
 func update(delta: float) -> Vector3:
 	if not is_instance_valid(enemy) or enemy.is_dead or (not Commando.reaches_downed(kind) and enemy.is_stunned()) \
-			or (kind == Commando.MeleeKind.TIE and not Enemy.can_be_tied(enemy)):
+			or (kind == Commando.MeleeKind.TIE and not Enemy.can_be_tied(enemy)) \
+			or (kind == Commando.MeleeKind.DISGUISE and not Enemy.can_be_stripped(enemy)):
 		finish()
 		return Vector3.ZERO
 	var to_enemy := enemy.global_position - unit.global_position
@@ -42,6 +43,9 @@ func update(delta: float) -> Vector3:
 	if to_enemy.length() <= Commando.MELEE_RANGE:
 		if kind == Commando.MeleeKind.TIE:
 			finish(TieGesture.new(unit, enemy))
+			return Vector3.ZERO
+		if kind == Commando.MeleeKind.DISGUISE:
+			finish(DisguiseGesture.new(unit, enemy))
 			return Vector3.ZERO
 		if enemy.is_attacking() and kind != Commando.MeleeKind.DISARM:
 			# Il frappe le premier : on attend l'issue (parade, puis contre).

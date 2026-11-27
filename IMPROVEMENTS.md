@@ -34,7 +34,6 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 - **2.22 Leurres à retardement** : réveil ou radio qui sonne au bout de quelques secondes, pour attirer un garde hors de son poste (en plus des appâts).
 - **2.23 Blessures et fatigue** : un opérateur blessé boite et rampe moins vite tant qu'il n'est pas soigné ; les blessures se gardent d'une mission à l'autre (avec 10.1).
 - **2.24 Progression des opérateurs** : l'expérience des missions (discrétion, tir, soins) améliore un peu leurs réglages.
-- **2.25 Déguisement pris sur l'ennemi** : revêtir l'uniforme d'un garde assommé pour passer près des autres ; l'officier et le chien ne s'y trompent pas. S'appuie sur la tenue civile (`blend_factor`).
 
 ## 4. Contrôles et lisibilité
 

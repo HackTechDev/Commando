@@ -57,7 +57,8 @@ Le script copie les cartes choisies et les seules textures qu'elles utilisent (p
 | Couteau (élimination silencieuse) | V, puis clic gauche sur l'ennemi |
 | Assommer | B, puis clic gauche sur l'ennemi |
 | Taser (équipement, 2 cartouches au plus) : l'opérateur s'approche à 5 m et tire ; le garde touché s'effondre, inconscient 25 s, et peut être ligoté (sûr à moins de 2,5 m, 3 fois sur 4 au-delà) | 9, puis clic gauche sur l'ennemi |
-| Corps à corps au choix (assommer, couteau, hachette si équipée, balayage, projection, désarmer, bouclier humain, ligoter un ennemi assommé ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
+| Corps à corps au choix (assommer, couteau, hachette si équipée, balayage, projection, désarmer, bouclier humain, ligoter un ennemi assommé, revêtir son uniforme ; sur un otage : relâcher, assommer) | Clic du milieu sur l'ennemi, puis choix dans le menu circulaire |
+| Déguisement : « Revêtir son uniforme » sur un soldat assommé (5 s, accroupi). Debout, au pas, sans viser ni porter de corps, les soldats le repèrent bien plus lentement ; l'officier et le chien ne s'y trompent pas. L'alerte donnée, plus de faux-semblant | Clic du milieu sur l'ennemi assommé |
 | Parer un coup | I, juste avant que l'ennemi frappe (option du menu pause : parade automatique au hasard) |
 | Lancer le couteau (jusqu'à 7 m) | T, puis clic gauche sur l'ennemi ; passer sur le corps pour le ramasser |
 | Ramasser du ravitaillement (chargeurs, grenades, fumigènes, trousse de soins ; un ennemi abattu laisse un chargeur) : l'opérateur prend ce qui lui manque, le reste demeure | Passer dessus à pied (clic droit à côté) |

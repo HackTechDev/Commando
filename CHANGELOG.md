@@ -1793,3 +1793,9 @@
 - La radio ennemie, interceptée, annonce la relève 20 s avant (bandeau radio du HUD).
 - Correction : un garde posté qui rentre après une mission (lampe réparée) regagne son poste à pied (`Enemy.walking_home`) au lieu de rester sur place.
 - « Centre mobile 07 » : relève de la sentinelle de l'escalier par un garde au repos près du campement, à 1 min 15 puis toutes les 2 min 30. Test : `tests/gameplay/test_guard_relief.gd`.
+
+## Déguisement pris sur l'ennemi (point 2.25)
+
+- Nouvelle entrée du menu de corps à corps (clic milieu) : « Revêtir son uniforme », sur un soldat ou un officier assommé (pas un chien). L'opérateur s'accroupit 5 s près du corps, puis porte l'uniforme et le couvre-chef du garde (sans cagoule, sac, jumelles ni peinture en vue) ; le garde reste en maillot clair.
+- En uniforme, debout, au pas, sans viser, sans corps ni otage et bouclier baissé (`Commando.passes_as_guard`), il est repéré par les soldats à 30 % de la vitesse normale (`blend_factor`, `BLEND_DISGUISE`), même de près. L'officier et le chien ne s'y trompent pas ; une fois l'alerte donnée, plus de faux-semblant.
+- Déguisement et garde dévêtu gardés par la sauvegarde rapide. Test : `tests/gameplay/test_disguise.gd`.
