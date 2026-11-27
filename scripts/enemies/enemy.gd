@@ -65,6 +65,9 @@ const MELEE_MAX_HEIGHT := 0.8
 ## convertible (`Tiltrotor.documents_objective`).
 @export var documents: bool = false
 @export var rockets: int = 2
+## Garde avec qui il bavarde (`EnemyChat`, lien posé des deux côtés) : moins
+## attentifs tous les deux, mais chacun remarque la disparition de l'autre.
+@export var talk_partner: Enemy
 
 ## Évitement : en dessous de cette part de la vitesse voulue, l'unité est
 ## considérée comme bloquée et fait un pas de côté.
@@ -145,6 +148,7 @@ var behavior: EnemyBehavior = patrol_behavior
 var gunner := EnemyGunner.new(self)
 var brawler := EnemyBrawler.new(self)
 var gaze := EnemyGaze.new(self)
+var chat := EnemyChat.new(self)
 
 ## Activité en cours (`Activity`), selon le comportement.
 var activity: Activity:
@@ -285,6 +289,8 @@ func _ready() -> void:
 	_home_yaw = rotation.y
 	gaze.start()
 	patrol_behavior.start()
+	if talk_partner:
+		chat.setup(talk_partner)
 	_update_feedback()
 	if blind:
 		_vision.visible = false
@@ -650,6 +656,8 @@ func _update_detection(delta: float) -> void:
 				gain *= WARY_GAIN
 			if kind != Kind.OFFICER and _officer_near():
 				gain *= OFFICER_GAIN
+			# En pleine discussion : distrait.
+			gain *= chat.gain()
 			if blend <= Commando.BLEND_MATCH and best_zone != VisionComponent.Zone.NEAR:
 				detection = maxf(detection, minf(detection + gain, stats.suspicion_threshold * 0.8))
 			else:
@@ -1068,6 +1076,7 @@ func _physics_process(delta: float) -> void:
 	if stationary and behavior != errand_behavior:
 		horizontal = Vector3.ZERO
 	gaze.update(delta, horizontal != Vector3.ZERO)
+	chat.update(delta, horizontal != Vector3.ZERO)
 
 	_vertical_velocity = 0.0 if is_on_floor() else velocity.y - _gravity * delta
 	_wants_to_move = horizontal != Vector3.ZERO
@@ -1428,6 +1437,7 @@ func save_state() -> Dictionary:
 		"drop_left": _saved_drop(), "wary_left": wary_left,
 		"search_points": search_behavior.points.duplicate(), "search_index": search_behavior.index,
 		"home": _home, "home_yaw": _home_yaw, "stationary": stationary,
+		"chat": chat.save_state(),
 	}
 
 
@@ -1451,6 +1461,7 @@ func load_state(data: Dictionary) -> void:
 	_home = data.get("home", _home)
 	_home_yaw = data.get("home_yaw", _home_yaw)
 	stationary = data.get("stationary", stationary)
+	chat.load_state(data.get("chat", {}))
 	health.load_state(data.get("health", {}))
 	if is_dead:
 		return

@@ -145,6 +145,7 @@ Les éléments qui bloquent le passage (murs, caisses, bâtiments) vont sous `Na
   - `blind` : sentinelle aveugle, pour les cibles d'entraînement ;
   - `launcher` et `rockets` : lance-roquettes ;
   - `documents` : porteur des documents.
+  - `talk_partner` : un autre garde avec qui il bavarde (à moins de 4 m, à son poste ; il suffit de le régler sur l'un des deux) : moins attentifs, mais chacun remarque la disparition de l'autre.
 
 Le **cône de vue** de chaque garde s'affiche au sol en jaune : la zone proche, plus soutenue, où il voit tout de suite, puis la zone lointaine. Cochez Nuit : la zone lointaine se réduit, comme en jeu. Placez les gardes pour que leurs cônes laissent un passage, sans en laisser un trop facile.
 

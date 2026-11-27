@@ -983,10 +983,17 @@ position = Vector3(35, 0, 1)
 rotation = Vector3(0, 0, 0)
 patrol_path = NodePath("../../PatrolPaths/PatrolClosed")
 
-[node name="Driver" parent="Enemies" instance=ExtResource("enemy")]
+[node name="Driver" parent="Enemies" node_paths=PackedStringArray("talk_partner") instance=ExtResource("enemy")]
 position = Vector3(52, 0, 4)
 rotation = Vector3(0, 1.5708, 0)
 stationary = true
+talk_partner = NodePath("../Mechanic")
+
+[node name="Mechanic" parent="Enemies" node_paths=PackedStringArray("talk_partner") instance=ExtResource("enemy")]
+position = Vector3(50, 0, 4)
+rotation = Vector3(0, -1.5708, 0)
+stationary = true
+talk_partner = NodePath("../Driver")
 
 [node name="Technical" type="StaticBody3D" parent="Enemies"]
 position = Vector3(-58, 0, 26)

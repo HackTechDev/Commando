@@ -1779,3 +1779,9 @@
 - Annonces radio 30 et 10 minutes avant l'aube, puis au lever du jour ; nouveau bandeau des messages radio dans le HUD (`RadioLog`, signal `EventBus.radio_message`), qui servira aussi à la relève et à la radio des gardes.
 - Objectif bonus `before_dawn` (« repartir avant l'aube »), manqué quand le jour se lève, proposé par l'éditeur de mission.
 - « Nuit sans lune » : départ à 01:45, l'heure avance au quart (aube après 13 minutes de jeu), bonus avant l'aube. Test : `tests/levels/test_day_cycle.gd`.
+
+## Gardes qui discutent (point 2.20)
+
+- Réglage `talk_partner` des gardes (lien posé des deux côtés au chargement) : deux gardes au calme, à leur poste et à moins de 4 m, se font face et bavardent, une bulle « … » au-dessus de celui qui parle. Leur jauge de repérage monte deux fois moins vite (`EnemyChat`).
+- Chacun remarque la disparition de l'autre : tué, assommé, saisi, emporté, ou garde posté parti à plus de 8 m sans raison. Trois secondes plus tard, le garde resté devient méfiant et va voir là où l'autre se tenait. Une mission (lampe à réparer) ou une enquête n'est pas une disparition.
+- « Centre mobile 07 » : le chauffeur du centre replié bavarde avec un mécanicien. Test : `tests/enemies/test_enemy_chat.gd`.
