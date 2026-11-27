@@ -4,8 +4,8 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 ## 1. À faire en premier (fondations)
 
-- **1.1 Tests, suite** : GUT est installé avec 106 tests (`./run_tests.sh`). Reste à :
-  - **a)** accélérer les tests de jeu (environ 5 min aujourd'hui), par exemple en accélérant le temps du moteur ;
+- **1.1 Tests, suite** : GUT est installé avec près de 300 tests en 59 fichiers (`./run_tests.sh`). Reste à :
+  - **a)** accélérer les tests de jeu (environ 6 min aujourd'hui), par exemple en accélérant le temps du moteur ;
   - **b)** les lancer automatiquement avant chaque commit (crochet Git) ou en intégration continue ;
   - **c)** couvrir ce qui manque encore : HUD et contrôles à la souris, sélection, caméra, transitions de posture debout/accroupi, patrouille et poursuite des ennemis, réveil puis lutte, chargement d'autres cartes UFO:AI ;
   - **d)** tester `SoldierModel.sample_keys` et les poses clés.
@@ -28,9 +28,13 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **a)** hélicoptère de patrouille ennemi : survol et vol stationnaire, cône de projecteur au sol la nuit, appelé par une alerte ;
   - **c)** avion de transport au sol (base aérienne) : cachette dans la soute, sabotage, ou moyen d'extraction ;
   - **d)** parachutage d'ouverture : zone d'atterrissage choisie en début de mission, dispersion selon le vent (`LevelRoot.wind`) ;
-  - **e)** ballon captif d'observation : poste de guet très haut, qu'on fait tomber en coupant son câble.
+  - **e)** ballon captif d'observation : poste de guet très haut, qu'on fait tomber en coupant son câble ;
+  - **f)** drone, suite : bourdonnement audible à quelques mètres, drone armé ou qui suit un opérateur repéré, station de recharge à saboter.
 - **2.22 Leurres à retardement** : réveil ou radio qui sonne au bout de quelques secondes, pour attirer un garde hors de son poste (en plus des appâts).
 - **2.24 Progression des opérateurs** : l'expérience des missions (discrétion, tir, soins) améliore un peu leurs réglages.
+- **2.26 Déguisement, suite** : reprendre sa tenue ; un garde qui trouve un corps dévêtu sait qu'un intrus porte l'uniforme (soldats plus soupçonneux) ; un soldat qui dévisage l'opérateur de près l'interpelle avant de donner l'alerte.
+- **2.27 Blessures, suite** : blessure localisée (bras : tir moins précis ; jambe : boiterie), repos entre deux missions qui soigne peu à peu (avec la campagne, 10.1), essoufflement audible des gardes à proximité.
+- **2.28 Gardes, suite** : relève et radio à heures de mission fixes quand l'heure avance (10.3) ; une patrouille envoyée vers un poste muet qui donne l'alerte si elle ne revient pas ; plusieurs gardes qui discutent en groupe.
 
 ## 4. Contrôles et lisibilité
 
@@ -96,7 +100,11 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
   - **f)** sous-titres des sons importants, pour l'accessibilité (le signal `Sfx.played` existe).
 - **7.12 Sauvegarde complète** : plusieurs emplacements avec vignette, en plus de la sauvegarde rapide.
 - **7.13 Performances des grandes cartes** : regrouper les tests de vue des gardes (aujourd'hui un par garde et par image) pour tenir une soixantaine de gardes.
-- **7.14 Sauvegarde rapide de la lampe** : l'état allumé ou éteint de la lampe du HK45 (`Commando.lamp_on`) n'est pas sauvegardé ; au chargement, elle est toujours éteinte.
+- **7.14 Sauvegarde rapide, oublis** :
+  - **a)** l'état allumé ou éteint de la lampe du HK45 (`Commando.lamp_on`) n'est pas sauvegardé ; au chargement, elle est toujours éteinte ;
+  - **b)** une mission de garde en cours (`EnemyErrand` : ampoule à changer, relève, poste muet à visiter) est rechargée comme un simple retour : la tâche est perdue ;
+  - **c)** les annonces de l'aube déjà faites (`DayCycle`) et le retour à pied d'un garde posté (`Enemy.walking_home`) ne sont pas gardés.
+- **7.15 Heure qui avance, suite** (10.3) : les véhicules et appareils (phares du Sabre, pick-up, hexapode, avion ennemi et son projecteur, feux du convertible) et les mines lisent jour ou nuit au chargement seulement ; les faire basculer à l'aube et au crépuscule. Éteindre les lampadaires le jour.
 
 ## 8. Éditeur de mission
 
@@ -106,7 +114,9 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **a)** copier-coller entre missions ; rotation et alignement d'un groupe d'éléments ;
   - **b)** routes au pinceau, avec carrefours, et trottoirs posés le long des routes.
 - **8.5 Fiabilité et ménage** :
-  - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification.
+  - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification ;
+  - **b)** trajets de l'avion ennemi et du drone : ils ne se referment pas d'eux-mêmes (l'appareil saute du dernier point au premier). Les refermer à la pose, ou signaler un trajet ouvert dans la vérification.
+- **8.6 Événements des gardes dans l'éditeur** : relève (`GuardRelief`), radio (`GuardRadio`) et paires qui discutent (`talk_partner`) se règlent aujourd'hui à la main dans l'inspecteur. Les ajouter à la palette, montrer leurs liens dans la vue 3D (poste et remplaçant, postes appelés, paires) et les vérifier (garde manquant, remplaçant trop loin).
 
 ## 10. Missions et campagne
 
