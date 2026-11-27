@@ -1617,6 +1617,7 @@ func _raycast(screen_position: Vector2, mask: int) -> Dictionary:
 			or Building.is_revealed_body(hit["collider"], hit["position"]) \
 			or Tower.is_revealed_body(hit["collider"], hit["position"]) \
 			or Tiltrotor.is_revealed_body(hit["collider"]) \
+			or Mantis.is_revealed_body(hit["collider"]) \
 			or OcclusionFader.is_faded_body(hit["collider"])):
 		query.exclude += [hit["rid"]]
 		hit = space.intersect_ray(query)

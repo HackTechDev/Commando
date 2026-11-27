@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mission_objective.gd" id="1_obj"]
+[ext_resource type="Script" path="res://scripts/resources/mission_info.gd" id="2_info"]
+
+[sub_resource type="Resource" id="sabre_out"]
+script = ExtResource("1_obj")
+id = "sabre_out"
+text = "Reprendre le Sabre garé dans la soute du Mantis et le conduire au point de ralliement, à l'est"
+
+[sub_resource type="Resource" id="hexapod_out"]
+script = ExtResource("1_obj")
+id = "hexapod_out"
+text = "Reprendre l'hexapode de la soute et le conduire au point de ralliement, à l'est"
+
+[sub_resource type="Resource" id="fuel"]
+script = ExtResource("1_obj")
+id = "fuel"
+text = "Détruire la citerne qui ravitaille le Mantis"
+
+[sub_resource type="Resource" id="lost"]
+script = ExtResource("1_obj")
+id = "no_operator_lost"
+text = "Ne perdre aucun opérateur"
+
+[resource]
+script = ExtResource("2_info")
+title = "Le Mantis"
+description = "Au crépuscule, sur un plateau caillouteux. Le Mantis, transporteur lourd ennemi à décollage vertical, s'est posé pour ravitailler : dans sa soute de 28 mètres, il emporte un Sabre et un hexapode pris à nos troupes. Reprenez-les et conduisez-les au point de ralliement, à l'est. On entre dans la soute par la grande rampe arrière, gardée par deux sentinelles et éclairée (écartez-les : elles barrent aussi le passage des véhicules), ou à pied par la porte latérale tribord, au sud, et son marchepied ; dans la soute, le toit s'efface pour qu'on voie l'intérieur. Un chef de soute et un garde y veillent. Alpha porte deux charges : la citerne de ravitaillement est au sud de l'appareil, gardée par une sentinelle et un chien. Au pied du nez, le pilote bavarde avec un mécanicien. Une patrouille fait le tour de l'appareil, un pick-up armé celui du plateau. Les sentinelles se signalent par radio toutes les 90 s. La nuit tombe pendant la mission : les gardes verront de moins en moins loin, sauf sous les lampes."
+camo = "desert"
+time = "18:45"
+order = 209
+objectives = Array[ExtResource("1_obj")]([SubResource("sabre_out"), SubResource("hexapod_out"), SubResource("fuel"), SubResource("lost")])

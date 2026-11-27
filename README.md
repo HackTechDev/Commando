@@ -12,6 +12,7 @@ godot --path . scenes/levels/sandbox/sandbox.tscn          # lance directement l
 godot --path . scenes/levels/guard_yard/guard_yard.tscn    # terrain d'essai gardé (sentinelle, officier, chien)
 godot --path . scenes/levels/walker_valley/walker_valley.tscn  # vallée des marcheurs (hexapode)
 godot --path . scenes/levels/mobile_command/mobile_command.tscn  # centre mobile 07 (centres de commandement déployé et replié)
+godot --path . scenes/levels/mantis_lz/mantis_lz.tscn  # le Mantis (transporteur lourd, véhicules dans la soute)
 godot --path . scenes/levels/airbase/airbase.tscn          # lance directement la base aérienne (sabotage du convertible)
 godot --path . scenes/levels/patrol/patrol.tscn          # lance directement la patrouille en Sabre
 godot --path . scenes/levels/training_a/training_a.tscn   # lance directement la carte UFO:AI « training_a »

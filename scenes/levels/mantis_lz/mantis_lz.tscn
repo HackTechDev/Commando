@@ -1,0 +1,825 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="root"]
+[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="cam"]
+[ext_resource type="PackedScene" path="res://scenes/units/commando.tscn" id="unit"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="hud"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="enemy"]
+[ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="crate"]
+[ext_resource type="PackedScene" path="res://scenes/props/low_wall.tscn" id="lowwall"]
+[ext_resource type="Script" path="res://scripts/props/mantis.gd" id="mantis"]
+[ext_resource type="Script" path="res://scripts/props/sabre.gd" id="sabre"]
+[ext_resource type="Script" path="res://scripts/props/hexapod.gd" id="hexapod"]
+[ext_resource type="Script" path="res://scripts/props/sabotage_target.gd" id="sabotage"]
+[ext_resource type="Script" path="res://scripts/enemies/technical.gd" id="technical"]
+[ext_resource type="Script" path="res://scripts/props/hiding_spot.gd" id="hiding"]
+[ext_resource type="Script" path="res://scripts/levels/guard_radio.gd" id="guard_radio"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.62, 0.5, 0.44, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.75, 0.68, 0.62, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 2
+ssao_enabled = true
+
+[sub_resource type="NavigationMesh" id="nav"]
+resource_local_to_scene = true
+geometry_parsed_geometry_type = 1
+geometry_collision_mask = 3
+agent_height = 1.75
+agent_radius = 0.5
+
+[sub_resource type="BoxShape3D" id="ground_shape"]
+size = Vector3(170, 1, 170)
+
+[sub_resource type="StandardMaterial3D" id="ground_mat"]
+albedo_color = Color(0.62, 0.55, 0.42, 1)
+roughness = 1.0
+uv1_scale = Vector3(0.3, 0.3, 0.3)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_nature/dirt002.png"
+
+[sub_resource type="BoxMesh" id="ground_mesh"]
+material = SubResource("ground_mat")
+size = Vector3(170, 1, 170)
+
+[sub_resource type="StandardMaterial3D" id="rock_mat"]
+albedo_color = Color(0.66, 0.58, 0.5, 1)
+roughness = 1.0
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5
+metadata/albedo_source = "tex_nature/pjrock16.png"
+
+[sub_resource type="StandardMaterial3D" id="post_mat"]
+albedo_color = Color(0.22, 0.23, 0.24, 1)
+metallic = 0.6
+roughness = 0.5
+
+[sub_resource type="CylinderMesh" id="post_mesh"]
+material = SubResource("post_mat")
+top_radius = 0.06
+bottom_radius = 0.09
+height = 4.0
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="bulb_mat"]
+albedo_color = Color(1, 0.85, 0.55, 1)
+emission_enabled = true
+emission = Color(1, 0.8, 0.5, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="SphereMesh" id="bulb_mesh"]
+material = SubResource("bulb_mat")
+radius = 0.18
+height = 0.36
+
+[sub_resource type="BoxShape3D" id="rock_shape0"]
+size = Vector3(5, 3, 4)
+
+[sub_resource type="BoxMesh" id="rock_mesh0"]
+material = SubResource("rock_mat")
+size = Vector3(5, 3, 4)
+
+[sub_resource type="BoxShape3D" id="rock_shape1"]
+size = Vector3(4, 2.5, 6)
+
+[sub_resource type="BoxMesh" id="rock_mesh1"]
+material = SubResource("rock_mat")
+size = Vector3(4, 2.5, 6)
+
+[sub_resource type="BoxShape3D" id="rock_shape2"]
+size = Vector3(6, 3.5, 4)
+
+[sub_resource type="BoxMesh" id="rock_mesh2"]
+material = SubResource("rock_mat")
+size = Vector3(6, 3.5, 4)
+
+[sub_resource type="BoxShape3D" id="rock_shape3"]
+size = Vector3(4, 2.2, 5)
+
+[sub_resource type="BoxMesh" id="rock_mesh3"]
+material = SubResource("rock_mat")
+size = Vector3(4, 2.2, 5)
+
+[sub_resource type="BoxShape3D" id="rock_shape4"]
+size = Vector3(5, 2.4, 3)
+
+[sub_resource type="BoxMesh" id="rock_mesh4"]
+material = SubResource("rock_mat")
+size = Vector3(5, 2.4, 3)
+
+[sub_resource type="BoxShape3D" id="rock_shape5"]
+size = Vector3(4, 3, 4)
+
+[sub_resource type="BoxMesh" id="rock_mesh5"]
+material = SubResource("rock_mat")
+size = Vector3(4, 3, 4)
+
+[sub_resource type="BoxShape3D" id="rock_shape6"]
+size = Vector3(6, 3, 4)
+
+[sub_resource type="BoxMesh" id="rock_mesh6"]
+material = SubResource("rock_mat")
+size = Vector3(6, 3, 4)
+
+[sub_resource type="BoxShape3D" id="rock_shape7"]
+size = Vector3(3, 2, 3)
+
+[sub_resource type="BoxMesh" id="rock_mesh7"]
+material = SubResource("rock_mat")
+size = Vector3(3, 2, 3)
+
+[sub_resource type="Curve3D" id="curve_PatrolPerimeter"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -28, 0, -15, 0, 0, 0, 0, 0, 0, 32, 0, -15, 0, 0, 0, 0, 0, 0, 32, 0, 15, 0, 0, 0, 0, 0, 0, -28, 0, 15),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[sub_resource type="Curve3D" id="curve_PatrolHold"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -6, 0.6, 3.6, 0, 0, 0, 0, 0, 0, 8, 0.6, 3.6),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[sub_resource type="Curve3D" id="curve_PatrolDepot"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -6, 0, 21, 0, 0, 0, 0, 0, 0, 10, 0, 21, 0, 0, 0, 0, 0, 0, 10, 0, 28, 0, 0, 0, 0, 0, 0, -6, 0, 28),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[sub_resource type="Curve3D" id="curve_TechLoop"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -44, 0, -40, 0, 0, 0, 0, 0, 0, 46, 0, -42, 0, 0, 0, 0, 0, 0, 52, 0, 36, 0, 0, 0, 0, 0, 0, -36, 0, 40),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[node name="MantisLZ" type="Node3D"]
+script = ExtResource("root")
+time_flow = 0.2
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0.383, -0.3214, 0, 0.6428, 0.766, 0.5, -0.6634, 0.5567, 0, 10, 0)
+light_color = Color(1, 0.8, 0.6, 1)
+light_energy = 1.0
+shadow_enabled = true
+directional_shadow_max_distance = 170.0
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("nav")
+
+[node name="Ground" type="StaticBody3D" parent="NavigationRegion3D"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Ground"]
+position = Vector3(0, -0.5, 0)
+shape = SubResource("ground_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Ground"]
+position = Vector3(0, -0.5, 0)
+mesh = SubResource("ground_mesh")
+
+[node name="Rock1" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-50, 0, 46)
+rotation = Vector3(0, 0.349066, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock1"]
+position = Vector3(0, 1.5, 0)
+shape = SubResource("rock_shape0")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock1"]
+position = Vector3(0, 1.5, 0)
+mesh = SubResource("rock_mesh0")
+
+[node name="Rock2" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-44, 0, 36)
+rotation = Vector3(0, -0.261799, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock2"]
+position = Vector3(0, 1.25, 0)
+shape = SubResource("rock_shape1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock2"]
+position = Vector3(0, 1.25, 0)
+mesh = SubResource("rock_mesh1")
+
+[node name="Rock3" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-36, 0, 48)
+rotation = Vector3(0, 0.698132, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock3"]
+position = Vector3(0, 1.75, 0)
+shape = SubResource("rock_shape2")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock3"]
+position = Vector3(0, 1.75, 0)
+mesh = SubResource("rock_mesh2")
+
+[node name="Rock4" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-40, 0, 22)
+rotation = Vector3(0, 0.000000, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock4"]
+position = Vector3(0, 1.1, 0)
+shape = SubResource("rock_shape3")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock4"]
+position = Vector3(0, 1.1, 0)
+mesh = SubResource("rock_mesh3")
+
+[node name="Rock5" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-30, 0, 30)
+rotation = Vector3(0, 1.047198, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock5"]
+position = Vector3(0, 1.2, 0)
+shape = SubResource("rock_shape4")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock5"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("rock_mesh4")
+
+[node name="Rock6" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-22, 0, 40)
+rotation = Vector3(0, 0.174533, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock6"]
+position = Vector3(0, 1.5, 0)
+shape = SubResource("rock_shape5")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock6"]
+position = Vector3(0, 1.5, 0)
+mesh = SubResource("rock_mesh5")
+
+[node name="Rock7" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-50, 0, 10)
+rotation = Vector3(0, 0.523599, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock7"]
+position = Vector3(0, 1.5, 0)
+shape = SubResource("rock_shape6")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock7"]
+position = Vector3(0, 1.5, 0)
+mesh = SubResource("rock_mesh6")
+
+[node name="Rock8" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-30, 0, 10)
+rotation = Vector3(0, -0.349066, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock8"]
+position = Vector3(0, 1.0, 0)
+shape = SubResource("rock_shape7")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock8"]
+position = Vector3(0, 1.0, 0)
+mesh = SubResource("rock_mesh7")
+
+[node name="Rock9" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-14, 0, 30)
+rotation = Vector3(0, 0.436332, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock9"]
+position = Vector3(0, 1.5, 0)
+shape = SubResource("rock_shape0")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock9"]
+position = Vector3(0, 1.5, 0)
+mesh = SubResource("rock_mesh0")
+
+[node name="Rock10" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-6, 0, 40)
+rotation = Vector3(0, -0.174533, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock10"]
+position = Vector3(0, 1.1, 0)
+shape = SubResource("rock_shape3")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock10"]
+position = Vector3(0, 1.1, 0)
+mesh = SubResource("rock_mesh3")
+
+[node name="Rock11" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-42, 0, -6)
+rotation = Vector3(0, 0.261799, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock11"]
+position = Vector3(0, 1.75, 0)
+shape = SubResource("rock_shape2")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock11"]
+position = Vector3(0, 1.75, 0)
+mesh = SubResource("rock_mesh2")
+
+[node name="Rock12" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-54, 0, -24)
+rotation = Vector3(0, 0.000000, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock12"]
+position = Vector3(0, 1.25, 0)
+shape = SubResource("rock_shape1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock12"]
+position = Vector3(0, 1.25, 0)
+mesh = SubResource("rock_mesh1")
+
+[node name="Rock13" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-34, 0, -34)
+rotation = Vector3(0, 0.785398, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock13"]
+position = Vector3(0, 1.5, 0)
+shape = SubResource("rock_shape5")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock13"]
+position = Vector3(0, 1.5, 0)
+mesh = SubResource("rock_mesh5")
+
+[node name="Rock14" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(10, 0, -36)
+rotation = Vector3(0, 0.000000, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock14"]
+position = Vector3(0, 1.5, 0)
+shape = SubResource("rock_shape6")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock14"]
+position = Vector3(0, 1.5, 0)
+mesh = SubResource("rock_mesh6")
+
+[node name="Rock15" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(30, 0, -30)
+rotation = Vector3(0, 0.349066, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock15"]
+position = Vector3(0, 1.2, 0)
+shape = SubResource("rock_shape4")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock15"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("rock_mesh4")
+
+[node name="Rock16" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(54, 0, 10)
+rotation = Vector3(0, -0.523599, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock16"]
+position = Vector3(0, 1.75, 0)
+shape = SubResource("rock_shape2")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock16"]
+position = Vector3(0, 1.75, 0)
+mesh = SubResource("rock_mesh2")
+
+[node name="Rock17" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(58, 0, -14)
+rotation = Vector3(0, 0.174533, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock17"]
+position = Vector3(0, 1.0, 0)
+shape = SubResource("rock_shape7")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock17"]
+position = Vector3(0, 1.0, 0)
+mesh = SubResource("rock_mesh7")
+
+[node name="Rock18" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(40, 0, 34)
+rotation = Vector3(0, 0.261799, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock18"]
+position = Vector3(0, 1.25, 0)
+shape = SubResource("rock_shape1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock18"]
+position = Vector3(0, 1.25, 0)
+mesh = SubResource("rock_mesh1")
+
+[node name="Rock19" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(18, 0, 40)
+rotation = Vector3(0, -0.436332, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock19"]
+position = Vector3(0, 1.1, 0)
+shape = SubResource("rock_shape3")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock19"]
+position = Vector3(0, 1.1, 0)
+mesh = SubResource("rock_mesh3")
+
+[node name="Rock20" type="StaticBody3D" parent="NavigationRegion3D"]
+position = Vector3(-20, 0, -28)
+rotation = Vector3(0, 0.610865, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Rock20"]
+position = Vector3(0, 1.5, 0)
+shape = SubResource("rock_shape0")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Rock20"]
+position = Vector3(0, 1.5, 0)
+mesh = SubResource("rock_mesh0")
+
+[node name="Mantis" type="Node3D" parent="NavigationRegion3D"]
+script = ExtResource("mantis")
+
+[node name="Sabre" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 12, 0.6, -3.6)
+script = ExtResource("sabre")
+arrival_objective = &"sabre_out"
+arrival_point = Vector3(66, 0, -6)
+
+[node name="Hexapod" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1, 0.6, 1.4)
+script = ExtResource("hexapod")
+arrival_objective = &"hexapod_out"
+arrival_point = Vector3(66, 0, 8)
+
+[node name="FuelBowser" type="StaticBody3D" parent="NavigationRegion3D"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 2, 0, 24.5)
+script = ExtResource("sabotage")
+objective_id = &"fuel"
+lights = NodePath("../../Lamps/Lamp3")
+fuel = true
+
+[node name="Sandbags1" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
+position = Vector3(28, 0, -10)
+rotation = Vector3(0, 0.000000, 0)
+length = 5
+texture = "tex_nature/dirt002.png"
+
+[node name="Sandbags2" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
+position = Vector3(28, 0, 10)
+rotation = Vector3(0, 0.000000, 0)
+length = 5
+texture = "tex_nature/dirt002.png"
+
+[node name="Sandbags3" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
+position = Vector3(-30, 0, -6)
+rotation = Vector3(0, 1.570796, 0)
+length = 4
+texture = "tex_nature/dirt002.png"
+
+[node name="Sandbags4" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
+position = Vector3(4, 0, 31)
+rotation = Vector3(0, 0.000000, 0)
+length = 6
+texture = "tex_nature/dirt002.png"
+
+[node name="Sandbags5" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
+position = Vector3(-12, 0, -22)
+rotation = Vector3(0, 0.000000, 0)
+length = 5
+texture = "tex_nature/dirt002.png"
+
+[node name="Sandbags6" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
+position = Vector3(18, 0, -24)
+rotation = Vector3(0, 1.570796, 0)
+length = 4
+texture = "tex_nature/dirt002.png"
+
+[node name="Sandbags7" parent="NavigationRegion3D" instance=ExtResource("lowwall")]
+position = Vector3(44, 0, -2)
+rotation = Vector3(0, 1.570796, 0)
+length = 5
+texture = "tex_nature/dirt002.png"
+
+[node name="Crate1" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-8.6, 0.6, 4.6)
+
+[node name="Crate2" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-7.3, 0.6, 4.6)
+
+[node name="Crate3" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-8.6, 0.6, 3.3)
+
+[node name="Crate4" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-20, 0, -10)
+
+[node name="Crate5" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-18.7, 0, -10)
+
+[node name="Crate6" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-20, 0, -11.3)
+
+[node name="Crate7" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(24, 0, -16)
+
+[node name="Crate8" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(25.3, 0, -16)
+
+[node name="Crate9" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-4, 0, 18)
+
+[node name="Crate10" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-2.7, 0, 18)
+
+[node name="Crate11" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(14, 0, 19)
+
+[node name="Crate12" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(36, 0, 22)
+
+[node name="Crate13" parent="NavigationRegion3D" instance=ExtResource("crate")]
+position = Vector3(-22, 0, 20)
+
+[node name="Lamps" type="Node3D" parent="."]
+
+[node name="Lamp1" type="Node3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, -7)
+
+[node name="Post" type="MeshInstance3D" parent="Lamps/Lamp1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+mesh = SubResource("post_mesh")
+
+[node name="Bulb" type="MeshInstance3D" parent="Lamps/Lamp1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.05, 0)
+mesh = SubResource("bulb_mesh")
+
+[node name="Light" type="OmniLight3D" parent="Lamps/Lamp1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.9, 0)
+light_color = Color(1, 0.8, 0.52, 1)
+light_energy = 2.2
+omni_range = 10.0
+omni_attenuation = 1.4
+
+[node name="Lamp2" type="Node3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, 7)
+
+[node name="Post" type="MeshInstance3D" parent="Lamps/Lamp2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+mesh = SubResource("post_mesh")
+
+[node name="Bulb" type="MeshInstance3D" parent="Lamps/Lamp2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.05, 0)
+mesh = SubResource("bulb_mesh")
+
+[node name="Light" type="OmniLight3D" parent="Lamps/Lamp2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.9, 0)
+light_color = Color(1, 0.8, 0.52, 1)
+light_energy = 2.2
+omni_range = 10.0
+omni_attenuation = 1.4
+
+[node name="Lamp3" type="Node3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 22)
+
+[node name="Post" type="MeshInstance3D" parent="Lamps/Lamp3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+mesh = SubResource("post_mesh")
+
+[node name="Bulb" type="MeshInstance3D" parent="Lamps/Lamp3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.05, 0)
+mesh = SubResource("bulb_mesh")
+
+[node name="Light" type="OmniLight3D" parent="Lamps/Lamp3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.9, 0)
+light_color = Color(1, 0.8, 0.52, 1)
+light_energy = 2.2
+omni_range = 10.0
+omni_attenuation = 1.4
+
+[node name="Lamp4" type="Node3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 0, 0)
+
+[node name="Post" type="MeshInstance3D" parent="Lamps/Lamp4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+mesh = SubResource("post_mesh")
+
+[node name="Bulb" type="MeshInstance3D" parent="Lamps/Lamp4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.05, 0)
+mesh = SubResource("bulb_mesh")
+
+[node name="Light" type="OmniLight3D" parent="Lamps/Lamp4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.9, 0)
+light_color = Color(1, 0.8, 0.52, 1)
+light_energy = 2.2
+omni_range = 10.0
+omni_attenuation = 1.4
+
+[node name="Decor" type="Node3D" parent="."]
+
+[node name="Bush1" type="Node3D" parent="Decor"]
+position = Vector3(-46, 0, 40)
+script = ExtResource("hiding")
+
+[node name="Bush2" type="Node3D" parent="Decor"]
+position = Vector3(-38, 0, 30)
+script = ExtResource("hiding")
+
+[node name="Bush3" type="Node3D" parent="Decor"]
+position = Vector3(-30, 0, 42)
+script = ExtResource("hiding")
+
+[node name="Bush4" type="Node3D" parent="Decor"]
+position = Vector3(-24, 0, 24)
+script = ExtResource("hiding")
+
+[node name="Bush5" type="Node3D" parent="Decor"]
+position = Vector3(-16, 0, 34)
+script = ExtResource("hiding")
+
+[node name="Bush6" type="Node3D" parent="Decor"]
+position = Vector3(-46, 0, 16)
+script = ExtResource("hiding")
+
+[node name="Bush7" type="Node3D" parent="Decor"]
+position = Vector3(-36, 0, 4)
+script = ExtResource("hiding")
+
+[node name="Bush8" type="Node3D" parent="Decor"]
+position = Vector3(-10, 0, 24)
+script = ExtResource("hiding")
+
+[node name="Bush9" type="Node3D" parent="Decor"]
+position = Vector3(6, 0, 36)
+script = ExtResource("hiding")
+
+[node name="Bush10" type="Node3D" parent="Decor"]
+position = Vector3(20, 0, 30)
+script = ExtResource("hiding")
+
+[node name="Bush11" type="Node3D" parent="Decor"]
+position = Vector3(-46, 0, -14)
+script = ExtResource("hiding")
+
+[node name="Bush12" type="Node3D" parent="Decor"]
+position = Vector3(-26, 0, -40)
+script = ExtResource("hiding")
+
+[node name="Bush13" type="Node3D" parent="Decor"]
+position = Vector3(40, 0, -20)
+script = ExtResource("hiding")
+
+[node name="Bush14" type="Node3D" parent="Decor"]
+position = Vector3(48, 0, 24)
+script = ExtResource("hiding")
+
+[node name="Bush15" type="Node3D" parent="Decor"]
+position = Vector3(-16, 0, 8)
+script = ExtResource("hiding")
+
+[node name="Units" type="Node3D" parent="."]
+
+[node name="Alpha" parent="Units" instance=ExtResource("unit")]
+position = Vector3(-60, 0, 58)
+display_name = "Alpha"
+mission_explosives = 2
+
+[node name="Bravo" parent="Units" instance=ExtResource("unit")]
+position = Vector3(-58, 0, 60)
+unit_index = 2
+display_name = "Bravo"
+
+[node name="Charlie" parent="Units" instance=ExtResource("unit")]
+position = Vector3(-62, 0, 61)
+unit_index = 3
+display_name = "Charlie"
+
+[node name="CameraRig" parent="." instance=ExtResource("cam")]
+position = Vector3(-54, 0, 52)
+bounds = AABB(-76, 0, -76, 152, 0, 152)
+
+[node name="PatrolPaths" type="Node3D" parent="."]
+
+[node name="PatrolPerimeter" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("curve_PatrolPerimeter")
+
+[node name="PatrolHold" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("curve_PatrolHold")
+
+[node name="PatrolDepot" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("curve_PatrolDepot")
+
+[node name="TechLoop" type="Path3D" parent="PatrolPaths"]
+curve = SubResource("curve_TechLoop")
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="RampSentryL" parent="Enemies" instance=ExtResource("enemy")]
+position = Vector3(26, 0, -4)
+rotation = Vector3(0, -1.57080, 0)
+stationary = true
+sweeping = true
+
+[node name="RampSentryR" parent="Enemies" instance=ExtResource("enemy")]
+position = Vector3(26, 0, 4)
+rotation = Vector3(0, -1.57080, 0)
+stationary = true
+sweeping = true
+
+[node name="Loadmaster" parent="Enemies" instance=ExtResource("enemy")]
+position = Vector3(-6, 0.6, -2)
+rotation = Vector3(0, -1.57080, 0)
+kind = 1
+stationary = true
+
+[node name="HoldPatrol" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("enemy")]
+position = Vector3(-6, 0.6, 3.6)
+rotation = Vector3(0, 0.00000, 0)
+patrol_path = NodePath("../../PatrolPaths/PatrolHold")
+
+[node name="Perimeter" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("enemy")]
+position = Vector3(-28, 0, -15)
+rotation = Vector3(0, 0.00000, 0)
+patrol_path = NodePath("../../PatrolPaths/PatrolPerimeter")
+
+[node name="Pilot" parent="Enemies" node_paths=PackedStringArray("talk_partner") instance=ExtResource("enemy")]
+position = Vector3(-24, 0, -1.2)
+rotation = Vector3(0, 0.00000, 0)
+stationary = true
+talk_partner = NodePath("../Mechanic")
+
+[node name="Mechanic" parent="Enemies" node_paths=PackedStringArray("talk_partner") instance=ExtResource("enemy")]
+position = Vector3(-24, 0, 1.8)
+rotation = Vector3(0, 3.14159, 0)
+stationary = true
+talk_partner = NodePath("../Pilot")
+
+[node name="DepotGuard" parent="Enemies" instance=ExtResource("enemy")]
+position = Vector3(6, 0, 30)
+rotation = Vector3(0, 0.00000, 0)
+stationary = true
+sweeping = true
+
+[node name="Dog" parent="Enemies" node_paths=PackedStringArray("patrol_path") instance=ExtResource("enemy")]
+position = Vector3(-6, 0, 21)
+rotation = Vector3(0, 0.00000, 0)
+kind = 2
+patrol_path = NodePath("../../PatrolPaths/PatrolDepot")
+
+[node name="NorthSentry" parent="Enemies" instance=ExtResource("enemy")]
+position = Vector3(-12, 0, -21)
+rotation = Vector3(0, 0.00000, 0)
+stationary = true
+sweeping = true
+
+[node name="EastSentry" parent="Enemies" instance=ExtResource("enemy")]
+position = Vector3(45, 0, 0)
+rotation = Vector3(0, -1.57080, 0)
+stationary = true
+sweeping = true
+
+[node name="Technical" type="StaticBody3D" parent="Enemies"]
+position = Vector3(-44, 0, -40)
+script = ExtResource("technical")
+patrol_path = NodePath("../../PatrolPaths/TechLoop")
+
+[node name="GuardRadio" type="Node" parent="." node_paths=PackedStringArray("guards")]
+script = ExtResource("guard_radio")
+guards = [NodePath("../Enemies/RampSentryL"), NodePath("../Enemies/RampSentryR"), NodePath("../Enemies/DepotGuard"), NodePath("../Enemies/NorthSentry"), NodePath("../Enemies/EastSentry")]
+post_names = Array[String](["de la rampe bâbord", "de la rampe tribord", "de la citerne", "du nord", "de l'est"])
+first_at = 60.0
+
+[node name="HUD" parent="." instance=ExtResource("hud")]

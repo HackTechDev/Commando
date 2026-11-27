@@ -1822,3 +1822,12 @@
 - Bouton « Brouilleur [H] » dans la barre d'équipement du HUD : visible quand un opérateur sélectionné en emporte un, grisé quand les charges sont épuisées.
 - Éditeur de mission : « Drone de surveillance » dans la palette (catégorie Ennemis, ronde point par point), trajet vérifié, disque montré par l'animation de la carte.
 - « Centre mobile 07 » : un drone tourne au-dessus du centre déployé et du campement. Test : `tests/gameplay/test_surveillance_drone.gd`.
+
+## Transporteur lourd Mantis et carte « Le Mantis »
+
+- Nouveau décor `Mantis`, construit en code (création originale inspirée des images de `CommandoAsset/vehicles/mantis`) : transporteur lourd à décollage vertical posé sur huit jambes de train. Long fuselage à section carrée, cabine de pilotage en coin vitrée sur l'avant, échine dorsale, deux grosses nacelles moteur tenues par des bras repliés comme les pattes avant d'une mante (on passe dessous), ailerons en flèche, poutre de queue relevée au-dessus de la rampe ; livrée sable à bandes rouille, immatriculation sur le nez (`hull_number`).
+  - **Soute** de 28 × 11 m, 5,2 m sous plafond : plusieurs gros véhicules y tiennent (Sabre, hexapode, pick-up). Plancher, rampe arrière large de toute la soute et marchepied de la porte latérale tribord sont des sols praticables par la navigation des fantassins et des véhicules ; rampe relevée au choix (`ramp_open`), qui ferme la soute. Pont roulant, caisses arrimées, plafonniers allumés (`hold_lights`).
+  - **Coupe** : un opérateur dans la soute efface en fondu le toit, l'échine, le pont roulant et le haut des flancs ; les clics les traversent (`Mantis.is_revealed_body`). Un corps déposé dans la soute est caché.
+- Nouvelle carte « Le Mantis » (`mantis_lz`, plateau caillouteux, 150 × 150 m) : au crépuscule (18 h 45), l'heure avance et la nuit tombe pendant la mission. Le Mantis s'est posé pour ravitailler ; sa soute emporte un Sabre et un hexapode. Objectifs : conduire le Sabre puis l'hexapode au point de ralliement à l'est, détruire la citerne de ravitaillement (elle éteint sa lampe), ne perdre personne. Onze gardes (deux sentinelles éclairées au pied de la rampe, chef de soute et garde dans la soute, pilote et mécanicien qui bavardent au pied du nez, ronde autour de l'appareil, citerne gardée avec un chien, sentinelles nord et est), radio des gardes toutes les 90 s, pick-up armé autour du plateau ; rochers et buissons sur l'approche sud-ouest.
+- Test : `tests/levels/test_mantis_lz.gd`.
+

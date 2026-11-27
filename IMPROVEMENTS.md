@@ -4,7 +4,7 @@ Pistes classées par priorité. Chaque point a un numéro (section.point, puis u
 
 ## 1. À faire en premier (fondations)
 
-- **1.1 Tests, suite** : GUT est installé avec près de 300 tests en 59 fichiers (`./run_tests.sh`). Reste à :
+- **1.1 Tests, suite** : GUT est installé avec plus de 300 tests en 60 fichiers (`./run_tests.sh`). Reste à :
   - **a)** accélérer les tests de jeu (environ 6 min aujourd'hui), par exemple en accélérant le temps du moteur ;
   - **b)** les lancer automatiquement avant chaque commit (crochet Git) ou en intégration continue ;
   - **c)** couvrir ce qui manque encore : HUD et contrôles à la souris, sélection, caméra, transitions de posture debout/accroupi, patrouille et poursuite des ennemis, réveil puis lutte, chargement d'autres cartes UFO:AI ;
@@ -117,9 +117,11 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification ;
   - **b)** trajets de l'avion ennemi et du drone : ils ne se referment pas d'eux-mêmes (l'appareil saute du dernier point au premier). Les refermer à la pose, ou signaler un trajet ouvert dans la vérification.
 - **8.6 Événements des gardes dans l'éditeur** : relève (`GuardRelief`), radio (`GuardRadio`) et paires qui discutent (`talk_partner`) se règlent aujourd'hui à la main dans l'inspecteur. Les ajouter à la palette, montrer leurs liens dans la vue 3D (poste et remplaçant, postes appelés, paires) et les vérifier (garde manquant, remplaçant trop loin).
+- **8.7 Mantis dans la palette** : le transporteur `Mantis` (rampe abaissée ou relevée, immatriculation) se pose aujourd'hui à la main dans la scène ; l'ajouter à la palette (catégorie Décor) comme le centre de commandement, avec la vérification de la soute (véhicule posé dedans, rampe dégagée).
 
 ## 10. Missions et campagne
 
 - **10.1 Campagne** : carte d'opérations où les missions s'enchaînent ; opérateurs perdus pour de bon, matériel récupéré.
 - **10.2 Objectifs secondaires et notation** : aucun mort, aucune alerte, temps limite, documents en bonus ; note en fin de mission.
 - **10.4 Rondes tirées au hasard** : même carte, gardes et rondes différents à chaque partie (graine de `GameRng`), pour la rejouabilité.
+- **10.5 Mantis, suite** : rampe que l'on abaisse et relève en jeu (tableau près de la porte), décollage du Mantis comme extraction (la soute embarque véhicules et opérateurs), arrivée du Mantis en cours de mission avec des renforts qui descendent la rampe.

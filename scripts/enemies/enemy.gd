@@ -703,7 +703,8 @@ func is_hidden_body() -> bool:
 	if Tiltrotor.cabin_at(get_tree(), global_position + Vector3.UP * 0.3) != null:
 		return true
 	return Building.at(get_tree(), global_position + Vector3.UP * 0.3) != null \
-		or Tower.at(get_tree(), global_position + Vector3.UP * 0.3) != null
+		or Tower.at(get_tree(), global_position + Vector3.UP * 0.3) != null \
+		or Mantis.at(get_tree(), global_position + Vector3.UP * 0.3) != null
 
 
 ## Milieu du corps couché : son bassin, au sol.
