@@ -247,6 +247,7 @@ Les textures externes s'affichent dans l'éditeur mais ne sont jamais enregistr�
 | | Pluie | 1 clic | `Decor` | Gouttes autour de ce que regarde la caméra, bruit de l'averse ; `drops`, `wind`, `volume_db`. Une seule par carte. |
 | | Immeuble à étages | 1 clic | `NavigationRegion3D` | 3 étages, 14 × 10 m ; `storeys`, `size`, `doors`, `windows` dans l'inspecteur. |
 | | Centre de commandement replié, déployé | 1 clic | `NavigationRegion3D` | `CommandCenter`, 45 m de long, porteurs vers l'ouest (cap pour le tourner) ; replié : plateau et coursive praticables ; déployé : pont de 34 × 20 m, salle des opérations et toit-terrasse. `deployed`, `hull_number` dans l'inspecteur. Les gardes et objectifs se posent sur ses ponts. |
+| | Transporteur Mantis, rampe abaissée, relevée | 1 clic | `NavigationRegion3D` | `Mantis`, 47 m de long, nez vers l'ouest (cap pour le tourner) ; soute de 28 × 11 m au plancher à 0,6 m, rampe arrière et porte latérale. `ramp_open`, `hull_number`, `hold_lights` dans l'inspecteur. La visée traverse son toit : les gardes, véhicules et objectifs se posent dans la soute. La vérification signale un véhicule enfermé derrière une rampe relevée. |
 | | Route, Trottoir, Piste | 2 clics | `Decor` | 9 m, 2,5 m, 4,5 m de large. |
 | Relief et plans | Plateau | 2 clics (coins) | `NavigationRegion3D` | Dessus à 2 m, une rampe au sud ; `height`, `ramps`, `ramp_width`. |
 | | Pièce | 2 clics (coins) | `NavigationRegion3D` | Crée un bâtiment dessiné, ou s'ajoute au bâtiment sélectionné, à l'étage du dock. |

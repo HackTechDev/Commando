@@ -336,7 +336,22 @@ static func _check_placement(root: Node, operators: Array, report: Array[Diction
 	_check_units(units, space, report)
 	var props := root.find_children("*", "", true, true).filter(func(n: Node) -> bool: return n is Climbable or n is SabotageTarget)
 	_check_props(props, space, report)
+	_check_holds(root, report)
 	_check_bounds(root, placed_later, report)
+
+
+## Véhicules garés dans la soute d'un Mantis : rampe relevée, ils ne peuvent
+## pas en sortir.
+static func _check_holds(root: Node, report: Array[Dictionary]) -> void:
+	var ships := root.find_children("*", "Mantis", true, true)
+	if ships.is_empty():
+		return
+	for vehicle in root.find_children("*", "", true, true):
+		if not vehicle is Sabre:
+			continue
+		for ship: Mantis in ships:
+			if ship.contains((vehicle as Node3D).global_position + Vector3.UP * 0.3) and not ship.ramp_open:
+				report.append(_item("warning", "%s est enfermé dans la soute de %s : rampe relevée, il ne pourra pas sortir." % [vehicle.name, ship.name], [vehicle, ship]))
 
 
 ## Opérateurs vus par un garde dès le départ (sauf insertion en vol :

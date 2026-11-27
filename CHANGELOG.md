@@ -1831,3 +1831,10 @@
 - Nouvelle carte « Le Mantis » (`mantis_lz`, plateau caillouteux, 150 × 150 m) : au crépuscule (18 h 45), l'heure avance et la nuit tombe pendant la mission. Le Mantis s'est posé pour ravitailler ; sa soute emporte un Sabre et un hexapode. Objectifs : conduire le Sabre puis l'hexapode au point de ralliement à l'est, détruire la citerne de ravitaillement (elle éteint sa lampe), ne perdre personne. Onze gardes (deux sentinelles éclairées au pied de la rampe, chef de soute et garde dans la soute, pilote et mécanicien qui bavardent au pied du nez, ronde autour de l'appareil, citerne gardée avec un chien, sentinelles nord et est), radio des gardes toutes les 90 s, pick-up armé autour du plateau ; rochers et buissons sur l'approche sud-ouest.
 - Test : `tests/levels/test_mantis_lz.gd`.
 
+## Mantis dans la palette de l'éditeur de mission
+
+- Entrées « Transporteur Mantis, rampe abaissée » et « rampe relevée » dans la catégorie Décor.
+- La visée de pose traverse le toit, l'échine et le haut des flancs du Mantis (`Mantis.is_cut_body`) : un clic sur l'appareil pose dans la soute.
+- Vérification : un véhicule garé dans la soute d'un Mantis à rampe relevée est signalé (il ne pourrait pas sortir).
+- Scénario `tools/editor_check/mantis.gd` : pose des deux versions, seul le nœud enregistré, garde posé dans la soute, remarque de la vérification, annulation.
+

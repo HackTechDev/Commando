@@ -117,7 +117,6 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **a)** tests GUT du greffon, sans affichage : vérification (`checker.gd`), palette, cibles des objectifs, création d'une mission ; scénarios de `tools/editor_check` dans la routine de vérification ;
   - **b)** trajets de l'avion ennemi et du drone : ils ne se referment pas d'eux-mêmes (l'appareil saute du dernier point au premier). Les refermer à la pose, ou signaler un trajet ouvert dans la vérification.
 - **8.6 Événements des gardes dans l'éditeur** : relève (`GuardRelief`), radio (`GuardRadio`) et paires qui discutent (`talk_partner`) se règlent aujourd'hui à la main dans l'inspecteur. Les ajouter à la palette, montrer leurs liens dans la vue 3D (poste et remplaçant, postes appelés, paires) et les vérifier (garde manquant, remplaçant trop loin).
-- **8.7 Mantis dans la palette** : le transporteur `Mantis` (rampe abaissée ou relevée, immatriculation) se pose aujourd'hui à la main dans la scène ; l'ajouter à la palette (catégorie Décor) comme le centre de commandement, avec la vérification de la soute (véhicule posé dedans, rampe dégagée).
 
 ## 10. Missions et campagne
 

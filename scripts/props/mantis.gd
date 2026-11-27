@@ -113,6 +113,17 @@ static func is_revealed_body(collider: Object) -> bool:
 	return ship != null and ship.is_cut and ship._cut_bodies.has(body)
 
 
+## Vrai si `collider` est une pièce effacée en coupe (toit, échine, haut des
+## flancs), coupe affichée ou non : la visée de l'éditeur de mission les
+## traverse pour poser dans la soute.
+static func is_cut_body(collider: Object) -> bool:
+	var body := collider as Node
+	if body == null or not body.has_meta(&"mantis"):
+		return false
+	var ship := body.get_meta(&"mantis") as Mantis
+	return ship != null and ship._cut_bodies.has(body)
+
+
 ## Vrai si `point` est dans la soute (entre les flancs, sous le plafond).
 func contains(point: Vector3) -> bool:
 	var local := to_local(point)

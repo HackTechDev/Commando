@@ -63,6 +63,8 @@ static func entries() -> Array[Dictionary]:
 		{"ground": true, "id": "tower", "label": "Immeuble à étages", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "command_center", "label": "Centre de commandement replié", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "command_center_deployed", "label": "Centre de commandement déployé", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "mantis", "label": "Transporteur Mantis, rampe abaissée", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
+		{"ground": true, "id": "mantis_closed", "label": "Transporteur Mantis, rampe relevée", "category": "Décor", "parent": "NavigationRegion3D", "tool": "point"},
 		{"ground": true, "id": "road", "label": "Route", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"ground": true, "id": "sidewalk", "label": "Trottoir", "category": "Décor", "parent": "Decor", "tool": "line"},
 		{"ground": true, "id": "track", "label": "Piste", "category": "Décor", "parent": "Decor", "tool": "line"},
@@ -119,7 +121,9 @@ const FLAT := 0.7
 ## Point de pose sous la position `screen` : la première surface
 ## horizontale du décor touchée par le rayon de la vue (toit, plancher,
 ## dessus d'un mur), les faces verticales étant traversées ; à défaut, le
-## sol (`ground_point`). x et z aimantés à la grille de pas `step`.
+## sol (`ground_point`). Le toit et le haut des flancs d'un Mantis sont
+## traversés aussi, pour poser dans sa soute. x et z aimantés à la grille
+## de pas `step`.
 static func surface_point(camera: Camera3D, screen: Vector2, step: float, world: World3D) -> Vector3:
 	var origin := camera.project_ray_origin(screen)
 	var direction := camera.project_ray_normal(screen)
@@ -132,7 +136,7 @@ static func surface_point(camera: Camera3D, screen: Vector2, step: float, world:
 			var hit := space.intersect_ray(query)
 			if hit.is_empty():
 				break
-			if (hit["normal"] as Vector3).y >= FLAT:
+			if (hit["normal"] as Vector3).y >= FLAT and not Mantis.is_cut_body(hit["collider"]):
 				var point: Vector3 = hit["position"]
 				if step > 0.0:
 					point = Vector3(snappedf(point.x, step), point.y, snappedf(point.z, step))
@@ -209,6 +213,10 @@ static func make(id: String, at: Vector3, facing: float, to: Vector3, scene_root
 			var center := _scripted("Node3D", "res://scripts/props/command_center.gd", "CommandCenter")
 			center.set("deployed", id == "command_center_deployed")
 			nodes.append(center)
+		"mantis", "mantis_closed":
+			var ship := _scripted("Node3D", "res://scripts/props/mantis.gd", "Mantis")
+			ship.set("ramp_open", id == "mantis")
+			nodes.append(ship)
 		"supply_ammo", "supply_grenades", "supply_smoke", "supply_medkit":
 			var kinds := {"supply_ammo": ["Ammo", 0, 2], "supply_grenades": ["Grenades", 1, 2], "supply_smoke": ["Smoke", 2, 2], "supply_medkit": ["Medkit", 3, 1]}
 			var spec: Array = kinds[id]
