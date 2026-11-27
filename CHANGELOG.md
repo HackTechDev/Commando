@@ -1799,3 +1799,10 @@
 - Nouvelle entrée du menu de corps à corps (clic milieu) : « Revêtir son uniforme », sur un soldat ou un officier assommé (pas un chien). L'opérateur s'accroupit 5 s près du corps, puis porte l'uniforme et le couvre-chef du garde (sans cagoule, sac, jumelles ni peinture en vue) ; le garde reste en maillot clair.
 - En uniforme, debout, au pas, sans viser, sans corps ni otage et bouclier baissé (`Commando.passes_as_guard`), il est repéré par les soldats à 30 % de la vitesse normale (`blend_factor`, `BLEND_DISGUISE`), même de près. L'officier et le chien ne s'y trompent pas ; une fois l'alerte donnée, plus de faux-semblant.
 - Déguisement et garde dévêtu gardés par la sauvegarde rapide. Test : `tests/gameplay/test_disguise.gd`.
+
+## Radio des gardes (point 2.19)
+
+- Nouveau nœud `GuardRadio` (postes `guards`, noms `post_names`, intervalle, premier appel) : chaque poste se signale à tour de rôle, avec un grésillement près du garde.
+- Un garde hors de combat (tué, assommé, saisi, emporté) ne répond pas : la radio ennemie, interceptée, le signale dans le bandeau radio, et le garde au calme le plus proche (80 m) part voir à son poste, puis fouille les alentours. Une seule fois par poste.
+- Un opérateur déguisé (uniforme ennemi, debout, au pas) à moins de 8 m du poste répond à sa place : rien ne se passe.
+- « Centre mobile 07 » : le promontoire, le pont, le toit et la coursive se signalent toutes les 90 s, la première fois à 50 s. Test : `tests/gameplay/test_guard_radio.gd`.

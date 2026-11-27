@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://scripts/levels/guard_radio.gd" id="guard_radio"]
 [ext_resource type="Script" path="res://scripts/levels/guard_relief.gd" id="guard_relief"]
 [ext_resource type="Script" path="res://scripts/levels/level_root.gd" id="root"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="cam"]
@@ -1013,5 +1014,11 @@ relief = NodePath("../Enemies/OffDutyGuard")
 interval = 150.0
 first_at = 75.0
 post_name = "de l'escalier"
+
+[node name="GuardRadio" type="Node" parent="." node_paths=PackedStringArray("guards")]
+script = ExtResource("guard_radio")
+guards = [NodePath("../Enemies/LookoutSentry"), NodePath("../Enemies/DeckSentry"), NodePath("../Enemies/RoofSentry"), NodePath("../Enemies/ClosedBalconyGuard")]
+post_names = Array[String](["du promontoire", "du pont", "du toit", "de la coursive"])
+first_at = 50.0
 
 [node name="HUD" parent="." instance=ExtResource("hud")]
