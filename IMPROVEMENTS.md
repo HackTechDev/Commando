@@ -128,5 +128,5 @@ Greffon `addons/mission_editor`, première version décrite dans `MISSION_EDITOR
   - **b)** les plafonniers de la soute et les feux de l'appareil ne comptent pas comme des lampes (`StreetLamp`) : un opérateur dans la soute éclairée n'est pas plus visible la nuit, et on ne peut pas les briser ;
   - **c)** la cabine de pilotage est un bloc plein : la rendre praticable (sièges, poste de pilotage, porte depuis la soute), avec un objectif « documents de vol » ou « journal de bord ».
   - **d)** un véhicule large (hexapode) ne passe pas dans la soute à côté d'un autre garé au milieu : garer l'hexapode d'abord, au fond, puis le Sabre sur un côté. Montrer les places de parking dans la soute, ou ranger le véhicule de lui-même ;
-  - **e)** vol du Mantis : les nacelles ne pivotent pas, pas de son de moteurs (seulement le jet et le bruit qui alerte), et l'appareil ennemi ne réagit pas aux tirs ; le décollage des renforts vides (repartir après les avoir déposés) n'existe pas ;
+  - **e)** vol du Mantis : les panneaux-moteurs ne pivotent pas, pas de son de moteurs (seulement le jet et le bruit qui alerte), et l'appareil ennemi ne réagit pas aux tirs ; le décollage des renforts vides (repartir après les avoir déposés) n'existe pas ;
   - **f)** sauvegarde rapide : les renforts débarqués sont recréés à leur poste au chargement (vivants, même s'ils étaient tombés).

@@ -1848,3 +1848,7 @@
 - Sauvegarde rapide : rampe, compte à rebours et arrivée gardés ; un Mantis en approche est rechargé posé, ses renforts à leur poste.
 - Tests : `tests/levels/test_mantis_lz.gd` (rampe, décollage, renforts, chemins des véhicules jusqu'à la soute).
 
+## Mantis d'après la maquette
+
+- Le modèle du `Mantis` reprend le vaisseau des images de `CommandoAsset/vehicles/mantis` : tête en tambour au nez bombé et grande entrée d'air ronde à aubes, joues portant deux moteurs ronds, poste de pilotage en menton vitré d'une grille de hublots ; deux grands panneaux-moteurs plats dressés en V, tournés vers l'avant, sur des bras articulés à vérins (jet au pied en vol) ; ailes basses en flèche avec leurs réacteurs, ailerons arrière en dièdre négatif ; réacteurs de ventre, caissons à coiffes rondes et radiateur sur les flancs, radiateur à lamelles sur le dos ; poutre de queue terminée par un grand cadre-grille ; patins grillagés. Livrée moutarde à chevrons brun-rouge.
+- Soute, rampe, porte, tableau et coupe inchangés.

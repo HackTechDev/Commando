@@ -74,10 +74,16 @@ const RAMP_LENGTH := 5.0
 const DOOR_X := -5.0
 const DOOR_WIDTH := 1.6
 const DOOR_HEIGHT := 2.4
-## Nacelles : centre (x, |z|, y), rayon, longueur.
-const NACELLE := Vector3(-3.5, 11.2, 6.2)
-const NACELLE_RADIUS := 2.4
-const NACELLE_LENGTH := 7.2
+## Panneaux-moteurs (les grandes ailes plates) : centre (x, y, |z|), taille
+## (largeur, longueur, épaisseur), inclinaison vers l'extérieur.
+const ENGINE_AT := Vector3(-6.5, 13.2, 14.2)
+const ENGINE_SIZE := Vector3(7.6, 20.0, 1.3)
+const ENGINE_ROLL := 22.0
+## Panneaux tournés autour de leur longueur : la face vers l'avant.
+const ENGINE_YAW := 45.0
+## Tête : tambour (rayon, hauteur de l'axe) devant la soute.
+const HEAD_RADIUS := 4.7
+const HEAD_Y := 5.6
 const FADE_TIME := 0.3
 const CHECK_INTERVAL := 0.1
 ## Tableau de commande de la rampe (près de la porte latérale) et portée.
@@ -106,9 +112,9 @@ const UNLOAD_STAGGER := 0.8
 const POST_SPREAD := 4.0
 const ENEMY_SCENE := "res://scenes/enemies/enemy.tscn"
 
-const SAND := Color(0.72, 0.6, 0.36)
-const SAND_DARK := Color(0.55, 0.45, 0.27)
-const RUST := Color(0.45, 0.3, 0.2)
+const SAND := Color(0.7, 0.62, 0.3)
+const SAND_DARK := Color(0.54, 0.47, 0.23)
+const RUST := Color(0.5, 0.34, 0.27)
 const STEEL := Color(0.4, 0.41, 0.42)
 const DARK := Color(0.1, 0.1, 0.1)
 const INTERIOR := Color(0.36, 0.37, 0.35)
@@ -534,7 +540,7 @@ func _over_landing() -> void:
 
 func _footprint_has(point: Vector3) -> bool:
 	var local := _landing.affine_inverse() * point
-	return local.x > HOLD.position.x - 9.5 and local.x < HOLD.end.x + RAMP_LENGTH \
+	return local.x > HOLD.position.x - 10.5 and local.x < HOLD.end.x + RAMP_LENGTH \
 			and absf(local.z) < HOLD.size.y * 0.5 + WALL + 2.0
 
 
@@ -763,16 +769,28 @@ func _build_walls() -> void:
 			var parent := low if i % 2 == 0 else high
 			var y := 1.8 if i % 2 == 0 else 4.6
 			_mesh(parent, Vector3(1.0, 2.6, 0.03), Vector3(x, y, z * (zw + WALL * 0.5 + 0.01)), _mat(RUST), band)
-	# Réservoirs en nacelle le long du bas des flancs (après la porte).
+	# Flancs : réacteurs de ventre en bas, rangée de caissons à coiffes rondes
+	# et radiateur en haut, rail de jonction entre les deux.
 	for side: float in [-1.0, 1.0]:
-		var tank := PackedVector2Array([Vector2(zw, 0.9), Vector2(zw + 0.9, 1.2), Vector2(zw + 0.9, 2.3), Vector2(zw, 2.7)])
-		var mirrored := PackedVector2Array()
-		for point in tank:
-			mirrored.append(Vector2(point.x * side, point.y))
-		_prism(low, mirrored, -1.6, 12.5, [Vector3.BACK, Vector3.UP, Vector3.RIGHT], _mat(SAND_DARK))
-		_collide(low, Vector3(14.1, 1.8, 0.9), Vector3(5.45, 1.8, side * (zw + 0.45)))
-		for x: float in [0.5, 4.5, 8.5]:
-			_mesh(low, Vector3(0.12, 1.2, 0.06), Vector3(x, 1.75, side * (zw + 0.93)), _mat(DARK))
+		var along := Basis(Vector3.BACK, PI * 0.5)
+		var pod := Vector3(5.0, 1.4, side * (zw + 1.1))
+		_cylinder(low, 1.0, 11.0, pod, _mat(SAND_DARK), along)
+		_cylinder(low, 1.1, 1.2, pod + Vector3(-5.0, 0, 0), _mat(SAND), along)
+		_cylinder(low, 0.75, 1.0, pod + Vector3(6.0, 0, 0), _mat(STEEL, 0.5), along)
+		_cylinder(low, 0.55, 0.1, pod + Vector3(6.52, 0, 0), _mat(DARK), along)
+		for k in 3:
+			_cylinder(low, 1.04, 0.2, pod + Vector3(-2.5 + k * 3.0, 0, 0), _mat(RUST if k == 1 else STEEL, 0.6), along)
+		_collide(low, Vector3(12.2, 2.0, 2.0), pod + Vector3(0.6, 0, 0))
+		var face := side * (zw + WALL * 0.5)
+		for k in 3:
+			var x := 2.0 + k * 2.6
+			_mesh(high, Vector3(2.4, 3.0, 0.9), Vector3(x, 4.5, face + side * 0.45), _mat(SAND))
+			_mesh(high, Vector3(1.8, 2.2, 0.05), Vector3(x, 4.4, face + side * 0.92), _mat(SAND_DARK))
+			_cylinder(high, 0.35, 0.4, Vector3(x, 6.15, face + side * 0.45), _mat(SAND_DARK))
+		_mesh(high, Vector3(3.6, 2.6, 0.6), Vector3(11.0, 4.6, face + side * 0.3), _mat(STEEL, 0.6))
+		for k in 6:
+			_mesh(high, Vector3(0.1, 2.2, 0.08), Vector3(9.5 + k * 0.6, 4.6, face + side * 0.64), _mat(DARK))
+		_mesh(low, Vector3(16.0, 0.3, 0.35), Vector3(6.0, 2.9, face + side * 0.17), _mat(SAND_DARK))
 	# Couples (membrures) intérieurs.
 	var x := x0 + 3.5
 	while x < x1 - 1.0:
@@ -793,20 +811,25 @@ func _build_roof() -> void:
 	# Cadre de la rampe.
 	for z: float in [-half + 0.3, half - 0.3]:
 		_mesh(roof, Vector3(0.6, CEILING - CUT_HEIGHT, 0.6), Vector3(x1 - 0.3, (CEILING + CUT_HEIGHT) * 0.5, z), _mat(SAND_DARK))
-	# Échine : carénage à pans coupés, prises d'air, trappes.
-	var spine := PackedVector2Array([Vector2(-3.4, 0.0), Vector2(-2.6, 1.3), Vector2(2.6, 1.3), Vector2(3.4, 0.0)])
+	# Dos : radiateur à lamelles derrière la tête, carénage central bas,
+	# trappes et chevrons.
+	var spine := PackedVector2Array([Vector2(-3.0, 0.0), Vector2(-2.2, 0.9), Vector2(2.2, 0.9), Vector2(3.0, 0.0)])
 	var shape := PackedVector2Array()
 	for point in spine:
 		shape.append(point + Vector2(0, ROOF_TOP))
-	_prism(roof, shape, x0 - 1.5, x1 - 2.0, [Vector3.BACK, Vector3.UP, Vector3.RIGHT], _mat(SAND))
-	_collide(roof, Vector3(x1 - x0 - 0.5, 1.3, 6.4), Vector3((x0 + x1) * 0.5 - 1.75, ROOF_TOP + 0.65, 0))
-	for i in 5:
-		var x := x0 + 1.5 + i * 5.2
-		_mesh(roof, Vector3(2.2, 0.08, 1.6), Vector3(x, ROOF_TOP + 1.34, -1.2 if i % 2 == 0 else 1.2), _mat(SAND_DARK))
-		_mesh(roof, Vector3(1.0, 2.0, 0.04), Vector3(x + 1.6, ROOF_TOP + 1.33, 0), _mat(RUST), Basis(Vector3.RIGHT, PI * 0.5) * Basis(Vector3.BACK, deg_to_rad(30.0)))
-	for z: float in [-1.0, 1.0]:
-		_mesh(roof, Vector3(3.0, 0.7, 0.9), Vector3(x0 + 4.0, ROOF_TOP + 1.3, z * 1.9), _mat(SAND_DARK))
-		_mesh(roof, Vector3(0.05, 0.5, 0.7), Vector3(x0 + 2.48, ROOF_TOP + 1.3, z * 1.9), _mat(DARK))
+	_prism(roof, shape, x0 + 3.2, x1 - 4.0, [Vector3.BACK, Vector3.UP, Vector3.RIGHT], _mat(SAND))
+	_collide(roof, Vector3(x1 - x0 - 7.2, 0.9, 6.0), Vector3((x0 + x1) * 0.5 - 0.4, ROOF_TOP + 0.45, 0))
+	_mesh(roof, Vector3(3.2, 0.4, 4.4), Vector3(x0 + 1.4, ROOF_TOP + 0.2, 0), _mat(SAND_DARK))
+	for k in 5:
+		_mesh(roof, Vector3(0.25, 2.0, 4.0), Vector3(x0 + 0.2 + k * 0.6, ROOF_TOP + 1.2, 0), _mat(DARK))
+	for z: float in [-2.25, 2.25]:
+		_mesh(roof, Vector3(3.4, 2.4, 0.25), Vector3(x0 + 1.4, ROOF_TOP + 1.2, z), _mat(SAND))
+	_collide(roof, Vector3(3.4, 2.4, 4.6), Vector3(x0 + 1.4, ROOF_TOP + 1.2, 0))
+	for i in 4:
+		var x := x0 + 6.0 + i * 4.6
+		_mesh(roof, Vector3(2.2, 0.06, 1.6), Vector3(x, ROOF_TOP + 0.92, -1.0 if i % 2 == 0 else 1.0), _mat(SAND_DARK))
+		for z: float in [-1.0, 1.0]:
+			_mesh(roof, Vector3(0.7, 0.04, 3.2), Vector3(x + 1.6, ROOF_TOP + 0.93, z * 1.2), _mat(RUST), Basis(Vector3.UP, z * deg_to_rad(40.0)))
 	# Chanfreins des arêtes du toit.
 	var edge := PackedVector2Array([Vector2(half - 1.2, ROOF_TOP), Vector2(half, ROOF_TOP - 1.0), Vector2(half + 0.15, ROOF_TOP - 1.0), Vector2(half + 0.15, ROOF_TOP), Vector2(half - 1.2, ROOF_TOP + 0.05)])
 	for side: float in [-1.0, 1.0]:
@@ -815,38 +838,74 @@ func _build_roof() -> void:
 			mirrored.append(Vector2(point.x * side, point.y))
 		_prism(roof, mirrored, x0, x1, [Vector3.BACK, Vector3.UP, Vector3.RIGHT], _mat(SAND_DARK))
 	# Feux anticollision.
-	_mesh(roof, Vector3(0.25, 0.2, 0.25), Vector3(x0 + 8.0, ROOF_TOP + 1.42, 0), _glow(Color(1.0, 0.2, 0.15), 2.5))
+	_mesh(roof, Vector3(0.25, 0.2, 0.25), Vector3(x0 + 8.0, ROOF_TOP + 0.98, 0), _glow(Color(1.0, 0.2, 0.15), 2.5))
 
 
-## Cabine de pilotage en coin, devant la soute.
+## Tête : tambour à grande entrée d'air ronde, joues porteuses des moteurs
+## ronds, et poste de pilotage en menton vitré d'une grille de hublots.
 func _build_cockpit() -> void:
 	var body := _body("Cockpit", LAYER_OBSTACLE)
 	var x0 := HOLD.position.x - WALL
-	# Profil (x, y), extrudé en z : nez en coin, menton relevé.
-	var profile := PackedVector2Array([Vector2(x0, 0.4), Vector2(x0, ROOF_TOP), Vector2(x0 - 3.0, ROOF_TOP), Vector2(x0 - 6.8, 4.0), Vector2(x0 - 8.6, 2.2), Vector2(x0 - 7.6, 1.0), Vector2(x0 - 4.0, 0.4)])
-	_prism(body, profile, -3.8, 3.8, [Vector3.RIGHT, Vector3.UP, Vector3.BACK], _mat(SAND))
-	# Joues plus étroites qui avancent le nez (tête de mante).
-	var cheek := PackedVector2Array([Vector2(x0 - 3.0, ROOF_TOP - 0.4), Vector2(x0 - 6.4, 3.9), Vector2(x0 - 8.2, 2.2), Vector2(x0 - 3.0, 1.2)])
-	for z: float in [-1.0, 1.0]:
-		_prism(body, cheek, z * 3.8, z * 4.6, [Vector3.RIGHT, Vector3.UP, Vector3.BACK], _mat(SAND_DARK))
-	_collide(body, Vector3(8.6, 5.8, 9.2), Vector3(x0 - 4.3, 3.3, 0))
-	# Verrière : bandeau vitré sur le pan incliné, montants.
-	var slope := atan2(ROOF_TOP - 4.0, 3.8)
-	var glass_at := Vector3(x0 - 4.9, 5.15, 0)
-	_mesh(body, Vector3(3.2, 0.06, 6.4), glass_at + Vector3(-0.05, 0.03, 0), _mat(GLASS, 0.15), Basis(Vector3.BACK, slope))
-	for z: float in [-2.2, -0.75, 0.75, 2.2]:
-		_mesh(body, Vector3(3.3, 0.1, 0.14), glass_at + Vector3(-0.05, 0.09, z), _mat(SAND_DARK), Basis(Vector3.BACK, slope))
-	# Hublots bas du nez et projecteurs.
-	var chin := atan2(4.0 - 2.2, 1.8)
-	_mesh(body, Vector3(1.2, 0.05, 3.0), Vector3(x0 - 7.75, 3.15, 0), _mat(GLASS, 0.15), Basis(Vector3.BACK, chin))
-	for z: float in [-2.6, 2.6]:
-		_mesh(body, Vector3(0.1, 0.35, 0.5), Vector3(x0 - 8.4, 1.9, z), _glow(LAMP, 2.2))
-	# Immatriculation sur les joues.
+	var along := Basis(Vector3.BACK, PI * 0.5)
+	# Tambour et nez bombé.
+	var head := Vector3(x0 - 2.6, HEAD_Y, 0)
+	_cylinder(body, HEAD_RADIUS, 5.2, head, _mat(SAND), along)
+	_sphere(body, HEAD_RADIUS, head - Vector3(2.6, 0, 0), _mat(SAND), Vector3(0.55, 1.0, 1.0))
+	for k in 3:
+		_cylinder(body, HEAD_RADIUS * 1.015, 0.18, head + Vector3(-2.2 + k * 1.9, 0, 0), _mat(RUST if k == 1 else SAND_DARK), along)
+	# Entrée d'air : bague, fond sombre, moyeu et aubes.
+	var intake := Vector3(head.x - 2.6 - HEAD_RADIUS * 0.5, HEAD_Y, 0)
+	_cylinder(body, 2.1, 0.7, intake, _mat(SAND_DARK), along)
+	_cylinder(body, 1.8, 0.05, intake - Vector3(0.36, 0, 0), _mat(DARK), along)
+	_cylinder(body, 0.6, 0.3, intake - Vector3(0.4, 0, 0), _mat(STEEL, 0.4), along)
+	for k in 6:
+		_mesh(body, Vector3(0.04, 3.4, 0.26), intake - Vector3(0.38, 0, 0), _mat(STEEL, 0.5), Basis(Vector3.RIGHT, k * PI / 6.0))
+	_collide(body, Vector3(8.0, HEAD_RADIUS * 2.0, HEAD_RADIUS * 2.0), Vector3(x0 - 4.0, HEAD_Y, 0))
+	# Joues de part et d'autre du tambour, chacune avec son moteur rond.
+	var cheek := PackedVector2Array([Vector2(3.6, 2.0), Vector2(7.4, 3.2), Vector2(7.4, 7.0), Vector2(3.6, 8.4)])
 	for side: float in [-1.0, 1.0]:
-		_label(body, hull_number, Vector3(x0 - 2.0, 3.6, side * 4.62), side, 0.02)
-	# Antennes et sonde.
-	_strut(body, Vector3(x0 - 1.0, ROOF_TOP, 0), Vector3(x0 - 1.0, ROOF_TOP + 1.6, 0), 0.04, _mat(STEEL, 0.4))
-	_strut(body, Vector3(x0 - 8.0, 2.4, 0), Vector3(x0 - 10.0, 2.3, 0), 0.05, _mat(STEEL, 0.4))
+		var mirrored := PackedVector2Array()
+		for point in cheek:
+			mirrored.append(Vector2(point.x * side, point.y))
+		_prism(body, mirrored, x0 - 3.8, x0, [Vector3.BACK, Vector3.UP, Vector3.RIGHT], _mat(SAND))
+		_collide(body, Vector3(3.8, 6.4, 3.8), Vector3(x0 - 1.9, 5.2, side * 5.5))
+		var disc := Vector3(x0 - 3.9, 5.2, side * 5.6)
+		_cylinder(body, 1.05, 0.5, disc, _mat(SAND_DARK), along)
+		_cylinder(body, 0.7, 0.06, disc - Vector3(0.26, 0, 0), _mat(DARK), along)
+		_cylinder(body, 0.3, 0.2, disc - Vector3(0.3, 0, 0), _mat(STEEL, 0.4), along)
+		_label(body, hull_number, Vector3(x0 - 1.9, 4.6, side * 7.42), side, 0.02)
+	# Poste de pilotage en menton, sous l'entrée d'air.
+	var chin := PackedVector2Array([Vector2(x0 - 0.5, 0.5), Vector2(x0 - 0.5, 3.0), Vector2(x0 - 5.5, 3.5), Vector2(x0 - 8.1, 3.2), Vector2(x0 - 9.3, 2.0), Vector2(x0 - 8.7, 0.9), Vector2(x0 - 6.0, 0.5)])
+	_prism(body, chin, -3.0, 3.0, [Vector3.RIGHT, Vector3.UP, Vector3.BACK], _mat(SAND))
+	_collide(body, Vector3(8.8, 3.0, 6.0), Vector3(x0 - 4.9, 2.0, 0))
+	_panes(body, chin[3], chin[4], 2, 5, 2.6)
+	_panes(body, chin[4], chin[5], 1, 5, 2.4)
+	for side: float in [-1.0, 1.0]:
+		for k in 3:
+			_mesh(body, Vector3(0.6, 0.5, 0.05), Vector3(x0 - 7.6 + k * 0.8, 2.5, side * 3.02), _mat(GLASS, 0.15))
+		_mesh(body, Vector3(0.1, 0.3, 0.5), Vector3(x0 - 9.0, 1.3, side * 2.2), _glow(LAMP, 2.2))
+	# Sonde de nez et antenne.
+	_strut(body, Vector3(x0 - 9.2, 2.1, 0), Vector3(x0 - 10.8, 2.0, 0), 0.05, _mat(STEEL, 0.4))
+	_strut(body, Vector3(x0 - 1.0, HEAD_Y + HEAD_RADIUS - 0.1, 0), Vector3(x0 - 1.0, HEAD_Y + HEAD_RADIUS + 1.4, 0), 0.04, _mat(STEEL, 0.4))
+
+
+## Grille de hublots sur le pan du menton qui va de `a` à `b` (profil x, y),
+## tourné vers l'avant : `rows` rangées, `cols` colonnes sur ±`half_width`.
+func _panes(body: StaticBody3D, a: Vector2, b: Vector2, rows: int, cols: int, half_width: float) -> void:
+	var d := (b - a).normalized()
+	var n := Vector2(d.y, -d.x)
+	if n.x > 0.0:
+		n = -n
+	var basis := Basis(Vector3(d.x, d.y, 0), Vector3(n.x, n.y, 0), Vector3.BACK)
+	if basis.determinant() < 0.0:
+		basis.z = -basis.z
+	var step := a.distance_to(b) / rows
+	var col := half_width * 2.0 / cols
+	_mesh(body, Vector3(a.distance_to(b), 0.04, half_width * 2.0 + 0.2), Vector3((a.x + b.x) * 0.5 + n.x * 0.01, (a.y + b.y) * 0.5 + n.y * 0.01, 0), _mat(SAND_DARK), basis)
+	for r in rows:
+		for c in cols:
+			var p := a + d * step * (r + 0.5) + n * 0.04
+			_mesh(body, Vector3(step * 0.72, 0.04, col * 0.74), Vector3(p.x, p.y, -half_width + col * (c + 0.5)), _mat(GLASS, 0.15), basis)
 
 
 ## Aménagement de la soute : pont roulant, caisses arrimées, plafonniers,
@@ -888,112 +947,164 @@ func _build_interior() -> void:
 
 # --- Nacelles, ailerons, queue, train --------------------------------------------
 
-## Nacelle moteur du côté `side` (-1 bâbord, 1 tribord), sur son bras replié.
+## Panneau-moteur du côté `side` (-1 bâbord, 1 tribord) : grande aile plate
+## dressée en V sur un bras articulé (épaule, coude, poignet), tuyère au pied.
 func _build_nacelle(side: float) -> void:
 	var body := _body("Nacelle%s" % ("L" if side < 0.0 else "R"), LAYER_OBSTACLE)
-	var center := Vector3(NACELLE.x, NACELLE.z, side * NACELLE.y)
-	# Nacelle presque verticale (posé), entrée d'air vers le haut.
-	var tilt := Basis(Vector3.BACK, deg_to_rad(-12.0))
-	_cylinder(body, NACELLE_RADIUS, NACELLE_LENGTH, center, _mat(SAND), tilt)
-	_cylinder(body, NACELLE_RADIUS * 1.06, 0.6, center + tilt * Vector3(0, NACELLE_LENGTH * 0.5 - 0.3, 0), _mat(SAND_DARK), tilt)
-	_cylinder(body, NACELLE_RADIUS * 0.82, 0.08, center + tilt * Vector3(0, NACELLE_LENGTH * 0.5 + 0.02, 0), _mat(DARK), tilt)
-	_cylinder(body, NACELLE_RADIUS * 0.35, 0.3, center + tilt * Vector3(0, NACELLE_LENGTH * 0.5 + 0.1, 0), _mat(STEEL, 0.4), tilt)
-	_cylinder(body, NACELLE_RADIUS * 0.75, 0.7, center + tilt * Vector3(0, -NACELLE_LENGTH * 0.5 - 0.3, 0), _mat(DARK), tilt)
-	# Jet de poussée, allumé en vol.
+	var center := Vector3(ENGINE_AT.x, ENGINE_AT.y, side * ENGINE_AT.z)
+	var tilt := Basis(Vector3.RIGHT, side * deg_to_rad(ENGINE_ROLL)) * Basis(Vector3.BACK, deg_to_rad(6.0)) \
+			* Basis(Vector3.UP, -side * deg_to_rad(ENGINE_YAW))
+	var panel := Node3D.new()
+	panel.name = "Panel"
+	panel.transform = Transform3D(tilt, center)
+	body.add_child(panel)
+	# Repère du panneau : x en largeur, y en longueur, z en épaisseur.
+	var hw := ENGINE_SIZE.x * 0.5
+	var hl := ENGINE_SIZE.y * 0.5
+	var ht := ENGINE_SIZE.z * 0.5
+	var outline := PackedVector2Array([Vector2(-hw, -hl + 1.5), Vector2(-hw + 1.5, -hl), Vector2(hw - 1.5, -hl), Vector2(hw, -hl + 1.5), Vector2(hw, hl - 0.9), Vector2(hw - 0.9, hl), Vector2(-hw + 0.9, hl), Vector2(-hw, hl - 0.9)])
+	_prism(panel, outline, -ht, ht, [Vector3.RIGHT, Vector3.UP, Vector3.BACK], _mat(SAND))
+	# Chevrons de camouflage sur les deux faces, liseré et trappes.
+	for face: float in [-1.0, 1.0]:
+		var z := face * (ht + 0.015)
+		for k in 6:
+			var y := -hl + 2.2 + k * 2.3
+			var angle := deg_to_rad(28.0 if k % 2 == 0 else -28.0)
+			_mesh(panel, Vector3(5.2, 0.55, 0.03), Vector3(0, y, z), _mat(RUST), Basis(Vector3.BACK, angle))
+		_mesh(panel, Vector3(0.15, ENGINE_SIZE.y - 2.4, 0.03), Vector3(hw - 0.4, 0, z), _mat(SAND_DARK))
+		_mesh(panel, Vector3(0.15, ENGINE_SIZE.y - 2.4, 0.03), Vector3(-hw + 0.4, 0, z), _mat(SAND_DARK))
+	# Vérin et grille sur la face extérieure.
+	var out := side * (ht + 0.25)
+	_strut(panel, Vector3(1.2, -hl + 2.5, out), Vector3(1.2, 1.0, out), 0.2, _mat(STEEL, 0.4))
+	_strut(panel, Vector3(1.2, -hl + 3.2, out), Vector3(1.2, -hl + 5.6, out), 0.3, _mat(STEEL, 0.5))
+	_mesh(panel, Vector3(1.6, 0.9, 0.08), Vector3(-1.4, -hl + 3.0, side * (ht + 0.03)), _mat(DARK))
+	# Tuyère au pied et jet de poussée, allumé en vol.
+	_mesh(panel, Vector3(3.2, 0.35, ENGINE_SIZE.z * 0.6), Vector3(0, -hl - 0.1, 0), _mat(DARK))
 	var jet := MeshInstance3D.new()
 	var cone := CylinderMesh.new()
-	cone.top_radius = NACELLE_RADIUS * 0.7
-	cone.bottom_radius = NACELLE_RADIUS * 0.15
-	cone.height = 3.0
+	cone.top_radius = 1.3
+	cone.bottom_radius = 0.25
+	cone.height = 3.2
 	jet.mesh = cone
 	jet.material_override = _glow(Color(1.0, 0.6, 0.3), 3.0)
-	jet.transform = Transform3D(tilt, center + tilt * Vector3(0, -NACELLE_LENGTH * 0.5 - 2.1, 0))
+	jet.transform = Transform3D(Basis.from_scale(Vector3(1.0, 1.0, 0.4)), Vector3(0, -hl - 1.8, 0))
 	jet.visible = is_flying or is_inbound
-	body.add_child(jet)
+	panel.add_child(jet)
 	_exhausts.append(jet)
-	# Plaques de blindage en biais et bandes.
-	for k in 3:
-		var y := -1.8 + k * 1.8
-		_cylinder(body, NACELLE_RADIUS * 1.02, 0.25, center + tilt * Vector3(0, y, 0), _mat(RUST if k == 1 else SAND_DARK), tilt)
-	_collide(body, Vector3(NACELLE_RADIUS * 2.2, NACELLE_LENGTH, NACELLE_RADIUS * 2.2), center, tilt)
-	# Bras : épaule sur le toit, coude haut, avant-bras jusqu'au moyeu ; un
-	# second bras, plus fin, double le premier (patte de mante).
-	var shoulder := Vector3(NACELLE.x - 1.0, ROOF_TOP + 0.5, side * (HOLD.size.y * 0.5 - 0.3))
-	var elbow := Vector3(NACELLE.x + 2.0, ROOF_TOP + 5.2, side * (NACELLE.y - 3.4))
-	var hub := center + Vector3(0.6, 2.2, -side * NACELLE_RADIUS * 0.95)
-	_cylinder(body, 0.8, 1.8, shoulder, _mat(SAND_DARK), Basis(Vector3.RIGHT, PI * 0.5))
-	for offset: float in [-0.4, 0.4]:
+	_collide(body, ENGINE_SIZE, center, tilt)
+	# Bras : épaule sur le haut des flancs, coude relevé, poignet sur la
+	# face intérieure du panneau ; vérin depuis le haut de la tête.
+	var shoulder := Vector3(-9.0, 7.4, side * 7.0)
+	var elbow := Vector3(-7.8, 16.4, side * 9.0)
+	var wrist := center + tilt * Vector3(0, 1.8, -side * (ht + 0.6))
+	_cylinder(body, 1.2, 2.2, shoulder, _mat(SAND_DARK), Basis(Vector3.BACK, PI * 0.5))
+	_cylinder(body, 0.5, 1.9, shoulder, _mat(STEEL, 0.5), Basis(Vector3.BACK, PI * 0.5))
+	for offset: float in [-0.45, 0.45]:
 		var shift := Vector3(offset, 0, 0)
-		_strut(body, shoulder + shift, elbow + shift, 0.32, _mat(SAND))
-		_strut(body, elbow + shift, hub + shift, 0.28, _mat(SAND))
-	_cylinder(body, 0.6, 1.5, elbow, _mat(STEEL, 0.5), Basis(Vector3.BACK, PI * 0.5))
-	_cylinder(body, 0.65, 1.2, hub, _mat(STEEL, 0.5), Basis(Vector3.BACK, PI * 0.5))
-	var shoulder2 := shoulder + Vector3(3.2, 0.0, 0)
-	var elbow2 := elbow + Vector3(2.6, -1.4, side * 0.4)
-	_strut(body, shoulder2, elbow2, 0.2, _mat(SAND_DARK))
-	_strut(body, elbow2, hub + Vector3(1.4, -0.6, 0), 0.18, _mat(SAND_DARK))
-	_cylinder(body, 0.35, 0.9, elbow2, _mat(STEEL, 0.5), Basis(Vector3.BACK, PI * 0.5))
-	# Vérins hydrauliques le long des bras.
-	_strut(body, shoulder + Vector3(1.0, 0.3, 0), elbow + Vector3(0.8, -1.0, 0), 0.13, _mat(STEEL, 0.4))
-	_strut(body, elbow + Vector3(-0.6, -0.4, 0), hub + Vector3(-0.6, 0.6, 0), 0.11, _mat(STEEL, 0.4))
-	_collide(body, Vector3(1.6, 5.2, 1.6), (shoulder + elbow) * 0.5)
+		_strut(body, shoulder + shift, elbow + shift, 0.45, _mat(SAND))
+		_strut(body, elbow + shift, wrist + shift, 0.4, _mat(SAND))
+	_cylinder(body, 0.9, 2.0, elbow, _mat(STEEL, 0.5), Basis(Vector3.BACK, PI * 0.5))
+	_mesh(body, Vector3(2.4, 1.8, 1.4), wrist, _mat(SAND_DARK), tilt)
+	var ram := Vector3(-11.2, HEAD_Y + HEAD_RADIUS - 0.3, side * 1.8)
+	_strut(body, ram, ram.lerp(elbow, 0.55), 0.24, _mat(STEEL, 0.5))
+	_strut(body, ram, elbow, 0.13, _mat(STEEL, 0.35))
+	_collide(body, Vector3(2.0, 7.8, 2.0), (shoulder + elbow) * 0.5)
 
 
-## Aileron en flèche du côté `side`, à mi-hauteur de l'arrière.
+## Aile basse en flèche du côté `side`, réacteur à l'emplanture, et aileron
+## arrière en dièdre négatif. Sans collision : on passe dessous.
 func _build_wing(side: float) -> void:
-	var body := _body("Wing%s" % ("L" if side < 0.0 else "R"), LAYER_OBSTACLE)
+	var body := _body("Wing%s" % ("L" if side < 0.0 else "R"), 0)
 	var root := HOLD.size.y * 0.5 + WALL
-	var y := 4.2
-	# Profil (x, z) : bord d'attaque en flèche.
-	var plan := PackedVector2Array([Vector2(7.0, root), Vector2(15.0, root), Vector2(16.5, root + 6.5), Vector2(13.5, root + 6.5)])
+	var y := 3.4
+	var plan := PackedVector2Array([Vector2(-2.0, root), Vector2(5.0, root), Vector2(6.6, root + 10.5), Vector2(4.6, root + 10.5)])
 	var shape := PackedVector2Array()
 	for point in plan:
 		shape.append(Vector2(point.x, point.y * side))
-	_prism(body, shape, y, y + 0.3, [Vector3.RIGHT, Vector3.BACK, Vector3.UP], _mat(SAND))
-	_collide(body, Vector3(5.0, 0.3, 6.5), Vector3(13.0, y + 0.15, side * (root + 3.25)))
-	# Réacteur d'appoint sous l'aile, et bande.
-	var jet := Vector3(12.0, y - 0.7, side * (root + 2.4))
-	_cylinder(body, 0.55, 3.2, jet, _mat(SAND_DARK), Basis(Vector3.BACK, PI * 0.5))
-	_cylinder(body, 0.42, 0.1, jet + Vector3(1.62, 0, 0), _mat(DARK), Basis(Vector3.BACK, PI * 0.5))
-	_mesh(body, Vector3(0.8, 0.04, 6.0), Vector3(14.2, y + 0.32, side * (root + 3.1)), _mat(RUST), Basis(Vector3.UP, side * deg_to_rad(-12.0)))
+	_prism(body, shape, y, y + 0.25, [Vector3.RIGHT, Vector3.BACK, Vector3.UP], _mat(SAND))
+	var sweep := Basis(Vector3.UP, side * atan2(4.1, 10.5))
+	_mesh(body, Vector3(0.7, 0.03, 10.0), Vector3(3.4, y + 0.27, side * (root + 5.0)), _mat(RUST), sweep)
+	_mesh(body, Vector3(0.35, 0.03, 8.0), Vector3(1.6, y + 0.27, side * (root + 4.0)), _mat(RUST), sweep)
+	var along := Basis(Vector3.BACK, PI * 0.5)
+	var pod := Vector3(0.0, 3.0, side * 8.4)
+	_cylinder(body, 0.8, 6.0, pod, _mat(SAND_DARK), along)
+	_cylinder(body, 0.88, 0.8, pod + Vector3(-2.7, 0, 0), _mat(SAND), along)
+	_cylinder(body, 0.6, 0.05, pod + Vector3(-3.12, 0, 0), _mat(DARK), along)
+	_cylinder(body, 0.55, 0.6, pod + Vector3(3.2, 0, 0), _mat(STEEL, 0.5), along)
+	_cylinder(body, 0.4, 0.05, pod + Vector3(3.52, 0, 0), _mat(DARK), along)
+	_mesh(body, Vector3(0.12, 0.25, 0.04), Vector3(6.4, y + 0.1, side * (root + 10.52)), _glow(Color(0.2, 1.0, 0.3) if side > 0.0 else Color(1.0, 0.2, 0.15), 2.0))
+	# Aileron arrière.
+	var fin := Node3D.new()
+	fin.name = "Fin"
+	fin.transform = Transform3D(Basis(Vector3.RIGHT, side * deg_to_rad(15.0)), Vector3(0, 3.6, side * root))
+	body.add_child(fin)
+	var fin_plan := PackedVector2Array([Vector2(10.0, 0.0), Vector2(15.0, 0.0), Vector2(15.4, side * 5.5), Vector2(13.6, side * 5.5)])
+	_prism(fin, fin_plan, 0.0, 0.2, [Vector3.RIGHT, Vector3.BACK, Vector3.UP], _mat(SAND))
+	_mesh(fin, Vector3(0.5, 0.03, 5.0), Vector3(13.8, 0.22, side * 2.75), _mat(RUST), Basis(Vector3.UP, side * atan2(1.0, 5.5)))
 
 
-## Poutre de queue relevée au-dessus de la rampe, et dérive repliée.
+## Poutre de queue relevée au-dessus de la rampe, terminée par un grand
+## cadre-grille.
 func _build_tail() -> void:
 	var body := _body("Tail", LAYER_OBSTACLE)
-	var start := Vector3(HOLD.end.x - 1.0, ROOF_TOP + 0.6, 0)
-	var end := Vector3(HOLD.end.x + 11.0, ROOF_TOP + 3.0, 0)
+	var start := Vector3(HOLD.end.x - 6.0, ROOF_TOP + 0.4, 0)
+	var end := Vector3(HOLD.end.x + 9.0, ROOF_TOP + 8.0, 0)
 	var axis := end - start
 	var basis := Basis(Vector3.BACK, atan2(axis.y, axis.x))
-	_mesh(body, Vector3(axis.length(), 1.2, 2.0), (start + end) * 0.5, _mat(SAND), basis)
-	_collide(body, Vector3(axis.length(), 1.2, 2.0), (start + end) * 0.5, basis)
-	_mesh(body, Vector3(axis.length() * 0.6, 0.3, 2.06), start + axis * 0.55 + Vector3(0, 0.2, 0), _mat(RUST), basis)
-	# Dérive : plan incliné en arrière, et empennages.
-	var fin := PackedVector2Array([Vector2(end.x - 3.0, end.y), Vector2(end.x + 0.5, end.y), Vector2(end.x + 1.5, end.y + 3.2), Vector2(end.x - 0.5, end.y + 3.2)])
-	_prism(body, fin, -0.15, 0.15, [Vector3.RIGHT, Vector3.UP, Vector3.BACK], _mat(SAND_DARK))
-	var plane := PackedVector2Array([Vector2(end.x - 2.6, -0.8), Vector2(end.x + 0.2, -0.8), Vector2(end.x + 0.8, -4.0), Vector2(end.x - 0.6, -4.0)])
-	for side: float in [-1.0, 1.0]:
-		var mirrored := PackedVector2Array()
-		for point in plane:
-			mirrored.append(Vector2(point.x, point.y * side))
-		_prism(body, mirrored, end.y - 0.1, end.y + 0.1, [Vector3.RIGHT, Vector3.BACK, Vector3.UP], _mat(SAND))
-	_mesh(body, Vector3(0.2, 0.2, 0.2), Vector3(end.x + 1.3, end.y + 3.3, 0), _glow(Color(1.0, 0.2, 0.15), 2.5))
+	_mesh(body, Vector3(axis.length(), 1.3, 1.8), (start + end) * 0.5, _mat(SAND), basis)
+	_collide(body, Vector3(axis.length(), 1.3, 1.8), (start + end) * 0.5, basis)
+	_mesh(body, Vector3(axis.length() * 0.5, 0.2, 1.84), start + axis * 0.4 + basis * Vector3(0, 0.3, 0), _mat(RUST), basis)
+	for z: float in [-0.45, 0.45]:
+		_strut(body, start + basis * Vector3(0.5, 0.85, z), end + basis * Vector3(-0.5, 0.85, z), 0.12, _mat(STEEL, 0.4))
+	_mesh(body, Vector3(3.0, 1.6, 2.4), start + basis * Vector3(1.2, 0.1, 0), _mat(SAND_DARK), basis)
+	# Cadre-grille dans le prolongement de la poutre, un peu plus relevé.
+	var frame := Node3D.new()
+	frame.name = "Frame"
+	frame.transform = Transform3D(Basis(Vector3.BACK, atan2(axis.y, axis.x) + deg_to_rad(8.0)), end)
+	body.add_child(frame)
+	var length := 7.6
+	var width := 4.8
+	for z: float in [-1.0, 1.0]:
+		_mesh(frame, Vector3(length, 0.45, 0.4), Vector3(length * 0.5, 0, z * (width * 0.5 - 0.2)), _mat(SAND))
+	for x: float in [0.2, length - 0.2]:
+		_mesh(frame, Vector3(0.4, 0.45, width), Vector3(x, 0, 0), _mat(SAND))
+	_mesh(frame, Vector3(length - 0.8, 0.06, width - 0.8), Vector3(length * 0.5, 0, 0), _mat(STEEL, 0.6))
+	for k in 13:
+		_mesh(frame, Vector3(length - 0.9, 0.16, 0.07), Vector3(length * 0.5, 0, -1.8 + k * 0.3), _mat(DARK))
+	_mesh(frame, Vector3(1.4, 0.5, 1.2), Vector3(-0.3, 0, 0), _mat(SAND_DARK))
+	_mesh(frame, Vector3(0.2, 0.2, 0.2), Vector3(length, 0.3, 0), _glow(Color(1.0, 0.2, 0.15), 2.5))
 
 
-## Jambes de train et patins.
+## Jambes de train et patins à semelle grillagée.
 func _build_gear() -> void:
 	var gear := Node3D.new()
 	gear.name = "Gear"
 	add_child(gear)
 	var half := HOLD.size.y * 0.5 + WALL
-	for x: float in [-13.0, -4.0, 7.0, 15.5]:
+	for x: float in [-13.0, -7.5, 7.0, 15.5]:
 		for side: float in [-1.0, 1.0]:
 			var hip := Vector3(x, 1.6, side * half)
-			var foot := Vector3(x + 0.4, 0.2, side * (half + 1.9))
+			var foot := Vector3(x + 0.4, 0.25, side * (half + 1.9))
 			_strut(gear, hip, foot, 0.2, _mat(STEEL, 0.5))
 			_strut(gear, hip + Vector3(0.9, -0.4, 0), foot, 0.1, _mat(STEEL, 0.4))
-			_cylinder(gear, 0.55, 0.2, foot - Vector3(0, 0.1, 0), _mat(DARK))
+			_mesh(gear, Vector3(1.8, 0.15, 0.9), foot - Vector3(0, 0.15, 0), _mat(DARK))
+			for k in 4:
+				_mesh(gear, Vector3(0.08, 0.05, 0.92), foot + Vector3(-0.6 + k * 0.4, -0.05, 0), _mat(STEEL, 0.5))
 			_mesh(gear, Vector3(1.1, 0.5, 0.25), hip, _mat(SAND_DARK))
+
+
+## Sphère étirée par `stretch`.
+func _sphere(parent: Node3D, radius: float, at: Vector3, material: Material, stretch: Vector3 = Vector3.ONE) -> void:
+	var mesh := MeshInstance3D.new()
+	var ball := SphereMesh.new()
+	ball.radius = radius
+	ball.height = radius * 2.0
+	ball.radial_segments = 24
+	ball.rings = 12
+	mesh.mesh = ball
+	mesh.material_override = material
+	mesh.transform = Transform3D(Basis.from_scale(stretch), at)
+	parent.add_child(mesh)
 
 
 # --- Outils ----------------------------------------------------------------------
